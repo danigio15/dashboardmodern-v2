@@ -25,24 +25,28 @@ const SEME = {
     entityOverrides: {},
   },
   visibility: { home: true, citofono: true },
-  cd_citofono: {
-    citofoni: [
-      {
-        id: "cancello",
-        nome: "Cancello",
-        apri: "button.cancello",
-        campanello: "binary_sensor.citofono_ding",
-      },
-    ],
-    cassette: [
-      {
-        id: "cassetta",
-        nome: "Cassetta",
-        posta: "binary_sensor.vallhorn_motion",
-        ritiro: "sensor.vallhorn_illuminance",
-      },
-    ],
-  },
+};
+
+/* La configurazione della sezione: si scrive con la penna della plancia, non a
+ * mano nel magazzino. Le chiavi viaggiano sotto il prefisso dell'istanza e
+ * passano da una memoria che una scrittura di fuori non aggiorna. */
+const CONFIGURAZIONE = {
+  citofoni: [
+    {
+      id: "cancello",
+      nome: "Cancello",
+      apri: "button.cancello",
+      campanello: "binary_sensor.citofono_ding",
+    },
+  ],
+  cassette: [
+    {
+      id: "cassetta",
+      nome: "Cassetta",
+      posta: "binary_sensor.vallhorn_motion",
+      ritiro: "sensor.vallhorn_illuminance",
+    },
+  ],
 };
 
 /* Mezz'ora fa e sei ore fa: il movimento in cassetta è più recente
@@ -95,8 +99,19 @@ async function avvia(page, testInfo) {
     const raw = window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null");
     if (raw) Object.assign(raw, stati);
     window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
-    window.renderHomeWidgets?.();
   }, STATI());
+
+  await page.evaluate(async (configurazione) => {
+    const shared = await import("/src/sections/shared.js");
+    shared.writeJsonIfChanged("cd_citofono", configurazione);
+    const sezione = await import("/src/sections/citofono-section.js");
+    sezione.renderCitofono();
+    /* La Home si era già disegnata prima che questa configurazione ci fosse:
+     * un altro annuncio degli stati è il modo in cui le si dice di rifare le
+     * tessere con quello che c'è adesso. */
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+    window.renderHomeWidgets?.();
+  }, CONFIGURAZIONE);
 }
 
 test("la tessera dice che c'è posta in cassetta", async ({ page }, testInfo) => {
