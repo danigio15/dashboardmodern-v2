@@ -19,10 +19,10 @@ import { deviceEntityGroups } from "../core/appliance-device-binding.js";
  * tendina sceglie. Un secondo elenco vorrebbe dire due modi di sbagliare il
  * verbo sullo stesso dominio. */
 import {
-  comandiDelRobot as comandiScelti,
-  comandoDelRobot as servizioDelComando,
+  comandiDelDispositivo as comandiScelti,
+  comandoDelDispositivo as servizioDelComando,
   elencoComandi,
-} from "../core/robot-model.js";
+} from "../core/comandi-accanto.js";
 import {
   applianceModelForIndex,
   buildCardMarkup,

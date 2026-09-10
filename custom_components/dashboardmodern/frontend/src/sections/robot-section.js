@@ -12,7 +12,6 @@
  * arrivate dopo.
  */
 import {
-  comandoDelRobot,
   drawableRobots,
   robotActions,
   robotCommand,
@@ -21,6 +20,7 @@ import {
   robotView,
   SPECIES_LABELS,
 } from "../core/robot-model.js";
+import { comandoDelDispositivo } from "../core/comandi-accanto.js";
 import {
 allStates,
   clean,
@@ -880,7 +880,7 @@ export function handleRobotClick(event) {
     if (root.navigator?.vibrate) root.navigator.vibrate(12);
     if (voce.genere === "interruttore")
       comando.setAttribute("aria-pressed", String(voce.acceso !== true));
-    callService(comandoDelRobot(voce));
+    callService(comandoDelDispositivo(voce));
     schedule();
     return true;
   }
@@ -914,7 +914,7 @@ function handleFanChange(event) {
       (item) => item.entity === clean(tendina.dataset.dmRobotTendina),
     );
     if (!voce) return;
-    callService(comandoDelRobot(voce, tendina.value));
+    callService(comandoDelDispositivo(voce, tendina.value));
     schedule();
     return;
   }

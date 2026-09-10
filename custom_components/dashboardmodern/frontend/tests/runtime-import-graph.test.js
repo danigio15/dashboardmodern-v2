@@ -1158,8 +1158,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // ne avevano bisogno pure loro, e tenerla di la' avrebbe voluto dire due
   // moduli che si importano a vicenda oppure la stessa regola scritta due
   // volte: e' scesa dove tutt'e tre la vedono.
+  // 327 con i comandi accanto (#451): «le TV dove vanno messe?». Non un modulo
+  // nuovo di sostanza, ma uno spostamento: le regole dei comandi in piu' —
+  // quali entita' possono esserlo, cosa fa toccarne una, quali stanno accanto
+  // — stavano nel modello del robot perche' li' e' arrivata la domanda per
+  // prima (#306), e gli elettrodomestici se le prendevano da li' con un
+  // commento che lo ammetteva. Alla terza sezione che le chiede — i lettori,
+  // per le TV — tenerle di la' voleva dire un lettore che importa dal robot.
   assert.ok(
-    relative.length <= 326,
+    relative.length <= 327,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

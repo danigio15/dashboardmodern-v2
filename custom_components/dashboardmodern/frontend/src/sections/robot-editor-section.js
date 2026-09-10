@@ -21,16 +21,18 @@
 import {
   ESITI_ELENCO,
   bindRobotToDevice,
-  comandiSuggeriti,
   conLaVoce,
-  elencoComandi,
   elencoMappe,
-  genereDelComando,
   mappeSuggerite,
   normalizeRobots,
   robotSpecies,
   tettoDellElenco,
 } from "../core/robot-model.js";
+import {
+  comandiVicini,
+  elencoComandi,
+  genereDelComando,
+} from "../core/comandi-accanto.js";
 import { nomeAccantoAlDispositivo } from "../core/nome-accanto-al-dispositivo.js";
 import { elencoLetture, lettureSuggerite } from "../core/robot-letture.js";
 import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
@@ -108,7 +110,7 @@ function campo(id, label, value, placeholder, hint) {
 const LISTE = Object.freeze({
   comandi: {
     elenco: elencoComandi,
-    suggerite: comandiSuggeriti,
+    suggerite: comandiVicini,
     genere: genereDelComando,
     segnaposto: "button.robot_pulizia_completa",
   },

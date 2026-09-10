@@ -17,8 +17,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 
+import { COMANDI_MASSIMI } from "../src/core/comandi-accanto.js";
 import {
-  COMANDI_MASSIMI,
   ESITI_ELENCO,
   bindRobotToDevice,
   conLaVoce,

@@ -26,13 +26,11 @@ import { APPLIANCE_BINDING_FIELDS } from "../core/device-model.js";
 /* Le regole dei comandi a parte sono quelle del robot (#306), e non se ne
  * scrive un secondo elenco per gli elettrodomestici (#338): quali domini
  * possono fare da comando, come si chiama un comando senza ripetere il nome
- * dell'apparecchio, quali entita' gli stanno accanto. Sono nate li' perche' li'
- * e' arrivata la domanda per prima; sono le stesse. */
-import {
-  comandiSuggeriti as comandiVicini,
-  elencoComandi,
-  genereDelComando,
-} from "../core/robot-model.js";
+ * dell'apparecchio, quali entita' gli stanno accanto. Stavano dentro il
+ * modello del robot, perche' li' e' arrivata la domanda per prima; adesso
+ * stanno in un modulo loro, che le tre sezioni che le usano — robot,
+ * elettrodomestici, lettori — vedono senza sapere niente l'una dell'altra. */
+import { comandiVicini, elencoComandi, genereDelComando } from "../core/comandi-accanto.js";
 import { nomeAccantoAlDispositivo } from "../core/nome-accanto-al-dispositivo.js";
 import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
 import { CAMPI_SCELTI } from "../core/energy-loads-config.js";
