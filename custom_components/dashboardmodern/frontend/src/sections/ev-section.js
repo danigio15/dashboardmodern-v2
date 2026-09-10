@@ -6,6 +6,7 @@ import {
   VEHICLE_OVERRIDES_FIELD,
   VEHICLE_PHOTO_FIELDS,
   conLeCaselleScritte,
+  laVetturaDelleCaselle,
   nuovoVeicolo,
   pickVehicle,
   storedVehicles,
@@ -1815,35 +1816,55 @@ function installLegacyWrappers() {
    * La raccolta la fa `cdEvCaptureProfile`, che rilegge ogni campo `dm.ev_*`
    * del modulo ed e' gia' avvolto qui sopra per tenere fuori la colonnina:
    * quella e' della casa, e non entra nel profilo di una vettura. */
+  /* Un rifiuto che non si sa spiegare costa un'indagine ogni volta.
+   *
+   * Questa strada rifiutava in cinque punti diversi senza dire niente: il
+   * salvataggio riusciva, la mappa di casa si aggiornava, e il profilo restava
+   * indietro. Da fuori — e dalle prove — si vede solo il risultato, cioe' lo
+   * schermo che dice AdBlue mentre il grafico dietro dice gasolio (#444).
+   *
+   * Adesso il motivo esce nella console del browser, che e' il posto dove
+   * guarda chi ha il difetto davanti e dove guarda una prova quando cade. Una
+   * riga sola, e solo quando qualcosa non e' andato: niente rumore sul giro
+   * buono. */
+  function spiegaIlRifiuto(motivo) {
+    try {
+      root.console?.warn?.(`[dashboardmodern] caselle dell'auto: ${motivo}`);
+    } catch (_errore) {}
+  }
+
   function prendiLeCaselle(scritte) {
     /* Mentre e' la plancia a dettare i campi non si ascolta: quello che scrive
      * lei non e' una correzione di nessuno, e prenderla per tale vorrebbe dire
      * riscrivere il profilo con quello che ne era appena uscito. */
     if (state.dettandoICampi || state.prendendoLeCaselle) return false;
-    if (!scritte || !Object.keys(scritte).length) return false;
-    const chiave = editingKey();
-    if (chiave === "") return false;
-    const elenco = profiles();
-    let bersaglio = null;
-    if (chiave) bersaglio = elenco.find((car) => uidDi(car) === chiave) || null;
-    else {
-      /* Senza un gesto esplicito comanda il NOME scritto, ed e' la stessa
-       * domanda che si fa il tasto «Salva auto»: il nome scelto scegle l'auto
-       * che lo porta gia'; un nome nuovo e' una vettura che sta nascendo, e le
-       * sue caselle non sono di nessuno finche' non la si salva.
-       *
-       * Versarle nell'auto in uso e' il modo in cui due auto si mescolano —
-       * l'ho fatto, e `ev-two-profiles` me l'ha detto: si mappa la Zoe, si
-       * salva, si rimappa per la Tesla, e la Zoe si prendeva la batteria della
-       * Tesla prima che la Tesla esistesse. */
-      const nomeScritto = clean(doc?.getElementById("ed-evcar-name")?.value);
-      const omonima = nomeScritto
-        ? elenco.find((car) => clean(car?.name) === nomeScritto) || null
-        : null;
-      if (nomeScritto && !omonima) return false;
-      bersaglio = omonima || activeVehicle(elenco);
+    if (!scritte || !Object.keys(scritte).length) {
+      spiegaIlRifiuto("il salvataggio non ha raccolto nessuna casella dell'auto");
+      return false;
     }
-    if (!bersaglio) return false;
+    const elenco = profiles();
+    /* Di chi sono queste caselle: la regola sta nel modello, che e' logica pura
+     * e si prova con i numeri. Qui resta il gesto. */
+    const { auto: bersaglio, motivo } = laVetturaDelleCaselle({
+      elenco,
+      chiave: editingKey(),
+      nomeScritto: clean(doc?.getElementById("ed-evcar-name")?.value),
+      inUso: activeVehicle(elenco),
+    });
+    if (motivo === "chiave-sparita")
+      spiegaIlRifiuto(
+        "la scheda ricordava un'auto che nell'elenco non c'e' piu': le caselle vanno su quella in uso",
+      );
+    if (!bersaglio) {
+      /* «Auto che nasce» e «nome nuovo» non sono guasti: sono i due momenti in
+       * cui le caselle non sono ancora di nessuno, e tacere e' giusto. Tutto il
+       * resto si dice, perche' una correzione che non arriva nel profilo da
+       * fuori si vede solo come lo schermo che dice una cosa e il grafico
+       * un'altra (#444). */
+      if (motivo !== "auto-che-nasce" && motivo !== "nome-nuovo")
+        spiegaIlRifiuto(`le caselle non sono finite in nessun profilo: ${motivo}`);
+      return false;
+    }
     const { cars, cambiato } = conLeCaselleScritte(
       elenco,
       uidDi(bersaglio),

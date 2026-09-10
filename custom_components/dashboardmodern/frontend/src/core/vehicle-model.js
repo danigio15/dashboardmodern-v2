@@ -450,3 +450,62 @@ export function stessoModello(a, b) {
   if (uno === due) return true;
   return ` ${uno} `.includes(` ${due} `) || ` ${due} `.includes(` ${uno} `);
 }
+
+/**
+ * Di quale vettura sono le caselle che si stanno salvando.
+ *
+ * La domanda ha una risposta sola quando si salva, e questa e' la regola che
+ * la da'. Stava dentro la sezione, in mezzo al documento, e per questo non si
+ * poteva provare con i numeri: e' logica pura — un elenco, una chiave, un nome
+ * — e adesso sta dove sta la logica pura.
+ *
+ * Torna l'auto e, quando non ce n'e' una, il MOTIVO. Il motivo non e' un
+ * ornamento: prima questa decisione rifiutava in quattro punti diversi senza
+ * dire niente a nessuno, e un salvataggio che non arriva nel profilo si vedeva
+ * solo dall'esterno, come «lo schermo dice AdBlue e il grafico dice gasolio»
+ * (#444). Un rifiuto che non si sa spiegare costa un'indagine ogni volta.
+ *
+ * Le regole, in ordine:
+ *
+ *  - `chiave` vuota e' il gesto «＋ Nuova auto»: i campi sono di una vettura
+ *    che sta nascendo e non sono di nessuno finche' non la si salva.
+ *  - `chiave` piena e' la matita: quelle caselle sono di QUELL'auto. Se pero'
+ *    l'auto che la chiave nomina non c'e' piu' — cancellata, o un elenco
+ *    riletto che le ha dato un'altra identita' — la correzione non si butta:
+ *    chi ha premuto «Salva sezione» ha fatto un gesto esplicito, e l'unica
+ *    domanda aperta e' su quale auto. La risposta e' quella in uso, che e'
+ *    l'auto che ha davanti.
+ *  - Senza chiave comanda il NOME scritto: un nome gia' in elenco sceglie
+ *    l'auto che lo porta; un nome nuovo e' una vettura che nasce, e le sue
+ *    caselle aspettano. Nessun nome vuol dire l'auto in uso.
+ *
+ * Versare le caselle nell'auto in uso quando un nome NUOVO e' scritto sarebbe
+ * il modo in cui due auto si mescolano: si mappa la Zoe, si salva, si rimappa
+ * per la Tesla, e la Zoe si prende la batteria della Tesla prima che la Tesla
+ * esista.
+ */
+export function laVetturaDelleCaselle({
+  elenco = [],
+  chiave = null,
+  nomeScritto = "",
+  inUso = null,
+} = {}) {
+  const auto = array(elenco);
+  if (!auto.length) return { auto: null, motivo: "nessuna-auto" };
+  if (chiave === "") return { auto: null, motivo: "auto-che-nasce" };
+  const cercata = clean(chiave);
+  if (cercata) {
+    const trovata = auto.find((car) => clean(car?.[VEHICLE_KEY_FIELD]) === cercata) || null;
+    if (trovata) return { auto: trovata, motivo: "" };
+    /* La chiave nomina un'auto che non c'e' piu'. Prima si rifiutava, e la
+     * correzione spariva senza un rumore. */
+    return inUso
+      ? { auto: inUso, motivo: "chiave-sparita" }
+      : { auto: null, motivo: "chiave-sparita-e-nessuna-in-uso" };
+  }
+  const nome = clean(nomeScritto);
+  const omonima = nome ? auto.find((car) => clean(car?.name) === nome) || null : null;
+  if (nome && !omonima) return { auto: null, motivo: "nome-nuovo" };
+  if (omonima) return { auto: omonima, motivo: "" };
+  return inUso ? { auto: inUso, motivo: "" } : { auto: null, motivo: "nessuna-in-uso" };
+}
