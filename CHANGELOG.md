@@ -7,6 +7,129 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non ancora rilasciato
 
+## 1.4.17
+
+Un giro sui colori e sui conti. Il tema scuro aveva una famiglia intera di
+righe che chiedevano nomi inesistenti — e prendevano il colore del tema chiaro
+senza dirlo a nessuno — e da lì è venuto anche il resto: adesso che i colori
+passano tutti dagli stessi token, le tavolozze si possono aggiungere, e ce ne
+sono sei. In mezzo, una mia regressione della 1.4.16 sull'energia, trovata da
+una prova che avevo guardato tardi.
+
+### Aggiunto
+
+- **Sei tavolozze in più, e nessuna che si possa non leggere** (#436)
+
+  «Quando è possibile avere qualche tema in più?» Adesso: Notte blu, Grafite e
+  Bosco sul fondo scuro; Sabbia, Menta e Ardesia sul chiaro. La famiglia — chiaro
+  o scuro — resta scritta dov'era, perché su quel marcatore poggiano centinaia di
+  regole: la tavolozza si scrive accanto, non al suo posto. La scelta sta su
+  questo dispositivo, come il tema: il tablet in cucina può stare sul chiaro
+  mentre il telefono sta sul notte.
+
+  Una tavolozza è un elenco di numeri, quindi si prova a tavolino: nessuna
+  dimentica un token, nessuna scende sotto 4,5 di contrasto su testo, testo
+  tenue e accento, nessuna dichiara una famiglia diversa dal proprio fondo.
+
+- **Un avviso personalizzato può farsi vedere da solo** (#445)
+
+  «Ho un boolean che se attivo mi indica con un popup l'intervento del distacco
+  carichi.» La tessera si accendeva già; ma un intervento del distacco carichi
+  non è una cosa da vedere passando, è una cosa da sapere adesso — ed è la
+  differenza fra una tessera, che aspetta lo sguardo, e un popup, che lo va a
+  prendere.
+
+  Si apre solo quando l'avviso si ACCENDE, mai al primo sguardo su uno acceso da
+  stamattina, mai una seconda volta finché resta acceso, e mai sopra una finestra
+  già aperta. L'interruttore sta nella scheda delle tessere e nasce spento: una
+  finestra che si apre da sola è una cosa che si chiede, non che si subisce.
+
+- **Rifiuti: un sensore solo può portare tutto il calendario** (#443)
+
+  «Molte integrazioni non forniscono un calendario vero e proprio ma dei sensori
+  `sensor.xxx`.» Un sensore per materiale si leggeva da sempre; mancava l'altro
+  modo, che in Italia è il più diffuso — UN sensore che porta l'intero elenco dei
+  prossimi ritiri negli attributi. Si accettano tutte e tre le forme in cui lo
+  scrivono: elenco di oggetti, elenco di frasi, mappa frazione → data.
+
+- **Il luogo di una persona si tocca e si apre la mappa** (#438)
+
+  Il collegamento c'era già nella scheda grande; sulla card l'indirizzo era una
+  scritta, e arrivarci costava due tocchi per una cosa che si guarda mentre si
+  sta uscendo. Il resto della card continua ad aprire la persona.
+
+### Corretto
+
+- **Il tema scuro: i colori chiedevano nomi che non esistono** (#425)
+
+  «I numeri dei giorni della settimana non selezionati sono visualizzati in nero
+  e di difficile distinzione su sfondo di un colore simile.» Il numero chiedeva
+  `--text-color`, che non lo definisce nessuno: valeva sempre il ripiego scritto
+  a mano, il nero del tema chiaro. **1,08 di contrasto misurato**, cioè niente.
+
+  Non era un caso isolato ma una famiglia di ventisette righe — `--muted`,
+  `--border`, `--accent-color`, `--tc-rgb`, `--shadow-glass-strong` — tutte con
+  un ripiego chiaro e tutte invisibili finché qualcuno non accende lo scuro.
+  Adesso ogni riga chiede il token vero, e una prova conta i nomi che nessuno
+  definisce e li vuole giustificati per iscritto.
+
+- **Le Finestre non vanno più in colonna da PC** (#424)
+
+  La griglia non c'entrava. Fra una card e l'altra c'era la scritta della stanza,
+  che prende la riga intera: con una tapparella per stanza faceva una card per
+  riga a qualunque larghezza. E quella scritta, sopra una card sola, ripeteva la
+  stanza che la card stampa già sotto il proprio nome. Adesso resta dove
+  distingue e sparisce dove ripete.
+
+- **Nelle Stanze una cosa sola compare una volta sola** (#426)
+
+  Il lettore arrivava da due parti — la sua scheda e l'assegnazione a mano — e il
+  confronto guardava l'oggetto invece dell'entità: passavano tutti e due, e il
+  secondo finiva in «Altro», dove il tocco non porta da nessuna parte. Nella
+  stessa segnalazione: tutti i carichi finivano in «Senza stanza», perché il
+  blocco «Carichi» prometteva una stanza che la scheda non chiedeva — adesso la
+  casella c'è — e le batterie assegnate a mano portavano il puntatore generico
+  invece della loro faccia.
+
+- **Un ritocco all'indietro del Recorder non è un azzeramento**
+
+  Correggendo l'anno della wallbox nella 1.4.16 avevo scritto che un contatore
+  che scende è un contatore ripartito da zero. È vero per un riavvio e falso per
+  l'altra ragione per cui una somma scende: il Recorder ritocca le sue
+  statistiche all'indietro, di pochissimo. Letto come azzeramento, quel ritocco
+  portava nel secchiello tutta la cumulata di sempre — **l'anno della rete
+  importata usciva 1310 invece di 10, e il bilancio di casa 1339,9 invece di
+  39,9**. Adesso le due cose si distinguono da quanto è sceso, non dal fatto che
+  sia sceso.
+
+- **L'indirizzo di una persona non è un pezzo del viaggio** (#454)
+
+  Distanza, tempo di rientro e direzione si raccontano solo di chi è fuori: a
+  casa valgono zero. L'indirizzo era finito in quel mucchio per vicinanza, non
+  per ragione — chi è a casa un posto ce l'ha come chiunque altro, e vale
+  l'indirizzo di casa. Torna a leggersi sempre.
+
+- **La mappa del robot si muove mentre il robot si muove** (#456)
+
+  Si ridisegnava solo quando cambiava `entity_picture`. Su Valetudo, Roborock e
+  derivati la mappa è una telecamera, e l'indirizzo di una telecamera cambia
+  quando scade il gettone — non quando cambia il disegno: si guardava la
+  fotografia del momento in cui si era aperta la pagina, per tutto il tempo in
+  cui il robot puliva. Adesso, mentre gira, si richiede a tempo; fermo resta la
+  regola di prima. Senza aggiungere nessun timer.
+
+- **Rifiuti: la sera prima si dice il gesto** (#441)
+
+  «Domani» è un'informazione e lascia a chi legge il passo che conta. «Da mettere
+  fuori stasera» è il gesto, e chi legge ha finito.
+
+- **Presenza e Cruscotto avevano il tasto per tornare in Home?** (#452)
+
+  No. Due pagine su ventidue non erano nell'elenco del masthead, e ci si entrava
+  senza poterne uscire. Adesso una prova legge le pagine dai file e non lascia
+  passare quella che si dimentica.
+
+
 ## 1.4.16
 
 Il giro delle segnalazioni, una per una. Sei richieste nuove diventate cose che
