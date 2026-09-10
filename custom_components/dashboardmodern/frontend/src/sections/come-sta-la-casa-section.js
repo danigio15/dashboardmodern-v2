@@ -37,6 +37,7 @@ import { iconGlyphMarkup } from "./icon-engine-section.js";
 import { CHIAVE_VERSI, apertaSecondoVerso, insiemeInvertiti } from "../core/verso-aperture.js";
 import { parolaDelQuando } from "./rifiuti-section.js";
 import {
+  allStates,
   clean,
   doc,
   esc,
@@ -129,6 +130,21 @@ function leMisureAdesso(config, states) {
   return {
     temperatura: letturaDellaMisura(config.temperatura, states),
     umidita: letturaDellaMisura(config.umidita, states),
+    pioggia: letturaDellaMisura(config.pioggia, states),
+    pioggiaOggi: letturaDellaMisura(config.pioggiaOggi, states),
+  };
+}
+
+/* Le due letture della pioggia, per chi le chiede da fuori (#478).
+ *
+ * L'irrigazione le legge da qui invece di avere due caselle sue: chi ha una
+ * stazione meteo l'ha gia' dichiarata una volta, e due caselle per lo stesso
+ * pluviometro sono due caselle che possono discordare. */
+export function letturePioggia(states = allStates()) {
+  const config = configurazione();
+  return {
+    intensita: letturaDellaMisura(config.pioggia, states),
+    oggi: letturaDellaMisura(config.pioggiaOggi, states),
   };
 }
 
@@ -201,6 +217,18 @@ function paroleDellaPastiglia(pastiglia) {
       coda: t("antifurto", "alarm"),
       titolo: pastiglia.valore,
     };
+  if (pastiglia.chiave === "pioggia" || pastiglia.chiave === "pioggiaOggi") {
+    /* La pioggia si scrive col decimo: fra zero e 0,4 mm all'ora c'e' la
+     * differenza fra «piove» e «non piove», e arrotondare la cancella. */
+    const testa = `${formatNumber(pastiglia.valore, 1)}${pastiglia.unita ? ` ${pastiglia.unita}` : ""}`;
+    const coda =
+      pastiglia.chiave === "pioggia" ? t("pioggia", "rain") : t("oggi", "today");
+    return {
+      testa,
+      coda,
+      titolo: pastiglia.nome ? `${pastiglia.nome} · ${testa}` : `${testa} ${coda}`,
+    };
+  }
   if (pastiglia.chiave === "temperatura" || pastiglia.chiave === "umidita") {
     /* La temperatura si scrive col decimo — fra 21 e 21,5 c'e' la differenza
      * per cui uno guarda il sensore — l'umidita' no: mezzo punto percentuale
@@ -476,6 +504,8 @@ const NOMI_DELLE_VOCI = () => ({
   media: ["🔊", t("Musica", "Media")],
   temperatura: ["🌡️", t("Temperatura", "Temperature")],
   umidita: ["💧", t("Umidità", "Humidity")],
+  pioggia: ["🌧️", t("Pioggia adesso", "Rain now")],
+  pioggiaOggi: ["☔", t("Pioggia di oggi", "Rain today")],
 });
 
 /* Una casella per un sensore della barra: le due misure hanno la stessa forma
@@ -537,10 +567,28 @@ function pannelloMarkup() {
       t("Sensore dell'umidità", "Humidity sensor"),
       "sensor.umidita_esterna",
     )}
+    ${campoDellaMisura(
+      "pioggia",
+      config.pioggia,
+      t("Intensità della pioggia", "Rain rate"),
+      "sensor.stazione_rain_rate",
+    )}
+    ${campoDellaMisura(
+      "pioggiaOggi",
+      config.pioggiaOggi,
+      t("Pioggia caduta oggi", "Rain fallen today"),
+      "sensor.stazione_pioggia_giornaliera",
+    )}
     <div class="ed-intro">${esc(
       t(
-        "Due sensori scelti da te: quello che leggi per decidere, non una media della casa. Il tipico è quello fuori, con cui ci si regola per i clima interni. L'unità la dice Home Assistant, e chi non ne indica nessuno non vede nessuna delle due pastiglie.",
-        "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.",
+        "Quattro sensori scelti da te: quelli che leggi per decidere, non una media della casa. Il tipico è quello fuori, con cui ci si regola per i clima interni. L'unità la dice Home Assistant, e un sensore che non indichi è una pastiglia che non compare.",
+        "Four sensors of your choosing: the ones you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and a sensor you do not name is a pill that does not show up.",
+      ),
+    )}</div>
+    <div class="ed-intro">${esc(
+      t(
+        "I due della pioggia servono a chi ha una stazione meteo: quanto sta venendo giù adesso e quanti millimetri sono caduti oggi. Sono anche quelli che guarda l'irrigazione — se il terreno l'ha già bagnato la pioggia, la pagina Irrigazione lo dice e propone di saltare il giro — quindi si scrivono qui una volta sola.",
+        "The two rain ones are for those with a weather station: how hard it is coming down now, and how many millimetres fell today. They are also the ones irrigation looks at — if the rain has already watered the ground, the Irrigation page says so and offers to skip the run — so you name them here once.",
       ),
     )}</div>
     <button type="button" class="ed-save-btn" data-dm-casa-salva>💾 ${esc(

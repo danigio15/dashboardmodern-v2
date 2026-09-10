@@ -9,6 +9,25 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **La pioggia caduta, sotto il meteo e dentro l'irrigazione** (#478)
+
+  «Per chi ha una stazione meteo sarebbe utile vedere il rain rate e la pioggia
+  caduta nella giornata. Questo potrebbe integrarsi anche su gestione
+  irrigazione.» Due pastiglie nuove nella barra sotto il meteo: quanto sta
+  venendo giù adesso e quanti millimetri sono caduti oggi. Come le altre due
+  letture, il sensore lo scegli tu e l'unità la dice Home Assistant.
+
+  L'irrigazione una regola sulla pioggia ce l'aveva già, ma guarda un'altra
+  cosa: la *probabilità* che piova, secondo le previsioni. Un pluviometro dice
+  un fatto più forte — quanta acqua è arrivata a terra — e adesso la pagina
+  Irrigazione dice tutt'e due: «sta piovendo», oppure «terreno bagnato · oggi
+  11,2 mm» quando la pioggia ha già fatto il giro che avrebbe fatto l'impianto.
+  Cinque millimetri è la soglia, perché cinque millimetri sono quello che mette
+  un impianto da giardino in un turno.
+
+  I due sensori si scrivono una volta sola, nella barra: chiederli anche
+  nell'irrigazione vorrebbe dire due caselle per lo stesso pluviometro.
+
 - **Il robot dice anche il filtro, le spazzole e i metri quadri** (#468)
 
   «Sarebbe possibile aggiungere più valori tra quelli che mostra?» Un robot

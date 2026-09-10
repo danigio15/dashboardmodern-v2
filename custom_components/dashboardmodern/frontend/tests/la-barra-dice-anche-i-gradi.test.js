@@ -21,13 +21,51 @@ import {
 const misura = (valore, unita, nome) => ({ valore, unita, nome });
 const chiavi = (pastiglie) => pastiglie.map((pastiglia) => pastiglia.chiave);
 
-test("le due misure sono voci della barra, e stanno in fondo", () => {
+test("le misure sono voci della barra, e stanno in fondo", () => {
   const elenco = VOCI_DELLA_BARRA.map((voce) => voce.chiave);
-  assert.ok(elenco.includes("temperatura"));
-  assert.ok(elenco.includes("umidita"));
-  /* Chi legge da sinistra deve trovare per prima la cosa che è successa. */
-  assert.deepEqual(elenco.slice(-2), ["temperatura", "umidita"]);
+  for (const chiave of ["temperatura", "umidita", "pioggia", "pioggiaOggi"])
+    assert.ok(elenco.includes(chiave), `manca ${chiave}`);
+  /* Chi legge da sinistra deve trovare per prima la cosa che è successa: le
+   * letture — i gradi, l'umidità e, da #478, la pioggia — stanno dopo. */
+  assert.deepEqual(elenco.slice(-4), ["temperatura", "umidita", "pioggia", "pioggiaOggi"]);
   assert.ok(elenco.indexOf("posta") < elenco.indexOf("temperatura"));
+});
+
+test("i due della pioggia si salvano come gli altri due (#478)", () => {
+  /* «Per chi ha una stazione meteo sarebbe utile vedere il rain rate e la
+   * pioggia caduta nella giornata.» Stessa forma delle altre due letture, e
+   * vuoti di serie: un pluviometro che nessuno ha indicato non si indovina. */
+  const vuota = normalizzaBarra({});
+  assert.equal(vuota.pioggia, "");
+  assert.equal(vuota.pioggiaOggi, "");
+  const scelta = normalizzaBarra({
+    pioggia: " sensor.stazione_rain_rate ",
+    pioggiaOggi: "sensor.stazione_pioggia_oggi",
+  });
+  assert.equal(scelta.pioggia, "sensor.stazione_rain_rate");
+  assert.equal(scelta.pioggiaOggi, "sensor.stazione_pioggia_oggi");
+
+  /* E con la lettura la pastiglia c'è, col colore dell'acqua che cade. */
+  const pastiglie = pastiglieDellaCasa([], {
+    barra: normalizzaBarra({}),
+    misure: {
+      pioggia: { valore: 2.4, unita: "mm/h", nome: "Stazione intensità" },
+      pioggiaOggi: { valore: 11.2, unita: "mm", nome: "Stazione pioggia oggi" },
+    },
+  });
+  const per = Object.fromEntries(pastiglie.map((voce) => [voce.chiave, voce]));
+  assert.equal(per.pioggia.valore, 2.4);
+  assert.equal(per.pioggia.unita, "mm/h");
+  assert.equal(per.pioggiaOggi.valore, 11.2);
+  /* Non aprono nessuna tessera: la pioggia caduta non è una sezione. */
+  assert.equal(per.pioggia.tessera, "");
+  /* E senza lettura non compaiono, come tutte le altre voci mute. */
+  assert.equal(
+    pastiglieDellaCasa([], { barra: normalizzaBarra({}), misure: {} }).some((voce) =>
+      voce.chiave.startsWith("pioggia"),
+    ),
+    false,
+  );
 });
 
 test("i due sensori si salvano, e di serie non c'è nessuno", () => {

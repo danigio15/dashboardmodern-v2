@@ -1165,8 +1165,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // prima (#306), e gli elettrodomestici se le prendevano da li' con un
   // commento che lo ammetteva. Alla terza sezione che le chiede — i lettori,
   // per le TV — tenerle di la' voleva dire un lettore che importa dal robot.
+  // 328 con la pioggia caduta (#478): «per chi ha una stazione meteo sarebbe
+  // utile vedere il rain rate e la pioggia caduta nella giornata. Questo
+  // potrebbe integrarsi anche su gestione irrigazione». Il modulo risponde a
+  // una domanda sola — l'irrigazione ha ancora senso, guardando il cielo di
+  // oggi? — e la risposta ha tre esiti, non due: «sta piovendo» e «ha piovuto
+  // abbastanza» sono due ragioni diverse per saltare il giro, e chi legge la
+  // pagina vuole sapere quale delle due e'.
   assert.ok(
-    relative.length <= 327,
+    relative.length <= 328,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

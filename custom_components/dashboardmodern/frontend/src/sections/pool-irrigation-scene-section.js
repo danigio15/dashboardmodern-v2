@@ -13,6 +13,8 @@ import {
   poolRunToday,
   poolTargetHours as modelTargetHours,
 } from "../core/pool-model.js";
+import { siPuoSaltare, verdettoDellaPioggia } from "../core/pioggia-caduta.js";
+import { letturePioggia } from "./come-sta-la-casa-section.js";
 import { decorateEntityFields } from "./editor-slots-section.js";
 import { extraPoolCommand } from "./pool-extra-section.js";
 import {
@@ -691,6 +693,36 @@ function syncIrrigationValues(host, grid, config) {
     }
     if (rain != null) {
       chips.push(`<span class="dm-irr-meta-chip" data-alert="${String(rain >= threshold)}">🌧️ ${t("pioggia", "rain")} ${Math.round(rain)}% · ${t("soglia", "threshold")} ${threshold}%</span>`);
+    }
+    /* Quanta ne e' caduta davvero (#478).
+     *
+     * Il gettone qui sopra dice la PROBABILITA' che piova: serve a decidere la
+     * sera per la mattina dopo. Il pluviometro dice un fatto piu' forte —
+     * quanta acqua e' arrivata a terra — e le due cose stanno insieme perche'
+     * una previsione sbagliata capita, un millimetro caduto no.
+     *
+     * I sensori sono quelli della barra sotto il meteo: chi ha una stazione
+     * l'ha gia' dichiarata li' una volta, e chiederla di nuovo qui vorrebbe
+     * dire due caselle per lo stesso pluviometro. */
+    const dalCielo = letturePioggia(states);
+    const pioggia = verdettoDellaPioggia({
+      intensita: dalCielo.intensita?.valore,
+      oggi: dalCielo.oggi?.valore,
+    });
+    if (pioggia) {
+      const quanta =
+        pioggia.oggi === null
+          ? ""
+          : ` · ${t("oggi", "today")} ${pioggia.oggi.toFixed(1)} mm`;
+      const parola =
+        pioggia.chiave === "piove"
+          ? t("sta piovendo", "raining now")
+          : pioggia.chiave === "bagnato"
+            ? t("terreno bagnato", "ground already wet")
+            : t("asciutto", "dry");
+      chips.push(
+        `<span class="dm-irr-meta-chip" data-dm-irr-caduta data-alert="${String(siPuoSaltare(pioggia))}">☔ ${esc(parola)}${esc(quanta)}</span>`,
+      );
     }
     const markup = chips.join("");
     scriviSeCambia(meta, markup);
