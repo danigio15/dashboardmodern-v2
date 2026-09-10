@@ -236,6 +236,180 @@ export function ritiriDalTurno(turno, adesso = Date.now()) {
   return fuori.sort((a, b) => a.giorni - b.giorni);
 }
 
+/* ── un sensore solo che porta tutto il calendario (#443) ─────────────── */
+
+/* «Molte integrazioni non forniscono un calendario vero e proprio ma dei
+ *  sensori sensor.xxx. Sarebbe bello poterli usare.»
+ *
+ * Un sensore per materiale la plancia lo legge da sempre: e' la riga, con la
+ * sua data. Quello che mancava e' l'altro modo, che in Italia e' il piu'
+ * diffuso: UN sensore che porta l'intero elenco dei prossimi ritiri negli
+ * attributi — il SAVNO di Conegliano, per dirne uno segnalato dal campo — dove
+ * ogni voce ha una data e il nome della frazione.
+ *
+ * Non si puo' pretendere un dialetto solo, perche' non ce n'e' uno: chi scrive
+ * queste integrazioni mette un elenco di oggetti, o un elenco di frasi, o una
+ * mappa frazione → data. Qui si accettano tutte e tre, e la regola e' la
+ * stessa che vale per le righe: una data la si riconosce nei modi in cui la
+ * scrivono tutti, e il materiale lo si indovina dal nome, che e' quello che fa
+ * gia' `materialeDalNome` per gli eventi del calendario.
+ *
+ * Quello che NON si fa e' inventare: una voce da cui non esce una data non
+ * diventa una riga muta, sparisce. Un elenco da cui non esce niente lascia il
+ * campo al modo di prima — lo stato del sensore letto come data unica — che
+ * per molti sensori e' gia' la risposta giusta.
+ */
+
+/* Dove le integrazioni tengono l'elenco. Si guardano prima questi nomi e poi
+ * tutti gli altri attributi: il nome giusto e' quello che porta delle date. */
+const NOMI_DELL_ELENCO = Object.freeze([
+  "prossimi_ritiri",
+  "ritiri",
+  "raccolte",
+  "prossime_raccolte",
+  "upcoming",
+  "collections",
+  "next_collections",
+  "schedule",
+  "events",
+  "days",
+  "dates",
+  "calendar",
+]);
+
+/* Dentro una voce dell'elenco: dove sta la data e dove sta la frazione. */
+const NOMI_DELLA_DATA = Object.freeze([
+  "date",
+  "data",
+  "day",
+  "giorno",
+  "start",
+  "start_time",
+  "next",
+  "when",
+  "quando",
+  "collection_date",
+  "pickup_date",
+]);
+
+const NOMI_DEL_MATERIALE = Object.freeze([
+  "type",
+  "tipo",
+  "types",
+  "waste_type",
+  "waste_types",
+  "fraction",
+  "frazione",
+  "name",
+  "nome",
+  "summary",
+  "title",
+  "titolo",
+  "description",
+  "descrizione",
+  "text",
+]);
+
+const testoDi = (valore) => (Array.isArray(valore) ? valore.join(" ") : pulito(valore));
+
+/* Una voce dell'elenco, comunque sia scritta: torna la data e il testo da cui
+ * si indovina il materiale, oppure `null` se una data non c'e'. */
+function voceDellElenco(voce) {
+  if (voce && typeof voce === "object" && !Array.isArray(voce)) {
+    let data = null;
+    for (const nome of NOMI_DELLA_DATA) {
+      data = leggiData(voce[nome]);
+      if (data) break;
+    }
+    if (!data) return null;
+    const parti = NOMI_DEL_MATERIALE.map((nome) => testoDi(voce[nome])).filter(Boolean);
+    return { data, testo: parti.join(" ") };
+  }
+  /* Una frase: «2026-09-11 Plastica», «Plastica: 11/09», «Plastica il 11 set».
+   * La data e' il pezzo che si sa leggere; il resto e' il nome. */
+  const frase = pulito(voce);
+  if (!frase) return null;
+  const pezzi = frase.split(/[\s,;:]+/).filter(Boolean);
+  for (let quanti = 3; quanti >= 1; quanti -= 1)
+    for (let da = 0; da + quanti <= pezzi.length; da += 1) {
+      const data = leggiData(pezzi.slice(da, da + quanti).join(" "));
+      if (!data) continue;
+      const resto = [...pezzi.slice(0, da), ...pezzi.slice(da + quanti)].join(" ");
+      return { data, testo: resto || frase };
+    }
+  return null;
+}
+
+/* L'elenco grezzo, da qualunque attributo lo porti: un array di voci, oppure
+ * una mappa frazione → data, che si legge come un elenco di coppie. */
+function elencoGrezzo(attributi) {
+  const nomi = [
+    ...NOMI_DELL_ELENCO.filter((nome) => attributi[nome] !== undefined),
+    ...Object.keys(attributi).filter((nome) => !NOMI_DELL_ELENCO.includes(nome)),
+  ];
+  for (const nome of nomi) {
+    const valore = attributi[nome];
+    if (Array.isArray(valore)) {
+      const voci = valore.map(voceDellElenco).filter(Boolean);
+      if (voci.length) return voci;
+      continue;
+    }
+    if (valore && typeof valore === "object") {
+      const voci = Object.entries(valore)
+        .map(([chiave, quando]) => {
+          const data = leggiData(quando);
+          return data ? { data, testo: chiave } : null;
+        })
+        .filter(Boolean);
+      if (voci.length) return voci;
+    }
+  }
+  return [];
+}
+
+/**
+ * I ritiri che UN sensore annuncia con tutto il suo elenco.
+ *
+ * Torna righe della stessa forma di quelle del turno e dei sensori per
+ * materiale: chi disegna non deve sapere da dove viene una riga. I ritiri gia'
+ * passati restano fuori, e di ogni materiale si tiene la PRIMA occasione — un
+ * elenco che ripete la plastica fra due giorni e fra nove non risponde alla
+ * domanda della sera, la annacqua.
+ */
+export function ritiriDaUnElenco(stato, adesso = Date.now()) {
+  const attributi = stato?.attributes;
+  if (!attributi || typeof attributi !== "object") return [];
+  const visti = new Set();
+  return elencoGrezzo(attributi)
+    .map((voce) => {
+      const giorni = giorniFra(adesso, voce.data);
+      const materiale = materialeDiSerie(materialeDalNome(voce.testo));
+      return { ...voce, giorni, materiale };
+    })
+    .filter((voce) => voce.giorni >= 0)
+    .sort((sinistra, destra) => sinistra.giorni - destra.giorni)
+    .filter((voce) => {
+      if (visti.has(voce.materiale.chiave)) return false;
+      visti.add(voce.materiale.chiave);
+      return true;
+    })
+    .map((voce) => ({
+      id: `elenco-${voce.materiale.chiave}`,
+      materiale: voce.materiale.chiave,
+      /* Il nome scritto dall'integrazione resta solo quando dice qualcosa in
+       * piu' del materiale: «Plastica e lattine» si', «plastica» no. */
+      nome: materialeDalNome(voce.testo) === "altro" ? pulito(voce.testo) : "",
+      icona: voce.materiale.icona,
+      colore: voce.materiale.colore,
+      entity: "",
+      muto: false,
+      dallElenco: true,
+      data: voce.data,
+      giorni: voce.giorni,
+      quando: quandoCodice(voce.giorni),
+    }));
+}
+
 /** La configurazione, ripulita. */
 export function normalizzaRifiuti(stored) {
   const dato = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
@@ -587,11 +761,40 @@ export function letturaRifiuti(
    * Un materiale che ha gia' il suo sensore non si ripete: il sensore sa la
    * data vera, il turno la data prevista, e due righe dello stesso bidone con
    * due date diverse sono peggio di una sola. */
+  /* Il materiale VERO di una riga configurata, che non sempre e' quello
+   * scritto nella riga.
+   *
+   * Chi non lo sceglie lascia «altro», e allora lo dice il sensore: Waste
+   * Collection Schedule scrive `types`, altri `waste_type`, altri ancora solo
+   * il nome amichevole. Quella traduzione la faceva soltanto il disegno delle
+   * righe, piu' in basso, e qui sopra restava «altro» — cosi' l'elenco delle
+   * esclusioni diceva di avere un sensore per «altro» mentre in pagina quella
+   * riga era diventata «plastica». Il calendario portava allora la SUA
+   * plastica, che nessuno escludeva piu': due righe dello stesso bidone, con
+   * due date diverse, che e' esattamente cio' che l'esclusione esiste per
+   * impedire.
+   *
+   * La domanda si fa in un posto solo, e la fanno tutti e due. */
+  const vestitoDellaRiga = (riga) => {
+    if (riga.materiale !== "altro") return null;
+    const dalSensore = materialeDalSensore(leggi(riga.entity));
+    return dalSensore ? materialeDiSerie(dalSensore) : null;
+  };
+  const materialeDellaRiga = (riga) => vestitoDellaRiga(riga)?.chiave || riga.materiale;
   const daiSensori = new Set(
-    dato.righe.filter((riga) => riga.entity.includes(".")).map((riga) => riga.materiale),
+    dato.righe.filter((riga) => riga.entity.includes(".")).map(materialeDellaRiga),
   );
+  /* Un sensore solo che porta tutto l'elenco (#443): le sue voci diventano
+   * righe come le altre. Un materiale che ha gia' il suo sensore per materiale
+   * non si ripete — quello e' scelto, questo e' dedotto — e il turno scritto a
+   * mano cede il passo a tutti e due: e' la previsione, non la data. */
+  const dallElenco = ritiriDaUnElenco(
+    dato.calendario.includes(".") ? leggi(dato.calendario) : null,
+    adesso,
+  ).filter((riga) => !daiSensori.has(riga.materiale));
+  const dallElencoMateriali = new Set(dallElenco.map((riga) => riga.materiale));
   const dalTurno = ritiriDalTurno(dato.turno, adesso).filter(
-    (riga) => !daiSensori.has(riga.materiale),
+    (riga) => !daiSensori.has(riga.materiale) && !dallElencoMateriali.has(riga.materiale),
   );
   const righe = dato.righe
     .filter((riga) => riga.entity.includes("."))
@@ -599,10 +802,9 @@ export function letturaRifiuti(
       const stato = leggi(riga.entity);
       const data = dataDelRitiro(stato, adesso);
       const giorni = data ? giorniFra(adesso, data) : null;
-      /* Il materiale lo dice il sensore, se la riga non l'ha scelto: Waste
-       * Collection Schedule scrive `types` (un elenco), altri `waste_type`. */
-      const dalSensore = riga.materiale === "altro" ? materialeDalSensore(stato) : null;
-      const vestito = dalSensore ? materialeDiSerie(dalSensore) : null;
+      /* Lo stesso materiale che ha guardato l'esclusione qui sopra: se i due
+       * posti rispondessero diversamente tornerebbero le righe doppie. */
+      const vestito = vestitoDellaRiga(riga);
       return {
         ...riga,
         ...(vestito
@@ -623,7 +825,7 @@ export function letturaRifiuti(
         quando: quandoCodice(giorni),
       };
     })
-    .concat(dalTurno)
+    .concat(dallElenco, dalTurno)
     .sort((a, b) => {
       if (a.giorni === null && b.giorni === null) return 0;
       if (a.giorni === null) return 1;
@@ -632,7 +834,9 @@ export function letturaRifiuti(
     });
 
   let calendario = null;
-  if (dato.calendario.includes(".")) {
+  /* Quando l'elenco ha parlato, la riga unica del «Calendario dei ritiri» non
+   * ci va: direbbe una seconda volta la prima delle righe qui sopra. */
+  if (dato.calendario.includes(".") && !dallElenco.length) {
     const stato = leggi(dato.calendario);
     const data = dataDelRitiro(stato, adesso);
     const giorni = data ? giorniFra(adesso, data) : null;

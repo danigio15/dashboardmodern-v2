@@ -112,6 +112,9 @@ export function assignedItems(mappa = readJson(ROOM_ASSIGN_KEY, {}), states = al
       return {
         entity: id,
         name: clean(states?.[id]?.attributes?.friendly_name) || id,
+        /* La classe che Home Assistant scrive sull'entita': e' quello che la
+         * riga sa dire di se' quando nessuna scheda la descrive. */
+        device_class: clean(states?.[id]?.attributes?.device_class),
         room_id: stanza,
       };
     })
@@ -173,6 +176,93 @@ const emojiScelta = (item) => {
   return UN_GLIFO.test(scritta) ? scritta : "";
 };
 
+/* Che faccia ha una cosa assegnata a mano (#426).
+ *
+ * «Se fosse possibile far visualizzare l'icona corretta delle batterie nelle
+ *  stanze: attualmente e' il puntatore generico.»
+ *
+ * Il puntatore e' l'icona del BLOCCO, «Altro in questa stanza», e per il
+ * blocco va bene: e' un raccoglitore, e il puntatore dice «sta qui». Sopra la
+ * singola riga no: ripete che quella cosa e' stata assegnata a mano, che e'
+ * l'unica cosa che a chi guarda non serve, e sette righe diverse diventano
+ * sette puntatori uguali.
+ *
+ * Quello che una riga sa dire di se' lo scrive gia' Home Assistant: la classe
+ * dell'entita' — batteria, porta, movimento — e, quando la classe non c'e', il
+ * dominio, che almeno distingue una serratura da un termometro. */
+const ICONE_CLASSE = Object.freeze({
+  battery: "🔋",
+  temperature: "🌡️",
+  humidity: "💧",
+  moisture: "💦",
+  illuminance: "☀️",
+  pressure: "🧭",
+  power: "⚡",
+  energy: "⚡",
+  current: "⚡",
+  voltage: "⚡",
+  gas: "🫧",
+  co: "🫧",
+  co2: "🫧",
+  pm25: "🌫️",
+  aqi: "🌫️",
+  smoke: "🔥",
+  motion: "🏃",
+  occupancy: "🏃",
+  presence: "🏃",
+  door: "🚪",
+  garage_door: "🚗",
+  window: "🪟",
+  opening: "🪟",
+  lock: "🔒",
+  sound: "🔊",
+  vibration: "📳",
+  problem: "⚠️",
+  connectivity: "📶",
+  signal_strength: "📶",
+  timestamp: "🕒",
+  running: "▶️",
+  water: "🚰",
+});
+
+const ICONE_DOMINIO = Object.freeze({
+  light: "💡",
+  switch: "🔌",
+  lock: "🔒",
+  cover: "🪟",
+  climate: "❄️",
+  fan: "🌀",
+  camera: "📹",
+  media_player: "🎵",
+  vacuum: "🤖",
+  humidifier: "💧",
+  water_heater: "🚿",
+  valve: "🚰",
+  siren: "🚨",
+  alarm_control_panel: "🛡️",
+  person: "🙋",
+  device_tracker: "📡",
+  scene: "🎬",
+  script: "📜",
+  automation: "⚙️",
+  button: "🔘",
+  number: "🔢",
+  select: "📋",
+  input_boolean: "🔘",
+  binary_sensor: "🔔",
+  sensor: "📈",
+});
+
+const lower = (valore) => clean(valore).toLowerCase();
+
+export function glifoDellaVoce(item) {
+  const classe = lower(item?.device_class);
+  if (ICONE_CLASSE[classe]) return ICONE_CLASSE[classe];
+  const entita = entitaVoce(item);
+  const dominio = lower(entita.split(".")[0]);
+  return ICONE_DOMINIO[dominio] || "";
+}
+
 export function iconaVoce(item, blocco) {
   const propria = emojiScelta(item);
   if (propria) return propria;
@@ -185,6 +275,7 @@ export function iconaVoce(item, blocco) {
       applianceGlyph(item?.name) ||
       iconaBlocco(blocco)
     );
+  if (blocco.key === "altro") return glifoDellaVoce(item) || iconaBlocco(blocco);
   return iconaBlocco(blocco);
 }
 

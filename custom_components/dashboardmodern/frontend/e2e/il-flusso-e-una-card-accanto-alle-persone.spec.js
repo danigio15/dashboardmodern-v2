@@ -111,24 +111,31 @@ test("la card del flusso sta accanto alle persone, non sotto e non dentro", asyn
   const sua = await persone.first().boundingBox();
   const suaSeconda = await persone.nth(1).boundingBox();
 
-  /* «Accanto» esiste solo dove c'è la larghezza per tre colonne: due di
-   * persone e una per la card. Sotto i 760px si torna in colonna, perché
-   * «accanto» vorrebbe dire schiacciare le persone in una corsia sola — la
-   * scelta lì non è fra sotto e accanto, è fra sotto e schiacciato. Questa
-   * prova gira su tre viste, e su quella del telefono pretendere «accanto»
-   * vorrebbe dire pretendere il layout sbagliato. */
+  /* «Accanto» vale anche sul telefono, ed è una correzione di questa prova.
+   *
+   * Prima diceva: sotto i 760px la card va SOTTO, perché accanto vorrebbe dire
+   * schiacciare le persone in una corsia sola. Ed era una scelta mia, non una
+   * richiesta: «la card deve uscire affianco a Giovanni», e sul telefono
+   * finiva sotto, larga tutta la pagina — cioè esattamente quello che era
+   * stato chiesto di non fare. Due corsie a 390px ci stanno: le persone ne
+   * prendono una, la card l'altra, e ognuna è larga come una tessera dei
+   * widget (quello lo tiene fermo `le-due-griglie-della-home-sono-allineate`).
+   *
+   * Sotto i 360px si torna in colonna: lì due corsie non tengono più né una
+   * persona né un disegno, e quella è l'unica vista che pretende «sotto». */
   const larghezza = page.viewportSize()?.width ?? 0;
-  if (larghezza <= 760) {
+  if (larghezza <= 360) {
     /* Sotto la griglia, e tutta la riga: non una colonnina stretta in un
      * angolo, che è il modo in cui una card va a capo per sbaglio. */
     expect(suo.y).toBeGreaterThanOrEqual(sua.y + sua.height - 1);
     expect(suo.width).toBeGreaterThan(sua.width);
   } else {
     /* Le due caselle si sovrappongono in verticale — stessa riga — e la card è
-     * a destra dell'ultima persona. */
+     * a destra dell'ultima persona di quella riga. */
     expect(suo.y).toBeLessThan(sua.y + sua.height);
     expect(suo.y + suo.height).toBeGreaterThan(sua.y);
-    expect(suo.x).toBeGreaterThan(suaSeconda.x + suaSeconda.width - 1);
+    const ultima = suo.x > suaSeconda.x ? suaSeconda : sua;
+    expect(suo.x).toBeGreaterThan(ultima.x + ultima.width - 1);
     /* E stretta: una corsia sola, non la pagina. */
     expect(suo.width).toBeLessThan(260);
     /* La prova che sta FUORI dalla griglia e non dentro: la card è più alta di
@@ -141,11 +148,16 @@ test("la card del flusso sta accanto alle persone, non sotto e non dentro", asyn
    * quando la card stava dentro la griglia. */
   expect(sua.height).toBeCloseTo(suaSeconda.height, 0);
 
-  /* Il disegno c'è tutto: i cinque nodi che hanno un numero e gli archi fra
-   * loro. La casa in mezzo dice quanto sta usando. */
-  await expect(card.locator('.dm-flusso-nodo[data-nodo="casa"] .dm-flusso-watt')).toHaveText(
+  /* Il disegno c'è tutto: i cinque nodi e gli archi fra loro. La casa in mezzo
+   * dice quanto sta usando — e il suo numero sta sotto il cerchio, non dentro:
+   * dentro ci stava per un pelo e sopra i dieci kilowatt non ci stava. */
+  await expect(card.locator('.dm-flusso-nodo[data-nodo="casa"] .dm-flusso-usa')).toHaveText(
     /1[.,]8 kW/,
   );
+  /* E le cinque icone sono le NOSTRE, non le emoji del telefono: il catalogo
+   * di casa le disegna, ed è la stessa regola per cui nella tendina del Report
+   * l'emoji del guscio si stacca. */
+  await expect(card.locator(".dm-flusso-glifo .dm-catalogo-art")).toHaveCount(5);
   await expect(card.locator(".dm-flusso-arco")).not.toHaveCount(0);
   /* Il titolo dice da dove arriva adesso quello che la casa usa. */
   await expect(card.locator(".dm-flusso-fonte")).toContainText(/Fotovoltaico|Solar/);

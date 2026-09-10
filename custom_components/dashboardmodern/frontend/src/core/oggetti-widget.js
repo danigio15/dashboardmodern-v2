@@ -737,12 +737,26 @@ const OGGETTI = Object.freeze({
       fill="url(#dmoAssistCuore)" stroke="#fff" stroke-opacity=".7" stroke-width=".8"/>`,
 });
 
+/* Due nomi per lo stesso disegno.
+ *
+ * La scheda della configurazione si chiama «aperture» dal giorno in cui e'
+ * nata; la tessera della Home che ne e' uscita (#457) si chiama «porte»,
+ * perche' e' cosi' che la chiama chi la guarda. Ricopiare il disegno vorrebbe
+ * dire due definizioni della stessa cosa, e prima o poi due disegni diversi:
+ * qui c'e' il nome, non una seconda copia. */
+const ALTRI_NOMI = Object.freeze({ porte: "aperture" });
+
+const nomeDelDisegno = (chiave) => {
+  const nome = String(chiave || "");
+  return ALTRI_NOMI[nome] || nome;
+};
+
 /* Il disegno della tessera, pronto da mettere dentro la pastiglia.
  *
  * Chi chiama passa anche il simbolo di ripiego — quello scelto in
  * configurazione per le tessere fatte in casa — e per quelle si tiene il suo. */
 export function oggettoWidget(chiave, ripiego = "") {
-  const disegno = OGGETTI[String(chiave || "")];
+  const disegno = OGGETTI[nomeDelDisegno(chiave)];
   if (!disegno) return String(ripiego || "");
   return `<svg class="dm-oggetto" viewBox="0 0 32 32" aria-hidden="true" focusable="false">${conRipiegoDiColore(disegno)}</svg>`;
 }
@@ -764,7 +778,7 @@ export function conRipiegoDiColore(markup) {
 
 /* Serve alle prove e a chi vuole sapere se un tasto avra' il suo disegno. */
 export function haOggettoWidget(chiave) {
-  return Object.prototype.hasOwnProperty.call(OGGETTI, String(chiave || ""));
+  return Object.prototype.hasOwnProperty.call(OGGETTI, nomeDelDisegno(chiave));
 }
 
 export const CHIAVI_OGGETTI = Object.freeze(Object.keys(OGGETTI));

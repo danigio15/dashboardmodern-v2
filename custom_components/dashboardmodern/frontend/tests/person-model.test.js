@@ -295,7 +295,10 @@ test("il viaggio si racconta solo di chi e' fuori", () => {
   );
   assert.equal(aCasa.distance, null);
   assert.equal(aCasa.travel, null);
-  assert.equal(aCasa.address, "");
+  /* L'indirizzo non è un pezzo del viaggio: è dove uno sta, e chi è a casa un
+   * posto ce l'ha come chiunque altro (#454). A casa non vale zero — vale
+   * l'indirizzo di casa, che è quello che il telefono dice. */
+  assert.equal(aCasa.address, "Via Milano 4");
   assert.equal(aCasa.activity, "");
   assert.equal(aCasa.charging, true, "la carica si mostra anche a casa");
 });

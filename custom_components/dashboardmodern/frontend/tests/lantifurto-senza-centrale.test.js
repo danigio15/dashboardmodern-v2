@@ -231,8 +231,18 @@ test("la tessera in Home nasce e si accende anche con i soli tasti su misura", (
    * elenchi di modi sarebbero due antifurti. */
   assert.match(sorgente, /CHIAVE_ANTIFURTO_SU_MISURA/);
   assert.match(sorgente, /modoSuMisuraAcceso/);
-  /* La tessera nasce: non più solo con la centrale o una porta. */
-  assert.match(sorgente, /if \(!alarm && !doors\.length && !miei\.length\) return null;/);
+  /* La tessera nasce: non più solo con la centrale.
+   *
+   * Le porte contavano anche loro, finché stavano qui dentro; adesso hanno
+   * tessera loro (#457) e questa nasce per l'antifurto e basta — la centrale
+   * o i tasti scritti a mano. Chi ha soltanto le aperture non si ritrova una
+   * Sicurezza vuota: si ritrova le Porte. */
+  assert.match(sorgente, /if \(!alarm && !miei\.length\) return null;/);
+  assert.doesNotMatch(
+    sorgente,
+    /!doors\.length && !miei\.length/,
+    "le aperture non decidono più se la Sicurezza esiste",
+  );
   /* E si accende: «inserito» lo dice anche un tasto su misura acceso. */
   assert.match(sorgente, /raw\.startsWith\("armed"\) \|\| Boolean\(mioAcceso\)/);
   /* E la fila dei tasti si apre: `alarm` è «c'è un antifurto da comandare». */

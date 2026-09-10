@@ -488,11 +488,20 @@ export function personViewModel(person, states = {}, nowMs = null) {
     watch,
     watchLow: watch !== null && watch <= 20,
     /* Il viaggio si racconta solo di chi e' fuori: a casa distanza e tempo di
-     * rientro sono zero per definizione, e scriverli sarebbe rumore. */
+     * rientro sono zero per definizione, e scriverli sarebbe rumore.
+     *
+     * L'indirizzo no, ed era finito nel mucchio sbagliato (#454): «dalla .16
+     * sulle persone non mi da' oltre 3 informazioni, prima si aveva anche il
+     * geocoded scritto sotto l'icona CASA». Non e' un pezzo del viaggio — e'
+     * dove uno sta, e chi e' a casa un posto ce l'ha come chiunque altro. A
+     * casa non vale zero: vale l'indirizzo di casa, che e' quello che il
+     * telefono dice e che chi guarda si aspetta di leggere. La tessera di chi
+     * e' in casa era rimasta con tre righe in croce per una condizione scritta
+     * su una riga sola, insieme a tre che invece la volevano. */
     distance: away ? distanceParts(states?.[person.distance]) : null,
     travel: away ? travelMinutes(states?.[person.travel]) : null,
     direction: away ? directionKey(states?.[person.direction]) : "",
-    address: away ? clean(readableState(states?.[person.address])) : "",
+    address: clean(readableState(states?.[person.address])),
     activity: away ? activityKey(states?.[person.activity]) : "",
     wifi: clean(readableState(states?.[person.wifi])),
     elapsed: known ? elapsedParts(lastChangedMs(entityState), nowMs ?? Date.now()) : null,

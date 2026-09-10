@@ -95,6 +95,31 @@ function facceDeiDispositivi() {
   return facce;
 }
 
+/* L'emoji che il guscio ha incollato davanti al nome, staccata dal nome.
+ *
+ * «Nel menù a tendina dei dispositivi la lavastoviglie ha due icone, una non
+ * e' nostra: devi eliminarla da dove la pesca.» Da qui: l'opzione la scrive il
+ * guscio come `<option>${d.icon} ${d.name}</option>`, quindi il suo testo
+ * PORTA DENTRO l'emoji. Finche' il nome pulito si trova — nello store o in
+ * `ED_DEVICES` — quel testo non lo legge nessuno; quando non si trova si
+ * ricade su di lui, e allora accanto alla nostra icona ne compariva una
+ * seconda, del telefono.
+ *
+ * Il ripiego resta, ma pulito: l'emoji si stacca e il nome va nel testo. E il
+ * glifo staccato non si butta — e' l'ultima cosa che dice che apparecchio sia,
+ * e il motore delle icone sa leggerlo — quindi diventa il suggerimento per
+ * disegnare la NOSTRA.
+ *
+ * Si stacca solo un pittogramma vero, coi suoi modificatori: un nome che
+ * comincia per cifra («3 Camere») non e' un'emoji e non si tocca. */
+const EMOJI_DAVANTI = /^(?:\p{Extended_Pictographic}[\uFE0E\uFE0F\u200D\u{1F3FB}-\u{1F3FF}]*)+\s*/u;
+
+export function nomeSenzaEmoji(testo) {
+  const scritto = clean(testo);
+  const glifo = scritto.match(EMOJI_DAVANTI)?.[0] || "";
+  return { glifo: clean(glifo), nome: clean(scritto.slice(glifo.length)) || scritto };
+}
+
 /* L'elenco vecchio del guscio, quando lo store non risponde: nome e sensore
  * separati, senza dover ritagliare l'emoji dal testo di una `<option>`. */
 function vociDelGuscio() {
@@ -114,8 +139,14 @@ function vociDelSelettore(select) {
     .map((opzione) => {
       const valore = clean(opzione.value);
       const faccia = dalloStore.get(valore) || dalGuscio.get(valore) || {};
-      const nome = faccia.nome || clean(opzione.textContent);
-      return { valore, nome, icona: faccia.icona || nome, foto: faccia.foto || "" };
+      const dallOpzione = nomeSenzaEmoji(opzione.textContent);
+      const nome = faccia.nome || dallOpzione.nome;
+      return {
+        valore,
+        nome,
+        icona: faccia.icona || nome || dallOpzione.glifo,
+        foto: faccia.foto || "",
+      };
     })
     .filter((voce) => voce.valore);
 }
@@ -135,7 +166,10 @@ function voceScelta(select) {
 
 function disegnaIlTasto(select, tasto) {
   const scelta = voceScelta(select);
-  const nome = scelta?.nome || clean(select?.selectedOptions?.[0]?.textContent);
+  /* Anche qui il ripiego e' il testo dell'opzione, e anche qui porta dentro
+   * l'emoji del guscio: il tasto chiuso e la riga aperta dicono lo stesso
+   * nome, quindi si puliscono nello stesso modo. */
+  const nome = scelta?.nome || nomeSenzaEmoji(select?.selectedOptions?.[0]?.textContent).nome;
   tasto.querySelector(`.${TASTO}-icona`).innerHTML = facciaDaScrivere(scelta || { nome }, 30);
   tasto.querySelector(`.${TASTO}-nome`).textContent =
     nome || t("Seleziona un dispositivo", "Select a device");

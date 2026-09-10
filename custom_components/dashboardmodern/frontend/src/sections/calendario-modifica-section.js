@@ -677,7 +677,7 @@ function installStyles() {
       font-size:11px;font-weight:700;color:var(--secondary-text-color,#94a3b8)}
     .dm-calm-input{
       width:100%;min-width:0;box-sizing:border-box;padding:9px 12px;border-radius:12px;
-      font:inherit;font-size:13px;font-weight:700;color:var(--text-color,#0f172a);
+      font:inherit;font-size:13px;font-weight:700;color:var(--text,#0f172a);
       background:var(--surface-3,#f8fafc);border:1px solid var(--card-border,#e2e8f0)}
     .dm-calm-input:focus{outline:2px solid color-mix(in srgb,#6366f1 55%,transparent);outline-offset:1px}
     .dm-calm-note{resize:vertical;line-height:1.4;font-weight:600}
@@ -695,7 +695,7 @@ function installStyles() {
     .dm-calm-fondo{display:flex;justify-content:flex-end;gap:8px;margin-top:2px}
     .dm-calm-fondo button{
       padding:9px 18px;border:0;border-radius:999px;cursor:pointer;font-size:12.5px;font-weight:800}
-    .dm-calm-annulla{background:var(--surface-3,#f1f5f9);color:var(--text-color,#0f172a)}
+    .dm-calm-annulla{background:var(--surface-3,#f1f5f9);color:var(--text,#0f172a)}
     .dm-calm-salva{
       color:#fff;background:linear-gradient(135deg,#818cf8,#4f46e5);
       box-shadow:0 8px 20px -8px rgba(79,70,229,.8)}

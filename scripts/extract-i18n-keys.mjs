@@ -155,6 +155,9 @@ const SECTION_TABLES = Object.freeze([
   { file: "page-masthead-section.js", name: "PAGES", rows: "items", at: ["it", "en"] },
   { file: "pool-editor-section.js", name: "CAMPI", rows: "items", at: [1, 2] },
   { file: "rooms-page-section.js", name: "BLOCK_LABELS", rows: "values", at: [0, 1] },
+  /* I nomi delle tavolozze (#436): i valori stanno nel nucleo, che non sa che
+     lingua si parla, e le parole qui accanto ai tasti. */
+  { file: "tavolozze-section.js", name: "NOMI", rows: "values", at: [0, 1] },
   { file: "unified-editors-section.js", name: "ACTION_TYPES", rows: "items", at: [2, 3] },
 ]);
 

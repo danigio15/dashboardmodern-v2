@@ -7,6 +7,7 @@ import { installHostedBridgeGuard } from "../transport/hosted-bridge-guard.js";
 import { installGuscioQuandoServe } from "./il-guscio-disegna-quando-serve-section.js";
 import { installI18nSection } from "./i18n-section.js";
 import { installThemeFoundationSection } from "./theme-foundation-section.js";
+import { installTavolozzeSection } from "./tavolozze-section.js";
 import { installIconeLeggibiliSection } from "./icone-leggibili-section.js";
 import { installDataContractsSection } from "./data-contracts-section.js";
 import { installEnergyCalculationsSection } from "./energy-calculations-section.js";
@@ -809,6 +810,9 @@ export function installSectionRuntime() {
     // the locale has to be settled before the first of them runs.
     installI18nSection();
     installThemeFoundationSection();
+    /* Subito dopo le fondamenta, e non prima: le tavolozze riscrivono gli
+     * stessi token, e a parita' di peso vince chi viene dopo (#436). */
+    installTavolozzeSection();
     /* Subito dopo le fondamenta del tema e prima di ogni disegno: il foglio
      * delle sfumature deve stare in cima al documento gia' al primo giro, o
      * i disegni nascono mezzi e si riparano solo al secondo. */
@@ -1133,6 +1137,7 @@ export function installSectionRuntime() {
         "smoke-alerts",
         "english-runtime-strings",
         "theme-foundation",
+        "tavolozze",
         "security-showcase",
         "security-doors",
         "security-doors-editor",

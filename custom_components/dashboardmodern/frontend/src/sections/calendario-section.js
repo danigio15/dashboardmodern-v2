@@ -575,7 +575,7 @@ function installStyles() {
       color:var(--secondary-text-color,#94a3b8)}
     ${P} .dm-calp-numero{
       font-family:'Oswald',sans-serif;font-size:22px;font-weight:500;line-height:1.1;
-      font-variant-numeric:tabular-nums;color:var(--text-color,#0f172a)}
+      font-variant-numeric:tabular-nums;color:var(--text,#0f172a)}
     /* Oggi porta il cerchio pieno: e' il giorno da cui si conta tutto il
        resto, e cercarlo fra sette numeri uguali costa uno sguardo di troppo. */
     ${P} .dm-calp-cella[data-oggi="true"] .dm-calp-numero{
@@ -598,7 +598,7 @@ function installStyles() {
 
     ${P} .dm-calp-tutto{
       justify-self:start;padding:8px 16px;border:0;border-radius:999px;cursor:pointer;
-      font-size:12px;font-weight:800;color:var(--text-color,#0f172a);
+      font-size:12px;font-weight:800;color:var(--text,#0f172a);
       background:var(--card-bg,#fff);box-shadow:0 6px 16px rgba(0,0,0,.08)}
 
     /* ── l'agenda ──────────────────────────────────────────────────────── */

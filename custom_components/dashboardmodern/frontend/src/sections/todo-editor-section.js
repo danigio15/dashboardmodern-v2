@@ -74,6 +74,10 @@ function catalogoTessere() {
     ["clima", "❄️", t("Clima", "Climate")],
     ["tapparelle", "🪟", t("Finestre", "Windows")],
     ["sicurezza", "🛡️", t("Sicurezza", "Security")],
+    /* Le porte e i cancelli (#457): erano dentro la Sicurezza, e adesso hanno
+     * tessera loro perche' rispondono a un'altra domanda — non «come sta la
+     * casa» ma «aprimi il portone». Si ordinano e si spengono ognuna per se'. */
+    ["porte", "🚪", t("Porte", "Doors")],
     ["telecamere", "📹", t("Telecamere", "Cameras")],
     ["energia", "⚡", t("Energia", "Energy")],
     ["elettrodomestici", "🫧", t("Elettrodomestici", "Appliances")],
@@ -217,6 +221,29 @@ function sorgenteMarkup(key) {
     </select></label>`;
 }
 
+/* Gli avvisi personalizzati che si fanno vedere da soli (#445).
+ *
+ * «Ho un boolean che se attivo mi indica con un popup l'intervento del
+ *  distacco carichi: vorrei sfruttarlo in questo fantastico lavoro.»
+ *
+ * La tessera si accende gia' e chi guarda la Home la vede; un intervento del
+ * distacco carichi pero' non e' una cosa da vedere passando, e' una cosa da
+ * sapere adesso. Una tessera aspetta lo sguardo, un popup lo va a prendere.
+ *
+ * L'interruttore sta spento finche' non lo si accende, e sta qui accanto alle
+ * altre scelte sulle tessere: una finestra che si apre da sola e' una cosa che
+ * si chiede, non che si subisce. */
+function avvisiInPopupMarkup() {
+  const acceso = widgetPreferences().avvisiInPopup === true;
+  return `<label class="ed-row dm-widget-popup-row">
+    <span class="ed-row-main"><strong class="ed-row-new">${t("Avvisi personalizzati a finestra", "Custom alerts as a popup")}</strong><small class="ed-row-old">${t(
+      "Quando un avviso personalizzato si accende, la plancia lo apre da sola. Solo quando si accende, e mai sopra una finestra gia' aperta.",
+      "When a custom alert turns on, the dashboard opens it by itself. Only when it turns on, and never on top of a window that is already open.",
+    )}</small></span>
+    <input type="checkbox" data-widget-avvisi-popup${acceso ? " checked" : ""}>
+  </label>`;
+}
+
 function tessereMarkup() {
   const { hidden, rows } = tessereOrdinate();
   return `<div class="ed-intro">${t(
@@ -224,6 +251,7 @@ function tessereMarkup() {
     "Choose which tiles show on Home and in what order. The alert tiles — batteries, floods and custom alerts — only appear on their own when they have something to say.",
   )}</div>
   ${compattoMarkup()}
+  ${avvisiInPopupMarkup()}
   <div class="ed-list dm-widget-pref-list">${rows
     .map(
       (
@@ -496,6 +524,12 @@ function onClick(event) {
     event.preventDefault();
     scriviPreferenze({ compatto: clean(compatto.dataset.widgetCompatto) });
     ridisegna();
+    return;
+  }
+
+  const finestraAvvisi = event.target.closest("[data-widget-avvisi-popup]");
+  if (finestraAvvisi) {
+    scriviPreferenze({ avvisiInPopup: Boolean(finestraAvvisi.checked) });
     return;
   }
 

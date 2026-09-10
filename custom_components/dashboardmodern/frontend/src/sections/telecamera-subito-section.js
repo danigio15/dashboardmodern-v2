@@ -99,11 +99,44 @@ export function anteprimaMarkup(foto, nome = "") {
     </div></div>`;
 }
 
+/**
+ * Il fermo immagine attaccato al popup, non al suo contenuto.
+ *
+ * «Guardalo tu stesso: non si vede nulla.» E infatti: l'istantanea si
+ * disegnava dentro `content.innerHTML`, e un attimo dopo il guscio riscriveva
+ * QUELLO STESSO `content.innerHTML` col suo video e il suo velo
+ * («Connessione WebRTC…»). Il fotogramma veniva cancellato prima che
+ * qualcuno lo vedesse: restava il segnaposto nero del `<video>` vuoto, cioe'
+ * esattamente il rettangolo che questa correzione doveva togliere.
+ *
+ * Percio' non si mette DENTRO: si mette addosso a `content`, che e' l'elemento
+ * che il guscio non tocca — ne riscrive i figli. Da li' il foglio di stile lo
+ * dipinge come fondo del riquadro del video, qualunque cosa il guscio ci abbia
+ * scritto dentro e quante volte lo riscriva. E quando il video parte non c'e'
+ * niente da ripulire: un fotogramma opaco lo copre da se'.
+ */
+export function vestiIlPopup(cam, content, states = allStates()) {
+  if (!content?.style) return false;
+  const foto = istantaneaDi(cam?.entity, states);
+  if (!foto) {
+    content.classList?.remove?.("dm-cam-con-fermo");
+    content.style.removeProperty("--dm-cam-fermo");
+    return false;
+  }
+  /* Le parentesi e gli apici nell'URL si citano: un `entity_picture` porta un
+   * gettone di accesso, e un apice li' dentro romperebbe la regola. */
+  content.style.setProperty("--dm-cam-fermo", `url("${String(foto).replaceAll('"', "%22")}")`);
+  content.classList?.add?.("dm-cam-con-fermo");
+  return true;
+}
+
 /** Disegna subito l'istantanea dentro il popup. Torna `true` se ce n'era una. */
 export function mostraSubito(cam, content) {
   if (!content) return false;
   const foto = istantaneaDi(cam?.entity);
   content.innerHTML = anteprimaMarkup(foto, clean(cam?.name) || clean(cam?.entity));
+  /* E il fermo resta anche dopo che il guscio avra' riscritto tutto. */
+  vestiIlPopup(cam, content);
   return Boolean(foto);
 }
 
@@ -215,5 +248,25 @@ function css() {
     position:absolute;inset:0;width:100%;height:100%;
     object-fit:cover;display:block;filter:saturate(.85) brightness(.72)}
   .dm-cam-attesa .cam-video-loader-overlay{background:transparent}
+  /* Il fermo immagine come fondo del riquadro del video.
+     La regola parte dal contenuto del popup — l'elemento che il guscio non
+     rifa', ne riscrive i figli — e arriva al contenitore che ci scrive
+     dentro: cosi' vale anche dopo che ha riscritto tutto, che e' il momento in
+     cui l'istantanea spariva.
+     Spenta e smorzata, perche' e' un fotogramma vecchio e non deve sembrare
+     il video: appena arriva quello vero, opaco, la copre da se'. */
+  .dm-cam-con-fermo .cam-zoom-container,
+  .dm-cam-con-fermo #video-iframe-container{
+    background-image:var(--dm-cam-fermo);background-size:cover;
+    background-position:center;background-repeat:no-repeat}
+  .dm-cam-con-fermo .cam-zoom-container::after,
+  .dm-cam-con-fermo #video-iframe-container::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:rgba(11,18,32,.34)}
+  /* Il velo del guscio sta sopra il fermo, e il video sopra tutto: un video
+     senza fotogrammi e' trasparente, quindi il fermo si vede attraverso. */
+  .dm-cam-con-fermo .cam-zoom-container>*,
+  .dm-cam-con-fermo #video-iframe-container>*{position:relative;z-index:1}
+  .dm-cam-con-fermo video{background:transparent}
   `;
 }

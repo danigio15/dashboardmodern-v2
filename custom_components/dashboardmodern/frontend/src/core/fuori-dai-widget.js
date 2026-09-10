@@ -72,13 +72,33 @@ export function scriviLaVoce(chiave, entita) {
  * questa tessera. Quelle scritte per un'altra restano fuori dal conto: e'
  * tutto il senso della faccenda.
  */
+/* Come si chiamava prima la tessera che adesso si chiama cosi'.
+ *
+ * Le porte e i cancelli stavano dentro la tessera della Sicurezza, e
+ * l'interruttore accanto a ogni apertura scriveva «sicurezza|...». Adesso
+ * hanno tessera loro (#457), ma quelle voci sono gia' scritte in casa di chi
+ * le ha spente: senza questa riga un'apertura tolta dalla Home ci tornerebbe
+ * da sola al primo aggiornamento — cioe' una scelta cancellata in silenzio,
+ * che e' esattamente la cosa che questo modulo esiste per non fare.
+ *
+ * Vale in lettura, e vale finche' nessuno cambia idea: rimettere dentro
+ * un'apertura porta via anche la voce vecchia, e le scelte nuove nascono col
+ * nome nuovo. */
+export const NOMI_DI_PRIMA = Object.freeze({ porte: ["sicurezza"] });
+
+/** Questa tessera e i nomi che aveva prima. */
+function eISuoiNomiDiPrima(tessera) {
+  return new Set([tessera, ...(NOMI_DI_PRIMA[tessera] || [])]);
+}
+
 export function escluseDellaTessera(elenco, chiave = "") {
   const tessera = pulito(chiave);
+  const nomi = eISuoiNomiDiPrima(tessera);
   const fuori = new Set();
   for (const voce of Array.isArray(elenco) ? elenco : []) {
     const letta = leggiLaVoce(voce);
     if (!letta) continue;
-    if (!letta.chiave || letta.chiave === tessera) fuori.add(letta.entita);
+    if (!letta.chiave || nomi.has(letta.chiave)) fuori.add(letta.entita);
   }
   return fuori;
 }
@@ -124,7 +144,12 @@ export function rimettiNellaTessera(elenco, chiave, entita) {
      * dentro dappertutto, che e' l'unica cosa che l'interruttore possa
      * promettere quando non sa di che tessera sta parlando. */
     if (!tessera) return false;
-    return letta.chiave !== "" && letta.chiave !== tessera;
+    /* Anche la voce col nome di prima se ne va: e' la stessa scelta, scritta
+     * quando questa tessera si chiamava in un altro modo, e chi tocca
+     * l'interruttore l'ha appena smentita. Senza questo, un'apertura spenta
+     * ai tempi della Sicurezza non si sarebbe piu' potuta riaccendere. */
+    const nomi = eISuoiNomiDiPrima(tessera);
+    return letta.chiave !== "" && !nomi.has(letta.chiave);
   });
 }
 
@@ -159,9 +184,10 @@ export const TESSERE_PER_SCHEDA = Object.freeze({
   varchi: "varchi",
   presenza: "presenza",
   rifiuti: "rifiuti",
-  /* Le porte e i cancelli si configurano in una scheda loro e si mostrano
-   * nella tessera della Sicurezza: non esiste una tessera «porte». */
-  doors: "sicurezza",
+  /* Le porte e i cancelli si configurano in una scheda loro e adesso hanno
+   * anche la loro tessera (#457): prima si mostravano dentro la Sicurezza, e
+   * l'interruttore accanto a ogni apertura parlava di quella. */
+  doors: "porte",
   allerte: "allerte",
 });
 

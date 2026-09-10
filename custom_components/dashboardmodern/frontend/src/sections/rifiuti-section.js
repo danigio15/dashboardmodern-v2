@@ -217,25 +217,37 @@ function prossimoMarkup(lettura) {
     <strong>${esc(parolaDelQuando(primo))}</strong>
     <span class="dm-rifiuti-prossimo-data">${esc(dataScritta(primo))}</span>
     <div class="dm-rifiuti-prossimo-bidoni">${prossimi.map((riga) => bidoneMarkup(riga, true)).join("")}</div>
-    ${domaniMarkup(lettura, primo)}
+    ${seraMarkup(lettura, primo)}
   </div>`;
 }
 
-/* «Si chiede di mostrare il rifiuto di domani» (#409).
+/* La sera prima e' il momento in cui si puo' ancora fare qualcosa (#409, #441).
  *
- * Quando il prossimo ritiro e' oggi, la risposta grande dice «Oggi» e finisce
- * li': cosa mettere fuori STASERA per domani mattina non lo dice nessuno, ed
- * e' la domanda che ci si fa la sera. Quando invece il prossimo e' gia'
- * domani, la risposta grande lo dice gia' — e ripeterlo sotto sarebbe scrivere
- * due volte la stessa cosa.
+ * «Si chiede di mostrare il rifiuto di domani» era la prima meta': quando il
+ * prossimo ritiro e' oggi, la risposta grande dice «Oggi» e finisce li', e
+ * cosa mettere fuori STASERA per domani mattina non lo diceva nessuno.
  *
- * Il dato c'era gia': la lettura porta `oggi` e `domani` da quando esiste il
- * turno di casa. Mancava soltanto di disegnarlo. */
-function domaniMarkup(lettura, primo) {
+ * «Mostra il giorno di ritiro tipo la plastica oggi, ma sarebbe piu' comodo
+ *  penso per tutti che lo segnasse un giorno prima, in modo da metterli fuori
+ *  la sera» e' la seconda, ed e' la stessa cosa detta meglio. Il dato c'era e
+ *  si disegnava; era la parola a essere sbagliata. «Domani» e' un'informazione
+ *  — vero, e da guardare — mentre quello che serve e' un gesto, e il gesto ha
+ *  un'ora: stasera. Chi legge «Domani: plastica» deve ancora fare da se' il
+ *  passo che conta; chi legge «Da mettere fuori stasera» ha gia' finito.
+ *
+ * Percio' la riga la dice cosi', e la dice anche quando il prossimo ritiro E'
+ * domani — li' i bidoni li ha gia' scritti grandi la risposta sopra, e sotto
+ * resta solo il gesto, senza ripetere l'elenco. */
+function seraMarkup(lettura, primo) {
   const domani = Array.isArray(lettura?.domani) ? lettura.domani : [];
-  if (!domani.length || primo?.giorni === 1) return "";
-  return `<div class="dm-rifiuti-domani">
-    <small>${esc(t("Domani", "Tomorrow"))}</small>
+  const stasera = esc(t("Da mettere fuori stasera", "Put it out tonight"));
+  if (primo?.giorni === 1)
+    return `<div class="dm-rifiuti-domani" data-dm-stasera="true">
+    <small>${stasera}</small>
+  </div>`;
+  if (!domani.length) return "";
+  return `<div class="dm-rifiuti-domani" data-dm-stasera="true">
+    <small>${stasera}</small>
     <div class="dm-rifiuti-prossimo-bidoni">${domani.map((riga) => bidoneMarkup(riga)).join("")}</div>
   </div>`;
 }

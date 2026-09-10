@@ -13,7 +13,17 @@
  */
 import { fermaRitrattiPersi, installAvatar3dStyle, ritrattoVivo } from "./person-avatar-section.js";
 import { normalizePeople, personViewModel } from "../core/person-model.js";
-import { allStates, clean, doc, esc, formatNumber, installStyle, readJson, root, t } from "./shared.js";
+import {
+  allStates,
+  clean,
+  doc,
+  esc,
+  formatNumber,
+  installStyle,
+  readJson,
+  root,
+  t,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_PEOPLE__";
 const state = (root[KEY] ||= { installed: false, listeners: false, frame: 0, clock: 0 });
@@ -106,8 +116,7 @@ function distanceLabel(distance) {
 function tripMarkup(view) {
   const parts = [];
   if (view.distance) {
-    const arrow =
-      view.direction === "towards" ? " →🏠" : view.direction === "away" ? " ←🏠" : "";
+    const arrow = view.direction === "towards" ? " →🏠" : view.direction === "away" ? " ←🏠" : "";
     const title =
       view.direction === "towards"
         ? t("Si sta avvicinando a casa", "Approaching home")
@@ -158,6 +167,32 @@ function footMarkup(view) {
  * come su un citofono, e quello che il telefono racconta — la carica, la
  * carica dell'orologio, da quanto non si fa sentire — sta in un riquadro suo,
  * che si legge come un gruppo invece che come una striscia. */
+/* Il luogo si tocca e si apre la mappa (#438).
+ *
+ * «Nella sezione persone, se clicco sul luogo individuato puo' aprirsi la
+ *  mappa?» Puo', e il pezzo che serviva c'era gia' dall'altra parte: la scheda
+ * grande porta «Apri in mappa» da sempre. Sulla card l'indirizzo era una
+ * scritta e basta, quindi arrivarci costava due tocchi — apri la persona, poi
+ * la mappa — per una cosa che si guarda di sfuggita, tipicamente col telefono
+ * in mano mentre si sta uscendo.
+ *
+ * Adesso e' un collegamento vero. Il resto della card continua ad aprire la
+ * persona: due gesti diversi su due pezzi diversi, non uno che indovina cosa
+ * volevi. L'indirizzo lo passa `encodeURIComponent`, quindi una virgola o uno
+ * spazio non spezzano l'indirizzo — e senza indirizzo non c'e' niente da
+ * toccare, come prima. */
+function mappaDi(indirizzo) {
+  const scritto = clean(indirizzo);
+  return scritto ? `https://maps.google.com/?q=${encodeURIComponent(scritto)}` : "";
+}
+
+function indirizzoMarkup(view) {
+  const mappa = mappaDi(view.address);
+  if (!mappa) return "";
+  return `<a class="dm-person-address" data-person-mappa href="${esc(mappa)}" target="_blank" rel="noopener"
+    title="${esc(view.address)} — ${esc(t("Apri in mappa", "Open in map"))}">${esc(view.address)}</a>`;
+}
+
 function cardMarkup(view) {
   return `<article class="dm-person-card" data-person-id="${esc(view.id)}" data-presence="${esc(view.presence)}"${view.known ? "" : ' data-unknown="true"'}>
     <div class="dm-person-testa">
@@ -167,7 +202,7 @@ function cardMarkup(view) {
         <span class="dm-person-zone">${presenceIcon(view)} ${esc(presenceLabel(view))}</span>
       </div>
     </div>
-    ${view.address ? `<small class="dm-person-address" title="${esc(view.address)}">${esc(view.address)}</small>` : ""}
+    ${indirizzoMarkup(view)}
     ${tripMarkup(view)}
     ${footMarkup(view)}
   </article>`;
@@ -205,14 +240,33 @@ function popupTiles(view) {
       ),
     );
   if (view.watch !== null)
-    tiles.push(popupTile("⌚", t("Batteria orologio", "Watch battery"), `${Math.round(view.watch)}%`, view.watchLow ? " low" : ""));
+    tiles.push(
+      popupTile(
+        "⌚",
+        t("Batteria orologio", "Watch battery"),
+        `${Math.round(view.watch)}%`,
+        view.watchLow ? " low" : "",
+      ),
+    );
   if (view.wifi) tiles.push(popupTile("📶", t("Rete WiFi", "WiFi network"), esc(view.wifi)));
   const activity = ACTIVITY_LABELS[view.activity];
   if (activity && view.presence !== "home")
-    tiles.push(popupTile(ACTIVITY_EMOJI[view.activity] || "🧍", t("Attività", "Activity"), esc(t(activity[0], activity[1]))));
+    tiles.push(
+      popupTile(
+        ACTIVITY_EMOJI[view.activity] || "🧍",
+        t("Attività", "Activity"),
+        esc(t(activity[0], activity[1])),
+      ),
+    );
   if (view.distance) {
     const arrow = view.direction === "towards" ? " →🏠" : view.direction === "away" ? " ←🏠" : "";
-    tiles.push(popupTile("🧭", t("Distanza da casa", "Distance from home"), `${esc(distanceLabel(view.distance))}${arrow}`));
+    tiles.push(
+      popupTile(
+        "🧭",
+        t("Distanza da casa", "Distance from home"),
+        `${esc(distanceLabel(view.distance))}${arrow}`,
+      ),
+    );
   }
   if (view.travel !== null)
     tiles.push(popupTile("⏱", t("Tempo di rientro", "Time to home"), `${view.travel} min`));
@@ -223,9 +277,7 @@ function popupTiles(view) {
 
 function popupBodyMarkup(view, people) {
   const molte = people.length > 1;
-  const mapUrl = view.address
-    ? `https://maps.google.com/?q=${encodeURIComponent(view.address)}`
-    : "";
+  const mapUrl = mappaDi(view.address);
   return `
     <button type="button" class="dm-person-pop-close" data-person-pop-close aria-label="${t("Chiudi", "Close")}">✕</button>
     ${molte ? `<button type="button" class="dm-person-pop-nav" data-person-pop-nav="-1" aria-label="${t("Persona precedente", "Previous person")}">‹</button><button type="button" class="dm-person-pop-nav dm-next" data-person-pop-nav="1" aria-label="${t("Persona successiva", "Next person")}">›</button>` : ""}
@@ -254,11 +306,9 @@ function paintPersonPopup() {
   if (view.known) delete card.dataset.unknown;
   else card.dataset.unknown = "true";
   card.innerHTML = popupBodyMarkup(view, people);
-  card.querySelector("[data-person-img]")?.addEventListener(
-    "error",
-    (event) => event.target.remove(),
-    { once: true },
-  );
+  card
+    .querySelector("[data-person-img]")
+    ?.addEventListener("error", (event) => event.target.remove(), { once: true });
   /* Anche il ritratto grande del popup e' vivo: sarebbe strano che la
    * persona sbatta le ciglia nella card e resti di marmo qui dentro. */
   const ritratto = card.querySelector(".dm-person-avatar[data-ritratto]");
@@ -295,7 +345,8 @@ export function openPersonPopup(id) {
       if (nav) {
         const people2 = peopleInHome();
         const at = people2.findIndex((entry) => entry.id === state.popupId);
-        const next = people2[(at + Number(nav.dataset.personPopNav) + people2.length) % people2.length];
+        const next =
+          people2[(at + Number(nav.dataset.personPopNav) + people2.length) % people2.length];
         if (next) {
           state.popupId = next.id;
           paintPersonPopup();
@@ -348,13 +399,15 @@ export function renderPeopleSection() {
   const states = allStates();
   const now = Date.now();
   const grid = host.querySelector(".dm-people-grid");
-  grid.innerHTML = people.map((person) => cardMarkup(personViewModel(person, states, now))).join("");
+  grid.innerHTML = people
+    .map((person) => cardMarkup(personViewModel(person, states, now)))
+    .join("");
   host.querySelector(".dm-people-title").textContent = t("Persone", "People");
   /* La foto che non si carica non deve restare come icona rotta sopra
    * l'avatar: sparisce lei e resta lui. */
-  grid.querySelectorAll("[data-person-img]").forEach((img) =>
-    img.addEventListener("error", () => img.remove(), { once: true }),
-  );
+  grid
+    .querySelectorAll("[data-person-img]")
+    .forEach((img) => img.addEventListener("error", () => img.remove(), { once: true }));
   /* I ritratti si compongono e si animano dopo che la card e' comparsa:
    * nessuno aspetta davanti a un buco. L'espressione la decide quello che la
    * plancia sa gia' — chi e' a casa e' contento, chi ha il telefono fermo da
@@ -473,9 +526,20 @@ function installStyles() {
        ricava corsie identiche: e' la stessa aritmetica su una larghezza piu'
        corta. */
     #dm-people .dm-people-fila[data-accanto="true"] .dm-people-grid{grid-column:1/-2}
-    /* Sotto le tre colonne «accanto» vuol dire schiacciare le persone in una
-       corsia sola: si torna in colonna, la griglia intera e il compagno sotto. */
+    /* Sul telefono «accanto» esiste, e a due corsie.
+       «La card deve uscire affianco a Giovanni.» Qui la fila cadeva a una
+       colonna sola sotto i 760px, e il compagno finiva sotto la griglia largo
+       tutta la pagina — che e' esattamente quello che era stato chiesto di non
+       fare. Due corsie ci stanno: le persone ne prendono una e il compagno
+       l'altra, che e' la stessa spartizione che la griglia delle persone fa
+       gia' da sola sul telefono sotto i 520px.
+       Piu' stretto di un telefono no: sotto i 360px due corsie non tengono ne'
+       una persona ne' un anello, e allora si torna in colonna. */
     @media(max-width:760px){
+      #dm-people .dm-people-fila{grid-template-columns:repeat(2,minmax(0,1fr))}
+      #dm-people .dm-people-fila[data-accanto="true"] .dm-people-grid{grid-column:1/-2}
+    }
+    @media(max-width:360px){
       #dm-people .dm-people-fila{grid-template-columns:1fr}
       #dm-people .dm-people-fila[data-accanto="true"] .dm-people-grid{grid-column:1/-1}
     }
@@ -511,7 +575,10 @@ function installStyles() {
     #dm-people .dm-person-zone{font-size:11px;font-weight:900;letter-spacing:.3px;color:#fff;background:linear-gradient(135deg,rgb(var(--dm-presence)),color-mix(in srgb,rgb(var(--dm-presence)) 72%,#0f172a));border-radius:999px;padding:4px 13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-shadow:0 5px 12px -5px rgba(var(--dm-presence),.7)}
     #dm-people .dm-person-card[data-unknown="true"] .dm-person-zone{background:transparent;color:var(--text-dim,#64748b);border:1px dashed rgba(148,163,184,.6);box-shadow:none}
     /* Dove si trova, scritto per esteso: la via sotto la zona, in piccolo. */
-    #dm-people .dm-person-address{margin-top:10px;font-size:10.5px;font-weight:750;color:var(--text-dim,#64748b);max-width:calc(100% - 10px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #dm-people .dm-person-address{display:block;margin-top:10px;font-size:10.5px;font-weight:750;color:var(--text-dim,#64748b);max-width:calc(100% - 10px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none}
+    /* Che sia da toccare si vede: sottolineato all'avvicinarsi del dito e col
+       colore del testo, non quello dei collegamenti del browser. */
+    #dm-people a.dm-person-address:hover,#dm-people a.dm-person-address:focus-visible{color:var(--text,#0f172a);text-decoration:underline}
     /* Il viaggio: distanza (con la freccia della direzione) e tempo di
      * rientro, come pastiglie leggere del colore di presenza. */
     #dm-people .dm-person-trip{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:6px;margin-top:10px;max-width:100%}
@@ -543,6 +610,9 @@ function installStyles() {
          cade il bordo della seconda colonna. */
       #dm-people .dm-people-fila{gap:8px}
       #dm-people .dm-people-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+      /* Con il compagno accanto la griglia ha una corsia sola: le persone si
+         mettono in fila dentro quella, invece di provare a starci in due. */
+      #dm-people .dm-people-fila[data-accanto="true"] .dm-people-grid{grid-template-columns:1fr}
       #dm-people .dm-person-card{padding:11px}
       #dm-people .dm-person-testa{gap:9px}
       #dm-people .dm-person-portrait{width:46px;height:46px}
@@ -615,6 +685,9 @@ export function installPeopleSection() {
       "click",
       (event) => {
         if (event.target?.closest?.(".tab[data-tab]")) schedule();
+        /* Il luogo porta alla mappa e non apre la persona: due gesti diversi
+         * su due pezzi diversi (#438). */
+        if (event.target?.closest?.("[data-person-mappa]")) return;
         const card = event.target?.closest?.("#dm-people .dm-person-card[data-person-id]");
         if (card) openPersonPopup(card.dataset.personId);
       },

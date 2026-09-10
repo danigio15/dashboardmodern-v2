@@ -1095,8 +1095,29 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // provabile a tavolino: le parole vengono dal nome, tutte devono combaciare,
   // e i numeri contano perche' sono il modo in cui una casa distingue due cose
   // uguali.
+  // 315 con la deriva della fascia sotto il meteo: «deve essere su una riga,
+  // quindi da smartphone se non entra la devi rendere scorrevole o che scorre
+  // lei automaticamente». Torna su una riga sola — era andata a capo per la
+  // #400 — e l'obiezione di allora, che uno scorrimento orizzontale non lo
+  // trova nessuno, cade perche' non c'e' piu' niente da trovare: la fascia si
+  // muove da sola. `core/la-fascia-deriva.js` e' l'aritmetica di quel
+  // movimento, che e' la parte che si tiene ferma con una prova; il timer e il
+  // dito che lo ferma stanno nella sezione, che e' l'unica a poterli conoscere.
+  // 317 con le tavolozze (#436): «quando è possibile avere qualche tema in
+  // più». Sono due moduli — `core/tavolozze.js`, che porta i valori e non sa
+  // che lingua si parla, e la sezione, che porta le parole e veste il
+  // documento. La divisione è la stessa di sempre, e serve a poter misurare il
+  // contrasto di ogni tavolozza senza un browser: è aritmetica sui numeri, e
+  // sta dove non ci sono effetti al caricamento.
+  // 318 con l'avviso personalizzato che si apre da solo (#445): «ho un boolean
+  // che se attivo mi indica con un popup l'intervento del distacco carichi».
+  // `core/avvisi-che-si-aprono.js` risponde a una domanda sola — quali si sono
+  // ACCESI ADESSO, non quali sono accesi — ed è puro apposta: aprire una
+  // finestra addosso a chi guarda è il gesto più facile da sbagliare della
+  // plancia, e i tre modi di sbagliarlo si evitano tutti rispondendo bene a
+  // quella domanda.
   assert.ok(
-    relative.length <= 314,
+    relative.length <= 318,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

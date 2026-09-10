@@ -46,6 +46,7 @@ import {
   forzaDellArco,
   sorgenteDiCasa,
 } from "../core/flusso-di-casa.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
 import { wattsFromState } from "../core/signed-energy.js";
 import { lettureDiCasa } from "./home-widgets-section.js";
 import {
@@ -92,41 +93,50 @@ const POTENZA_WALLBOX = "dm.ev_potenza_wallbox";
  * batteria si carica, ma lo dice gia' l'arco che ci arriva. Due modi di dire
  * la stessa cosa nello stesso disegno sono uno di troppo, e quello era quello
  * che rubava lo spazio al numero. */
-const CASA = Object.freeze({ x: 80, y: 90, r: 25 });
-const SATELLITE = 18;
-/* Il cerchio della carica attorno alla batteria: gli archi che arrivano alla
- * batteria si fermano su di lui, non sul suo corpo. */
-const ANELLO = 22.5;
-const GIRO_ANELLO = 2 * Math.PI * ANELLO;
+/* ── il disegno ──────────────────────────────────────────────────────────── */
 
+/* Dove sta ognuno, in centesimi della scena: i nodi sono HTML e le linee sono
+ * un SVG dietro di loro, e sono le stesse coordinate per tutti e due.
+ *
+ * Perché HTML e non un disegno solo: le icone. Il disegno di prima metteva
+ * un'emoji dentro ogni cerchio — ☀️ 🔌 🔋 🚗 — cioè le icone del telefono, che
+ * su Android e su iPhone sono due disegni diversi e su nessuno dei due sono i
+ * nostri. È la stessa cosa segnalata per la tendina del Report, «una non è
+ * nostra», e valeva anche qui. Il catalogo di casa li disegna tutti e cinque,
+ * ma restituisce HTML, quindi i nodi sono HTML e dentro un SVG non ci stanno.
+ *
+ * Le linee vanno da centro a centro e passano SOTTO i nodi, che sono opachi:
+ * così non c'è nessun raccordo da ricalcolare quando la card cambia larghezza
+ * — e cambia, perché sul telefono è una corsia stretta e sul desktop una
+ * larga. Prima le strade erano scritte a mano fino al bordo di ogni cerchio,
+ * in unità di un disegno di misura fissa. */
 const POSTI = Object.freeze({
-  solare: Object.freeze({ x: 80, y: 36, glifo: "☀️", tinta: "245,158,11" }),
-  rete: Object.freeze({ x: 24, y: 90, glifo: "\u{1F50C}", tinta: "37,99,235" }),
-  casa: Object.freeze({ x: 80, y: 90, glifo: "\u{1F3E0}", tinta: "100,116,139" }),
-  batteria: Object.freeze({ x: 136, y: 90, glifo: "\u{1F50B}", tinta: "20,184,166" }),
-  auto: Object.freeze({ x: 80, y: 146, glifo: "\u{1F697}", tinta: "139,92,246" }),
+  rete: Object.freeze({ x: 19, y: 17, disegno: "presa", tinta: "37,99,235" }),
+  solare: Object.freeze({ x: 50, y: 17, disegno: "solare", tinta: "245,158,11" }),
+  batteria: Object.freeze({ x: 81, y: 17, disegno: "batteria", tinta: "20,184,166" }),
+  casa: Object.freeze({ x: 50, y: 53, disegno: "casa", tinta: "100,116,139" }),
+  auto: Object.freeze({ x: 50, y: 86, disegno: "auto", tinta: "139,92,246" }),
 });
 
-/* La strada di ogni coppia, disegnata una volta sola: fra due nodi la corrente
- * va in un verso o nell'altro, mai in tutti e due insieme, quindi la linea e'
- * la stessa e cambia solo da che parte scorre il tratteggio.
+/* Fra due nodi la corrente va in un verso o nell'altro, mai in tutti e due
+ * insieme: la linea e' la stessa e cambia solo da che parte scorre il
+ * tratteggio.
  *
- * Ogni tratto parte e finisce sul bordo dei due cerchi, cosi' le linee non
- * entrano mai dentro un nodo. `rete` e `batteria` sono l'unica coppia che si
- * parla stando dai lati opposti: si scavalca dall'alto, sopra il sole, perche'
- * passare in mezzo vorrebbe dire tagliare la casa a meta'. */
+ * Rete e batteria stanno ai due capi della fila delle sorgenti e il sole in
+ * mezzo: quando si parlano fra loro si scavalca dall'alto, perche' passare in
+ * mezzo vorrebbe dire tagliare il sole a meta'. */
 const STRADE = Object.freeze({
-  "solare|casa": "M80,54 L80,65",
-  "rete|casa": "M42,90 L55,90",
-  "batteria|casa": "M113.5,90 L105,90",
-  "casa|auto": "M80,115 L80,128",
-  "solare|rete": "M67,48.5 L37,77.5",
-  "solare|batteria": "M93,48.5 L119.8,74.4",
-  "rete|batteria": "M24,67.5 C24,-13 136,-13 136,67.5",
+  "solare|casa": "M50,17 L50,53",
+  "rete|casa": "M19,17 L50,53",
+  "batteria|casa": "M81,17 L50,53",
+  "casa|auto": "M50,53 L50,86",
+  "solare|rete": "M50,17 L19,17",
+  "solare|batteria": "M50,17 L81,17",
+  "rete|batteria": "M19,17 C19,-7 81,-7 81,17",
 });
 
 const stradaDi = (da, a) => STRADE[`${da}|${a}`] || STRADE[`${a}|${da}`] || "";
-/* Se la linea e' disegnata al contrario di come scorre la corrente, il
+/* Se la linea è disegnata al contrario di come scorre la corrente, il
  * tratteggio si anima all'indietro invece di riscrivere il percorso. */
 const alContrario = (da, a) => !STRADE[`${da}|${a}`] && Boolean(STRADE[`${a}|${da}`]);
 
@@ -161,64 +171,89 @@ function nomeDelNodo(chiave) {
 /* I watt come si leggono: sotto il migliaio in watt interi, sopra in kW con un
  * decimale — «3400 W» su una bolla piccola non si legge, «3,4 kW» sì.
  *
- * Dai dieci kilowatt in su il decimo si toglie, e non per gusto: la scritta sta
- * DENTRO il cerchio, e «10,2 kW» era l'unico numero che non ci entrava. È anche
- * la cosa giusta da leggere — a dieci kilowatt il decimo non lo guarda
- * nessuno. */
+ * Il numero adesso sta FUORI dal cerchio, sotto di lui, e non più dentro: in
+ * un cerchio piccolo ci stava per un pelo, e sopra i dieci kilowatt non ci
+ * stava affatto. Fuori si legge, e il cerchio resta il disegno. */
 function scritta(watt) {
   if (watt == null) return "";
   const valore = Math.abs(watt);
   if (valore < 1000) return `${Math.round(valore)} W`;
   const kw = valore / 1000;
-  if (kw >= 10) return `${Math.round(kw)} kW`;
+  if (kw >= 10) return `${kw.toFixed(1).replace(".", t(",", "."))} kW`;
   return `${kw.toFixed(1).replace(".", t(",", "."))} kW`;
 }
 
-/* La carica della batteria e' un anello attorno al suo cerchio, non una scritta
- * in piu': «62%» accanto ai watt non ci sta, e un anello pieno per due terzi
- * si legge senza leggerlo. Parte dall'alto, da cui la rotazione. */
-function anelloDellaCarica(posto, soc) {
-  if (soc == null) return "";
-  const quota = (Math.max(0, Math.min(100, soc)) / 100) * GIRO_ANELLO;
-  return `<circle class="dm-flusso-pista" cx="${posto.x}" cy="${posto.y}" r="${ANELLO}"></circle>
-      <circle class="dm-flusso-carica" cx="${posto.x}" cy="${posto.y}" r="${ANELLO}"
-        transform="rotate(-90 ${posto.x} ${posto.y})"
-        style="stroke-dasharray:${quota.toFixed(1)} ${GIRO_ANELLO.toFixed(1)}"></circle>`;
+const GIRO_CARICA = 2 * Math.PI * 18;
+
+/* La carica della batteria è un anello attorno al suo cerchio, non un secondo
+ * numero: «64%» accanto ai watt sarebbe una riga da leggere, un anello pieno
+ * per due terzi si legge senza leggerlo. Parte dall'alto, da cui la rotazione. */
+function anelloDellaCarica(nodo) {
+  if (nodo.chiave !== "batteria" || nodo.soc == null) return "";
+  const quota = (Math.max(0, Math.min(100, nodo.soc)) / 100) * GIRO_CARICA;
+  return `<svg class="dm-flusso-carica" viewBox="0 0 40 40" aria-hidden="true">
+      <circle class="dm-flusso-pista" cx="20" cy="20" r="18"></circle>
+      <circle class="dm-flusso-quota" cx="20" cy="20" r="18" transform="rotate(-90 20 20)"
+        style="stroke-dasharray:${quota.toFixed(1)} ${GIRO_CARICA.toFixed(1)}"></circle>
+    </svg>`;
 }
 
-/* Un nodo a zero che nessun arco tocca non e' una notizia allegra da guardare:
- * «🚗 0 W» da solo in fondo, senza nessuna linea, sembra un pezzo di disegno
- * rotto. Non si toglie — dire che la colonnina non sta erogando e' comunque
- * dire qualcosa — ma si spegne: resta leggibile, e non pesa come chi sta
- * lavorando. */
+/* La percentuale della carica, scritta.
+ *
+ * L'anello dice a colpo d'occhio quanto è piena, ed è la lettura giusta di
+ * sfuggita; ma QUANTO esattamente non lo dice, e il numero stava solo nel
+ * titolo — cioè nel suggerimento del mouse, che su un telefono non esiste.
+ * «Sarebbe possibile visualizzare la percentuale della batteria e non solo la
+ * potenza?» (#459), chiesto da un iPhone: da lì non c'era nessun modo di
+ * saperlo, e l'anello da solo distingue male un 55% da un 65%.
+ *
+ * Sta sotto i watt e non accanto: due numeri sulla stessa riga si leggono come
+ * un numero solo lungo, e uno dei due parla di potenza mentre l'altro parla di
+ * quanto è piena — due cose diverse, due righe. Piccola e nel colore della
+ * batteria, perché la riga grossa resta quella dei watt. */
+function caricaScritta(nodo) {
+  if (nodo.chiave !== "batteria" || nodo.soc == null) return "";
+  const quanto = Math.round(Math.max(0, Math.min(100, nodo.soc)));
+  return `<span class="dm-flusso-soc">${esc(`${quanto}%`)}</span>`;
+}
+
+/* Un nodo a zero che nessun arco tocca non è una notizia allegra da guardare:
+ * «Auto 0 W» da solo in fondo, senza nessuna linea, sembra un pezzo di disegno
+ * rotto. Non si toglie — dire che la colonnina non sta erogando è comunque dire
+ * qualcosa — ma si spegne: resta leggibile, e non pesa come chi sta lavorando. */
 function nodoMarkup(nodo, attaccati) {
   const posto = POSTI[nodo.chiave];
   if (!posto) return "";
   const eLaCasa = nodo.chiave === "casa";
-  const raggio = eLaCasa ? CASA.r : SATELLITE;
   const muto = !eLaCasa && !nodo.watt && !attaccati.has(nodo.chiave);
   const carica =
     nodo.chiave === "batteria" && nodo.soc != null ? ` — ${Math.round(nodo.soc)}%` : "";
-  return `<g class="dm-flusso-nodo" data-nodo="${esc(nodo.chiave)}"${muto ? ' data-muto="true"' : ""} style="--dm-flusso-tinta:${posto.tinta}">
-      <title>${esc(nomeDelNodo(nodo.chiave) + carica)}</title>
-      ${nodo.chiave === "batteria" ? anelloDellaCarica(posto, nodo.soc) : ""}
-      <circle class="dm-flusso-corpo" cx="${posto.x}" cy="${posto.y}" r="${raggio}"></circle>
-      <text class="dm-flusso-glifo" x="${posto.x}" y="${posto.y - (eLaCasa ? 6 : 2.5)}">${posto.glifo}</text>
-      <text class="dm-flusso-watt" x="${posto.x}" y="${posto.y + (eLaCasa ? 12 : 10)}">${esc(scritta(nodo.watt))}</text>
-    </g>`;
+  const valore = esc(scritta(nodo.watt));
+  return `<div class="dm-flusso-nodo" data-nodo="${esc(nodo.chiave)}"${
+    muto ? ' data-muto="true"' : ""
+  } style="--dm-flusso-tinta:${posto.tinta};--dm-flusso-x:${posto.x}%;--dm-flusso-y:${posto.y}%"
+      title="${esc(nomeDelNodo(nodo.chiave) + carica)}">
+      <span class="dm-flusso-disco">
+        ${anelloDellaCarica(nodo)}
+        <span class="dm-flusso-glifo">${disegnoDelCatalogo(posto.disegno, eLaCasa ? 26 : 18)}</span>
+      </span>
+      <span class="dm-flusso-valore">${eLaCasa ? "" : valore}</span>
+      ${caricaScritta(nodo)}
+      ${eLaCasa ? `<strong class="dm-flusso-usa">${valore || "—"}</strong>` : ""}
+    </div>`;
 }
 
 function arcoMarkup(arco, massimo) {
   const strada = stradaDi(arco.da, arco.a);
   if (!strada) return "";
   const forza = forzaDellArco(arco.watt, massimo);
-  const spessore = (1.4 + forza * 2).toFixed(1);
+  const spessore = (1.5 + forza * 1.9).toFixed(2);
   /* Più corrente, più svelto il tratteggio: è il modo in cui una mappa dice
    * «di qui ne passa tanta» senza scriverci sopra un altro numero. */
   const durata = (2.4 - forza * 1.6).toFixed(2);
   const verso = alContrario(arco.da, arco.a) ? "reverse" : "normal";
   return `<path class="dm-flusso-arco" d="${strada}" data-da="${esc(arco.da)}" data-a="${esc(arco.a)}"
-      style="--dm-flusso-tinta:${POSTI[arco.da]?.tinta || "100,116,139"};stroke-width:${spessore};animation-duration:${durata}s;animation-direction:${verso}"></path>`;
+      style="--dm-flusso-tinta:${POSTI[arco.da]?.tinta || POSTI.casa.tinta};stroke-width:${spessore};animation-duration:${durata}s;animation-direction:${verso}"></path>`;
 }
 
 /** Il disegno del flusso, dal modello: serve anche alle prove. */
@@ -229,31 +264,22 @@ export function flussoMarkup(modello) {
   const nodi = modello.presenti
     .map((chiave) => nodoMarkup(modello.nodi[chiave], attaccati))
     .join("");
-  /* Da dove arriva adesso quello che la casa usa: e' il titolo della mappa, e
-   * la sua tinta veste la card come il colore di presenza veste quelle delle
-   * persone — l'alone dietro, il bordo quando ci si passa sopra, la pastiglia.
-   * Cosi' da lontano, senza leggere niente, si vede se la casa sta andando a
-   * sole o a rete. */
+  /* Da dove arriva adesso quello che la casa usa: è il titolo della mappa, e la
+   * sua tinta veste la card come il colore di presenza veste quelle delle
+   * persone — l'alone dietro, l'anello della casa, il bordo quando ci si passa
+   * sopra. Così da lontano, senza leggere niente, si vede se la casa sta
+   * andando a sole o a rete. */
   const fonte = sorgenteDiCasa(modello.archi);
   const tinta = POSTI[fonte]?.tinta || POSTI.casa.tinta;
-  const pastiglia = fonte
-    ? `<span class="dm-flusso-fonte">${POSTI[fonte].glifo} ${esc(nomeDelNodo(fonte))}</span>`
-    : "";
-  /* Il nome sopra e la pastiglia sotto, in colonna: e' come stanno il nome e la
-   * zona di una persona, ed e' anche l'unico modo perche' non si taglino a
-   * vicenda — su una card di questa larghezza «Flusso energia» e «☀️
-   * Fotovoltaico» sulla stessa riga non ci stanno, e il titolo diventava
-   * «Flusso ene...». */
   return `<article class="dm-flusso-card" style="--dm-flusso-fonte:${tinta}">
-    <div class="dm-flusso-testa">
-      <strong class="dm-flusso-nome">${esc(t("Flusso energia", "Energy flow"))}</strong>
-      ${pastiglia}
-    </div>
-    <div class="dm-flusso-tela">
-      <svg viewBox="0 4 160 162" role="img" aria-label="${esc(t("Il flusso dell'energia di casa", "The home energy flow"))}">
-        <g class="dm-flusso-archi">${archi}</g>
-        <g class="dm-flusso-nodi">${nodi}</g>
+    <strong class="dm-flusso-nome">${esc(t("Flusso energia", "Energy flow"))}${
+      fonte ? `<span class="dm-flusso-fonte">${esc(nomeDelNodo(fonte))}</span>` : ""
+    }</strong>
+    <div class="dm-flusso-scena">
+      <svg class="dm-flusso-linee" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="${esc(t("Il flusso dell'energia di casa", "The home energy flow"))}" role="img">
+        ${archi}
       </svg>
+      ${nodi}
     </div>
   </article>`;
 }
@@ -376,68 +402,165 @@ function schedule() {
 function css() {
   return `
   #${BLOCCO_ID}{display:block;margin:14px 0 0;max-width:320px}
-  /* Nella fila delle persone la larghezza la da' la colonna: la card e' una
-     corsia di quella griglia, la stessa dei widget. Da sola — senza persone —
-     se la tiene addosso, per non stirarsi su tutta la pagina. */
+
+  /* La card sta in una corsia della fila delle persone — la stessa dei widget —
+     e ne prende una, non una larghezza a caso. */
   .dm-flusso-card{
-    --dm-flusso-fonte:100,116,139;width:100%;max-width:100%;grid-column:-2/-1;
-    position:relative;display:flex;flex-direction:column;gap:10px;
-    padding:14px;background:var(--card-bg,#fff);border:1px solid var(--card-border,#e8edf3);
+    --dm-flusso-fonte:100,116,139;
+    width:100%;max-width:100%;grid-column:-2/-1;
+    position:relative;display:flex;flex-direction:column;gap:6px;
+    padding:13px;background:var(--card-bg,#fff);border:1px solid var(--card-border,#e8edf3);
     border-radius:22px;box-shadow:var(--shadow-sculpted,0 4px 14px rgba(15,23,42,.08));
     transition:var(--transition,.3s);overflow:hidden}
-  /* L'alone della sorgente, morbido dietro: e' lui a dire da lontano se la
-     casa sta andando a sole o a rete, prima ancora di leggere. */
-  .dm-flusso-card::before{content:"";position:absolute;top:-56px;left:-40px;width:190px;height:160px;
-    background:radial-gradient(closest-side,rgba(var(--dm-flusso-fonte),.22),transparent 72%);
+  /* L'alone della sorgente, morbido dietro il disegno: è lui a dire da lontano
+     se la casa sta andando a sole o a rete, prima di leggere qualsiasi cosa. */
+  .dm-flusso-card::before{
+    content:"";position:absolute;left:50%;top:34px;translate:-50% 0;
+    width:150%;aspect-ratio:1;
+    background:radial-gradient(closest-side,rgba(var(--dm-flusso-fonte),.17),transparent 70%);
     pointer-events:none}
   .dm-flusso-card:hover{box-shadow:var(--shadow-hover,0 10px 25px rgba(15,23,42,.14));
     border-color:rgba(var(--dm-flusso-fonte),.35)}
-  .dm-flusso-testa{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0;max-width:100%}
-  .dm-flusso-nome{font-size:14px;font-weight:900;letter-spacing:-.3px;color:var(--text,#0f172a);
+
+  /* L'intestazione: il nome piccolo e sotto la sorgente nella sua tinta. In
+     colonna e non in fila, perché «Flusso energia» e «Fotovoltaico» sulla
+     stessa riga, in una corsia stretta, si tagliavano a vicenda. */
+  .dm-flusso-nome{position:relative;display:flex;flex-direction:column;gap:1px;min-width:0;
+    font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--text-dim,#94a3b8)}
+  /* La sorgente senza spaziatura: con le lettere allargate «FOTOVOLTAICO» si
+     legge «FOTO VOLTAICO», cioe' come due parole che non sono. */
+  .dm-flusso-fonte{font-size:11px;letter-spacing:0;color:rgb(var(--dm-flusso-fonte));
     max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .dm-flusso-fonte{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:10px;font-weight:900;letter-spacing:.3px;color:#fff;
-    background:linear-gradient(135deg,rgb(var(--dm-flusso-fonte)),color-mix(in srgb,rgb(var(--dm-flusso-fonte)) 72%,#0f172a));
-    border-radius:999px;padding:3px 10px;white-space:nowrap;
-    box-shadow:0 5px 12px -5px rgba(var(--dm-flusso-fonte),.7)}
-  .dm-flusso-tela{position:relative}
-  .dm-flusso-card svg{display:block;width:100%;height:auto}
-  /* Il riquadro dell'intestazione l'ha gia' la fila: qui la card e' sempre
-     larga uguale, e il disegno la riempie. */
-  .dm-flusso-corpo{
-    fill:color-mix(in srgb,rgb(var(--dm-flusso-tinta)) 13%,var(--card-bg,#fff));
-    stroke:rgba(var(--dm-flusso-tinta),.55);stroke-width:1.4}
-  /* La casa e' il centro tranquillo: il fondo della card, non una tinta, cosi'
-     le sorgenti attorno si vedono per quello che sono. */
-  .dm-flusso-nodo[data-nodo="casa"] .dm-flusso-corpo{
-    fill:var(--card-bg,#fff);stroke:rgba(var(--dm-flusso-tinta),.42);stroke-width:1.6}
-  .dm-flusso-glifo{font-size:11px;text-anchor:middle}
-  .dm-flusso-nodo[data-nodo="casa"] .dm-flusso-glifo{font-size:13px}
-  .dm-flusso-watt{font-size:7.8px;font-weight:900;text-anchor:middle;
-    fill:var(--text,#0f172a);font-variant-numeric:tabular-nums}
-  .dm-flusso-nodo[data-nodo="casa"] .dm-flusso-watt{font-size:11px}
-  /* Il nodo spento: si legge ancora, e non pesa come chi sta lavorando. */
-  .dm-flusso-nodo[data-muto="true"]{opacity:.42}
-  .dm-flusso-pista{fill:none;stroke:rgba(var(--dm-flusso-tinta),.15);stroke-width:2.2}
-  .dm-flusso-carica{fill:none;stroke:rgb(var(--dm-flusso-tinta));stroke-width:2.2;stroke-linecap:round}
+
+  /* ── la scena ────────────────────────────────────────────────────────────
+     Quadrata, e tutto dentro è in centesimi: i nodi si posano con le stesse
+     coordinate delle linee, quindi non c'è nessun raccordo da rifare quando la
+     card cambia larghezza. */
+  /* La scena e' VERTICALE, non quadrata, e non e' un dettaglio.
+     Quadrata, in una corsia da 177px, veniva 153x153: dischi da 31px e numeri
+     da 9px, cioe' un disegno che su un telefono non si legge — «non entra, non
+     si vede nulla», ed era vero anche se niente era ritagliato. Il quadrato
+     sprecava i quattro angoli e strozzava tutto il resto.
+     In verticale la forma segue la corsia: le tre sorgenti in fila in cima, la
+     casa in mezzo, l'auto in fondo. Si legge dall'alto in basso — da dove
+     arriva, dove passa, dove va — e ci sta il doppio di disegno. */
+  .dm-flusso-scena{position:relative;width:100%;aspect-ratio:100/145;
+    --dm-flusso-disco:42px;--dm-flusso-casa:62px}
+  /* Le linee stanno SOTTO i nodi, che sono opachi: vanno da centro a centro e
+     spariscono sotto i cerchi.
+     Il disegno si stira insieme alla scena — preserveAspectRatio none —
+     perche' le sue coordinate sono le STESSE percentuali con cui si posano i
+     nodi: cento in larghezza e cento in altezza, qualunque forma abbia la
+     scena. Con il rapporto conservato le linee finivano schiacciate in un
+     quadrato centrato mentre i nodi usavano l'altezza intera, e i tratteggi
+     non arrivavano piu' ai cerchi. Lo spessore non si stira comunque, ci
+     pensa non-scaling-stroke. */
+  .dm-flusso-linee{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
   .dm-flusso-arco{
     fill:none;stroke:rgb(var(--dm-flusso-tinta));stroke-linecap:round;
-    stroke-dasharray:3 5.5;opacity:.9;
+    stroke-dasharray:2.4 4.2;
     animation-name:dm-flusso-scorre;animation-timing-function:linear;
-    animation-iteration-count:infinite}
-  @keyframes dm-flusso-scorre{to{stroke-dashoffset:-17}}
+    animation-iteration-count:infinite;
+    vector-effect:non-scaling-stroke}
+  @keyframes dm-flusso-scorre{to{stroke-dashoffset:-13.2}}
   @media (prefers-reduced-motion:reduce){
-    .dm-flusso-arco{animation:none;stroke-dasharray:none}}
+    .dm-flusso-arco{animation:none;stroke-dasharray:none;opacity:.75}}
+
+  /* ── i nodi ──────────────────────────────────────────────────────────────
+     Un cerchio con la NOSTRA icona dentro, e il numero sotto. Non un disco
+     pieno di tinta con l'emoji del telefono sopra: un fondo appena velato, un
+     anello netto e l'icona nel colore si leggono a quaranta pixel e stanno
+     nella stessa famiglia del resto della plancia. */
+  .dm-flusso-nodo{
+    position:absolute;left:var(--dm-flusso-x);top:var(--dm-flusso-y);
+    translate:-50% -50%;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    transition:opacity .3s ease}
+  .dm-flusso-disco{
+    position:relative;display:grid;place-items:center;
+    width:var(--dm-flusso-disco);height:var(--dm-flusso-disco);border-radius:50%;
+    background:
+      linear-gradient(155deg,rgba(var(--dm-flusso-tinta),.17),rgba(var(--dm-flusso-tinta),.05)),
+      var(--card-bg,#fff);
+    border:1.5px solid rgba(var(--dm-flusso-tinta),.42);
+    box-shadow:0 4px 11px -7px rgba(var(--dm-flusso-tinta),.8),
+      inset 0 1px 0 rgba(255,255,255,.75)}
+  .dm-flusso-glifo{display:grid;place-items:center;line-height:0;
+    color:rgb(var(--dm-flusso-tinta))}
+  .dm-flusso-glifo svg{display:block;width:100%;height:100%}
+  .dm-flusso-glifo .dm-appliance-art,.dm-flusso-glifo .dm-catalogo-art{display:grid;place-items:center}
+  /* Il numero sotto il cerchio, non dentro: dentro ci stava per un pelo, e
+     sopra i dieci kilowatt non ci stava.
+     Su una pastiglia del colore della card, perche' le linee del flusso gli
+     passano dietro: senza, «4,2 kW» finiva scritto sopra due tratteggi e non
+     si leggeva piu' ne' il numero ne' la linea. */
+  .dm-flusso-valore{font-size:11px;font-weight:900;line-height:1;white-space:nowrap;
+    color:var(--text,#0f172a);font-variant-numeric:tabular-nums;
+    padding:2px 5px;border-radius:999px;background:var(--card-bg,#fff)}
+  .dm-flusso-valore:empty{display:none;padding:0}
+  /* Le tre sorgenti stanno in fila e i loro numeri no: sfalsati.
+     Coi numeri lunghi — «12,4 kW», cinque caratteri — tre pastiglie sulla
+     stessa riga non ci stanno in una corsia da 153px e si sovrappongono. Il
+     numero del sole va sopra il suo cerchio, gli altri due sotto i loro: la
+     riga non e' mai una sola. */
+  .dm-flusso-nodo[data-nodo="solare"]{flex-direction:column-reverse}
+  /* Il numero dell'auto sta di FIANCO, non sotto: sotto e' il fondo della
+     scena, e una pastiglia li' ci finisce fuori. Di fianco lo spazio c'e'. */
+  .dm-flusso-nodo[data-nodo="auto"]{flex-direction:row;gap:6px}
+  /* Il nodo spento: si legge ancora, e non pesa come chi sta lavorando. */
+  .dm-flusso-nodo[data-muto="true"]{opacity:.38}
+  .dm-flusso-nodo[data-muto="true"] .dm-flusso-disco{box-shadow:none}
+
+  /* La casa è l'eroe: più grande, bianca, con l'anello della sorgente attorno
+     e il numero grosso sotto l'icona. Le sorgenti sono i colori, lei è il
+     posto dove arrivano. */
+  .dm-flusso-nodo[data-nodo="casa"]{gap:1px;z-index:2}
+  .dm-flusso-nodo[data-nodo="casa"] .dm-flusso-disco{
+    width:var(--dm-flusso-casa);height:var(--dm-flusso-casa);
+    background:var(--card-bg,#fff);
+    border:2.5px solid rgb(var(--dm-flusso-fonte));
+    box-shadow:0 6px 18px -9px rgba(var(--dm-flusso-fonte),.85),
+      0 0 0 5px rgba(var(--dm-flusso-fonte),.08)}
+  .dm-flusso-nodo[data-nodo="casa"] .dm-flusso-glifo{color:rgb(var(--dm-flusso-fonte))}
+  .dm-flusso-usa{font-size:17px;font-weight:900;letter-spacing:-.03em;line-height:1.15;
+    color:var(--text,#0f172a);font-variant-numeric:tabular-nums;white-space:nowrap;
+    padding:1px 6px;border-radius:999px;
+    background:var(--card-bg,#fff);
+    box-shadow:0 1px 6px -3px rgba(15,23,42,.3)}
+
+  /* La percentuale della carica, sotto i watt della batteria: la lettura
+     precisa, piccola, sotto quella veloce. */
+  .dm-flusso-soc{font-size:9.5px;font-weight:900;line-height:1;letter-spacing:-.02em;
+    white-space:nowrap;font-variant-numeric:tabular-nums;
+    padding:1.5px 5px;border-radius:999px;
+    color:rgb(var(--dm-flusso-tinta));
+    background:rgba(var(--dm-flusso-tinta),.13)}
+
+  /* L'anello della carica, attorno al cerchio della batteria. */
+  .dm-flusso-carica{position:absolute;inset:-4px;width:auto;height:auto;overflow:visible}
+  .dm-flusso-pista{fill:none;stroke:rgba(var(--dm-flusso-tinta),.18);stroke-width:3}
+  .dm-flusso-quota{fill:none;stroke:rgb(var(--dm-flusso-tinta));stroke-width:3;stroke-linecap:round}
+
+  html[data-theme="dark"] .dm-flusso-card{
+    background:var(--card-bg,#111827);border-color:var(--card-border,#1f2937)}
+  html[data-theme="dark"] .dm-flusso-disco{box-shadow:0 4px 11px -7px rgba(var(--dm-flusso-tinta),.9)}
+
+  /* Sul telefono resta accanto — è quello che era stato chiesto — e la scena si
+     stringe con la corsia: i nodi rimpiccioliscono, le coordinate no. */
   @media(max-width:760px){
-    /* Senza tre colonne «accanto» non esiste: la card va sotto la griglia e
-       allora prende la riga tutta, come tutto il resto. */
     #${BLOCCO_ID}{max-width:none}
-    .dm-flusso-card{grid-column:1/-1}
-    .dm-flusso-card svg{max-height:220px}
+    .dm-flusso-card{padding:11px;gap:5px}
+    .dm-flusso-scena{--dm-flusso-disco:38px;--dm-flusso-casa:56px}
+    .dm-flusso-usa{font-size:15px}
+    .dm-flusso-valore{font-size:10.5px}
+    .dm-flusso-soc{font-size:9px;padding:1px 4px}
   }
-  @media(max-width:520px){
-    .dm-flusso-card{padding:11px;gap:8px}
-    .dm-flusso-nome{font-size:12px}
-    .dm-flusso-fonte{font-size:9px;padding:2px 8px}
+  /* Più stretto di un telefono no: sotto i 360px due corsie non tengono né una
+     persona né un disegno, e la card scende sotto e prende la riga. */
+  @media(max-width:360px){
+    .dm-flusso-card{grid-column:1/-1}
+    .dm-flusso-scena{max-width:280px;margin:0 auto;--dm-flusso-disco:44px;--dm-flusso-casa:66px}
   }
   `;
 }

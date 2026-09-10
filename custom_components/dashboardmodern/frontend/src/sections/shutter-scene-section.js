@@ -433,11 +433,14 @@ export function contoDelGruppo(views) {
 
 export function paroleDelConto(conto) {
   const dato =
-    typeof conto === "number" ? { tapparelle: conto, finestre: 0 } : conto || { tapparelle: 0, finestre: 0 };
+    typeof conto === "number"
+      ? { tapparelle: conto, finestre: 0 }
+      : conto || { tapparelle: 0, finestre: 0 };
   const parti = [];
   const n = dato.tapparelle || 0;
   const f = dato.finestre || 0;
-  if (n) parti.push(n === 1 ? t("1 tapparella", "1 shutter") : t(`${n} tapparelle`, `${n} shutters`));
+  if (n)
+    parti.push(n === 1 ? t("1 tapparella", "1 shutter") : t(`${n} tapparelle`, `${n} shutters`));
   if (f) parti.push(f === 1 ? t("1 finestra", "1 window") : t(`${f} finestre`, `${f} windows`));
   return parti.join(" · ");
 }
@@ -587,14 +590,58 @@ function cardMarkup(view) {
   </article>`;
 }
 
+/* Quali stanze meritano la loro intestazione (#424).
+ *
+ * «Persiste la visualizzazione sempre in colonna da monitor piu' grandi, come
+ *  pc o tablet.»
+ *
+ * L'intestazione di stanza prende tutta la riga della griglia — deve, e'
+ * un separatore — e chi viene dopo ricomincia dalla prima colonna. Con UNA
+ * tapparella per stanza questo vuol dire un'intestazione e una card per ogni
+ * riga: sei stanze, sei card, sei righe da una card sola. A qualunque
+ * larghezza, anche dove di colonne ce ne stanno quattro. La griglia non era
+ * rotta — la #349 l'aveva sistemata e la sua prova regge ancora — era il
+ * separatore a ricominciare la riga sei volte.
+ *
+ * E quell'intestazione, li', non diceva niente: la card stampa gia' la sua
+ * stanza sotto il nome. Un'intestazione che nomina una card sola ripete la
+ * card e costa la riga intera.
+ *
+ * Percio': la scritta di stanza compare dove serve a distinguere — una stanza
+ * con piu' finestre — e sparisce dove ripete. Restano due eccezioni, che sono
+ * la stessa: una pagina dove nessuno ha una stanza non raggruppa affatto (era
+ * gia' cosi'), e il gruppo «Senza stanza» tiene la sua scritta anche da solo,
+ * perche' quelle card la stanza non ce l'hanno da stampare.
+ */
+export function stanzeConIntestazione(views) {
+  const elenco = Array.isArray(views) ? views : [];
+  const chiavi = new Set();
+  if (!elenco.some((view) => clean(view?.room))) return chiavi;
+  const gruppi = new Map();
+  elenco.forEach((view) => {
+    const chiave = groupKey(view);
+    if (!gruppi.has(chiave)) gruppi.set(chiave, []);
+    gruppi.get(chiave).push(view);
+  });
+  gruppi.forEach((insieme, chiave) => {
+    if (insieme.length > 1 || !clean(insieme[0]?.room)) chiavi.add(chiave);
+  });
+  return chiavi;
+}
+
 function gridMarkup(views) {
-  const grouped = views.some((view) => view.room);
+  const conIntestazione = stanzeConIntestazione(views);
   let markup = backHomeMarkup() + heroMarkup();
   let lastKey = null;
   views.forEach((view) => {
-    if (grouped && groupKey(view) !== lastKey) {
-      lastKey = groupKey(view);
-      markup += groupMarkup(view, contoDelGruppo(views.filter((other) => groupKey(other) === lastKey)));
+    const chiave = groupKey(view);
+    if (chiave !== lastKey) {
+      lastKey = chiave;
+      if (conIntestazione.has(chiave))
+        markup += groupMarkup(
+          view,
+          contoDelGruppo(views.filter((other) => groupKey(other) === chiave)),
+        );
     }
     markup += cardMarkup(view);
   });

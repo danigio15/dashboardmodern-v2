@@ -102,6 +102,22 @@ export function cumulativeValue(row) {
   return finite(row?.sum);
 }
 
+/* Le righe della domanda di ripiego, portate in kilowattora.
+ *
+ * Alla domanda normale si chiede `units: { energy: "kWh" }` e converte Home
+ * Assistant. La domanda di ripiego — quella per le versioni che `units` non
+ * lo conoscono — le righe le porta nell'unita' del sensore, e allora la
+ * conversione tocca a noi. Un contatore che gia' parla in kilowattora esce di
+ * qui identico a com'e' entrato, righe comprese. */
+export function righeInKilowattora(righe, unita) {
+  const elenco = Array.isArray(righe) ? righe : [];
+  if (inKilowattora(1, unita) === 1) return elenco;
+  return elenco.map((riga) => {
+    const somma = inKilowattora(riga?.sum, unita);
+    return somma == null ? riga : { ...riga, sum: somma };
+  });
+}
+
 /**
  * Return the energy consumed in a period.
  * A single lifetime sample is deliberately not treated as a period value.
@@ -160,24 +176,81 @@ export function periodConsumption(rows = [], baseline = null) {
  * Prima quella differenza negativa veniva schiacciata a zero, e il giorno
  * dell'azzeramento spariva: su un contatore mensile era il primo di ogni
  * mese, dodici giorni all'anno, e per una colonnina che carica di notte non
- * e' affatto poco. Qui non si indovina niente: si guarda se il contatore e'
- * sceso, e questo un contatore di sempre non lo fa mai.
+ * e' affatto poco.
+ *
+ * ── Scendere non basta: di quanto e' sceso ──────────────────────────────
+ *
+ * «Sceso vuol dire azzerato» era troppo poco, e mi e' costato un giro: il
+ * Recorder ritocca all'indietro le sue somme, di pochissimo — 1300,0 che
+ * diventa 1299,2 — e leggere quel ritocco come un azzeramento vuol dire
+ * contare tutta la cumulata di sempre, mille e trecento, come consumo di un
+ * secchiello. Non e' un caso di scuola: e' quello che faceva l'anno della
+ * plancia sul contatore di rete importata.
+ *
+ * Le due cose si distinguono da QUANTO e' sceso, non dal fatto che sia
+ * sceso. Una correzione LIMA: toglie briciole — 1300,0 che diventa 1299,2 —
+ * e quello che resta e' praticamente tutto. Un azzeramento no: il contatore
+ * riparte da capo, e quello che si legge dopo non ha piu' niente a che fare
+ * con quello che c'era prima.
+ *
+ * ── Dove la prima soglia sbagliava ──────────────────────────────────────
+ *
+ * La soglia stava a un decimo: sceso di piu' di un decimo, riavviato. Il
+ * ragionamento era «un riavvio lascia una frazione di quello che c'era», e
+ * quella frase non e' vera. Un contatore mensile che chiude il mese a 50 kWh
+ * e il primo del mese dopo ne consuma 46 legge 46: e' sceso di soli quattro
+ * cinquantesimi, meno di un decimo, e passava per correzione. La serie
+ * 50, 46, 55 dava 5 invece di 55 — cioe' proprio i contatori a riavvio
+ * mensile, quelli che questo conto esiste per rimettere a posto, restavano
+ * quelli contati peggio.
+ *
+ * Non e' la quota RIMASTA a dire cos'e' successo: e' quanto e' stata
+ * grande la scesa. Il Recorder ritocca di briciole, sempre — e' un
+ * arrotondamento che si ricompila, non un dato nuovo. Tutto il resto e' un
+ * contatore che e' ripartito. Quindi la soglia sta stretta attorno allo
+ * zero, non a meta' strada: fino a un cinquantesimo e' una limatura, oltre
+ * e' un riavvio.
+ *
+ * La direzione dell'errore resta scelta apposta, e stringere la soglia la
+ * conferma: prendere un riavvio per una correzione costa un secchiello di
+ * consumo, prendere una correzione per un riavvio costa gli anni di storia
+ * del contatore scritti sullo schermo come se fossero di oggi — ed e' per
+ * questo che la finestra della correzione dev'essere la piu' piccola che
+ * copra le briciole del Recorder, non la piu' grande che ci stia.
  */
+const LIMATURA_DEL_RECORDER = 0.02;
 export function recorderBucketConsumptions(rows = [], baseline = null) {
   const partenza = baseline && cumulativeValue(baseline) != null ? baseline : null;
   const ordered = [partenza, ...(Array.isArray(rows) ? rows : [])]
     .filter((row) => row && cumulativeValue(row) != null)
     .sort((left, right) => rowTimestamp(left) - rowTimestamp(right));
   const intervalli = partenza ? ordered.slice(1) : ordered;
-  return intervalli.map((row, index) => {
-    const prima = partenza ? ordered[index] : ordered[index - 1];
+  /* Il riferimento si porta avanti riga per riga, e non e' sempre la riga
+   * precedente: dopo una correzione resta quello di PRIMA della correzione.
+   * Altrimenti gli otto decimi tolti dal Recorder tornerebbero indietro come
+   * consumo al secchiello dopo, e l'arco crescerebbe di quanto era stato
+   * limato. Dopo un riavvio, invece, il riferimento e' il valore nuovo: da li'
+   * il contatore conta davvero da capo. */
+  let riferimento = partenza ? cumulativeValue(partenza) : null;
+  return intervalli.map((row) => {
     const adesso = cumulativeValue(row);
-    if (!prima) return Object.freeze({ ...row, change: Math.max(0, adesso) });
-    const cresciuto = adesso - cumulativeValue(prima);
-    return Object.freeze({
-      ...row,
-      change: cresciuto < 0 ? Math.max(0, adesso) : cresciuto,
-    });
+    if (riferimento === null) {
+      riferimento = adesso;
+      return Object.freeze({ ...row, change: Math.max(0, adesso) });
+    }
+    const cresciuto = adesso - riferimento;
+    if (cresciuto >= 0) {
+      riferimento = adesso;
+      return Object.freeze({ ...row, change: cresciuto });
+    }
+    /* Sceso: di una briciola e' una limatura del Recorder e il secchiello non
+     * ha consumato niente; di piu' e' un contatore ripartito, e quello che
+     * segna adesso e' tutto consumo di adesso. */
+    if (riferimento - adesso > riferimento * LIMATURA_DEL_RECORDER) {
+      riferimento = adesso;
+      return Object.freeze({ ...row, change: Math.max(0, adesso) });
+    }
+    return Object.freeze({ ...row, change: 0 });
   });
 }
 
@@ -313,7 +386,26 @@ export function periodRange(kind, selected = new Date(), now = new Date()) {
   } else if (kind === "year") {
     start = new Date(date.getFullYear(), 0, 1);
     next = new Date(date.getFullYear() + 1, 0, 1);
-    period = "month";
+    /* A GIORNI, non a mesi, ed e' la correzione che mancava.
+     *
+     * «I dati della wallbox sono ancora sbagliati: il totale consumato da
+     *  inizio anno e' 1440,76 kWh» — e la plancia ne diceva 546, per tre
+     *  rilasci di fila.
+     *
+     * Su un contatore che si azzera ogni mese — e quello mensile di una
+     * wallbox e' esattamente questo — i secchielli MENSILI del Recorder
+     * portano il totale DI QUEL MESE: dodici numeri che non stanno su nessuna
+     * scala comune. Da quella risposta il consumo dell'anno non si ricava
+     * piu', qualunque conto ci si faccia sopra: l'informazione non c'e'.
+     * `mesiDaiGiorni` lo diceva gia', ed era stato messo su un'altra porta —
+     * `statisticsWithGrowth` — che questo percorso non attraversa.
+     *
+     * Costa una domanda piu' grossa: trecentosessantacinque righe invece di
+     * dodici, per entita'. Ma l'anno si chiede in due archi — i mesi chiusi e
+     * il mese aperto (`archiDellAnno`) — e quello dei mesi chiusi non cambia
+     * mai piu', quindi la sua risposta si tiene. E su un contatore di sempre
+     * il numero che ne esce e' identico a prima. */
+    period = "day";
   } else {
     start = new Date(date.getFullYear(), date.getMonth(), 1);
     next = new Date(date.getFullYear(), date.getMonth() + 1, 1);
@@ -402,6 +494,42 @@ export function resolveEntity(reference, resolver = globalThis.resolveEntity) {
  * primo disegno la casa e' ancora vuota, e rifiutarlo li' vorrebbe dire aprire
  * la plancia con l'energia in bianco.
  */
+/* Dal numero del sensore ai kilowattora, che sono la moneta unica di qui.
+ *
+ * Home Assistant lascia scegliere l'unita' a chi produce il contatore, e Wh e
+ * MWh sono legittime quanto kWh. La plancia pero' scrive «kWh» sotto ogni
+ * numero, e finora il numero lo prendeva e basta: un contatore giornaliero da
+ * 1234 Wh — cioe' 1,234 kWh — si leggeva 1234 kWh. Mille volte tanto, e senza
+ * niente sullo schermo che lo facesse sospettare.
+ *
+ * La conversione sta QUI e in nessun altro posto. Il Recorder converte gia'
+ * per conto suo, perche' gli si chiede `units: { energy: "kWh" }`: le righe
+ * che arrivano da li' sono a posto, e passarle una seconda volta di qui le
+ * sballerebbe di nuovo, nell'altro verso. Restano scoperte due strade sole —
+ * lo stato letto dal vivo, e la domanda di ripiego per gli Home Assistant che
+ * `units` non lo conoscono — ed e' su quelle due che questa funzione si
+ * chiama.
+ *
+ * Un sensore che non dichiara niente vale kilowattora: e' la stessa regola
+ * con cui, dall'altra parte, un sensore che non dichiara niente vale watt. */
+export function inKilowattora(valore, unita) {
+  const numero = Number(valore);
+  if (!Number.isFinite(numero)) return null;
+  const nome = String(unita || "")
+    .trim()
+    .toLowerCase();
+  if (nome === "wh") return numero / 1000;
+  if (nome === "mwh") return numero * 1000;
+  return numero;
+}
+
+/* L'unita' dichiarata da un'entita', gia' pulita e in minuscolo. */
+export function unitaDellEntita(entity, states = {}) {
+  return String(states?.[entity]?.attributes?.unit_of_measurement || "")
+    .trim()
+    .toLowerCase();
+}
+
 const UNITA_DI_POTENZA = /^(w|kw|mw)$/;
 const UNITA_DI_ENERGIA = /^(wh|kwh|mwh)$/;
 const PAROLE_DA_CONTATORE = /(^|[\s._-])(total|totale|lifetime|counter|contatore|meter)([\s._-]|$)/;
@@ -439,6 +567,10 @@ export function sourcePlans(
   overrides = {},
   resolver = (value) => value,
 ) {
+  /* Ogni piano si porta dietro l'unita' dichiarata dalla sua entita'. Serve
+   * alla domanda di ripiego del Recorder, che le righe le riporta com'erano
+   * (vedi `inKilowattora`): la' l'unita' non c'e' modo di ricavarla, perche'
+   * la casa non arriva fin li'. */
   return PERIOD_SOURCES.flatMap((definition) => {
     const group = energy?.[definition.group] || {};
     const explicitKey = definition.periodKeys[kind];
@@ -508,7 +640,7 @@ export function sourcePlans(
             : "legacy-cumulative",
       },
     ];
-  });
+  }).map((plan) => ({ ...plan, unita: unitaDellEntita(plan.entity, states) }));
 }
 
 /* I piani che si leggono dallo stato, e quelli che li deve ricavare il
@@ -570,7 +702,39 @@ export function crescitaNellArco(righe = [], range, { continuazione = false } = 
   );
   const partenza =
     prima.at(-1) || (continuazione ? null : contatoreNatoDentro(prima, dentro, inizio));
-  return periodConsumption(dentro, partenza);
+  if (!dentro.length) return null;
+  /* Senza un predecessore, la prima riga di dentro E' il punto di partenza:
+   * vale zero, non se stessa.
+   *
+   * E' la cautela che teneva `periodConsumption`, e ci sono cascato dentro
+   * riscrivendo questo conto: sommando i secchielli senza baseline, il primo
+   * porta `max(0, adesso)`, cioe' tutto il contatore. Su un contatore di vita
+   * di cui semplicemente non sono state chieste le righe precedenti vorrebbe
+   * dire leggere una cumulata vecchia di anni come il consumo di quest'anno —
+   * sbagliare in quel verso e' molto peggio che non rispondere.
+   *
+   * Quando invece il contatore e' nato DENTRO l'arco lo si sa, e allora
+   * `contatoreNatoDentro` ha gia' messo una partenza a zero: li' il primo
+   * secchiello vale quello che dice, ed e' giusto. */
+  if (!partenza && dentro.length < 2) return null;
+  const base = partenza || dentro[0];
+  const secchielli = partenza ? dentro : dentro.slice(1);
+  /* La SOMMA delle crescite dei secchielli, non la differenza fra il primo e
+   * l'ultimo.
+   *
+   * Sul contatore di sempre sono lo stesso numero: le differenze si annullano
+   * a catena e resta ultimo meno primo. Su uno che si azzera no — e li' solo
+   * la somma e' vera, perche' ogni azzeramento lo vede il secchiello in cui
+   * cade invece di mangiarsi tutto quello che c'era prima.
+   *
+   * Il conto per secchielli c'era gia' e lo usava chi disegna i grafici
+   * (`recorderBucketConsumptions`): erano due modi di misurare la stessa cosa,
+   * uno giusto sempre e uno giusto quasi sempre, e a comandare qui era il
+   * secondo. Adesso ce n'e' uno. */
+  return recorderBucketConsumptions(secchielli, base).reduce(
+    (somma, riga) => somma + Math.max(0, Number(riga.change) || 0),
+    0,
+  );
 }
 
 /* Un contatore che a inizio periodo non c'era ancora parte da zero.
@@ -611,7 +775,12 @@ function contatoreNatoDentro(prima, dentro, inizio) {
 function readDirectState(entity, states = {}) {
   const state = states?.[entity];
   const value = finite(state?.state);
-  return value == null ? null : Math.max(0, value);
+  if (value == null) return null;
+  /* Il numero e' quello del sensore, nell'unita' del sensore: qui diventa
+   * kilowattora, che e' cio' che tutti quelli che leggono i periodi si
+   * aspettano di ricevere. */
+  const inKwh = inKilowattora(value, state?.attributes?.unit_of_measurement);
+  return inKwh == null ? null : Math.max(0, inKwh);
 }
 
 /* Quanto tempo dare a una domanda di statistiche.
@@ -1086,7 +1255,7 @@ export class HomeAssistantBroker {
     return this.cache.size;
   }
 
-  async statistics(ids, start, end, period = "day") {
+  async statistics(ids, start, end, period = "day", unita = {}) {
     const originals = [...new Set((ids || []).map(String).filter(Boolean))];
     if (!originals.length) return {};
     const mapped = new Map(originals.map((id) => [id, resolveEntity(id)]));
@@ -1110,6 +1279,8 @@ export class HomeAssistantBroker {
     const eta = this.cacheHistoricalMs;
     const attesa = tempoPerLeStatistiche(startIso, endIso, this.timeout);
     let result;
+    /* Se le righe arrivano nell'unita' del sensore invece che in kilowattora. */
+    let grezze = false;
     try {
       result = await this.cachedRequest(
         payload,
@@ -1142,9 +1313,17 @@ export class HomeAssistantBroker {
         historical ? eta : this.cacheCurrentMs,
         attesa,
       );
+      /* Senza `units` le righe tornano nell'unita' del sensore: qui, e solo
+       * qui, la conversione tocca a noi. Sulla domanda normale non si passa
+       * mai di qua, perche' li' ha gia' convertito Home Assistant. */
+      grezze = true;
     }
     return Object.fromEntries(
-      originals.map((id) => [id, result?.[mapped.get(id)] || result?.[id] || []]),
+      originals.map((id) => {
+        const righe = result?.[mapped.get(id)] || result?.[id] || [];
+        if (!grezze) return [id, righe];
+        return [id, righeInKilowattora(righe, unita?.[id] || unita?.[mapped.get(id)] || "")];
+      }),
     );
   }
 
@@ -1231,7 +1410,12 @@ export class HomeAssistantBroker {
           // One Recorder request contains both the sample immediately before the
           // boundary and all samples in the requested period. This is the same data
           // contract used for Energy: growth = final sum - initial sum.
-          const righe = await this.statistics(ids, baseline.start, range.end, range.period);
+          /* Le unita' dichiarate dai piani viaggiano con la domanda: servono
+           * solo se il Recorder risponde alla vecchia maniera. */
+          const unita = Object.fromEntries(
+            plans.filter((plan) => plan.entity).map((plan) => [plan.entity, plan.unita || ""]),
+          );
+          const righe = await this.statistics(ids, baseline.start, range.end, range.period, unita);
           for (const plan of plans) {
             const continuazione =
               (primoArco.get(plan.key) ?? range.start.getTime()) < range.start.getTime();

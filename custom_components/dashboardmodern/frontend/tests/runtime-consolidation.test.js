@@ -49,7 +49,11 @@ test("year range is independent from selected month", () => {
   assert.equal(range.end.getFullYear(), 2026);
   assert.equal(range.end.getMonth(), 0);
   assert.equal(range.end.getDate(), 1);
-  assert.equal(range.period, "month");
+  /* A giorni, non a mesi: su un contatore che si azzera ogni mese i secchielli
+   * mensili portano il totale di quel mese, e da dodici numeri che non stanno
+   * su una scala comune il consumo dell'anno non si ricava piu'. Vedi
+   * `lanno-della-wallbox-passa-dai-giorni`. */
+  assert.equal(range.period, "day");
 });
 
 test("current year range ends at now instead of reusing the selected month", () => {

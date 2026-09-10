@@ -30,6 +30,12 @@ test("le parole dicono solo quello che c'e'", () => {
 
 test("la griglia conta ogni gruppo con il conto separato", async () => {
   const source = await readFile(new URL("../src/sections/shutter-scene-section.js", import.meta.url), "utf8");
-  assert.match(source, /groupMarkup\(view, contoDelGruppo\(views\.filter\(\(other\) => groupKey\(other\) === lastKey\)\)\)/);
+  /* Il conto della scritta viene dalle card di QUEL gruppo, non da tutte: e'
+   * la cosa che questa prova tiene ferma. Il nome della variabile che porta la
+   * chiave non c'entra — cambiarlo non e' una regressione. */
+  assert.match(
+    source,
+    /groupMarkup\(\s*view,\s*contoDelGruppo\(views\.filter\(\(other\) => groupKey\(other\) === \w+\)\),?\s*\)/,
+  );
   assert.match(source, /\$\{esc\(paroleDelConto\(conto\)\)\}/);
 });

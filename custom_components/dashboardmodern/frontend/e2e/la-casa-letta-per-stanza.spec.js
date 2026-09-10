@@ -192,3 +192,47 @@ test("una presa assegnata a mano si accende dalla pagina Stanze", async ({ page 
   expect(ultima.data?.entity_id).toBe("switch.presa_salone");
   await expect(interruttore).toHaveAttribute("aria-checked", "true");
 });
+
+/* Lo stesso lettore in due posti (#426).
+ *
+ * «Dopo l'aggiornamento che ha identificato i vari speaker nelle stanze,
+ *  questi vengono duplicati: se si clicca quello sotto la sezione musica si va
+ *  nella sezione corretta, se si seleziona quello sotto la voce altro in questa
+ *  stanza si torna alla home della dashboard.»
+ *
+ * Arrivava da due parti — la sua scheda, che la stanza la chiede da quando c'è
+ * il blocco Musica, e l'assegnazione a mano, che era il modo di metterlo in
+ * stanza prima. Due oggetti diversi, la stessa entità: qui si conta quante
+ * righe la nominano sulla pagina, che è quello che si vede.
+ */
+test("il lettore compare una volta sola, e nel suo blocco", async ({ page }, testInfo) => {
+  await apri(page, testInfo);
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "cd_media_player",
+      JSON.stringify([
+        { id: "mp1", entity: "media_player.sonos", name: "Sonos", room_id: "room-salone" },
+      ]),
+    );
+    /* E la stessa entità assegnata a mano, come chi l'aveva messa in stanza
+     * quando il blocco Musica non c'era ancora. */
+    localStorage.setItem(
+      "cd_stanze_entita",
+      JSON.stringify({ "media_player.sonos": "room-salone" }),
+    );
+    const grezzi = eval("_RAW_STATES");
+    grezzi["media_player.sonos"] = {
+      entity_id: "media_player.sonos",
+      state: "playing",
+      attributes: { friendly_name: "Sonos", media_title: "Bohemian Rhapsody" },
+    };
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+  });
+  await page.locator('#page-stanze [data-dm-stanza="room-salone"]').click();
+
+  const righe = page.locator('#page-stanze [data-dm-stanza-entita="media_player.sonos"]');
+  await expect(righe).toHaveCount(1);
+  /* E porta dove si comanda: la pagina Musica, non la Home — che è il modo in
+   * cui si vedeva quale delle due righe era quella buona. */
+  await expect(righe).toHaveAttribute("data-dm-stanza-vai", "media");
+});

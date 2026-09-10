@@ -129,15 +129,39 @@ test("le card delle persone e le tessere dei widget hanno le stesse colonne", as
 
   await allineate("desktop");
 
-  /* Sul telefono le due griglie passano a due colonne, e devono passarci
-   * insieme: e' li' che uno sfalso si vede di piu'. */
+  /* Sul telefono le due griglie devono restare sulla stessa corsia: e' li' che
+   * uno sfalso si vede di piu'. */
   await page.setViewportSize({ width: 390, height: 1200 });
   await page.waitForTimeout(500);
   await allineate("telefono");
-  const colonne = await page.evaluate(() => {
-    const conta = (sel) =>
-      getComputedStyle(document.querySelector(sel)).gridTemplateColumns.split(" ").length;
-    return [conta("#dm-people .dm-people-grid"), conta("#dm-widgets .dm-widgets-grid")];
+
+  /* Qui si guardano le CORSIE, non quante sono.
+   *
+   * Prima si pretendeva due colonne per parte, e per un po' e' stato lo stesso
+   * fatto: le due griglie erano larghe uguale, quindi stesso numero di corsie
+   * voleva dire stessa corsia. Non lo e' piu' da quando accanto alle persone
+   * puo' starci un compagno — la card del flusso — che sul telefono si prende
+   * una delle due corsie: alle persone ne resta UNA, larga esattamente come
+   * una tessera. L'allineamento e' intatto, ed e' quello che conta; il conto
+   * delle colonne era solo il modo in cui lo si misurava.
+   *
+   * Quindi la regola si dice per quello che e': ogni corsia delle persone e'
+   * larga come una dei widget. Vale con il compagno e vale senza. */
+  const tracce = await page.evaluate(() => {
+    const corsie = (sel) =>
+      getComputedStyle(document.querySelector(sel))
+        .gridTemplateColumns.split(" ")
+        .map((valore) => Number.parseFloat(valore));
+    return {
+      persone: corsie("#dm-people .dm-people-grid"),
+      widget: corsie("#dm-widgets .dm-widgets-grid"),
+    };
   });
-  expect(colonne).toEqual([2, 2]);
+  expect(tracce.widget.length, "sul telefono i widget stanno su due colonne").toBe(2);
+  expect(tracce.persone.length, "le persone hanno almeno una corsia").toBeGreaterThan(0);
+  for (const larghezza of tracce.persone)
+    expect(
+      Math.abs(larghezza - tracce.widget[0]),
+      `una corsia delle persone (${larghezza}px) non e' larga come una dei widget (${tracce.widget[0]}px)`,
+    ).toBeLessThan(1);
 });

@@ -476,14 +476,14 @@ function installStyles() {
     .dm-subload-title-icon{font-size:26px;line-height:1}
     .dm-subload-title-icon .dm-icon-engine-glyph,.dm-subload-summary-icon .dm-icon-engine-glyph,.dm-subload-icon .dm-icon-engine-glyph{font-size:inherit!important;height:auto!important}
     .dm-subload-title-name{color:var(--text,#0f172a);font-weight:900;letter-spacing:.5px}
-    .dm-subload-title-period{color:var(--muted,#64748b);font-size:11px;font-weight:800;letter-spacing:1.4px}
+    .dm-subload-title-period{color:var(--text-dim,#64748b);font-size:11px;font-weight:800;letter-spacing:1.4px}
     .dm-subload-summary{display:flex;align-items:center;gap:14px;margin:0 0 16px;padding:14px 18px;border-radius:22px;border:1px solid color-mix(in srgb,var(--dm-subload-color,#0ea5e9) 24%,transparent);background:color-mix(in srgb,var(--dm-subload-color,#0ea5e9) 10%,var(--card-bg,#fff))}
     .dm-subload-summary-icon{font-size:30px;line-height:1}
     .dm-subload-total{display:flex;flex-direction:column;min-width:0}
     .dm-subload-total-value{font-family:'Oswald',sans-serif;font-size:30px;font-weight:700;line-height:1.05;color:var(--text,#0f172a)}
-    .dm-subload-total small{color:var(--muted,#64748b);font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+    .dm-subload-total small{color:var(--text-dim,#64748b);font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
     .dm-subload-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:14px}
-    .dm-subload-empty{grid-column:1/-1;padding:26px;text-align:center;color:var(--muted,#64748b);font-weight:700}
+    .dm-subload-empty{grid-column:1/-1;padding:26px;text-align:center;color:var(--text-dim,#64748b);font-weight:700}
     .dm-subload-card{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:22px;border:1px solid var(--card-border,rgba(15,23,42,.10));background:var(--card-bg,#fff);box-shadow:var(--shadow-glass,0 10px 30px rgba(15,23,42,.06));cursor:pointer;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
     .dm-subload-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-hover,0 18px 44px rgba(15,23,42,.12));border-color:color-mix(in srgb,var(--dm-subload-color,#64748b) 42%,transparent)}
     .dm-subload-card[data-dm-subload-state="running"]{border-color:color-mix(in srgb,var(--dm-subload-color) 46%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--dm-subload-tint) 60%,var(--card-bg,#fff)),var(--card-bg,#fff))}
@@ -499,7 +499,7 @@ function installStyles() {
      * leggevano come un numero solo. */
     .dm-subload-value{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
     .dm-subload-power{font-family:'Oswald',sans-serif;font-size:26px;font-weight:700;line-height:1;color:var(--text,#0f172a)}
-    .dm-subload-daily{color:var(--muted,#64748b);font-size:12px;font-weight:700}
+    .dm-subload-daily{color:var(--text-dim,#64748b);font-size:12px;font-weight:700}
     .dm-subload-meter{height:6px;border-radius:999px;background:color-mix(in srgb,var(--divider-color,#e2e8f0) 80%,transparent);overflow:hidden}
     .dm-subload-meter[hidden]{display:none}
     .dm-subload-meter-fill{display:block;height:100%;border-radius:999px;background:var(--dm-subload-color,#0ea5e9);transition:width .3s ease}

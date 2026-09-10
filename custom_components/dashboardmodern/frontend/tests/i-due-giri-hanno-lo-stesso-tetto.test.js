@@ -59,6 +59,27 @@ test("il cancello del rilascio da' lo stesso tempo del giro che autorizza il mer
   );
 });
 
+const inParallelo = (pezzo) => Number(pezzo.match(/^\s*max-parallel:\s*(\d+)\s*$/m)?.[1]);
+
+test("i due giri fanno partire insieme lo stesso numero di pezzi", () => {
+  /* Un pezzo che resta in coda allunga il giro di tutta la sua attesa, e per
+   * niente: l'attesa e' quella del pezzo piu' lento, non la somma. Con otto
+   * pezzi e sette posti l'ottavo partiva un quarto d'ora dopo gli altri.
+   *
+   * E i due giri devono dire lo stesso numero per la stessa ragione dei tetti:
+   * un rilascio piu' lento del controllo che lo autorizza e' un rilascio che
+   * rischia di non arrivare in fondo. */
+  assert.ok(
+    Number.isInteger(inParallelo(GIRO)),
+    "il giro normale non dichiara quanti in parallelo",
+  );
+  assert.equal(inParallelo(CANCELLO), inParallelo(GIRO));
+  assert.ok(
+    inParallelo(GIRO) >= spartizione(GIRO).length,
+    `i pezzi sono ${spartizione(GIRO).length} e i posti ${inParallelo(GIRO)}: qualcuno aspetta il suo turno`,
+  );
+});
+
 test("le prove si spartiscono allo stesso modo nei due giri", () => {
   /* Se il rilascio spartisse WebKit in tre dove il giro normale lo spartisce in
    * quattro, ogni pezzo del rilascio sarebbe piu' lungo di un terzo: lo stesso

@@ -7,6 +7,223 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non ancora rilasciato
 
+## 1.4.17
+
+Un giro sui colori e sui conti. Il tema scuro aveva una famiglia intera di
+righe che chiedevano nomi inesistenti — e prendevano il colore del tema chiaro
+senza dirlo a nessuno — e da lì è venuto anche il resto: adesso che i colori
+passano tutti dagli stessi token, le tavolozze si possono aggiungere, e ce ne
+sono sei. In mezzo, una mia regressione della 1.4.16 sull'energia, trovata da
+una prova che avevo guardato tardi.
+
+### Aggiunto
+
+- **Il flusso energia scrive quanto è piena la batteria** (#459)
+
+  «Sarebbe possibile visualizzare la percentuale della batteria e non solo la
+  potenza?» Il numero c'era, ma solo nel titolo del nodo — cioè nel suggerimento
+  del mouse, e la richiesta arriva da un iPhone, dove il mouse non c'è. Restava
+  l'anello attorno alla batteria, che distingue benissimo un 10% da un 90% e per
+  niente un 55% da un 65%.
+
+  Adesso è scritto, sotto i watt e non accanto: due numeri sulla stessa riga si
+  leggono come un numero solo lungo, e uno parla di potenza mentre l'altro parla
+  di quanto è piena. Piccolo e nel colore della batteria, perché la riga grossa
+  resta quella dei watt, e l'anello continua a fare la lettura di sfuggita.
+
+- **Le porte e i cancelli hanno la loro tessera in Home** (#457)
+
+  «Create a doors widget in the home, separate from the security widget.» Le
+  aperture stavano dentro la tessera della Sicurezza, e la richiesta ha ragione
+  per un motivo preciso: le due cose rispondono a domande diverse. La Sicurezza
+  dice **come sta la casa** — inserito, disinserito, allarme — mentre le
+  aperture sono **comandi**: aprimi il portone. Tenerle insieme voleva dire
+  aprire la tessera per una qualunque delle due.
+
+  Adesso sono due, e si ordinano e si spengono ognuna per sé da **Config →
+  Widget**: chi le preferiva insieme ne nasconde una. Il tasto che apre è lo
+  stesso di prima — stessa conferma, stesso tastierino del PIN, stessa chiamata
+  — perché è proprio quello, spostato e non ricopiato.
+
+  Il numero grande dipende da cosa c'è dentro. Una serratura dice come sta, e
+  allora è quante ne sono aperte, in rosso; un pulsante del citofono o il relè
+  di un cancello non lo dicono — il loro «acceso» dura un secondo — e contarli
+  fra le aperte sarebbe inventare un allarme, quindi lì è semplicemente quante
+  aperture ci sono.
+
+  Chi aveva già scelto qualcosa se lo tiene: un'apertura spenta dalla Home resta
+  spenta e si può riaccendere, chi aveva nascosto la Sicurezza non se le ritrova
+  in casa, e chi aveva ordinato le tessere se le trova accanto a quella da cui
+  sono uscite invece che in fondo.
+
+- **Sei tavolozze in più, e nessuna che si possa non leggere** (#436)
+
+  «Quando è possibile avere qualche tema in più?» Adesso: Notte blu, Grafite e
+  Bosco sul fondo scuro; Sabbia, Menta e Ardesia sul chiaro. La famiglia — chiaro
+  o scuro — resta scritta dov'era, perché su quel marcatore poggiano centinaia di
+  regole: la tavolozza si scrive accanto, non al suo posto. La scelta sta su
+  questo dispositivo, come il tema: il tablet in cucina può stare sul chiaro
+  mentre il telefono sta sul notte.
+
+  Una tavolozza è un elenco di numeri, quindi si prova a tavolino: nessuna
+  dimentica un token, nessuna scende sotto 4,5 di contrasto su testo, testo
+  tenue e accento, nessuna dichiara una famiglia diversa dal proprio fondo.
+
+- **Un avviso personalizzato può farsi vedere da solo** (#445)
+
+  «Ho un boolean che se attivo mi indica con un popup l'intervento del distacco
+  carichi.» La tessera si accendeva già; ma un intervento del distacco carichi
+  non è una cosa da vedere passando, è una cosa da sapere adesso — ed è la
+  differenza fra una tessera, che aspetta lo sguardo, e un popup, che lo va a
+  prendere.
+
+  Si apre solo quando l'avviso si ACCENDE, mai al primo sguardo su uno acceso da
+  stamattina, mai una seconda volta finché resta acceso, e mai sopra una finestra
+  già aperta. L'interruttore sta nella scheda delle tessere e nasce spento: una
+  finestra che si apre da sola è una cosa che si chiede, non che si subisce.
+
+- **Rifiuti: un sensore solo può portare tutto il calendario** (#443)
+
+  «Molte integrazioni non forniscono un calendario vero e proprio ma dei sensori
+  `sensor.xxx`.» Un sensore per materiale si leggeva da sempre; mancava l'altro
+  modo, che in Italia è il più diffuso — UN sensore che porta l'intero elenco dei
+  prossimi ritiri negli attributi. Si accettano tutte e tre le forme in cui lo
+  scrivono: elenco di oggetti, elenco di frasi, mappa frazione → data.
+
+- **Il luogo di una persona si tocca e si apre la mappa** (#438)
+
+  Il collegamento c'era già nella scheda grande; sulla card l'indirizzo era una
+  scritta, e arrivarci costava due tocchi per una cosa che si guarda mentre si
+  sta uscendo. Il resto della card continua ad aprire la persona.
+
+### Corretto
+
+- **Quattro cose trovate da una revisione automatica sulla PR di questa versione**
+
+  Nessuna era visibile guardando la plancia, e tutte e quattro erano vere.
+
+  **Un contatore mensile che riparte alto contava per cinque.** La soglia con
+  cui si distingue una limatura del Recorder da un contatore ripartito stava a
+  un decimo, e il ragionamento — «un riavvio lascia una frazione di quello che
+  c'era» — è falso: un contatore che chiude il mese a 50 kWh e il primo del mese
+  dopo ne consuma 46 è sceso di meno di un decimo, e passava per correzione.
+  La serie 50, 46, 55 dava 5 invece di 55, cioè proprio i contatori a riavvio
+  mensile restavano quelli contati peggio. Non è la quota rimasta a dire cos'è
+  successo: è quanto è stata grande la scesa. Le briciole del Recorder sono
+  briciole sempre, e adesso la finestra della correzione è la più piccola che le
+  copra.
+
+  **Un materiale dedotto poteva comparire due volte.** Chi configura un sensore
+  per materiale senza scegliere quale lascia «altro», e il materiale vero lo dice
+  il sensore. Quella traduzione la faceva soltanto il disegno delle righe:
+  l'elenco delle esclusioni restava fermo su «altro», il calendario portava
+  allora la *sua* plastica, e uscivano due righe dello stesso bidone con due date
+  diverse. Adesso la domanda si fa in un posto solo.
+
+  **Un avviso che scattava a finestra aperta spariva.** Chi sta guardando
+  un'altra finestra ha già scelto cosa guardare, e la sua non si scavalca — ma
+  «non aprirla adesso» e «buttarla via» sono due cose diverse. La memoria si
+  scriveva prima di quel controllo, quindi l'avviso appena acceso risultava già
+  visto e la sua finestra non arrivava mai. Adesso resta in sospeso e arriva
+  quando c'è posto.
+
+  **L'ultima pastiglia della fascia restava tagliata.** La fascia sotto il meteo
+  ha un bordo interno di sei pixel per parte, e il nastro comincia dentro quel
+  bordo: la strada da percorrere veniva misurata dodici pixel più corta, e il
+  nastro si fermava prima del proprio capo — con il velo del bordo sopra a
+  rendere quell'ultima parola ancora meno leggibile.
+
+- **Energia: un contatore in Wh valeva mille volte tanto** (#447)
+
+  Home Assistant lascia scegliere l'unità a chi produce il contatore, e `Wh` e
+  `MWh` sono legittime quanto `kWh`. La plancia però scriveva «kWh» sotto ogni
+  numero e il numero lo prendeva e basta: un contatore giornaliero da 1234 Wh —
+  che sono 1,234 kWh — si leggeva **1234 kWh**. Mille volte tanto, e senza
+  niente sullo schermo che lo facesse sospettare.
+
+  La conversione sta in un punto solo, dentro il servizio dei periodi, e da lì
+  la leggono tutti: la tessera della Home, la sezione Energia, il Report, le
+  proiezioni. Metterla nella sola tessera avrebbe fatto dire due numeri diversi
+  sulla stessa entità, che è il guasto peggiore dei due — perché toglie anche il
+  modo di accorgersene.
+
+  Il Recorder converte già per conto suo, perché gli si chiede
+  `units: { energy: "kWh" }`: quelle righe non si toccano, o si sballerebbero di
+  nuovo nell'altro verso. Restava scoperta anche la domanda di ripiego, quella
+  per le versioni di Home Assistant che `units` non lo conoscono, e adesso passa
+  di lì pure lei. Un contatore che già parla in kilowattora esce identico a com'è
+  entrato.
+
+- **Il tema scuro: i colori chiedevano nomi che non esistono** (#425)
+
+  «I numeri dei giorni della settimana non selezionati sono visualizzati in nero
+  e di difficile distinzione su sfondo di un colore simile.» Il numero chiedeva
+  `--text-color`, che non lo definisce nessuno: valeva sempre il ripiego scritto
+  a mano, il nero del tema chiaro. **1,08 di contrasto misurato**, cioè niente.
+
+  Non era un caso isolato ma una famiglia di ventisette righe — `--muted`,
+  `--border`, `--accent-color`, `--tc-rgb`, `--shadow-glass-strong` — tutte con
+  un ripiego chiaro e tutte invisibili finché qualcuno non accende lo scuro.
+  Adesso ogni riga chiede il token vero, e una prova conta i nomi che nessuno
+  definisce e li vuole giustificati per iscritto.
+
+- **Le Finestre non vanno più in colonna da PC** (#424)
+
+  La griglia non c'entrava. Fra una card e l'altra c'era la scritta della stanza,
+  che prende la riga intera: con una tapparella per stanza faceva una card per
+  riga a qualunque larghezza. E quella scritta, sopra una card sola, ripeteva la
+  stanza che la card stampa già sotto il proprio nome. Adesso resta dove
+  distingue e sparisce dove ripete.
+
+- **Nelle Stanze una cosa sola compare una volta sola** (#426)
+
+  Il lettore arrivava da due parti — la sua scheda e l'assegnazione a mano — e il
+  confronto guardava l'oggetto invece dell'entità: passavano tutti e due, e il
+  secondo finiva in «Altro», dove il tocco non porta da nessuna parte. Nella
+  stessa segnalazione: tutti i carichi finivano in «Senza stanza», perché il
+  blocco «Carichi» prometteva una stanza che la scheda non chiedeva — adesso la
+  casella c'è — e le batterie assegnate a mano portavano il puntatore generico
+  invece della loro faccia.
+
+- **Un ritocco all'indietro del Recorder non è un azzeramento**
+
+  Correggendo l'anno della wallbox nella 1.4.16 avevo scritto che un contatore
+  che scende è un contatore ripartito da zero. È vero per un riavvio e falso per
+  l'altra ragione per cui una somma scende: il Recorder ritocca le sue
+  statistiche all'indietro, di pochissimo. Letto come azzeramento, quel ritocco
+  portava nel secchiello tutta la cumulata di sempre — **l'anno della rete
+  importata usciva 1310 invece di 10, e il bilancio di casa 1339,9 invece di
+  39,9**. Adesso le due cose si distinguono da quanto è sceso, non dal fatto che
+  sia sceso.
+
+- **L'indirizzo di una persona non è un pezzo del viaggio** (#454)
+
+  Distanza, tempo di rientro e direzione si raccontano solo di chi è fuori: a
+  casa valgono zero. L'indirizzo era finito in quel mucchio per vicinanza, non
+  per ragione — chi è a casa un posto ce l'ha come chiunque altro, e vale
+  l'indirizzo di casa. Torna a leggersi sempre.
+
+- **La mappa del robot si muove mentre il robot si muove** (#456)
+
+  Si ridisegnava solo quando cambiava `entity_picture`. Su Valetudo, Roborock e
+  derivati la mappa è una telecamera, e l'indirizzo di una telecamera cambia
+  quando scade il gettone — non quando cambia il disegno: si guardava la
+  fotografia del momento in cui si era aperta la pagina, per tutto il tempo in
+  cui il robot puliva. Adesso, mentre gira, si richiede a tempo; fermo resta la
+  regola di prima. Senza aggiungere nessun timer.
+
+- **Rifiuti: la sera prima si dice il gesto** (#441)
+
+  «Domani» è un'informazione e lascia a chi legge il passo che conta. «Da mettere
+  fuori stasera» è il gesto, e chi legge ha finito.
+
+- **Presenza e Cruscotto avevano il tasto per tornare in Home?** (#452)
+
+  No. Due pagine su ventidue non erano nell'elenco del masthead, e ci si entrava
+  senza poterne uscire. Adesso una prova legge le pagine dai file e non lascia
+  passare quella che si dimentica.
+
+
 ## 1.4.16
 
 Il giro delle segnalazioni, una per una. Sei richieste nuove diventate cose che

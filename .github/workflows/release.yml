@@ -98,7 +98,11 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
-      max-parallel: 7
+      # Otto come nel giro normale: l'ottavo pezzo non aspetta il suo turno.
+      # Qui pesa il doppio — un rilascio che ci mette quindici minuti in piu'
+      # per una coda e' un rilascio fermo — e vale la stessa regola dei tetti:
+      # se cambia uno, cambia l'altro.
+      max-parallel: 8
       matrix:
         include:
           - { project: desktop, shard: 1, shards: 2 }
