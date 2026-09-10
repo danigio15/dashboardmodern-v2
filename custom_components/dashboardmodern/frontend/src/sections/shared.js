@@ -1092,3 +1092,31 @@ export function scriviTestoSeCambia(nodo, testo) {
 function rivendica(nodo) {
   if (nodo.dataset && nodo.dataset.dmPadrone !== "moduli") nodo.dataset.dmPadrone = "moduli";
 }
+
+/* Un servizio di Home Assistant, chiamato dalla plancia.
+ *
+ * Le strade sono tre perche' tre sono i gusci in cui la plancia gira: dentro il
+ * pannello c'e' `cdCallServiceJson`, la card ha `dmCallHaService`, e la plancia
+ * aperta da sola ha il vecchio `callService`. Si prova quella che c'e'.
+ *
+ * Questa funzione stava scritta uguale in tre sezioni — robot, luci, stanze —
+ * e le tre copie si erano gia' scollate: due si mangiavano il rifiuto della
+ * promessa, la terza no, e li' un servizio negato da Home Assistant finiva
+ * nella console del browser come «unhandled rejection». Sta qui una volta
+ * sola, e il rifiuto se lo mangia sempre: chi comanda ha gia' la sua risposta
+ * dallo stato che torna indietro.
+ */
+export function chiamaServizio(comando) {
+  if (!comando) return false;
+  const nomi = ["cdCallServiceJson", "dmCallHaService", "callService"];
+  for (const nome of nomi) {
+    if (typeof root[nome] !== "function") continue;
+    try {
+      root[nome](comando.domain, comando.service, comando.data)?.catch?.(() => {});
+    } catch (_errore) {
+      return false;
+    }
+    return true;
+  }
+  return false;
+}

@@ -43,6 +43,7 @@ import { configuredSecurityDoors, parolaDelGesto } from "./security-doors-sectio
 import { temperatureEntries } from "./beta25-real-device-fixes-section.js";
 import {
   allStates,
+  chiamaServizio,
   clean,
   doc,
   esc,
@@ -822,25 +823,6 @@ function schedule() {
 
 /* ─────────────────────────────────── ascolto ────────────────────────────── */
 
-function callService(command) {
-  if (!command) return false;
-  try {
-    if (typeof root.cdCallServiceJson === "function") {
-      root.cdCallServiceJson(command.domain, command.service, command.data);
-      return true;
-    }
-    if (typeof root.dmCallHaService === "function") {
-      root.dmCallHaService(command.domain, command.service, command.data)?.catch?.(() => {});
-      return true;
-    }
-    if (typeof root.callService === "function") {
-      root.callService(command.domain, command.service, command.data);
-      return true;
-    }
-  } catch (_error) {}
-  return false;
-}
-
 function runScene(on) {
   const states = allStates();
   const pagina = pickRoomPage(roomPages(), state.room);
@@ -848,7 +830,7 @@ function runScene(on) {
   for (const entity of roomSceneEntities(pagina)) {
     const view = lightView(entity, { state: states[entity], comandabile: siComanda(entity) });
     if (view.on === on || !view.available) continue;
-    callService(lightCommand(view, { power: on }));
+    chiamaServizio(lightCommand(view, { power: on }));
   }
   state.signature = "";
   schedule();
@@ -924,7 +906,7 @@ function handleClick(event) {
     const domain = entity.split(".")[0];
     const acceso = accesa(entity, allStates());
     root.navigator?.vibrate?.(8);
-    callService({
+    chiamaServizio({
       domain,
       service: acceso ? "turn_off" : "turn_on",
       data: { entity_id: entity },

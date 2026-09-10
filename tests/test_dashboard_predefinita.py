@@ -180,6 +180,41 @@ async def test_una_scheda_che_c_e_gia_non_si_crea_una_seconda_volta(
     assert magazzino.salvata["views"], "e la si riempie lo stesso"
 
 
+async def _niente(*_argomenti: Any, **_parole: Any) -> None:
+    """Un pezzo dell'avvio che questa prova non guarda."""
+
+
+def _niente_subito(*_argomenti: Any, **_parole: Any) -> None:
+    """Lo stesso, per i pezzi che non si aspettano."""
+
+
+async def test_lovelace_a_meta_dell_avvio_non_si_guarda(
+    hass: Any, monkeypatch: Any
+) -> None:
+    """Una collezione che c'e' ma non ha ancora letto il disco non e' una casa
+    senza dashboard.
+
+    Lovelace, mentre parte, mette in `hass.data` la collezione delle dashboard
+    PRIMA di leggerci dentro le schede che ci sono. Un'integrazione che parte
+    nello stesso momento — e questa parte proprio li' — la trovava vuota e
+    creava una dashboard di appoggio che sul disco c'era gia'.
+
+    Adesso non si guarda affatto in quel momento: si aspetta che Lovelace abbia
+    finito. Qui Lovelace non finisce mai, e infatti non si crea niente.
+    """
+    monkeypatch.setattr(fe, "_ensure_static_registered", _niente)
+    for nome in ("_ensure_dashboard_card_registered", "_register_or_update_panel"):
+        monkeypatch.setattr(fe, nome, _niente_subito)
+    entry = _voce(hass)
+    dati = _lovelace(hass)
+    assert "lovelace" not in hass.config.components
+
+    await fe.async_register_frontend(hass, entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert dati["dashboards_collection"].create == []
+
+
 async def test_senza_lovelace_non_si_rompe_niente(hass: Any) -> None:
     """All'avvio Lovelace puo' non esserci ancora: si dice di no e si riprova."""
     entry = _voce(hass)

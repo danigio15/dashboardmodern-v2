@@ -565,8 +565,8 @@ test("la scheda e la configurazione portano i comandi a parte (#306)", async () 
   assert.match(scheda, /\$\{comandiTendineMarkup\(view\)\}/);
   assert.match(scheda, /class="dm-robot-actions dm-robot-comandi" data-dm-robot-comandi/);
   /* Il tocco chiama il servizio giusto, e la tendina la sua entita'. */
-  assert.match(scheda, /callService\(comandoDelDispositivo\(voce\)\)/);
-  assert.match(scheda, /callService\(comandoDelDispositivo\(voce, tendina\.value\)\)/);
+  assert.match(scheda, /chiamaServizio\(comandoDelDispositivo\(voce\)\)/);
+  assert.match(scheda, /chiamaServizio\(comandoDelDispositivo\(voce, tendina\.value\)\)/);
   /* La firma li conosce: un comando aggiunto rifa' la scheda. */
   assert.match(
     scheda,

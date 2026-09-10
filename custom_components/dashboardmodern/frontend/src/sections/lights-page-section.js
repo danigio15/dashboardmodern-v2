@@ -32,6 +32,7 @@ import { configuredLightGroups } from "./lights-alerts-section.js";
 import { openLightControl } from "./lights-scene-section.js";
 import {
   allStates,
+  chiamaServizio,
   clean,
   doc,
   esc,
@@ -475,28 +476,8 @@ function viewOf(id) {
   return { ...view, on: promesso };
 }
 
-function callService(command) {
-  if (!command) return false;
-  try {
-    if (typeof root.cdCallServiceJson === "function") {
-      root.cdCallServiceJson(command.domain, command.service, command.data);
-      return true;
-    }
-    if (typeof root.dmCallHaService === "function") {
-      const result = root.dmCallHaService(command.domain, command.service, command.data);
-      result?.catch?.(() => {});
-      return true;
-    }
-    if (typeof root.callService === "function") {
-      root.callService(command.domain, command.service, command.data);
-      return true;
-    }
-  } catch (_error) {}
-  return false;
-}
-
 function send(view, change) {
-  callService(lightCommand(view, change));
+  chiamaServizio(lightCommand(view, change));
 }
 
 function feedback(pattern = 10) {

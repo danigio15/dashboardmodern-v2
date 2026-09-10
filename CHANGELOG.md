@@ -195,6 +195,30 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **«Il flag c'è ma tra le plance non la vedo»**
+
+  La dashboard di appoggio — quella che permette di scegliere la plancia come
+  predefinita — si preparava all'avvio dell'integrazione, e con Lovelace ancora
+  a metà del suo. Lovelace, mentre parte, mette a disposizione la collezione
+  delle dashboard **prima** di leggere dal disco le schede che ci sono: chi
+  guarda in quel momento la trova vuota, crede che la dashboard di appoggio non
+  esista e la crea sull'indirizzo dove c'è già. Da lì in poi l'esito dipendeva
+  da chi dei due arrivava primo — e chi perdeva quella corsa non vedeva la
+  plancia fra le dashboard, né a quel riavvio né a nessuno dei successivi,
+  perché si ripercorreva ogni volta la stessa strada.
+
+  Adesso la si prepara quando Lovelace ha finito davvero di alzarsi, sempre — e
+  subito, se aveva già finito. E se la creazione viene comunque rifiutata
+  perché la scheda c'era già, non ci si arrende: si rimette in pari e si
+  riempie, che era quello che serviva. Un rifiuto vero, invece, adesso finisce
+  nel registro scritto per esteso: dice che la plancia non comparirà fra le
+  dashboard, invece di lasciarlo scoprire.
+
+  Queste strade avevano un buco nelle prove: la Lovelace era finta, quindi le
+  prove dicevano che la plancia chiedeva la cosa giusta, non che Home Assistant
+  gliela concedesse. Ci sono adesso anche le prove contro la Lovelace vera, con
+  la sua collezione, il suo magazzino e il suo registro dei pannelli.
+
 - **Due plance identiche nella barra laterale**
 
   «Perché nel mio ha ci sono 2 plance Dashboard modern v2?», con la schermata
@@ -219,6 +243,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   guardava solo lì la creava daccapo — e la guardia di Lovelace contro i
   doppioni guarda quella stessa mappa, quindi nemmeno lei se ne accorgeva. Ora
   si chiede anche alla collezione, che le sue schede le sa sempre.
+
+- **Un solo posto per chiamare un servizio di Home Assistant**
+
+  La stessa funzione stava scritta uguale in tre sezioni — robot, luci, stanze —
+  e le tre copie si erano già scollate: due si mangiavano il rifiuto della
+  promessa, la terza no, e lì un servizio negato da Home Assistant finiva nella
+  console del browser come errore non gestito. Adesso è una sola, e il rifiuto
+  se lo mangia sempre.
 
 - **Le telecamere prendono la strada che Home Assistant dichiara** (#418)
 

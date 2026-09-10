@@ -22,7 +22,8 @@ import {
 } from "../core/robot-model.js";
 import { comandoDelDispositivo } from "../core/comandi-accanto.js";
 import {
-allStates,
+  allStates,
+  chiamaServizio,
   clean,
   dashboardStore,
   doc,
@@ -30,8 +31,8 @@ allStates,
   gettoneDiAccesso,
   installStyle,
   readJson,
-  root,
   roomLabel,
+  root,
   section,
   t,
   wrapFunction,
@@ -818,25 +819,6 @@ function releaseMap(entity, next) {
 
 /* ── i comandi ───────────────────────────────────────────────────────────── */
 
-function callService(command) {
-  if (!command) return false;
-  try {
-    if (typeof root.cdCallServiceJson === "function") {
-      root.cdCallServiceJson(command.domain, command.service, command.data);
-      return true;
-    }
-    if (typeof root.dmCallHaService === "function") {
-      root.dmCallHaService(command.domain, command.service, command.data);
-      return true;
-    }
-    if (typeof root.callService === "function") {
-      root.callService(command.domain, command.service, command.data);
-      return true;
-    }
-  } catch (_error) {}
-  return false;
-}
-
 export function handleRobotClick(event) {
   /* La linguetta di una mappa (#468): cambia quella che si guarda, e basta —
    * non apre niente e non comanda niente. Sta prima di tutto il resto perche'
@@ -880,7 +862,7 @@ export function handleRobotClick(event) {
     if (root.navigator?.vibrate) root.navigator.vibrate(12);
     if (voce.genere === "interruttore")
       comando.setAttribute("aria-pressed", String(voce.acceso !== true));
-    callService(comandoDelDispositivo(voce));
+    chiamaServizio(comandoDelDispositivo(voce));
     schedule();
     return true;
   }
@@ -890,7 +872,7 @@ export function handleRobotClick(event) {
   if (!view) return false;
   event.preventDefault();
   if (root.navigator?.vibrate) root.navigator.vibrate(12);
-  callService(robotCommand(button.dataset.dmRobotAct, view));
+  chiamaServizio(robotCommand(button.dataset.dmRobotAct, view));
   schedule();
   return true;
 }
@@ -914,7 +896,7 @@ function handleFanChange(event) {
       (item) => item.entity === clean(tendina.dataset.dmRobotTendina),
     );
     if (!voce) return;
-    callService(comandoDelDispositivo(voce, tendina.value));
+    chiamaServizio(comandoDelDispositivo(voce, tendina.value));
     schedule();
     return;
   }
@@ -922,7 +904,7 @@ function handleFanChange(event) {
   if (!select) return;
   const view = vistaDi(select);
   if (!view) return;
-  callService(robotFanCommand(view, select.value));
+  chiamaServizio(robotFanCommand(view, select.value));
   schedule();
 }
 
