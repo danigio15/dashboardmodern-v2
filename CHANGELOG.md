@@ -132,6 +132,29 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   SmartThings ne pubblica sette, e una scheda fatta di consumi non serve a
   nessuno. Chi ne vuole uno lo aggiunge, e porta il suo disegno.
 
+- **Le stampanti: se sono pronte e quanto inchiostro resta** (#469)
+
+  «Volevo chiedere se c'era la possibilità del controllo delle TV e stampanti.»
+  Le TV qui sopra; della stampante, invece, il controllo non serve — dalla
+  plancia non si stampa. Servono due risposte, sempre le stesse due: se è
+  pronta, e quanto inchiostro le resta. Sono le domande che uno si fa **prima**
+  di mandare in stampa, e di solito la risposta arriva quando la stampante è già
+  ferma a metà foglio.
+
+  Sezione nuova, **🖨️ Stampanti**, con le sue tre parti come ogni sezione: la
+  scheda nel Config, la tessera in Home e la sua pagina. In cima alla pagina c'è
+  la risposta grande — «Tutte pronte», oppure quella che si è fermata, col
+  perché che dice l'integrazione — e sotto una carta per stampante, con una
+  barra per cartuccia del colore vero della cartuccia: nero, ciano, magenta,
+  giallo. Quel colore lo si riconosce prima del nome.
+
+  Le cartucce **non** si configurano. Chi ha tre stampanti a colori dovrebbe
+  scrivere dodici entità, e sbagliarne una vuol dire una barra che non c'è: si
+  cercano da sole partendo dall'entità dello stato, e chi preferisce può
+  comunque scriverle a mano — quelle vincono. La scheda dice quante ne ha
+  trovate sotto ogni riga, così non serve aprire la pagina per sapere se ha
+  funzionato.
+
 - **Stanze: la cassa e il condizionatore si comandano da lì** (#467)
 
   «The media player card must have media player functions, the climate card must
@@ -224,6 +247,43 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   due cose diverse per chi legge. Un wattmetro che non risponde non scrive
   «0 W»: zero watt vuol dire che non sta consumando, ed è una notizia diversa da
   «non si sa».
+
+- **Il frigorifero dice se la porta è rimasta aperta** (#471)
+
+  «Potresti aggiungere un'entità al frigorifero di apertura chiusura porta?» Un
+  frigorifero che resta aperto è la cosa che più vale sapere di un frigorifero,
+  e la scheda non lo diceva. Adesso l'elettrodomestico ha il suo campo **Entità
+  porta**: quando quella entità dice aperto, la carta mette il gettone ambra col
+  disegno della porta. Chiuso non si scrive — una casa in ordine non ha bisogno
+  di dirlo dieci volte — e il riconoscimento automatico propone da solo un
+  sensore con classe `door` o `opening`, o che si chiami porta, sportello, oblò.
+
+- **Il condizionatore: anche l'aletta** (#475)
+
+  «Oltre la modalità, temperatura eccetera, poter visualizzare le modalità delle
+  alette.» C'erano i modi e c'era la ventola; l'aletta — quella che decide dove
+  va l'aria — no. Adesso sta nel pannello del clima, con gli stessi gettoni
+  degli altri, e chiama `set_swing_mode`. Compare solo dove quell'unità la
+  dichiara.
+
+- **Prese: le schede di una stanza affiancate, come nelle luci** (#474)
+
+  «Sarebbe più bella come la sezione luci, sul desktop.» Nella sezione Prese le
+  carte di una stanza stavano in colonna una sotto l'altra, mentre nelle Luci
+  sono affiancate: due sezioni con lo stesso contenuto e due disposizioni
+  diverse. Adesso la stanza avvolge le sue carte nella stessa griglia delle
+  luci, perché le sezioni si somigliano, come devono.
+
+- **L'azione rapida accesa si vede** (#477)
+
+  «Color the active Quick Action cards when they are active.» I tasti delle
+  azioni rapide erano tutti uguali, accesa o spenta che fosse la cosa che
+  comandano. Adesso il tasto di un'azione accesa si tinge del suo colore.
+
+  Il calcolo sta in un modulo suo, perché è logica pura: sa dire acceso, spento,
+  oppure «non si sa» per le azioni che uno stato non ce l'hanno — scene, script,
+  servizi, indirizzi. Quelle restano come prima, perché tingerle vorrebbe dire
+  inventare uno stato che non esiste.
 
 ### Corretto
 
@@ -343,6 +403,20 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   E il proxy non si butta più via quando c'è un flusso: resta sotto come rete,
   e si percorre se il flusso cade davvero.
 
+- **Il dettaglio della telecamera mostrava due immagini sovrapposte** (#476)
+
+  «Sembrano 2 immagini sovrapposte.» Era una regressione mia: dalla 1.4.16
+  l'istantanea si dipinge come *sfondo* del riquadro del video, e il commento
+  dava per scontato che il video, opaco, la coprisse. La copre solo se lo
+  riempie. Una telecamera verticale dentro un riquadro 16:9 lascia scoperte le
+  bande ai lati, e lì sotto restava l'istantanea di prima — più il velo che la
+  smorza, addosso al vivo.
+
+  Adesso il fermo è quello che si guarda **mentre** il video arriva: quando
+  arriva se ne va, e «arrivato» vuol dire che ha dipinto — il primo fotogramma
+  di un video, il `load` di un'immagine MJPEG, il caricamento di un iframe — non
+  che il negoziato è partito.
+
 - **Report: un mese senza dati mostrava i numeri del mese prima**
 
   «Se seleziono 2025 o mesi precedenti non effettua il calcolo.» Non è che non
@@ -428,6 +502,58 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
   La regola sta adesso in un modulo puro, e si prova con i numeri: la casa della
   segnalazione — undici righe, sei finestre — è una delle prove.
+
+- **I sensori della qualità dell'aria non restavano salvati** (#440)
+
+  «Inserisco il sensore, faccio salva sezione, esco, rientro e non c'è.» Non era
+  la casella: era la funzione che mette in ordine le allerte prima di salvarle.
+  Costruiva un oggetto *nuovo* con dentro solo le categorie delle allerte, e la
+  scheda salva quello che quella funzione le dà. Nella stessa casella però ci
+  vive anche il blocco dell'aria: ogni salvataggio lo riscriveva senza. Il
+  sensore si scriveva davvero, ed era il salvataggio dopo a cancellarlo.
+
+  Normalizzare vuol dire mettere in ordine quello che si conosce, non buttare
+  quello che non si conosce.
+
+- **Irrigazione: i tasti larghi mezzo schermo** (#479)
+
+  «Il layout dei comandi dell'irrigazione è errato, verificato su schermo 27
+  pollici.» La pagina della piscina si ferma a 1040 e sta in mezzo,
+  l'irrigazione prendeva tutta la finestra: su un ventisette la stessa plancia
+  aveva due misure diverse a seconda della pagina, e i tre tasti del programma
+  erano larghi mezzo schermo. Adesso l'irrigazione ha la misura della piscina, e
+  i tasti si allargano fino a un limite e poi vanno a capo.
+
+- **Le ultime emoji di sistema sono diventate disegni nostri**
+
+  I materiali della differenziata erano le ultime faccine di sistema che si
+  vedevano davvero — 🧴 📦 🍾 🍎 accanto ai disegni in scocca blu notte, tre
+  stili nella stessa schermata. Adesso il disegno è uno: un bidone, sempre lo
+  stesso, e cambiano due cose sole — il coperchio, del colore che la sezione usa
+  già per quel materiale, e l'emblema chiaro sulla scocca, come i simboli
+  stampati sui cassonetti veri.
+
+  Dietro i bidoni ne restavano altre venti, e adesso il catalogo le sa
+  disegnare: le categorie delle allerte, le specie degli animali, i modi della
+  centrale, i tasti del robot, gli stati di una segnalazione. Avvia, pausa e
+  ferma erano tre segni da tastiera in mezzo a tre emoji — sei tasti e tre stili
+  — e adesso sono nella famiglia del cerchio, come la spunta e la croce.
+
+- **L'intestazione della pagina si misura due volte, e la seconda non sparisce
+  più** (#464)
+
+  L'intestazione di una pagina si mette a posto in due passate: una subito, e
+  una ottanta millisecondi dopo, perché la larghezza gliela detta il contenuto e
+  il contenuto può arrivare nello stesso giro in cui la si misura. Le due erano
+  però due chiamate alla stessa coda, e la coda non ne accetta una seconda se ce
+  n'è già una dentro — giustamente, o ogni mazzetto di stati ne accumulerebbe
+  una a testa. Quindi la passata di sicurezza non faceva niente tutte le volte
+  che la prima non era ancora corsa: cioè quando la macchina è carica, che è
+  esattamente il caso per cui esiste.
+
+  Adesso, se la prima è ancora in coda, si segna che ne serve un'altra, e a
+  riarmarla è la prima quando finisce. La regola che tiene giù il lavoro — una
+  passata in coda per volta — non cambia di una riga.
 
 ## 1.4.17
 
