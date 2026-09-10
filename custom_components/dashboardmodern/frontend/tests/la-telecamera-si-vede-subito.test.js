@@ -97,7 +97,12 @@ test("la scorciatoia salta il WebRTC che non porta da nessuna parte", () => {
   /* È il caso di ogni casa senza go2rtc: tre secondi buttati a ogni apertura,
    * prima ancora di cominciare. Con il ricordo dell'HLS si parte da lì. */
   const cam = { entity: "camera.salone" };
-  const stato = { entity_id: "camera.salone", attributes: {} };
+  /* Con il flusso dichiarato: e' la telecamera di casa a cui l'HLS funziona,
+   * ed e' li' che il ricordo porta senza passare dal WebRTC. */
+  const stato = {
+    entity_id: "camera.salone",
+    attributes: { frontend_stream_type: "hls" },
+  };
   const strade = strategieDellaTelecamera(cam, stato, {});
   assert.equal(strade[0].nome, "WebRTC");
   assert.equal(strade[0].salta, "senza-nome-di-flusso");
@@ -147,25 +152,29 @@ test("la strada che cade si dimentica: insistere domani costerebbe di nuovo", ()
   assert.equal(ricordoScaduto(memoria["camera.salone"], ORA), true);
 });
 
-test("l'Arlo che dorme non passa piu' dall'HLS che Home Assistant le dichiara", () => {
-  /* Questa e' la #418, scritta come dato: un'Arlo ferma (`idle`) per cui Home
-   * Assistant dichiara `frontend_stream_type: hls`. Prima ci si fidava di
-   * quella dichiarazione e le si davano venticinque secondi. La dichiarazione
-   * dice che l'integrazione dei flussi c'e', non che l'apparecchio in cloud
-   * riesca a svegliarsi e a produrre segmenti — ed e' quel passaggio che non
-   * arriva: «la live non parte in nessun modo».
+test("l'Arlo che dorme prende l'HLS che Home Assistant le dichiara (#418)", () => {
+  /* Questa prova diceva il contrario, e la sua ragione era sbagliata: che il
+   * proxy MJPEG fosse quello che fa `camera_view: live` di `picture-entity`.
+   * Non lo e' — `live` disegna il flusso, HLS o WebRTC — e togliere l'HLS a
+   * un'Arlo voleva dire toglierle proprio la strada che nella finestra di Home
+   * Assistant le funziona. Chi ha segnalato l'ha detto due volte: la live in
+   * Home Assistant va, dalla plancia no.
    *
-   * Il proxy dal vivo non chiede a nessuno di svegliarsi: manda i fotogrammi
-   * che ha, appena li ha. E' quello che fa `camera_view: live` di
-   * `picture-entity`, la card che su questa stessa telecamera si muove.
-   * Adesso e' la strada, non il quarto tentativo dopo ventotto secondi. */
+   * `camera/stream` — la stessa chiamata che fa la finestra di Home Assistant
+   * — l'apparecchio lo sveglia. Ci mette dei secondi, e sono i secondi che le
+   * si concedono; intanto l'istantanea e' gia' a schermo (#476), quindi
+   * aspettare non vuol dire guardare il nero. */
   const strade = strategieDellaTelecamera(
     { entity: "camera.arlo" },
     { entity_id: "camera.arlo", state: "idle", attributes: { frontend_stream_type: "hls" } },
     {},
   );
-  assert.equal(stradaScelta(strade).nome, "MJPEG");
-  assert.equal(strade.find((strada) => strada.nome === "HLS").salta, "strada-gia-scelta");
+  const scelta = stradaScelta(strade);
+  assert.equal(scelta.nome, "HLS");
+  assert.equal(scelta.sveglia, true);
+  /* E il proxy resta sotto come rete, per il caso in cui l'HLS cada davvero:
+   * e' quello il momento in cui un'altra strada dal vivo serve. */
+  assert.equal(strade.find((strada) => strada.nome === "MJPEG").salta, undefined);
 });
 
 /* Le istantanee non si scorciano, e il tasto dell'audio resta vivo.

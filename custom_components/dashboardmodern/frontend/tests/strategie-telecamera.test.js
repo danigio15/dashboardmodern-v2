@@ -51,34 +51,38 @@ test("con un nome di flusso WebRTC si prova, ed e' il primo", () => {
   assert.equal(strada(strade, "WebRTC").flusso, "giardino_go2rtc");
 });
 
-test("una telecamera di casa prende l'HLS, e chi dorme non lo prende affatto", () => {
-  /* L'HLS su una telecamera in cloud vuole che l'integrazione dei flussi
-   * svegli l'apparecchio e produca i segmenti, ed e' esattamente il passaggio
-   * che non arriva: si aspettavano venticinque secondi per scoprirlo. Adesso
-   * chi dorme non ci passa nemmeno — la sua strada e' il proxy dal vivo — e
-   * l'HLS resta quello che e' sempre stato per una telecamera di casa. */
-  const sveglia = strada(strategieDellaTelecamera({}, LOCALE), "HLS");
-  assert.equal(sveglia.attesa, ATTESE.HLS_LOCALE);
-  assert.equal(strada(strategieDellaTelecamera({}, RING), "HLS").salta, "strada-gia-scelta");
+test("chi dichiara un flusso prende l'HLS, e chi dorme lo prende con piu' tempo", () => {
+  /* Per un po' qui c'era scritto il contrario: «chi dorme non lo prende
+   * affatto». Era stato scritto credendo che il proxy MJPEG fosse quello che
+   * fa `camera_view: live` di `picture-entity`, e non lo e' — `live` disegna
+   * il flusso, HLS o WebRTC. Cosi' a un'Arlo si toglieva proprio la strada che
+   * nella finestra di Home Assistant le funziona, e la #418 continuava.
+   *
+   * Il dormire non cambia la strada: cambia il tempo che le si concede. E il
+   * tempo si puo' concedere perche' intanto l'istantanea e' gia' a schermo. */
+  const casa = strada(strategieDellaTelecamera({}, LOCALE), "HLS");
+  assert.equal(casa.attesa, ATTESE.HLS_LOCALE);
+  assert.equal(casa.sveglia, false);
+  const cloud = strada(strategieDellaTelecamera({}, RING), "HLS");
+  assert.equal(cloud.attesa, ATTESE.HLS_SVEGLIA);
+  assert.equal(cloud.sveglia, true);
+  assert.equal(stradaScelta(strategieDellaTelecamera({}, RING)).nome, "HLS");
 });
 
-test("chi dorme va DIRITTO al proxy dal vivo, non dopo ventotto secondi di altro", () => {
-  /* «Togli tutta quella roba a cascata.» Su un'Arlo il proxy di Home
-   * Assistant si muove — e' quello che fa `camera_view: live` di
-   * `picture-entity`, e il confronto si e' visto dal vero: «dalla card YAML si
-   * muove, dalla plancia no». La plancia ci arrivava lo stesso, ma dopo tre
-   * secondi di WebRTC e venticinque di HLS: ventotto secondi sono molto piu'
-   * di quanto uno resta a guardare un rettangolo, ed e' per questo che la live
-   * «non parte in nessun modo» (#418).
-   *
-   * Adesso la strada si scegle: chi dorme parte dal proxy. */
-  const strade = strategieDellaTelecamera({}, RING);
+test("chi un flusso non lo dichiara va DIRITTO al proxy dal vivo", () => {
+  /* «Togli tutta quella roba a cascata.» Una telecamera senza
+   * `frontend_stream_type` non sa trasmettere: chiederle `camera/stream`
+   * vorrebbe dire spendere un'attesa per un no gia' scritto, e prima la si
+   * spendeva. Il proxy manda i fotogrammi che ha, appena li ha, e non chiede
+   * al browser di saper suonare niente. */
+  const muta = { entity_id: "camera.vecchia", state: "idle" };
+  const strade = strategieDellaTelecamera({}, muta);
   assert.equal(stradaScelta(strade).nome, "MJPEG");
   assert.equal(strada(strade, "MJPEG").attesa, ATTESE.MJPEG_SVEGLIA);
   /* Niente fila davanti: WebRTC e HLS non si tentano, e si sa dire perche'. */
   assert.deepEqual(nomiDa(daProvare(strade)), ["MJPEG", "Istantanee"]);
   assert.equal(strada(strade, "WebRTC").salta, "senza-nome-di-flusso");
-  assert.equal(strada(strade, "HLS").salta, "strada-gia-scelta");
+  assert.equal(strada(strade, "HLS").salta, "senza-flusso-dichiarato");
 });
 
 test("le istantanee restano sempre, che e' l'ultima rete", () => {
@@ -95,16 +99,26 @@ test("il browser che non sa fare WebRTC lo dice, e non si prova", () => {
   assert.equal(strada(strade, "WebRTC").salta, "browser-senza-webrtc");
 });
 
-test("chi dorme si riconosce anche senza `frontend_stream_type`", () => {
-  /* Le versioni di Home Assistant che non scrivono l'attributo esistono
-   * ancora: il ripiego guarda il nome. */
+test("chi dorme si riconosce dall'integrazione, non da come sta adesso", () => {
   assert.equal(siSveglia({ entity_id: "camera.arlo_vialetto", state: "idle" }), true);
   assert.equal(siSveglia({ entity_id: "camera.porta", attributes: { brand: "Ring" } }), true);
   assert.equal(siSveglia({ entity_id: "camera.reolink_garage", state: "idle" }), false);
 });
 
-test("una telecamera accesa non e' una che dorme", () => {
+test("una telecamera di casa ferma non e' una che dorme", () => {
+  /* Questa e' la regola che sbagliava: «dichiara un flusso e non sta
+   * trasmettendo, quindi dorme». Lo stato di una telecamera e' `idle` finche'
+   * qualcuno non la guarda, anche per quella cablata in corridoio — cosi'
+   * dormivano tutte, e tutte finivano sulla strada di chi dorme. */
   assert.equal(siSveglia(LOCALE), false);
+  assert.equal(
+    siSveglia({
+      entity_id: "camera.corridoio",
+      state: "idle",
+      attributes: { frontend_stream_type: "hls" },
+    }),
+    false,
+  );
 });
 
 test("la diagnosi dice cosa e' successo a ogni strada, saltate comprese", () => {

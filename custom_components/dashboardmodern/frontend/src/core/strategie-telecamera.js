@@ -19,15 +19,22 @@
  *     sempre acceso: quando le chiami devono svegliare l'apparecchio;
  *   · cosa sa fare il browser di chi guarda.
  *
- * Da questi quattro esce UNA strada. E per chi dorme non e' l'HLS, nemmeno
- * quando Home Assistant lo dichiara: la dichiarazione dice che l'integrazione
- * dei flussi c'e', non che un apparecchio in cloud riesca a svegliarsi e a
- * produrre segmenti — ed e' quel passaggio che non arriva. La sua strada e' il
- * proxy dal vivo, che manda i fotogrammi che ha appena li ha: la stessa cosa
- * che fa `camera_view: live` di `picture-entity`, la card che su un'Arlo si
- * muove mentre la plancia no. Ci si arrivava lo stesso, ma per quarti, dopo
- * ventotto secondi: molto piu' di quanto uno resta a guardare, ed e' per
- * questo che la live «non parte in nessun modo».
+ * Da questi quattro esce UNA strada, e a sceglierla e' quello che Home
+ * Assistant dichiara: `web_rtc` si negozia, `hls` si trasmette, e chi non
+ * dichiara niente non sa trasmettere — per lui la strada e' il proxy dal vivo,
+ * che manda i fotogrammi che ha appena li ha senza chiedere niente al browser.
+ *
+ * E' la stessa regola che usa Home Assistant per la sua `ha-camera-stream`,
+ * quella dietro `camera_view: live`: `web_rtc` si negozia, `hls` si trasmette,
+ * e il proxy MJPEG e' quello che disegna quando la telecamera un flusso non ce
+ * l'ha. Assomigliarle non e' pigrizia: e' l'unico modo perche' quello che si
+ * vede nella plancia sia quello che si vede nella finestra di Home Assistant.
+ *
+ * Il dormire non cambia la strada: cambia quanto le si concede. C'e' stato un
+ * tempo in cui a chi dorme si toglieva l'HLS per dargli il proxy, scritto
+ * credendo che fosse il proxy a fare `camera_view: live`. Cosi' a un'Arlo si
+ * toglieva proprio la strada che nella finestra di Home Assistant le funziona,
+ * ed e' la #418 che continuava.
  *
  * Le istantanee restano sempre percorribili. Non sono un tentativo in fila —
  * non hanno attesa, o il fotogramma c'e' o non c'e' — e sono li' perche'
@@ -50,23 +57,21 @@ export const ATTESE = Object.freeze({
   WEBRTC: 3_000,
   HLS_LOCALE: 10_000,
   HLS_SVEGLIA: 25_000,
-  /* Il proxy dal vivo risponde appena ha un'immagine. E' la strada di chi
-   * dorme, non un tentativo dopo altri: se non ne ha nemmeno una restano le
-   * istantanee, che non costano attesa.
-   *
-   * Il gemello per chi NON dorme se n'e' andato con la cascata: MJPEG adesso
-   * si percorre solo quando e' la strada scelta, e la strada scelta e' quella
-   * di chi dorme. Una costante che nessuno legge e' una domanda in piu' per
-   * chi legge. */
+  /* Il proxy dal vivo risponde appena ha un'immagine. E' la strada di chi un
+   * flusso non ce l'ha, non un tentativo dopo altri: se non ha nemmeno
+   * un'immagine restano le istantanee, che non costano attesa. Il tempo e' uno
+   * solo — chi dorme e chi no aspettano lo stesso, perche' qui non c'e' niente
+   * da svegliare: si chiede un fotogramma e o arriva o non arriva. */
   MJPEG_SVEGLIA: 8_000,
 });
 
 /* Le integrazioni le cui telecamere si accendono su richiesta.
  *
- * Serve solo quando Home Assistant non dichiara `frontend_stream_type`: quello
- * e' il dato vero, questo e' il ripiego per chi sta su una versione che non lo
- * scrive. Il confronto e' sul nome dell'entita' e su quello del dispositivo,
- * perche' e' li' che il nome dell'integrazione finisce per comparire. */
+ * Non decidono la strada — quella la dichiara Home Assistant — ma decidono
+ * quanto le si aspetta: un apparecchio in cloud ci mette secondi a svegliarsi,
+ * uno in casa risponde subito. Il confronto e' sul nome dell'entita' e su
+ * quello del dispositivo, perche' e' li' che il nome dell'integrazione finisce
+ * per comparire. */
 const CHE_DORMONO = Object.freeze([
   "ring",
   "arlo",
@@ -78,13 +83,21 @@ const CHE_DORMONO = Object.freeze([
   "tuya",
 ]);
 
-/** Se questa telecamera va svegliata prima di trasmettere. */
+/**
+ * Se questa telecamera va svegliata prima di trasmettere.
+ *
+ * Lo dice l'integrazione da cui arriva, e nient'altro. C'era anche una
+ * seconda regola — «dichiara un flusso ma non sta trasmettendo, quindi
+ * dorme» — e sbagliava quasi sempre: lo stato di una telecamera e' `idle`
+ * finche' qualcuno non guarda, anche per quella cablata in corridoio. Con
+ * quella regola dormivano TUTTE, e tutte finivano sulla strada di chi dorme.
+ *
+ * Il tempo che si concede e' l'unica cosa che questo cambia: chi sta in cloud
+ * ci mette secondi a svegliarsi, chi sta in casa risponde subito. Quale strada
+ * si prende invece lo decide quello che Home Assistant dichiara.
+ */
 export function siSveglia(stato = {}) {
   const attributi = stato?.attributes || {};
-  /* Il flusso c'e' ma l'apparecchio e' fermo: e' esattamente una che dorme. */
-  const tipo = pulito(attributi.frontend_stream_type).toLowerCase();
-  const acceso = pulito(stato?.state).toLowerCase() === "streaming";
-  if (tipo && !acceso) return true;
   const indizi =
     `${pulito(stato?.entity_id)} ${pulito(attributi.friendly_name)} ${pulito(attributi.brand)}`.toLowerCase();
   return CHE_DORMONO.some((nome) => indizi.includes(nome));
@@ -124,14 +137,10 @@ export function strategieDellaTelecamera(cam = {}, stato = {}, opzioni = {}) {
    *
    * Quello che serve sapere lo si sa prima di partire. Se il nome del flusso
    * go2rtc c'e', WebRTC e' configurato e si va li'. Se Home Assistant dichiara
-   * `web_rtc`, lo negozia lui e si va li'. Se la telecamera dorme — Ring,
-   * Arlo, Blink — la strada e' il proxy dal vivo, e su questo non si tira a
-   * indovinare: e' la stessa cosa che fa `camera_view: live` di
-   * `picture-entity`, ed e' quella che su un'Arlo si muove mentre l'HLS no
-   * («dalla card YAML si muove, dalla plancia no», e la #418 dice che la live
-   * «non parte in nessun modo»). Prima ci si arrivava dopo ventotto secondi di
-   * altre strade, che e' molto piu' di quanto uno resti a guardare.
-   * Altrimenti e' l'HLS, il flusso dal vivo di una telecamera di casa.
+   * `web_rtc`, lo negozia lui e si va li'. Se dichiara `hls` c'e' un flusso da
+   * trasmettere, e la strada e' quella — la stessa che guarda la finestra di
+   * Home Assistant, e la stessa `camera/stream` che sveglia l'apparecchio. Se
+   * non dichiara niente non sa trasmettere, e la strada e' il proxy dal vivo.
    *
    * Le istantanee restano sempre percorribili, e non sono un tentativo in
    * fila: non hanno attesa — o il fotogramma c'e' o non c'e' — e sono li'
@@ -161,28 +170,51 @@ export function strategieDellaTelecamera(cam = {}, stato = {}, opzioni = {}) {
 
   const webrtcInCorsa = scelta("WebRTC");
 
-  /* Il proxy dal vivo prima dell'HLS, per chi dorme. L'HLS su queste vuole che
-   * l'integrazione dei flussi svegli l'apparecchio e produca i segmenti, ed e'
-   * esattamente il passaggio che non arriva; il proxy manda i fotogrammi che
-   * ha, appena li ha. */
-  const proxyDalVivo = !webrtcInCorsa && dorme;
-
-  if (webrtcInCorsa || proxyDalVivo) strade.push({ nome: "HLS", salta: GIA_SCELTA });
-  else if (!hlsNelBrowser) strade.push({ nome: "HLS", salta: "browser-senza-hls" });
-  else strade.push({ nome: "HLS", attesa: ATTESE.HLS_LOCALE, sveglia: false });
-
-  /* Il proxy MJPEG e' anche l'ultima strada VIVA, non solo quella di chi dorme.
+  /* L'HLS e' la strada di chi un flusso ce l'ha, e lo dichiara.
    *
-   * Senza WebRTC e con un browser che l'HLS non lo sa suonare — hls.js che non
-   * si carica, e niente HLS nativo — non era stata scelta nessuna strada, e
-   * MJPEG si toglieva di mezzo dicendo «strada-gia-scelta»: una ragione falsa,
-   * perche' scelta non ce n'era nessuna. Chi guardava finiva dritto sulle
-   * istantanee, cioe' su dei fotogrammi a intervalli, mentre il proxy dal vivo
-   * era li' e funzionava. */
-  const vivoInCorsa = webrtcInCorsa || scelta("HLS");
-  if (proxyDalVivo) strade.push({ nome: "MJPEG", attesa: ATTESE.MJPEG_SVEGLIA, sveglia: true });
-  else if (vivoInCorsa) strade.push({ nome: "MJPEG", salta: GIA_SCELTA });
-  else strade.push({ nome: "MJPEG", attesa: ATTESE.MJPEG_SVEGLIA, sveglia: false });
+   * `frontend_stream_type: hls` Home Assistant lo scrive solo per le entita'
+   * che sanno trasmettere: e' la stessa cosa che guarda la sua finestra, ed e'
+   * la stessa `camera/stream` che si chiede noi — quella chiamata sveglia
+   * l'apparecchio. Per un po' qui c'e' stata una regola che a chi dorme
+   * toglieva l'HLS e dava il proxy dal vivo, scritta credendo che il proxy
+   * fosse quello che fa `camera_view: live` di `picture-entity`. Non lo e':
+   * `live` disegna il flusso — HLS o WebRTC — e il proxy e' un'altra cosa. Il
+   * risultato era che a un'Arlo si toglieva proprio la strada che nella
+   * finestra di Home Assistant le funziona (#418).
+   *
+   * Il tempo, quello si': una telecamera in cloud ci mette a svegliarsi, e
+   * l'attesa e' la sua. Intanto l'istantanea e' gia' a schermo (#476), quindi
+   * aspettare non vuol dire guardare il nero. */
+  const flussoHls = pulito(stato?.attributes?.frontend_stream_type).toLowerCase() === "hls";
+
+  if (webrtcInCorsa) strade.push({ nome: "HLS", salta: GIA_SCELTA });
+  else if (!hlsNelBrowser) strade.push({ nome: "HLS", salta: "browser-senza-hls" });
+  else if (!flussoHls) strade.push({ nome: "HLS", salta: "senza-flusso-dichiarato" });
+  else
+    strade.push({
+      nome: "HLS",
+      attesa: dorme ? ATTESE.HLS_SVEGLIA : ATTESE.HLS_LOCALE,
+      sveglia: dorme,
+    });
+
+  /* Il proxy MJPEG e' la strada di chi un flusso non ce l'ha — e la rete di
+   * chi ce l'ha e non ha funzionato.
+   *
+   * Una telecamera che non dichiara niente non sa trasmettere: chiederle
+   * `camera/stream` vorrebbe dire spendere un'attesa per sentirsi dire no, e
+   * il proxy invece manda i fotogrammi che ha, appena li ha, senza chiedere al
+   * browser di saper suonare niente.
+   *
+   * Ma non si toglie di mezzo nemmeno quando una strada c'e': si toglieva
+   * dicendo «strada-gia-scelta», e quella ragione vale finche' la strada
+   * scelta regge — se regge, qui non ci si arriva e il proxy non costa niente.
+   * Vale zero nel momento in cui serve: quando il flusso ha appena fallito, ed
+   * e' proprio allora che un'altra strada dal vivo servirebbe. Chi guardava
+   * finiva sulle istantanee — due fotogrammi al secondo chiesti dal browser —
+   * mentre il proxy di Home Assistant gliene darebbe altrettanti spingendoli
+   * lui. Non e' la cascata di prima: le strade dal vivo sono due, non quattro,
+   * e la seconda si percorre solo dopo un no vero. */
+  strade.push({ nome: "MJPEG", attesa: ATTESE.MJPEG_SVEGLIA, sveglia: dorme });
 
   /* Le istantanee non si saltano mai: sono l'ultima rete, e non hanno attesa
    * perche' o il fotogramma arriva o non arriva. Non fanno fila con nessuno —
