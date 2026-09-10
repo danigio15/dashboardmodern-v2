@@ -70,6 +70,28 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Apri porte: quello che si scrive non sparisce più** (#439, #450)
+
+  «Ho riprovato con la nuova versione ma lo switch del cancelletto non viene
+  memorizzato.» Si salvava eccome — ma solo premendo il tasto verde: fino a quel
+  momento l'entità viveva nel documento e in nessun altro posto.
+
+  E «＋ Aggiungi apertura», la matita di un'altra riga e la spunta della conferma
+  ridisegnano l'elenco leggendolo da quello che è salvato: cancellavano in
+  silenzio quello che si era appena battuto. Chi aggiungeva due cancelli di fila
+  perdeva il primo, e da fuori si chiama esattamente «non viene memorizzato».
+
+  Adesso quello che c'è nei campi viene messo al sicuro prima di ogni gesto che
+  ridisegna, e anche quando lo scrive il selettore 🔍 — che annuncia la scelta
+  con un evento che non sale, e che nessun ascoltatore delegato avrebbe mai
+  sentito. La convalida resta al tasto verde, che è dove chi configura si aspetta
+  di essere corretto.
+
+  Per la cronaca: `cover.*` e `button.*` erano già accettati fra le aperture
+  insieme a `lock.*`, `switch.*`, `input_boolean.*`, `input_button.*`, `script.*`
+  e `scene.*` — non serviva una categoria «cancelli» a parte. Era questo a farli
+  sparire.
+
 - **Finestre: sei finestre non fanno undici** (#462)
 
   «Ne ho 6 ma ne risultano 11, credo conti ancora i sensori e le tapparelle
