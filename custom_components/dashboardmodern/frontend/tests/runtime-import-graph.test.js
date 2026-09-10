@@ -1124,8 +1124,17 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // servizio la sposta, che fra `number` e `input_number` non è lo stesso.
   // Chiamare quello sbagliato non dà errore: non fa niente, e da fuori è un
   // cursore rotto.
+  // 320 con i bidoni disegnati: «icone rifiuti non secondo lo stile del nostro
+  // catalogo, rendile omogenee e creale visto che non ci sono». I materiali
+  // erano le ultime emoji di sistema che si vedevano davvero.
+  // `core/disegni-rifiuti.js` sta accanto agli altri disegni e non tocca
+  // niente: un bidone solo, il coperchio del colore che la sezione usa gia' e
+  // un emblema per materiale. Sta qui, e non dentro la sezione, perche' un
+  // disegno lo chiedono in tre posti — la pagina, la scheda e il menu dei
+  // turni — e tre copie dello stesso bidone sono tre bidoni diversi fra sei
+  // mesi.
   assert.ok(
-    relative.length <= 319,
+    relative.length <= 320,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

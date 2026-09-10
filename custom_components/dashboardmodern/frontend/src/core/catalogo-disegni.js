@@ -191,6 +191,11 @@ const CORPI = Object.freeze({
 
   phone: `${PANNELLO}<rect ${SCOCCA} x="27" y="8" width="42" height="80" rx="12"/><rect ${VETRO} x="33" y="20" width="30" height="50" rx="6"/><rect ${FRONTALE} x="42" y="76" width="12" height="4" rx="2"/>`,
 
+  /* Il calendario da parete: gli anelli, la testata e i giorni. Prima
+   * `calendar` rispondeva col cronometro, che e' un'altra cosa: chi chiedeva
+   * un calendario si vedeva un orologio, e nei rifiuti restava l'emoji. */
+  calendar: `${PANNELLO}<rect ${SCOCCA} x="30" y="10" width="6" height="16" rx="3"/><rect ${SCOCCA} x="60" y="10" width="6" height="16" rx="3"/><rect ${SCOCCA} x="14" y="18" width="68" height="64" rx="11"/><rect ${ACCENTO} x="14" y="18" width="68" height="14" rx="7"/><rect ${FRONTALE} x="21" y="38" width="54" height="37" rx="6"/><rect ${SCOCCA} x="27" y="45" width="9" height="8" rx="2.5" opacity=".55"/><rect ${SCOCCA} x="43" y="45" width="9" height="8" rx="2.5" opacity=".55"/><rect ${ACCENTO} x="59" y="45" width="9" height="8" rx="2.5"/><rect ${SCOCCA} x="27" y="59" width="9" height="8" rx="2.5" opacity=".55"/><rect ${SCOCCA} x="43" y="59" width="9" height="8" rx="2.5" opacity=".55"/><rect ${SCOCCA} x="59" y="59" width="9" height="8" rx="2.5" opacity=".55"/>`,
+
   timer: `${PANNELLO}<circle ${SCOCCA} cx="48" cy="54" r="30"/><circle ${FRONTALE} cx="48" cy="54" r="22"/><path ${TRATTO} d="M48 40v14l10 7"/><rect ${SCOCCA} x="38" y="10" width="20" height="9" rx="4.5"/>`,
 
   cart: `${PANNELLO}<path ${TRATTO} d="M14 20h10l10 38h34l9-26H30"/><circle ${SCOCCA} cx="38" cy="76" r="8"/><circle ${SCOCCA} cx="66" cy="76" r="8"/><rect ${ACCENTO} x="44" y="36" width="26" height="6" rx="3"/>`,
@@ -361,7 +366,6 @@ const ALIAS = Object.freeze({
   posta: "mail",
   telefono: "phone",
   scadenza: "timer",
-  calendar: "timer",
   shopping: "cart",
   spesa: "cart",
   todo: "list",

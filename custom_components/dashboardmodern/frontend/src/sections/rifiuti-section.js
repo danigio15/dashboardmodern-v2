@@ -31,6 +31,8 @@ import {
   root,
   t,
 } from "./shared.js";
+import { disegnoDelBidone } from "../core/disegni-rifiuti.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
 
 const KEY = "__DASHBOARDMODERN_RIFIUTI__";
 const state = (root[KEY] ||= { installed: false, frame: 0, firma: "" });
@@ -195,7 +197,7 @@ function accendiLaVoce() {
 function bidoneMarkup(riga, grande = false) {
   const materiale = materialeDiSerie(riga.materiale);
   return `<span class="dm-rifiuti-bidone${grande ? " grande" : ""}" style="--dm-bidone:${esc(riga.colore || materiale.colore)}">
-    <span class="dm-rifiuti-bidone-ic" aria-hidden="true">${esc(riga.icona || materiale.icona)}</span>
+    <span class="dm-rifiuti-bidone-ic" aria-hidden="true">${disegnoDelBidone(materiale.chiave, riga.colore || materiale.colore, grande ? 34 : 28)}</span>
     <span class="dm-rifiuti-bidone-nome">${esc(nomeDellaRiga(riga))}</span>
   </span>`;
 }
@@ -270,7 +272,7 @@ function sottoIlNome(riga) {
 function rigaMarkup(riga) {
   const materiale = materialeDiSerie(riga.materiale);
   return `<article class="dm-rifiuti-riga" data-quando="${esc(riga.quando)}" style="--dm-bidone:${esc(riga.colore || materiale.colore)}">
-    <span class="dm-rifiuti-riga-ic" aria-hidden="true">${esc(riga.icona || materiale.icona)}</span>
+    <span class="dm-rifiuti-riga-ic" aria-hidden="true">${disegnoDelBidone(materiale.chiave, riga.colore || materiale.colore, 40)}</span>
     <div class="dm-rifiuti-riga-testo">
       <strong>${esc(nomeDellaRiga(riga))}</strong>
       <small>${sottoIlNome(riga)}</small>
@@ -282,7 +284,7 @@ function rigaMarkup(riga) {
 function calendarioMarkup(calendario) {
   if (!calendario) return "";
   return `<article class="dm-rifiuti-riga dm-rifiuti-calendario" data-quando="${esc(calendario.quando)}" style="--dm-bidone:${esc(calendario.colore)}">
-    <span class="dm-rifiuti-riga-ic" aria-hidden="true">📅</span>
+    <span class="dm-rifiuti-riga-ic" aria-hidden="true">${disegnoDelCatalogo("calendar", 40)}</span>
     <div class="dm-rifiuti-riga-testo">
       <strong>${esc(calendario.nome || t("Calendario dei ritiri", "Collection calendar"))}</strong>
       <small>${esc(dataScritta(calendario) || "")}</small>
@@ -386,10 +388,12 @@ function installStyles() {
       border:1px solid color-mix(in srgb,var(--dm-bidone,#0ea5e9) 45%,transparent);
       font-size:12px;font-weight:900;color:var(--text,#0f172a)}
     ${P} .dm-rifiuti-bidone.grande{font-size:14px;padding:8px 16px 8px 10px}
-    ${P} .dm-rifiuti-bidone-ic{
-      display:grid;place-items:center;width:26px;height:26px;border-radius:50%;font-size:14px;
-      background:var(--dm-bidone,#0ea5e9);box-shadow:0 2px 8px color-mix(in srgb,var(--dm-bidone,#0ea5e9) 50%,transparent)}
-    ${P} .dm-rifiuti-bidone.grande .dm-rifiuti-bidone-ic{width:32px;height:32px;font-size:17px}
+    /* Il disegno del bidone si porta dietro il suo pannello e il suo colore:
+     * dietro non ci va ne' un tondo tinto ne' un'ombra, che raddoppierebbero. */
+    ${P} .dm-rifiuti-bidone-ic{display:grid;place-items:center;width:28px;height:28px;flex:0 0 auto}
+    ${P} .dm-rifiuti-bidone.grande .dm-rifiuti-bidone-ic{width:34px;height:34px}
+    ${P} .dm-rifiuti-bidone-ic .dm-appliance-art,
+    ${P} .dm-rifiuti-riga-ic .dm-appliance-art{display:block;line-height:0}
 
     ${P} .dm-rifiuti-elenco{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
     ${P} .dm-rifiuti-riga{
@@ -398,9 +402,7 @@ function installStyles() {
       box-shadow:var(--shadow-glass,0 8px 30px rgba(0,0,0,.06));overflow:hidden}
     ${P} .dm-rifiuti-riga::before{
       content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--dm-bidone,#0ea5e9)}
-    ${P} .dm-rifiuti-riga-ic{
-      display:grid;place-items:center;width:40px;height:40px;border-radius:12px;font-size:20px;flex:0 0 auto;
-      background:color-mix(in srgb,var(--dm-bidone,#0ea5e9) 18%,transparent)}
+    ${P} .dm-rifiuti-riga-ic{display:grid;place-items:center;width:40px;height:40px;flex:0 0 auto}
     ${P} .dm-rifiuti-riga-testo{display:grid;gap:2px;min-width:0;flex:1 1 auto}
     ${P} .dm-rifiuti-riga-testo strong{
       font-size:13px;font-weight:900;color:var(--text,#0f172a);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
