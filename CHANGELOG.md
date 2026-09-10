@@ -9,6 +9,27 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **La tessera della musica dice cosa suona** (#460)
+
+  «Display the track title and artist name on the media player.» C'erano già,
+  ma dentro la stessa riga della didascalia, separati da un trattino e scritti
+  tutti uguali: due fatti diversi detti come se fossero uno. Adesso il titolo
+  sta sulla riga della didascalia e l'artista sotto, più piccolo — la stessa
+  coppia con cui parla il resto della plancia, la cosa e sotto la sua qualifica.
+
+  Mentre suona una cosa sola, al posto del disegno dell'altoparlante va la
+  **copertina del disco**: il disegno smette di dire cos'è la tessera — lo dice
+  già il nome — e dice cosa sta suonando. In alto a destra tre puntini dicono
+  che lì dentro non c'è un elenco ma i comandi: play, pausa, avanti, volume.
+  Non sono un secondo tasto, perché toccare la mattonella li apre già.
+
+  Con più casse accese non c'è UN brano: la didascalia torna a elencarli col
+  posto davanti e la seconda riga tace, invece di mettere l'artista di uno dei
+  tre e far credere che sia quello che suona.
+
+  Il nome della tessera resta, e resta la sua forma: in una Home di venti
+  mattonelle una senza nome è una mattonella che non si trova.
+
 - **La barra sotto il meteo dice anche i gradi e l'umidità** (#461)
 
   «Sarebbe possibile inserire temperatura e umidità di sensori personali? Io ho

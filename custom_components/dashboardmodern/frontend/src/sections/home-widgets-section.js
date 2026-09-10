@@ -2908,15 +2908,45 @@ function mediaModel(states) {
   const righe = lettureDeiLettori(dentro, states, root.resolveEntity || ((valore) => valore));
   const suonano = righe.filter((riga) => riga.suona);
   const conIlPosto = suonano.length > 1;
+  /* Quando suona UNA cosa sola, la tessera diventa quella cosa (#460).
+   *
+   * «Add the song title and artist name in the bottom-left corner»: il titolo
+   * e l'artista c'erano gia', ma dentro la stessa riga della didascalia,
+   * separati da un trattino e scritti tutti uguali — cioe' due fatti diversi
+   * detti come se fossero uno. Adesso il titolo sta sulla riga della
+   * didascalia e l'artista sotto, piu' piccolo: e' la stessa coppia con cui
+   * parla il resto della plancia, la cosa e sotto la sua qualifica.
+   *
+   * Con piu' di una cassa accesa non c'e' UN brano: la didascalia torna a
+   * elencarli col posto davanti, e la seconda riga non ha niente da dire —
+   * mettere l'artista di uno dei tre sarebbe scegliere per chi guarda. */
+  const unico = suonano.length === 1 ? suonano[0] : null;
+  /* Sotto il titolo va chi lo suona; se il brano non ha un artista — una
+   * radio, un ingresso HDMI — va la cassa, che e' l'altra cosa vera. Mai
+   * l'entity_id: sulla plancia non si legge mai. */
+  const chiSuona = unico ? unico.artista || unico.album || unico.nome : "";
   return {
     key: "media",
     accent: "#8b5cf6",
     icon: "🔊",
     label: t("Musica", "Media"),
+    /* La copertina al posto dell'altoparlante mentre suona: il disegno smette
+     * di dire cos'e' la tessera — lo dice il nome — e dice cosa sta suonando. */
+    faccia: unico?.copertina
+      ? `<img class="dm-tile-arte" src="${esc(unico.copertina)}" alt="" aria-hidden="true">`
+      : "",
+    facciaFirma: unico?.copertina || "",
+    /* I tre puntini dicono che li' dentro non c'e' un elenco: ci sono i
+     * comandi — play, pausa, avanti, volume. Toccare la mattonella li apre
+     * gia', quindi non e' un secondo tasto: e' il segno che ci sono. */
+    menu: true,
     value: String(suonano.length),
-    caption: suonano.length
-      ? suonano.map((riga) => cosaSuona(riga, conIlPosto)).join(" · ")
-      : t("Nessuno in riproduzione", "Nothing playing"),
+    caption: unico
+      ? titoloDelLettore(unico)
+      : suonano.length
+        ? suonano.map((riga) => cosaSuona(riga, conIlPosto)).join(" · ")
+        : t("Nessuno in riproduzione", "Nothing playing"),
+    sottotitolo: chiSuona,
     ring: righe.length ? Math.round((suonano.length / righe.length) * 100) : null,
     attiva: suonano.length > 0,
     /* Le letture intere viaggiano con la tessera: la finestra ci disegna un
@@ -4673,8 +4703,24 @@ function unitaSimbolo(unita) {
  * Chi sa disegnare un nome mdi e' il motore delle icone, che e' anche quello
  * che ha riempito il catalogo da cui la scelta viene. */
 function facciaDellaTessera(widget) {
+  /* Una tessera puo' portarsi la faccia da sola (#460).
+   *
+   * «Remove the speaker icon and its name from the media player»: sulla musica
+   * il disegno dell'altoparlante dice cos'e' la tessera, che si sa gia' dal
+   * nome, e non dice cosa sta suonando — che e' l'unica cosa che si vuole
+   * sapere. Con la copertina del disco al suo posto la pastiglia diventa la
+   * risposta invece dell'etichetta. La pastiglia resta dov'e' e com'e': cambia
+   * cosa ci sta sopra, non la forma della tessera. */
+  if (widget?.faccia) return widget.faccia;
   if (haOggettoWidget(widget?.key)) return oggettoWidget(widget.key);
   return iconGlyphMarkup("action", widget?.icon, { size: 22 });
+}
+
+/* La firma della faccia: serve a chi ridipinge senza rifare la tessera, per
+ * sapere se c'e' da riscriverla. Una copertina che cambia e' una copertina
+ * nuova; tutto il resto non cambia mai. */
+function firmaDellaFaccia(widget) {
+  return clean(widget?.facciaFirma);
 }
 
 function tileMarkup(widget, index = 0) {
@@ -4686,12 +4732,16 @@ function tileMarkup(widget, index = 0) {
       style="--dm-widget-accent:${widget.accent};--dm-tile-i:${index}" aria-expanded="${open}" aria-label="${esc(widget.label)}">
       <span class="dm-tile-alone" aria-hidden="true"></span>
       <span class="dm-tile-cima">
-        <span class="dm-tile-chip" aria-hidden="true">${facciaDellaTessera(widget)}</span>
+        <span class="dm-tile-chip" aria-hidden="true" data-dm-faccia="${esc(firmaDellaFaccia(widget))}">${facciaDellaTessera(widget)}</span>
         <span class="dm-tile-label" data-dm-tile-label>${esc(widget.label)}</span>
+        ${widget.menu ? `<span class="dm-tile-menu" aria-hidden="true">⋮</span>` : ""}
       </span>
       <span class="dm-tile-val"><b class="dm-tile-value" data-dm-tile-value data-dm-len="${misuraValore(widget.value)}">${esc(numero)}</b><i class="dm-tile-unit" data-dm-tile-unit data-simbolo="${unitaSimbolo(unita)}">${esc(unita)}</i></span>
       <span class="dm-tile-fondo">
-        <small class="dm-tile-caption"><span class="dm-tile-scroll" data-dm-tile-caption>${esc(widget.caption)}</span></small>
+        <span class="dm-tile-testo">
+          <small class="dm-tile-caption"><span class="dm-tile-scroll" data-dm-tile-caption>${esc(widget.caption)}</span></small>
+          <small class="dm-tile-sotto" data-dm-tile-sotto${widget.sottotitolo ? "" : " hidden"}>${esc(widget.sottotitolo || "")}</small>
+        </span>
         <span class="dm-tile-misura" data-dm-misura="${esc(firmaMisura(widget))}" aria-hidden="true">${misuraMarkup(widget)}</span>
       </span>
     </button>`;
@@ -6750,6 +6800,24 @@ export function renderHomeWidgets() {
         caption.textContent = widget.caption;
         cambiato = true;
       }
+      /* La seconda riga e la copertina cambiano da un brano all'altro, quindi
+       * stanno qui e non nella struttura: rifare la tessera a ogni canzone
+       * vorrebbe dire farle ricominciare l'animazione di apertura mentre uno
+       * la guarda. */
+      const sotto = tile.querySelector("[data-dm-tile-sotto]");
+      const testoSotto = clean(widget.sottotitolo);
+      if (sotto && sotto.textContent !== testoSotto) {
+        sotto.textContent = testoSotto;
+        sotto.hidden = !testoSotto;
+        cambiato = true;
+      }
+      const chip = tile.querySelector(".dm-tile-chip");
+      const firmaFaccia = firmaDellaFaccia(widget);
+      if (chip && clean(chip.dataset.dmFaccia) !== firmaFaccia) {
+        chip.dataset.dmFaccia = firmaFaccia;
+        chip.innerHTML = facciaDellaTessera(widget);
+        cambiato = true;
+      }
       /* L'avviso non fa piu' parte della struttura: si accende qui, come tutto
        * il resto che cambia da un momento all'altro.
        *
@@ -8506,6 +8574,25 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
 /* La terza riga: il dettaglio, e la misura che gli sta accanto. */
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-fondo{
   display:flex;align-items:center;gap:10px;min-width:0;margin-top:auto}
+/* Le due righe del fondo stanno in colonna: la didascalia e, sotto, la riga
+   che la qualifica — l'artista di quel brano. La seconda c'e' solo dove il
+   modello la scrive, e la mattonella resta la mattonella di sempre. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-testo{
+  flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-sotto{
+  min-width:0;font-size:9.5px;font-weight:700;letter-spacing:.2px;
+  color:var(--text-dim,#94a3b8);opacity:.72;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* I tre puntini: dentro non c'e' una lista, ci sono i comandi. Non sono un
+   secondo tasto — toccare la mattonella apre gia' la finestra — sono il segno
+   che li' dentro si comanda qualcosa. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-menu{
+  position:absolute;top:0;right:0;line-height:1;font-size:16px;font-weight:900;
+  color:var(--text-dim,#94a3b8);opacity:.72;letter-spacing:0}
+/* La copertina riempie la pastiglia: e' l'unico disegno che non e' un'icona. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-arte{
+  width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-chip:has(.dm-tile-arte){overflow:hidden;padding:0}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-caption{
   flex:1;min-width:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8);
   white-space:nowrap;overflow:hidden;
@@ -8903,6 +8990,10 @@ ${radice} .dm-tile-unit[data-simbolo="true"]{
   line-height:1.5;letter-spacing:0;color:var(--text-dim,#64748b)}
 /* Didascalie e misure non ci sono: la pillola dice il nome e il numero. */
 ${radice} .dm-tile-fondo{display:none}
+/* I tre puntini seguono la didascalia: nella pillola non c'e' il posto dove
+   stavano — qui la riga di cima e' display:contents, quindi non fa piu' da
+   riferimento a niente — e una pillola alta quarantotto pixel e' gia' piena. */
+${radice} .dm-tile-menu{display:none}
 /* La pillola d'avviso: il velo piatto del colore d'avviso al 10%, l'hairline
    in tinta, la tacca piu' spessa e il valore in tinta scura. Niente gradienti
    ne' alone animato: l'avviso si legge, non lampeggia. */
