@@ -3283,6 +3283,8 @@ export default Object.freeze({
   "Good up to the first, fair up to the second, poor up to the third, bad beyond. The defaults are the norms: the European index bands for particulates and gases, EN 16798-1 for CO₂, the WHO guidelines for monoxide. Change them only if you know why.": "1つ目までが良好、2つ目までが普通、3つ目までが悪い、それを超えると非常に悪い。既定値は基準です。粒子とガスは欧州指数の区分、CO₂ は EN 16798-1、一酸化炭素は WHO の指針。理由が分かっているときだけ変えてください。",
   "Home Assistant declares the air sensors itself — particulates, CO₂, monoxide, volatile compounds — and the tile appears on its own. Here you correct that: drop a sensor that should not count, add one that is not found, and move the boundaries between good, fair, poor and bad.": "空気センサーは Home Assistant が自分で申告します（粒子状物質、CO₂、一酸化炭素、揮発性化合物）。タイルは自動で現れます。ここではそれを直します。数えたくないセンサーを外し、見つからないものを足し、良好・普通・悪い・非常に悪いの境界を動かします。",
   "Put back": "戻す",
+  "Custom alerts as a popup": "カスタム通知をポップアップで",
+  "When a custom alert turns on, the dashboard opens it by itself. Only when it turns on, and never on top of a window that is already open.": "カスタム通知が点いたとき、ダッシュボードが自分で開きます。点いたときだけで、すでに開いているウィンドウの上には決して開きません。",
   "Blue night": "ブルーナイト",
   "Graphite": "グラファイト",
   "Forest": "フォレスト",

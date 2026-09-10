@@ -149,6 +149,7 @@ import {
 } from "../core/rifiuti-model.js";
 import { nomeDellaRiga, parolaDelQuando } from "./rifiuti-section.js";
 import { CHIAVE_VMC, entitaDellaVmc, letturaVmc, vmcDisegnabili, vmcParla } from "../core/vmc-model.js";
+import { avvisiAppenaAccesi } from "../core/avvisi-che-si-aprono.js";
 import { comandiMediaMarkup, sottoDelLettore, titoloDelLettore } from "./media-player-section.js";
 import { iconaPresaMarkup } from "./prese-section.js";
 import { puntiDi, quandoArrivaLoStorico } from "./storico-condiviso-section.js";
@@ -269,6 +270,11 @@ const state = (root[KEY] ||= {
   expanded: "",
   signature: "",
   escape: false,
+  /* Quali avvisi personalizzati erano accesi l'ultima volta che si e'
+   * guardato (#445). `null` vuol dire «mai guardato», ed e' il valore che
+   * impedisce alla finestra di aprirsi al primo disegno su un avviso acceso
+   * da stamattina. */
+  avvisiVisti: null,
   lists: new Map(), // entity -> { items, fetchedAt, inflight }
   /* Gli eventi letti, per calendario (#259). Stanno accanto alle liste ToDo e
    * non dentro: sono due servizi diversi e due risposte diverse, e mescolarle
@@ -3871,7 +3877,11 @@ export function widgetPreferences() {
             .filter(([chiave, valore]) => chiave && valore),
         )
       : {};
-  return { hidden, order, excluded, compatto, sorgenti };
+  /* Se gli avvisi personalizzati si fanno vedere da soli (#445). Sta spento
+   * finche' non lo si accende: una finestra che si apre da sola e' una cosa
+   * che si chiede, non che si subisce. */
+  const avvisiInPopup = stored?.avvisiInPopup === true;
+  return { hidden, order, excluded, compatto, sorgenti, avvisiInPopup };
 }
 
 /** L'entita' scelta per una tessera che riassume, o «» per la media. */
@@ -6404,6 +6414,34 @@ function structureSignature(models) {
   return models.map((widget) => widget.key).join("|");
 }
 
+/* Un avviso personalizzato che si fa vedere da solo (#445).
+ *
+ * «Ho un boolean che se attivo mi indica con un popup l'intervento del
+ *  distacco carichi: vorrei sfruttarlo in questo fantastico lavoro.»
+ *
+ * La tessera si accende gia', e chi guarda la Home la vede. Ma un intervento
+ * del distacco carichi non e' una cosa da vedere passando: e' una cosa da
+ * sapere adesso, ed e' la differenza fra una tessera e un popup. Una tessera
+ * aspetta lo sguardo, un popup lo va a prendere.
+ *
+ * Il quando lo decide `core/avvisi-che-si-aprono.js`, che risponde a una
+ * domanda sola — quali si sono ACCESI ADESSO, non quali sono accesi — e al
+ * primo sguardo non accende niente. Qui restano le due cose che solo la
+ * sezione puo' sapere: che l'interruttore sia acceso, e che non ci sia gia'
+ * una finestra aperta. Chi sta guardando qualcos'altro ha gia' scelto cosa
+ * guardare, e sovrapporsi non sarebbe avvisarlo: sarebbe interromperlo. */
+function apriGliAvvisiAppenaAccesi(models) {
+  const accesi = models
+    .filter((widget) => String(widget?.key || "").startsWith("custom-"))
+    .map((widget) => widget.key);
+  const passo = avvisiAppenaAccesi(state.avvisiVisti ?? null, accesi);
+  state.avvisiVisti = passo.memoria;
+  if (!passo.aperti.length || !widgetPreferences().avvisiInPopup) return false;
+  if (state.expanded) return false;
+  toggleExpand(passo.aperti[0]);
+  return true;
+}
+
 export function renderHomeWidgets() {
   const states = allStates();
   const tutti = modelliDelleTessere(states);
@@ -6418,6 +6456,7 @@ export function renderHomeWidgets() {
     root.console?.warn?.("[DashboardModern] barra di casa", error);
   }
   const models = applyWidgetPreferences(tutti);
+  apriGliAvvisiAppenaAccesi(models);
   const host = doc?.getElementById?.("dm-widgets");
   if (!models.length) {
     host?.remove();

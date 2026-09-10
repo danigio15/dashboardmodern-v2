@@ -3283,6 +3283,8 @@ export default Object.freeze({
   "Good up to the first, fair up to the second, poor up to the third, bad beyond. The defaults are the norms: the European index bands for particulates and gases, EN 16798-1 for CO₂, the WHO guidelines for monoxide. Change them only if you know why.": "到第一个为止是良好，到第二个为止是一般，到第三个为止是较差，再往上是很差。默认值取自标准：颗粒物和气体用欧洲指数分级，CO₂ 用 EN 16798-1，一氧化碳用世卫组织指南。清楚原因再改。",
   "Home Assistant declares the air sensors itself — particulates, CO₂, monoxide, volatile compounds — and the tile appears on its own. Here you correct that: drop a sensor that should not count, add one that is not found, and move the boundaries between good, fair, poor and bad.": "空气传感器由 Home Assistant 自行声明——颗粒物、CO₂、一氧化碳、挥发性化合物——磁贴会自动出现。在这里做修正：移除不该计入的传感器，添加没被找到的传感器，并调整良好、一般、较差、很差之间的分界。",
   "Put back": "放回",
+  "Custom alerts as a popup": "自定义提醒以弹窗显示",
+  "When a custom alert turns on, the dashboard opens it by itself. Only when it turns on, and never on top of a window that is already open.": "自定义提醒亮起时，面板会自己打开它。只在亮起的那一刻，且绝不覆盖在已经打开的窗口上。",
   "Blue night": "蓝夜",
   "Graphite": "石墨",
   "Forest": "森林",

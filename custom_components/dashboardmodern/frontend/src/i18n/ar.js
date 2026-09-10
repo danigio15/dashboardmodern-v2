@@ -3283,6 +3283,8 @@ export default Object.freeze({
   "Good up to the first, fair up to the second, poor up to the third, bad beyond. The defaults are the norms: the European index bands for particulates and gases, EN 16798-1 for CO₂, the WHO guidelines for monoxide. Change them only if you know why.": "جيّد حتى الأول، مقبول حتى الثاني، رديء حتى الثالث، وسيّئ بعد ذلك. القيم الافتراضية هي المعايير: نطاقات المؤشر الأوروبي للجسيمات والغازات، وEN 16798-1 لثاني أكسيد الكربون، وإرشادات منظمة الصحة العالمية لأول أكسيد الكربون. لا تغيّرها إلا إذا كنت تعرف السبب.",
   "Home Assistant declares the air sensors itself — particulates, CO₂, monoxide, volatile compounds — and the tile appears on its own. Here you correct that: drop a sensor that should not count, add one that is not found, and move the boundaries between good, fair, poor and bad.": "يعلن Home Assistant عن مستشعرات الهواء بنفسه — الجسيمات وثاني أكسيد الكربون وأول أكسيد الكربون والمركبات المتطايرة — وتظهر البطاقة تلقائيًا. هنا تصحّح ذلك: استبعد مستشعرًا لا ينبغي احتسابه، وأضف مستشعرًا لم يُعثر عليه، وحرّك الحدود بين جيّد ومقبول ورديء وسيّئ.",
   "Put back": "أعده",
+  "Custom alerts as a popup": "التنبيهات المخصّصة كنافذة",
+  "When a custom alert turns on, the dashboard opens it by itself. Only when it turns on, and never on top of a window that is already open.": "عندما يُضاء تنبيه مخصّص، تفتحه اللوحة من تلقاء نفسها. عند الإضاءة فقط، ولا تفتحه أبدًا فوق نافذة مفتوحة بالفعل.",
   "Blue night": "ليل أزرق",
   "Graphite": "غرافيت",
   "Forest": "غابة",

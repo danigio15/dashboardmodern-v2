@@ -3283,6 +3283,8 @@ export default Object.freeze({
   "Good up to the first, fair up to the second, poor up to the third, bad beyond. The defaults are the norms: the European index bands for particulates and gases, EN 16798-1 for CO₂, the WHO guidelines for monoxide. Change them only if you know why.": "Goed tot de eerste, redelijk tot de tweede, slecht tot de derde, zeer slecht daarboven. Standaard zijn het de normen: de banden van de Europese index voor deeltjes en gassen, EN 16798-1 voor CO₂, de WHO-richtlijnen voor koolmonoxide. Verander ze alleen als je weet waarom.",
   "Home Assistant declares the air sensors itself — particulates, CO₂, monoxide, volatile compounds — and the tile appears on its own. Here you correct that: drop a sensor that should not count, add one that is not found, and move the boundaries between good, fair, poor and bad.": "Home Assistant meldt de luchtsensoren zelf — fijnstof, CO₂, koolmonoxide, vluchtige stoffen — en de tegel verschijnt vanzelf. Hier corrigeer je dat: haal er een sensor uit die niet mee moet tellen, voeg er een toe die niet gevonden wordt, en verschuif de grenzen tussen goed, redelijk, slecht en zeer slecht.",
   "Put back": "Terugzetten",
+  "Custom alerts as a popup": "Eigen meldingen als venster",
+  "When a custom alert turns on, the dashboard opens it by itself. Only when it turns on, and never on top of a window that is already open.": "Gaat een eigen melding aan, dan opent het dashboard hem vanzelf. Alleen bij het aangaan, en nooit boven een venster dat al open is.",
   "Blue night": "Blauwe nacht",
   "Graphite": "Grafiet",
   "Forest": "Bos",

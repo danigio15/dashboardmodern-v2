@@ -3283,6 +3283,8 @@ export default Object.freeze({
   "Good up to the first, fair up to the second, poor up to the third, bad beyond. The defaults are the norms: the European index bands for particulates and gases, EN 16798-1 for CO₂, the WHO guidelines for monoxide. Change them only if you know why.": "Dobra do pierwszego, umiarkowana do drugiego, zła do trzeciego, bardzo zła powyżej. Domyślnie są to normy: pasma europejskiego indeksu dla pyłów i gazów, EN 16798-1 dla CO₂, wytyczne WHO dla tlenku węgla. Zmieniaj je tylko, jeśli wiesz dlaczego.",
   "Home Assistant declares the air sensors itself — particulates, CO₂, monoxide, volatile compounds — and the tile appears on its own. Here you correct that: drop a sensor that should not count, add one that is not found, and move the boundaries between good, fair, poor and bad.": "Home Assistant sam zgłasza czujniki powietrza — pyły, CO₂, tlenek węgla, związki lotne — a kafelek pojawia się sam. Tutaj to poprawiasz: usuń czujnik, który nie powinien się liczyć, dodaj taki, którego nie znaleziono, i przesuń progi między dobrą, umiarkowaną, złą i bardzo złą.",
   "Put back": "Przywróć",
+  "Custom alerts as a popup": "Własne powiadomienia jako okno",
+  "When a custom alert turns on, the dashboard opens it by itself. Only when it turns on, and never on top of a window that is already open.": "Gdy własne powiadomienie się zapala, panel otwiera je sam. Tylko w chwili zapalenia i nigdy na już otwartym oknie.",
   "Blue night": "Błękitna noc",
   "Graphite": "Grafit",
   "Forest": "Las",

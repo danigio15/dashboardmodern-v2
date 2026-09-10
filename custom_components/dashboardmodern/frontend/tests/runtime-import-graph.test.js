@@ -1109,8 +1109,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // documento. La divisione è la stessa di sempre, e serve a poter misurare il
   // contrasto di ogni tavolozza senza un browser: è aritmetica sui numeri, e
   // sta dove non ci sono effetti al caricamento.
+  // 318 con l'avviso personalizzato che si apre da solo (#445): «ho un boolean
+  // che se attivo mi indica con un popup l'intervento del distacco carichi».
+  // `core/avvisi-che-si-aprono.js` risponde a una domanda sola — quali si sono
+  // ACCESI ADESSO, non quali sono accesi — ed è puro apposta: aprire una
+  // finestra addosso a chi guarda è il gesto più facile da sbagliare della
+  // plancia, e i tre modi di sbagliarlo si evitano tutti rispondendo bene a
+  // quella domanda.
   assert.ok(
-    relative.length <= 317,
+    relative.length <= 318,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
