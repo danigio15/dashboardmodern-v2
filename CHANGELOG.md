@@ -9,6 +9,53 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Il robot dice anche il filtro, le spazzole e i metri quadri** (#468)
+
+  «Sarebbe possibile aggiungere più valori tra quelli che mostra?» Un robot
+  pubblica molto più di quello che la scheda mostrava: quanto manca al filtro,
+  quanto alle spazzole, quanti metri quadri ha pulito, quante volte, per quante
+  ore. Erano tutte lì accanto e nessuno le guardava.
+
+  Nella scheda Robot c'è adesso **Altre letture**: scegli tu quali sensori
+  vedere, e la card li scrive sotto i comandi col loro nome e la loro unità.
+  Quelle che hanno quasi tutti si riconoscono da sole — filtro, spazzola
+  principale e laterale, mocio, area pulita, pulizie fatte, durata — e chi
+  aggiunge il robot da un'integrazione se le trova già dentro. L'indirizzo IP e
+  il wi-fi no: restano scegliibili a mano, ma in fondo alle proposte.
+
+  Un filtro che dura 8100 minuti si legge «135 h», perché in minuti a quella
+  distanza non pensa nessuno; sotto le due ore restano minuti. Un sensore che
+  non risponde scrive un trattino, non uno zero.
+
+- **Il robot tiene più di una mappa** (#468)
+
+  «In più io ho due mappe e mi visualizza solo una.» Un robot che gira su due
+  piani ne disegna due, e il campo era uno solo. Adesso le mappe sono un
+  elenco, e con più di una la card mette le linguette per passare dall'una
+  all'altra. Chi ne ha una sola non deve riscrivere niente.
+
+  E il riquadro prende le proporzioni del disegno invece di essere sempre
+  quattro terzi: una mappa quadrata o alta ci stava tutta ma piccola, con due
+  bande vuote ai lati — «non me la mette intera».
+
+- **Le TV entrano dal menù delle integrazioni** (#451)
+
+  «Le TV dove vanno messe?» Nella scheda 🔊 Musica, perché per Home Assistant
+  una TV è un `media_player` come uno speaker — e i comandi del brano la scheda
+  li copriva già. Quello che non copriva è il resto che un'integrazione porta
+  con sé: «samsung ha una sua integrazione che si potrebbe importare».
+
+  Adesso la scheda dei lettori ha **🔗 Aggiungi da un'integrazione**, come gli
+  elettrodomestici e il robot: scegli il dispositivo e il lettore arriva fatto.
+  E ha le stesse due liste: **Altri comandi** — l'interruttore
+  dell'alimentazione di una TV, la tendina della sorgente — e **Altre letture**
+  — il canale, la sorgente, cosa sta facendo, il volume. Compaiono sulla card
+  sotto i comandi del brano.
+
+  I sensori del consumo si riconoscono ma non si scelgono da soli: una TV
+  SmartThings ne pubblica sette, e una scheda fatta di consumi non serve a
+  nessuno. Chi ne vuole uno lo aggiunge, e porta il suo disegno.
+
 - **Stanze: la cassa e il condizionatore si comandano da lì** (#467)
 
   «The media player card must have media player functions, the climate card must
@@ -103,6 +150,29 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   «non si sa».
 
 ### Corretto
+
+- **Le telecamere prendono la strada che Home Assistant dichiara** (#418)
+
+  «La live non parte in nessun modo» su una Arlo, mentre nella finestra di Home
+  Assistant si vede. Nella 1.4.16 avevo scritto che a una telecamera che dorme
+  — Ring, Arlo, Blink — l'HLS si toglie e si dà il proxy MJPEG, «la stessa cosa
+  che fa `camera_view: live`». Quella frase era falsa: `camera_view: live`
+  disegna il flusso, e il proxy è quello che Home Assistant usa quando la
+  telecamera un flusso non ce l'ha. Alla Arlo si stava togliendo proprio la
+  strada che le funziona.
+
+  Adesso la regola è la stessa della `ha-camera-stream` di Home Assistant:
+  `web_rtc` si negozia, `hls` si trasmette, e chi non dichiara nessun flusso
+  prende il proxy. Il dormire non decide più la strada: decide quanto tempo le
+  si concede, e intanto l'istantanea è già a schermo.
+
+  Nella stessa regola c'era un difetto più largo: «dorme» lo decideva anche
+  «dichiara un flusso ma non sta trasmettendo». Lo stato di una telecamera è
+  `idle` finché nessuno la guarda, anche per quella cablata in corridoio — così
+  dormivano tutte, e tutte finivano sul proxy invece che sul loro flusso.
+
+  E il proxy non si butta più via quando c'è un flusso: resta sotto come rete,
+  e si percorre se il flusso cade davvero.
 
 - **Report: un mese senza dati mostrava i numeri del mese prima**
 

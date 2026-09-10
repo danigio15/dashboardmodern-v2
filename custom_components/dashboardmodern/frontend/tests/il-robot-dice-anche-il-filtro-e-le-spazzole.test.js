@@ -22,11 +22,11 @@ import {
   durataLeggibile,
   elencoLetture,
   LETTURE_MASSIME,
-  letturaDelRobot,
-  lettureConsigliate,
-  lettureDelRobot,
-  lettureSuggerite,
-} from "../src/core/robot-letture.js";
+  letturaDelDispositivo,
+  lettureRiconosciute,
+  lettureDelDispositivo,
+  lettureVicine,
+} from "../src/core/letture-accanto.js";
 import {
   bindRobotToDevice,
   elencoMappe,
@@ -98,7 +98,7 @@ const CASA = {
 const PIPPO = { entity: "vacuum.pippo", battery: "sensor.pippo_batteria", mappe: ["image.pippo_mappa"] };
 
 test("le letture che tutti hanno si riconoscono da sole, la diagnostica no", () => {
-  const consigliate = lettureConsigliate(PIPPO, CASA);
+  const consigliate = lettureRiconosciute(PIPPO, CASA);
   /* Le sei che il robot pubblica e che a chi guarda la scheda servono. */
   for (const attesa of [
     "sensor.pippo_durata_filtro",
@@ -125,7 +125,7 @@ test("le letture che tutti hanno si riconoscono da sole, la diagnostica no", () 
 test("scegliendole a mano c'è tutto, con la diagnostica in fondo", () => {
   /* Le proposte non nascondono niente — chi vuole la potenza del wi-fi se la
    * prende — ma l'ordine dice cosa viene prima. */
-  const proposte = lettureSuggerite(PIPPO, CASA);
+  const proposte = lettureVicine(PIPPO, CASA);
   assert.ok(proposte.includes("sensor.pippo_indirizzo_ip"));
   assert.ok(
     proposte.indexOf("sensor.pippo_durata_filtro") < proposte.indexOf("sensor.pippo_indirizzo_ip"),
@@ -150,9 +150,9 @@ test("un filtro che dura 8100 minuti si legge in ore, 45 minuti restano minuti",
 });
 
 test("ogni lettura si scrive col suo numero, la sua unità e il suo nome", () => {
-  const robot = { ...PIPPO, letture: lettureConsigliate(PIPPO, CASA) };
+  const robot = { ...PIPPO, letture: lettureRiconosciute(PIPPO, CASA) };
   const lette = Object.fromEntries(
-    lettureDelRobot(robot, CASA, "it").map((voce) => [voce.entity, voce]),
+    lettureDelDispositivo(robot, CASA, "it").map((voce) => [voce.entity, voce]),
   );
   /* Il nome è quello dell'entità senza il nome del robot davanti: su una
    * scheda che porta già «Pippo» in testa, «Pippo Durata filtro» ripete. */
@@ -175,11 +175,11 @@ test("un sensore che non risponde scrive il trattino, non uno zero", () => {
     "sensor.x": stato("unavailable", { unit_of_measurement: "min" }),
     "sensor.y": stato("unknown", {}),
   };
-  assert.equal(letturaDelRobot("sensor.x", {}, stati, "it").testo, "—");
-  assert.equal(letturaDelRobot("sensor.x", {}, stati, "it").available, false);
-  assert.equal(letturaDelRobot("sensor.y", {}, stati, "it").testo, "—");
+  assert.equal(letturaDelDispositivo("sensor.x", {}, stati, "it").testo, "—");
+  assert.equal(letturaDelDispositivo("sensor.x", {}, stati, "it").available, false);
+  assert.equal(letturaDelDispositivo("sensor.y", {}, stati, "it").testo, "—");
   /* Un sensore che non c'è proprio: idem, senza inventare. */
-  assert.equal(letturaDelRobot("sensor.mai_vista", {}, stati, "it").testo, "—");
+  assert.equal(letturaDelDispositivo("sensor.mai_vista", {}, stati, "it").testo, "—");
 });
 
 test("l'elenco tiene dieci letture, una volta sola, e solo cose che si leggono", () => {

@@ -25,6 +25,8 @@ import {
   orologio,
   posizioneOra,
 } from "../core/media-player.js";
+import { comandoDelDispositivo } from "../core/comandi-accanto.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
 import { oggettoWidget } from "../core/oggetti-widget.js";
 import { registraPaginaARuntime, renderPageMastheads } from "./page-masthead-section.js";
 import {
@@ -255,6 +257,54 @@ function sorgenteMarkup(riga) {
       .join("")}</select></label>`;
 }
 
+/* Quello che l'integrazione pubblica accanto al lettore (#451).
+ *
+ * «Le TV dove vanno messe?» Nella scheda dei lettori — ma una TV di
+ * SmartThings porta con sé un interruttore per l'alimentazione, una tendina
+ * per la sorgente, e dei sensori che dicono il canale, il volume, il consumo.
+ * I comandi si toccano, le letture si guardano: due file, come sul robot. */
+function comandiAccantoMarkup(riga) {
+  const voci = Array.isArray(riga.comandi) ? riga.comandi : [];
+  if (!voci.length) return "";
+  const tendine = voci
+    .filter((voce) => voce.genere === "tendina" && voce.opzioni.length)
+    .map(
+      (voce) =>
+        `<label class="dm-mp-sorgente"><span>${esc(voce.name)}</span>
+      <select data-dm-mp-tendina="${esc(voce.entity)}"${voce.available ? "" : " disabled"}>${voce.opzioni
+        .map(
+          (opzione) =>
+            `<option value="${esc(opzione)}"${opzione === voce.scelta ? " selected" : ""}>${esc(opzione)}</option>`,
+        )
+        .join("")}</select></label>`,
+    )
+    .join("");
+  const tasti = voci
+    .filter((voce) => voce.genere !== "tendina")
+    .map(
+      (voce) =>
+        `<button type="button" class="dm-mp-cmd" data-dm-mp-cmd="${esc(voce.entity)}"${
+          voce.genere === "interruttore" ? ` aria-pressed="${voce.acceso === true}"` : ""
+        }${voce.available ? "" : " disabled"}>${esc(voce.name)}</button>`,
+    )
+    .join("");
+  return `${tendine}${tasti ? `<div class="dm-mp-cmds">${tasti}</div>` : ""}`;
+}
+
+function lettureAccantoMarkup(riga) {
+  const voci = Array.isArray(riga.letture) ? riga.letture : [];
+  if (!voci.length) return "";
+  return `<div class="dm-mp-letture">${voci
+    .map(
+      (lettura) =>
+        `<span class="dm-mp-lettura" data-dm-mp-lettura="${esc(lettura.entity)}" title="${esc(lettura.entity)}">
+      ${lettura.disegno ? `<i aria-hidden="true">${disegnoDelCatalogo(lettura.disegno, 20)}</i>` : ""}
+      <small>${esc(lettura.name)}</small><b>${esc(lettura.testo)}</b>
+    </span>`,
+    )
+    .join("")}</div>`;
+}
+
 function cardMarkup(riga) {
   /* «Ha una copertina» sta scritto sulla card e non si deduce con `:has()`:
    * quella regola sui WebView di qualche telefono non c'e', e la card sarebbe
@@ -273,6 +323,8 @@ function cardMarkup(riga) {
       ${comandiMediaMarkup(riga)}
       ${volumeMarkup(riga)}
       ${sorgenteMarkup(riga)}
+      ${comandiAccantoMarkup(riga)}
+      ${lettureAccantoMarkup(riga)}
     </div>
   </article>`;
 }
@@ -382,6 +434,13 @@ export function renderMediaPlayer() {
         Math.round(riga.durata ?? 0),
         Boolean(riga.copertina),
         Object.values(riga.puo).join(""),
+        /* Quello che sta accanto (#451): i comandi con la loro scelta, le
+         * letture col loro numero. La card è piccola e si rifà intera, come
+         * già fa quando cambia il brano. */
+        (riga.comandi || [])
+          .map((voce) => `${voce.entity}:${voce.name}:${voce.available}:${voce.acceso}:${voce.scelta}:${voce.opzioni.join("/")}`)
+          .join("+"),
+        (riga.letture || []).map((lettura) => `${lettura.entity}:${lettura.testo}`).join("+"),
       ].join("|"),
     ),
   ].join("§");
@@ -418,7 +477,28 @@ function letturaDi(entity) {
   return letture().find((riga) => riga.entity === entity) || null;
 }
 
+/* Il comando accanto a cui appartiene quell'entità, come sta adesso. */
+function comandoAccantoDi(entity) {
+  for (const riga of letture())
+    for (const voce of riga.comandi || []) if (voce.entity === entity) return voce;
+  return null;
+}
+
 function onClick(event) {
+  /* Un comando accanto (#451): si preme, si accende o si inverte, secondo cosa
+   * è. Sta prima dei tasti del lettore perché è un tasto suo, non del brano. */
+  const accanto = event.target?.closest?.("[data-dm-mp-cmd]");
+  if (accanto) {
+    event.preventDefault();
+    const voce = comandoAccantoDi(clean(accanto.dataset.dmMpCmd));
+    if (!voce) return;
+    root.navigator?.vibrate?.(8);
+    if (voce.genere === "interruttore")
+      accanto.setAttribute("aria-pressed", String(voce.acceso !== true));
+    const servizio = comandoDelDispositivo(voce);
+    if (servizio) chiamaHa(servizio.domain, servizio.service, servizio.data);
+    return;
+  }
   const tasto = event.target?.closest?.("[data-dm-mp]");
   if (!tasto) return;
   event.preventDefault();
@@ -452,6 +532,14 @@ function onInput(event) {
 }
 
 function onChange(event) {
+  /* Una tendina accanto (#451): la scelta va alla sua entità, non al lettore. */
+  const accanto = event.target?.closest?.("[data-dm-mp-tendina]");
+  if (accanto) {
+    const voce = comandoAccantoDi(clean(accanto.dataset.dmMpTendina));
+    const servizio = voce && comandoDelDispositivo(voce, accanto.value);
+    if (servizio) chiamaHa(servizio.domain, servizio.service, servizio.data);
+    return;
+  }
   const tendina = event.target?.closest?.("[data-dm-mp-sorgente]");
   if (!tendina) return;
   chiamaHa("media_player", "select_source", {
@@ -564,6 +652,33 @@ function installStyles() {
         font-size:10.5px;font-weight:800;color:var(--text-dim,#64748b);
         font-variant-numeric:tabular-nums;flex:0 0 34px;text-align:right}
       .dm-mp-sorgente{display:flex;align-items:center;gap:9px;margin-top:8px}
+      /* Quello che sta accanto (#451): i tasti dell'integrazione e le sue
+         letture, sotto i comandi del brano. */
+      .dm-mp-cmds{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+      .dm-mp-cmd{
+        padding:6px 11px;border-radius:999px;cursor:pointer;font:inherit;font-size:11.5px;
+        font-weight:800;border:1px solid var(--divider-color,#dbe4ee);
+        background:var(--card-bg,#fff);color:var(--text,#0f172a)}
+      .dm-mp-cmd[aria-pressed="true"]{
+        border-color:#8b5cf6;background:color-mix(in srgb,#8b5cf6 16%,transparent);color:#6d28d9}
+      .dm-mp-cmd[disabled]{opacity:.45;cursor:default}
+      .dm-mp-letture{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+      .dm-mp-lettura{
+        display:inline-flex;align-items:center;gap:7px;min-width:0;padding:5px 9px;
+        border-radius:11px;border:1px solid var(--divider-color,#dbe4ee);
+        background:var(--surface-2,#f8fafc)}
+      .dm-mp-lettura>i{flex:0 0 auto;display:grid;place-items:center;line-height:0}
+      .dm-mp-lettura>small{
+        min-width:0;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+        font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+        color:var(--text-dim,#94a3b8)}
+      .dm-mp-lettura>b{font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap}
+      .dm-mp-card[data-arte="true"] .dm-mp-cmd{
+        border-color:rgba(255,255,255,.28);background:rgba(15,23,42,.34);color:#f8fafc}
+      .dm-mp-card[data-arte="true"] .dm-mp-lettura{
+        border-color:rgba(255,255,255,.22);background:rgba(15,23,42,.3)}
+      .dm-mp-card[data-arte="true"] .dm-mp-lettura>small{color:rgba(248,250,252,.72)}
+      .dm-mp-card[data-arte="true"] .dm-mp-lettura>b{color:#f8fafc}
       .dm-mp-sorgente>span{
         font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
         color:var(--text-dim,#64748b)}

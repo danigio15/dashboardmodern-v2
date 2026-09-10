@@ -34,7 +34,7 @@ import {
   genereDelComando,
 } from "../core/comandi-accanto.js";
 import { nomeAccantoAlDispositivo } from "../core/nome-accanto-al-dispositivo.js";
-import { elencoLetture, lettureSuggerite } from "../core/robot-letture.js";
+import { elencoLetture, lettureVicine } from "../core/letture-accanto.js";
 import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
 import {
   allStates,
@@ -122,7 +122,7 @@ const LISTE = Object.freeze({
   },
   letture: {
     elenco: elencoLetture,
-    suggerite: lettureSuggerite,
+    suggerite: lettureVicine,
     genere: () => "lettura",
     segnaposto: "sensor.robot_durata_filtro",
   },

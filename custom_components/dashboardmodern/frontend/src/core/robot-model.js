@@ -29,9 +29,9 @@ import {
   eUnaLettura,
   elencoLetture,
   LETTURE_MASSIME,
-  lettureConsigliate,
-  lettureDelRobot,
-} from "./robot-letture.js";
+  lettureRiconosciute,
+  lettureDelDispositivo,
+} from "./letture-accanto.js";
 
 const clean = (value) => String(value ?? "").trim();
 
@@ -344,7 +344,7 @@ export function bindRobotToDevice({
   /* Le letture che si riconoscono da sole (#468): il filtro, le spazzole,
    * l'area pulita, le pulizie fatte. Si guardano con lo stato vero, non con
    * l'elenco del registro, perche' e' li' che stanno unita' e nomi. */
-  const letture = lettureConsigliate(nato, states);
+  const letture = lettureRiconosciute(nato, states);
   nato.letture = letture.length ? letture : elencoLetture(precedente.letture);
   return nato;
 }
@@ -446,7 +446,7 @@ export function robotView(robot = {}, states = {}) {
     mapPicture: robotMapPicture(states, robot.mapEntity),
     /* Le altre letture (#468): filtro, spazzole, area pulita… quelle che chi
      * configura ha scelto, gia' scritte come vanno lette. */
-    letture: lettureDelRobot(robot, states),
+    letture: lettureDelDispositivo(robot, states),
     /* I comandi a parte (#306), come stanno adesso. */
     comandi: comandiDelDispositivo(robot, states),
   };

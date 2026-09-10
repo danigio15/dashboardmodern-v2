@@ -17,6 +17,9 @@
  * grafico: è un tasto che non fa niente, e chi lo preme pensa sia rotto.
  */
 
+import { comandiDelDispositivo, elencoComandi } from "./comandi-accanto.js";
+import { elencoLetture, lettureDelDispositivo, lettureRiconosciute } from "./letture-accanto.js";
+
 const pulito = (valore) => String(valore ?? "").trim();
 
 export const CHIAVE_MEDIA = "cd_media_player";
@@ -72,6 +75,16 @@ export function normalizzaLettore(stored, indice = 0) {
     nome: pulito(dato.nome || dato.name),
     icona: pulito(dato.icona || dato.icon),
     room_id: pulito(dato.room_id || dato.room),
+    /* Quello che l'integrazione pubblica accanto al lettore (#451).
+     *
+     * «Le TV dove vanno messe?» — nella scheda dei lettori, perché per Home
+     * Assistant una TV è un `media_player` come uno speaker. Quello che la
+     * scheda non copriva è il resto che un'integrazione come SmartThings porta
+     * con sé: l'interruttore dell'alimentazione, il canale, la sorgente, il
+     * volume, il consumo. Sono entità a parte, e sono le stesse due liste che
+     * hanno il robot e gli elettrodomestici. */
+    comandi: elencoComandi(dato.comandi ?? dato.commands),
+    letture: elencoLetture(dato.letture ?? dato.readings),
   };
 }
 
@@ -83,7 +96,14 @@ export function lettoriConfigurati(stored) {
 
 /** Le entità da tenere d'occhio: serve a chi decide se ridisegnare. */
 export function entitaDeiLettori(stored) {
-  return [...new Set(lettoriConfigurati(stored).map((riga) => riga.entity))];
+  const viste = new Set();
+  for (const riga of lettoriConfigurati(stored)) {
+    viste.add(riga.entity);
+    /* Anche quelle accanto (#451): se il canale cambia e nessuno le guarda, la
+     * scheda resta ferma su quello di prima. */
+    for (const voce of [...riga.comandi, ...riga.letture]) viste.add(voce);
+  }
+  return [...viste];
 }
 
 const numero = (valore) => {
@@ -158,7 +178,57 @@ export function letturaDelLettore(voce, states = {}, resolve = (valore) => valor
       accendi: sa(SA.ACCENDI),
       spegni: sa(SA.SPEGNI),
     },
+    /* Quello che sta accanto (#451): l'interruttore dell'alimentazione, la
+     * tendina della sorgente di SmartThings, il canale, il volume, il
+     * consumo. Entità a parte, scelte da chi configura. */
+    comandi: comandiDelDispositivo(voce, states),
+    letture: lettureDelDispositivo(voce, states),
   };
+}
+
+/* Il lettore che nasce da un dispositivo di Home Assistant (#451).
+ *
+ * «Io farei una sezione Tv anche perché per esempio samsung ha una sua
+ * integrazione che si potrebbe importare. SmartThings. Il forno Samsung per
+ * esempio prende tutte le entità come elettrodomestico.» È la stessa strada
+ * degli elettrodomestici e del robot: si sceglie il dispositivo e le caselle si
+ * compilano da sole. Un lettore è fatto di tre pezzi — l'entità che suona, i
+ * comandi che l'integrazione pubblica accanto, e le letture che dicono e basta.
+ *
+ * Le entità di servizio non entrano fra i comandi: quelle che Home Assistant
+ * marca `config` o `diagnostic` sono le impostazioni del dispositivo, non i
+ * tasti che uno vuole sulla scheda.
+ */
+export function bindLettoreToDevice({
+  device = {},
+  entities = [],
+  states = {},
+  indice = 0,
+  precedente = {},
+} = {}) {
+  const elenco = (Array.isArray(entities) ? entities : []).filter(
+    (voce) => voce && !voce.disabled && pulito(voce.entity_id).includes("."),
+  );
+  const dominio = (voce) => pulito(voce.entity_id).split(".")[0];
+  const suo = elenco.find((voce) => dominio(voce) === "media_player");
+
+  const comandi = elencoComandi(
+    elenco
+      .filter((voce) => !["config", "diagnostic"].includes(pulito(voce.category)))
+      .map((voce) => pulito(voce.entity_id)),
+  );
+
+  const nato = {
+    ...normalizzaLettore(precedente, indice),
+    nome: pulito(precedente.nome) || pulito(device.name),
+    entity: pulito(suo?.entity_id) || pulito(precedente.entity),
+    comandi: comandi.length ? comandi : elencoComandi(precedente.comandi),
+  };
+  /* Le letture si riconoscono guardando lo stato vero, non l'elenco del
+   * registro: è lì che stanno le unità e i nomi. */
+  const letture = lettureRiconosciute(nato, states);
+  nato.letture = letture.length ? letture : elencoLetture(precedente.letture);
+  return nato;
 }
 
 /** Le letture di tutti i lettori configurati. */

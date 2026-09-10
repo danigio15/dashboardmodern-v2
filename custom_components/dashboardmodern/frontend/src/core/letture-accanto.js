@@ -1,15 +1,18 @@
-/* Le altre letture del robot (#468).
+/* Le altre letture che stanno accanto a un dispositivo (#468, #451).
  *
- * «Sarebbe possibile aggiungere più valori tra quelli che mostra?» Un robot
- * pubblica molto piu' di quello che la scheda mostrava: quanto manca al
- * filtro, quanto alle spazzole, quanti metri quadri ha pulito, quante volte,
- * per quante ore. Erano tutti li', accanto al robot, e nessuno li guardava.
+ * «Sarebbe possibile aggiungere più valori tra quelli che mostra?» — di un
+ * robot. E poi: «le TV dove vanno messe?», che è la stessa domanda con un
+ * altro apparecchio davanti. Un robot pubblica quanto manca al filtro, quanto
+ * alle spazzole, quanti metri quadri ha pulito; una TV il canale, la sorgente,
+ * il volume, quanto consuma. Sono tutti li', accanto all'entita' principale, e
+ * la scheda non li guardava.
  *
- * L'elenco non e' scritto qui dentro: i sensori cambiano da un'integrazione
- * all'altra e da un modello all'altro, e un elenco fisso sarebbe giusto per
- * un robot e sbagliato per il prossimo. Chi configura sceglie le sue letture;
- * qui si dice quali entita' possono esserlo, quali si riconoscono da sole
- * perche' le hanno quasi tutti, e come si scrive il numero che portano.
+ * L'elenco di cosa mostrare non e' scritto qui dentro: i sensori cambiano da
+ * un'integrazione all'altra e da un modello all'altro, e un elenco fisso
+ * sarebbe giusto per un apparecchio e sbagliato per il prossimo. Chi configura
+ * sceglie le sue letture; qui si dice quali entita' possono esserlo, quali si
+ * riconoscono da sole perche' le hanno quasi tutti, e come si scrive il numero
+ * che portano.
  *
  * Il modulo e' puro: non parla con Home Assistant e non tocca il DOM.
  */
@@ -74,6 +77,14 @@ export const LETTURE_NOTE = Object.freeze([
   { chiave: "laterale", disegno: "broom", re: /\b(spazzola laterale|side brush)\b/ },
   { chiave: "mocio", disegno: "water", re: /\b(mocio|mop|panno)\b/ },
   { chiave: "filtro", disegno: "wind", re: /\b(filtro|filter)\b/ },
+  /* Quelle di una TV (#451): il canale, la sorgente, cosa sta facendo, il
+   * volume. Un robot non ha un canale e una TV non ha una spazzola: un
+   * dizionario piu' largo non confonde nessuno, e la plancia riconosce le
+   * letture di tutt'e due senza due elenchi da tenere allineati. */
+  { chiave: "canale", disegno: "tv", re: /\b(canale|channel)\b/ },
+  { chiave: "sorgente", disegno: "sliders", re: /\b(sorgente|source|input)\b/ },
+  { chiave: "riproduzione", disegno: "play", re: /\b(playback|riproduzione|media status)\b/ },
+  { chiave: "volume", disegno: "speaker", re: /\b(volume)\b/ },
   {
     chiave: "quante",
     disegno: "list",
@@ -81,6 +92,19 @@ export const LETTURE_NOTE = Object.freeze([
   },
   { chiave: "area", disegno: "clean", re: /\b(area|superficie|mq)\b/ },
   { chiave: "durata", disegno: "timer", re: /\b(durata|duration|tempo|time)\b/ },
+  /* Il consumo si riconosce ma non si sceglie da solo.
+   *
+   * Una TV di SmartThings pubblica sette sensori fra energia e potenza —
+   * `energy`, `powerenergy`, `deltaenergy`, `energy_meter`, `energysaved`,
+   * `power`, `power_meter` — e metterli tutti su una scheda vorrebbe dire una
+   * scheda fatta di consumi. Chi ne vuole uno lo sceglie, e quello che sceglie
+   * porta il suo disegno; il posto dei consumi restano Carichi ed Energia. */
+  {
+    chiave: "energia",
+    disegno: "power",
+    soloAMano: true,
+    re: /\b(energia|energy|potenza|power|consumo|kwh)\b/,
+  },
 ]);
 
 /* Quello che una lettura non e'.
@@ -159,7 +183,7 @@ const SPENTO = new Set(["unavailable", "unknown", "none", ""]);
  * per chi volesse farci altro. Un sensore che non risponde non scrive uno
  * zero: scrive il trattino, che e' la verita'.
  */
-export function letturaDelRobot(entity, robot = {}, states = {}, lingua = getLocale()) {
+export function letturaDelDispositivo(entity, dispositivo = {}, states = {}, lingua = getLocale()) {
   const voce = clean(entity);
   const corrente = states?.[voce];
   const grezzo = clean(corrente?.state);
@@ -168,7 +192,7 @@ export function letturaDelRobot(entity, robot = {}, states = {}, lingua = getLoc
   const nota = letturaNota(voce, states);
   const base = {
     entity: voce,
-    name: nomeAccantoAlDispositivo(voce, robot, states),
+    name: nomeAccantoAlDispositivo(voce, dispositivo, states),
     disegno: nota?.disegno || "",
     chiave: nota?.chiave || "",
     unita,
@@ -193,39 +217,44 @@ export function letturaDelRobot(entity, robot = {}, states = {}, lingua = getLoc
   return { ...base, available: true, valore, testo: unita ? `${scritto} ${unita}` : scritto };
 }
 
-/** Le letture di un robot come stanno adesso, nell'ordine in cui sono scelte. */
-export function lettureDelRobot(robot = {}, states = {}, lingua = getLocale()) {
-  return elencoLetture(robot?.letture).map((entity) =>
-    letturaDelRobot(entity, robot, states, lingua),
+/** Le letture di un dispositivo adesso, nell'ordine in cui sono state scelte. */
+export function lettureDelDispositivo(dispositivo = {}, states = {}, lingua = getLocale()) {
+  return elencoLetture(dispositivo?.letture).map((entity) =>
+    letturaDelDispositivo(entity, dispositivo, states, lingua),
   );
 }
 
-/* Le entita' del robot che non sono ne' comandi ne' gia' in uso altrove.
+/* Le entita' che la scheda mostra gia' da un'altra parte.
  *
- * Quelle che la scheda ha gia' — la batteria, la mappa, il robot stesso — non
- * si ripropongono: sarebbero la stessa cosa scritta due volte. */
-function giaInUso(robot = {}) {
-  const usate = new Set([clean(robot?.entity), clean(robot?.battery)].filter(Boolean));
-  for (const mappa of Array.isArray(robot?.mappe) ? robot.mappe : []) usate.add(clean(mappa));
-  const mappa = clean(robot?.mapEntity);
+ * L'entita' principale, la batteria, le mappe: riproporle fra le letture
+ * sarebbe la stessa cosa scritta due volte. Una sezione che quei campi non li
+ * ha — un lettore non ha mappe — semplicemente non ne porta nessuno. */
+function giaInUso(dispositivo = {}) {
+  const usate = new Set([clean(dispositivo?.entity), clean(dispositivo?.battery)].filter(Boolean));
+  for (const mappa of Array.isArray(dispositivo?.mappe) ? dispositivo.mappe : [])
+    usate.add(clean(mappa));
+  const mappa = clean(dispositivo?.mapEntity);
   if (mappa) usate.add(mappa);
+  for (const comando of Array.isArray(dispositivo?.comandi) ? dispositivo.comandi : [])
+    usate.add(clean(comando));
   return usate;
 }
 
-/* Le letture che stanno accanto al robot, da proporre a chi configura.
+/* Le letture che stanno accanto a quel dispositivo, da proporre a chi configura.
  *
- * Si riconoscono come i comandi: l'id comincia con l'id del robot, oppure il
- * nome comincia col nome del robot. Davanti quelle che tutti hanno — filtro,
- * spazzole, area, durata — nell'ordine in cui sono scritte qui sopra; in fondo
- * la diagnostica, che si sceglie di rado ma si puo' scegliere.
+ * Si riconoscono come i comandi: l'id comincia con l'id dell'entita'
+ * principale, oppure il nome comincia col suo nome. Davanti quelle che tutti
+ * hanno — filtro, spazzole, canale, sorgente, volume — nell'ordine in cui sono
+ * scritte qui sopra; in fondo la diagnostica, che si sceglie di rado ma si
+ * puo' scegliere.
  */
-export function lettureSuggerite(robot = {}, states = {}) {
-  const entity = clean(robot?.entity);
+export function lettureVicine(dispositivo = {}, states = {}) {
+  const entity = clean(dispositivo?.entity);
   const radice = entity.split(".")[1] || "";
   if (!radice) return [];
   const nome = clean(states?.[entity]?.attributes?.friendly_name).toLowerCase();
-  const gia = new Set(elencoLetture(robot?.letture));
-  const usate = giaInUso(robot);
+  const gia = new Set(elencoLetture(dispositivo?.letture));
+  const usate = giaInUso(dispositivo);
   const trovate = [];
   for (const [id, corrente] of Object.entries(states || {})) {
     if (gia.has(id) || usate.has(id) || !eUnaLettura(id)) continue;
@@ -243,15 +272,16 @@ export function lettureSuggerite(robot = {}, states = {}) {
 }
 
 /**
- * Le letture che un robot nato da un'integrazione porta con se'.
+ * Le letture che un dispositivo nato da un'integrazione porta con se'.
  *
- * Solo quelle che si riconoscono: il filtro, le spazzole, il mocio, l'area,
- * le pulizie, la durata. La diagnostica no — chi la vuole se la aggiunge.
+ * Solo quelle che si riconoscono, e solo quelle che si scelgono da sole: la
+ * diagnostica no, e nemmeno i consumi — chi li vuole se li aggiunge.
  */
-export function lettureConsigliate(robot = {}, states = {}) {
+export function lettureRiconosciute(dispositivo = {}, states = {}) {
   return elencoLetture(
-    lettureSuggerite(robot, states).filter(
-      (id) => letturaNota(id, states) && !DIAGNOSTICA.test(parole(id, states)),
-    ),
+    lettureVicine(dispositivo, states).filter((id) => {
+      const nota = letturaNota(id, states);
+      return nota && !nota.soloAMano && !DIAGNOSTICA.test(parole(id, states));
+    }),
   );
 }

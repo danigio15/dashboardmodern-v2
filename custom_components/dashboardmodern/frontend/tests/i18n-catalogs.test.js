@@ -283,6 +283,9 @@ const LOCALE_IDENTITIES = {
     "Radius (km)",
     /* La modulazione di una caldaia si chiama Modulation anche in tedesco. */
     "Modulation (%)",
+    /* Un lettore multimediale in tedesco e' un «Player»: la parola inglese e'
+       quella che si usa, e «Abspielgerät» sarebbe piu' lungo e meno chiaro. */
+    "Player",
     "Polo",
     "💨 Wind",
     "${value} offline",
