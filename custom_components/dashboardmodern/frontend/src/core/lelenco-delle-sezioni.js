@@ -98,6 +98,9 @@ export const SEZIONI = Object.freeze(
      * varchi perché è la stessa domanda — cosa succede in casa adesso — fatta
      * su un'altra famiglia di sensori. */
     { scheda: "presenza", chiave: "presenza", glifo: "🏃", it: "Presenza", en: "Presence" },
+    /* Le stampanti (#469): sono nella famiglia delle macchine — una spina e un
+     * indirizzo — non in quella delle stanze. */
+    { scheda: "stampanti", chiave: "stampanti", glifo: "🖨️", it: "Stampanti", en: "Printers" },
     {
       scheda: "doors",
       chiave: "porte",

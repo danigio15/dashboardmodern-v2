@@ -178,6 +178,11 @@ import {
   presenzaDiCasa,
 } from "../core/presenza-in-casa.js";
 import {
+  CHIAVE_STAMPANTI,
+  lettureDelleStampanti,
+  riassuntoDelleStampanti,
+} from "../core/stampanti-model.js";
+import {
   CHIAVE_MACCHINE,
   contoDelleMacchine,
   macchineERete,
@@ -3586,6 +3591,71 @@ function presenzaModel(states) {
   };
 }
 
+/* Le stampanti: se sono pronte, e quanto inchiostro resta (#469).
+ *
+ * «Volevo chiedere se c'era la possibilita' del controllo delle tv e
+ * stampanti.»
+ *
+ * Il numero grande e' quello che fa alzare la testa: quante stampanti hanno
+ * qualcosa da dire — ferme o agli sgoccioli. A tutto in ordine dice quante ne
+ * sta guardando, che e' il modo in cui una sorveglianza si fa vedere anche
+ * quando non ha niente da dire.
+ *
+ * L'anello e' la cartuccia messa peggio di tutta la casa: e' il numero che
+ * decide se stasera si stampa o no, e su una tessera ci sta.
+ */
+function stampantiModel(states) {
+  const fuori = widgetExcludedEntities("stampanti");
+  const letture = lettureDelleStampanti(readJson(CHIAVE_STAMPANTI, []), states, root.resolveEntity)
+    .filter((lettura) => widgetIncludes(lettura.entity, fuori));
+  if (!letture.length) return null;
+  const riassunto = riassuntoDelleStampanti(letture);
+  const daDire = riassunto.ferme.length + riassunto.sgoccioli.length;
+  const peggiore = letture
+    .map((lettura) => lettura.piuScarica)
+    .filter(Boolean)
+    .reduce((peggio, voce) => (!peggio || voce.quanta < peggio.quanta ? voce : peggio), null);
+  return {
+    key: "stampanti",
+    accent: riassunto.verdetto === "ferma" ? "#dc2626" : daDire ? "#f59e0b" : "#0ea5e9",
+    icon: "🖨️",
+    label: t("Stampanti", "Printers"),
+    value: String(daDire || letture.length),
+    caption: daDire
+      ? riassunto.ferme.length
+        ? t(`${riassunto.ferme.length} ferme`, `${riassunto.ferme.length} stopped`)
+        : t("Inchiostro agli sgoccioli", "Ink almost out")
+      : peggiore
+        ? t(`Inchiostro al ${peggiore.quanta}%`, `Ink at ${peggiore.quanta}%`)
+        : t("Tutte pronte", "All ready"),
+    /* L'anello e' quanto inchiostro resta, non quante stampanti vanno: una
+     * stampante pronta con la cartuccia a zero non e' pronta. */
+    ring: peggiore ? peggiore.quanta : null,
+    attiva: daDire > 0,
+    rows: letture.map((lettura) => ({
+      entity: lettura.entity,
+      name: lettura.nome,
+      glyph: disegnoDelCatalogo("printer", 20),
+      on: lettura.stampa,
+      tono: lettura.ferma ? "allarme" : lettura.stampa ? "acceso" : lettura.muta ? "" : "quiete",
+      value: lettura.piuScarica
+        ? `${parolaDelloStatoStampante(lettura)} · ${lettura.piuScarica.quanta}%`
+        : parolaDelloStatoStampante(lettura),
+    })),
+  };
+}
+
+/* La parola di stato di una stampante, per la riga della tessera. E' la stessa
+ * della pagina: due copie della stessa parola sono il modo in cui una delle
+ * due invecchia. */
+function parolaDelloStatoStampante(lettura) {
+  if (lettura.stampa) return t("In stampa", "Printing");
+  if (lettura.ferma) return t("Ferma", "Stopped");
+  if (lettura.muta) return t("Non risponde", "Not answering");
+  if (lettura.stato === "spenta") return t("Spenta", "Off");
+  return t("Pronta", "Ready");
+}
+
 /* Le macchine del server e la rete (#382).
  *
  * «I controlli del server proxmox dove gira HA con tutti i suoi container, e
@@ -4486,6 +4556,7 @@ export function modelliDelleTessere(states) {
       porteModel(states),
       varchiModel(states),
       presenzaModel(states),
+      stampantiModel(states),
       camerasModel(states),
       ...energyModels(states),
       appliancesModel(states),

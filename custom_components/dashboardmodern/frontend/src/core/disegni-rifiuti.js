@@ -99,14 +99,15 @@ const EMBLEMI = Object.freeze({
     `<path ${FRONTALE} d="M39 55h13a3 3 0 0 1 3 3v15a3.5 3.5 0 0 1-3.5 3.5H39.5A3.5 3.5 0 0 1 36 73V58a3 3 0 0 1 3-3Z"/>` +
     `<path ${FRONTALE} d="M52 50h4.5a1.5 1.5 0 0 1 1.5 1.5V56h-6Z"/>` +
     `<path ${GOCCIA} d="M45.5 61c2.8 4.2 4.2 6 4.2 8a4.2 4.2 0 0 1-8.4 0c0-2 1.4-3.8 4.2-8Z"/>`,
-  /* Il biberon. Un pannolino disegnato in ventidue pixel diventa un secchiello
-   * — provato — mentre il biberon si riconosce a ogni misura e dice la stessa
-   * cosa: e' il bidone del bambino. */
+  /* Il pannolino: le due alette che si chiudono, la fascia in vita e i fianchi
+   * che si stringono. Sono i fianchi a fare la differenza — un pannolino
+   * disegnato dritto diventa un secchiello, quello stretto in mezzo no. */
   pannolini:
-    `<path ${ACCENTO} d="M45 48h6a2 2 0 0 1 2 2v3h-10v-3a2 2 0 0 1 2-2Z"/>` +
-    `<rect ${FRONTALE} x="41.5" y="53" width="13" height="3.4" rx="1.2"/>` +
-    `<path ${FRONTALE} d="M42 57.5h12a2 2 0 0 1 2 2v13.5a4 4 0 0 1-4 4h-8a4 4 0 0 1-4-4V59.5a2 2 0 0 1 2-2Z"/>` +
-    '<path fill="none" stroke="#0f2942" stroke-width="2.2" stroke-linecap="round" opacity=".5" d="M45 63h6M45 69h6"/>',
+    `<path ${FRONTALE} d="M32.5 53.5h6v8h-6a2.6 2.6 0 0 1-2.6-2.6v-2.8a2.6 2.6 0 0 1 2.6-2.6ZM57.5 53.5h6a2.6 2.6 0 0 1 2.6 2.6v2.8a2.6 2.6 0 0 1-2.6 2.6h-6Z"/>` +
+    `<path ${FRONTALE} d="M37 52h22v7.5c0 2.6-4.4 3.8-6.8 7.2-1.9 2.7-3.1 6.2-4.2 10.3-1.1-4.1-2.3-7.6-4.2-10.3-2.4-3.4-6.8-4.6-6.8-7.2Z"/>` +
+    `<path ${SCOCCA} d="M37 56h22v3.2H37Z" opacity=".9"/>` +
+    `<circle ${ACCENTO} cx="48" cy="57.6" r="2.2"/>`,
+
   /* Le tre frecce del riciclo: l'anello e le punte. */
   altro: ["", ' transform="rotate(120 48 63)"', ' transform="rotate(240 48 63)"']
     .map((giro) => `<path ${FRONTALE}${giro} d="M36.5 68.4h15.5v-3.8l7 6.1-7 6.1v-3.8H36.5Z"/>`)

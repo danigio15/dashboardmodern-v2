@@ -337,6 +337,11 @@ const LOCALE_IDENTITIES = {
     "Volume",
   ]),
   nl: new Set([
+    /* Een printer heet in het Nederlands ook gewoon printer, in het enkelvoud
+     * en in het meervoud: er is geen ander woord voor. */
+    "Printers",
+    "1 printer",
+    "${riassunto.quante} printers",
     /* Het volume van een speaker heet in het Nederlands ook zo. */
     "Volume",
     /* Het dashboard heet in het Nederlands ook gewoon dashboard. */

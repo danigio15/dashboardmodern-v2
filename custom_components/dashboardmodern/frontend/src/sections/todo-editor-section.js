@@ -110,6 +110,10 @@ function catalogoTessere() {
      * accanto ai varchi perche' e' la stessa domanda su un'altra famiglia di
      * sensori. */
     ["presenza", "🏃", t("Presenza", "Presence")],
+    /* Le stampanti (#469): sono nella famiglia delle macchine, e la tessera
+     * dice la stessa cosa della pagina — se sono pronte e quanto inchiostro
+     * resta. */
+    ["stampanti", "🖨️", t("Stampanti", "Printers")],
     ["macchine", "🖥️", t("Server e rete", "Server and network")],
     /* La ventilazione meccanica (#371): la tessera dice a che temperatura sta
      * entrando l'aria e quanto la macchina se n'e' ripreso, e porta alla

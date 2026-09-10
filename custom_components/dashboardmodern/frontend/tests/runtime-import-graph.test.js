@@ -1133,8 +1133,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // disegno lo chiedono in tre posti — la pagina, la scheda e il menu dei
   // turni — e tre copie dello stesso bidone sono tre bidoni diversi fra sei
   // mesi.
+  // 323 con le stampanti (#469): «volevo chiedere se c'era la possibilita' del
+  // controllo delle tv e stampanti». Tre moduli in un colpo — il modello puro,
+  // la pagina e la scheda — perche' una sezione nuova e' fatta cosi': le
+  // regole stanno in `core/stampanti-model.js` (che stato ha detto la
+  // stampante, e quali entita' sono le sue cartucce), e le due sezioni le
+  // vestono. Il modello e' puro apposta: le cartucce si cercano da sole, e un
+  // indovinello si prova solo se lo si puo' chiamare senza un documento.
   assert.ok(
-    relative.length <= 320,
+    relative.length <= 323,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

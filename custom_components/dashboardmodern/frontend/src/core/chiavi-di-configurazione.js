@@ -211,7 +211,12 @@
  * dicono sotto quanto riparte e sopra quanto si ferma. Una stilo non decide
  * quando smettere di caricarsi; un tablet appeso al muro si', e chi lo
  * configura da un telefono deve ritrovarlo dal tablet stesso. */
-export const CONFIG_KEYS_REVISION = 42;
+/* La revisione 43 aggiunge le stampanti (`cd_stampanti`, #469): quale entita'
+ * dice se la stampante e' pronta, e — quando non si trovano da sole — quali
+ * dicono quanto inchiostro resta. E' roba di casa, non del vetro: la
+ * stampante e' una sola, e chi la configura dal computer deve ritrovarla dal
+ * telefono. */
+export const CONFIG_KEYS_REVISION = 43;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -294,6 +299,9 @@ export const CONFIG_KEYS = Object.freeze([
    * sotto quanto riparte, sopra quanto si ferma. Le entita' sono di casa e
    * la scelta pure: chi la fa dal telefono la vuole ritrovare sul tablet. */
   "cd_batterie_ricarica",
+  /* Le stampanti (#469): l'entita' dello stato, e le cartucce quando non si
+   * lasciano indovinare dal nome. */
+  "cd_stampanti",
   "cd_calendari",
   // Le sezioni che si fa l'utente (#262): titolo, icona, e le entita' dentro.
   "cd_sezioni_mie",

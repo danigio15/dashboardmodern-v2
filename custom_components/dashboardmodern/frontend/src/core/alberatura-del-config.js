@@ -143,6 +143,9 @@ export const SCHEDE = Object.freeze({
   appliances: { famiglia: "casa", posizione: 40 }, // Elettrodomestici
   media: { famiglia: "casa", posizione: 50 }, // Musica
   robot: { famiglia: "casa", posizione: 60 },
+  /* Le stampanti (#469): stanno accanto al robot, che e' l'altra macchina di
+   * casa che si guarda per sapere se ha finito. */
+  stampanti: { famiglia: "casa", posizione: 65 },
   animali: { famiglia: "casa", posizione: 70 },
   people: { famiglia: "casa", posizione: 80 }, // Persone
   sez8: { famiglia: "casa", posizione: 90 }, // Azioni rapide e scene

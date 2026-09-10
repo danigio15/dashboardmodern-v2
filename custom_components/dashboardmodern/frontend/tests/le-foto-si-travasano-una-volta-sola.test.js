@@ -162,7 +162,16 @@ test("togliere una chiave non alza la revisione", async () => {
    * quella di un tablet a muro, e quali due entità dicono sotto quanto riparte
    * e sopra quanto si ferma: è configurazione della casa, e chi la fa dal
    * telefono deve ritrovarla dal tablet stesso. */
-  assert.equal(CONFIG_KEYS_REVISION, 42);
+  /* E la 43 con le stampanti (#469, `cd_stampanti`): «volevo chiedere se
+   * c'era la possibilità del controllo delle tv e stampanti». Quale entità
+   * dice se la stampante è pronta, e quali dicono quanto inchiostro resta: la
+   * stampante è una sola per la casa, e chi la configura dal computer deve
+   * ritrovarla dal telefono. */
+  assert.equal(CONFIG_KEYS_REVISION, 43);
+  assert.ok(
+    CONFIG_KEYS.includes("cd_stampanti"),
+    "le stampanti si configurano per la casa, non per lo schermo",
+  );
   assert.ok(
     CONFIG_KEYS.includes("cd_flusso_home"),
     "il flusso in Home si sceglie per la casa, non per lo schermo",
