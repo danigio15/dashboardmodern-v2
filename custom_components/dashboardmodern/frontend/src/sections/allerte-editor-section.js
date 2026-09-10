@@ -32,6 +32,7 @@ import {
   writeJsonIfChanged,
 } from "./shared.js";
 import { MARCHIO_TESSERA } from "../core/fuori-dai-widget.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
 
 const KEY = "__DASHBOARDMODERN_ALLERTE_EDITOR__";
 const state = (root[KEY] ||= { installed: false });
@@ -224,7 +225,7 @@ function fonteMarkup(chiave, config) {
     })
     .join("");
   return `<article class="ed-row dm-todo-ed-row dm-allerte-ed-fonte" data-open="true" data-dm-allerte-fonte-riga="${esc(chiave)}">
-    <div class="dm-allerte-ed-testa"><span aria-hidden="true">${categoria.icona}</span><strong>${esc(categoria.nome)}</strong></div>
+    <div class="dm-allerte-ed-testa"><span aria-hidden="true">${disegnoDelCatalogo(categoria.disegno, 26)}</span><strong>${esc(categoria.nome)}</strong></div>
     <div class="dm-todo-ed-body">${caselle}</div>
   </article>`;
 }

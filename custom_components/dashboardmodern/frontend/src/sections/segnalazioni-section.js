@@ -22,6 +22,7 @@
 
 import { ALTRO, partiDellaSezione, parteValida, sezioniOfferte } from "../core/dove-succede.js";
 import { clean, doc, esc, installStyle, root, t } from "./shared.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
 
 const KEY = "__DASHBOARDMODERN_SEGNALAZIONI__";
 const state = (root[KEY] ||= {
@@ -138,6 +139,7 @@ const TIPI = [
   {
     id: "bug",
     icona: "🐞",
+    disegno: "bug",
     rgb: "220,38,38",
     nome: () => t("Non funziona", "Something is broken"),
     che: () =>
@@ -155,6 +157,7 @@ const TIPI = [
   {
     id: "feature",
     icona: "✨",
+    disegno: "star",
     rgb: "124,58,237",
     nome: () => t("Vorrei che facesse", "I would like it to"),
     che: () =>
@@ -172,6 +175,7 @@ const TIPI = [
   {
     id: "assistenza",
     icona: "💬",
+    disegno: "chat",
     rgb: "14,165,233",
     nome: () => t("Non ci riesco", "I cannot manage"),
     che: () =>
@@ -208,6 +212,7 @@ const COLONNE = [
   {
     id: "inviato",
     icona: "📥",
+    disegno: "inbox",
     rgb: "14,165,233",
     /* «Da lavorare», non «Nuove»: e' la cifra di quelle che nessuno ha ancora
      * preso, e porta lo stesso nome del tasto che le mostra qui sotto. */
@@ -217,6 +222,7 @@ const COLONNE = [
   {
     id: "in-carico",
     icona: "🔧",
+    disegno: "tools",
     rgb: "249,115,22",
     nome: () => t("In lavorazione", "In progress"),
     tiene: (stato) => stato === "in-carico",
@@ -224,6 +230,7 @@ const COLONNE = [
   {
     id: "chiuse",
     icona: "✅",
+    disegno: "check",
     rgb: "22,163,74",
     nome: () => t("Chiuse", "Closed"),
     tiene: (stato) => stato === "risolto" || stato === "chiuso",
@@ -503,7 +510,10 @@ const CSS = `
 .dm-tkt-tipo:hover { transform:translateY(-3px); }
 .dm-tkt-tipo.attivo { border-color:rgb(var(--tk-rgb,14,165,233));
   background:rgba(var(--tk-rgb,14,165,233),0.10); }
-.dm-tkt-tipo-ico { font-size:24px; line-height:1; }
+.dm-tkt-tipo-ico { display:grid; place-items:center; width:30px; height:30px; }
+.dm-tkt-tipo-ico .dm-appliance-art,
+.dm-tkt-tipo-pill .dm-appliance-art,
+.dm-tkt-voce-ico .dm-appliance-art { display:block; line-height:0; }
 .dm-tkt-tipo-nm { font-size:13px; font-weight:800; }
 .dm-tkt-tipo-ds { font-size:11px; line-height:1.35; color:var(--text-dim,#64748b); }
 
@@ -602,7 +612,8 @@ a.dm-tkt-btn { text-decoration:none; display:inline-flex; align-items:center; }
   box-shadow:var(--shadow-sculpted,0 4px 14px rgba(0,0,0,.05)); }
 .dm-tkt-lavoro { border-left:4px solid rgb(var(--tk-rgb,14,165,233)); }
 .dm-tkt-voce-testa { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
-.dm-tkt-tipo-pill { font-size:18px; line-height:1; }
+.dm-tkt-tipo-pill { display:grid; place-items:center; width:22px; height:22px; }
+.dm-tkt-voce-ico { display:grid; place-items:center; width:22px; height:22px; flex:0 0 auto; }
 .dm-tkt-voce-tit { flex:1 1 auto; font-size:14px; font-weight:800;
   color:var(--text,#0f172a); word-break:break-word; }
 .dm-tkt-stato { font-size:11px; font-weight:800; padding:3px 9px; border-radius:9px;
@@ -687,7 +698,7 @@ a.dm-tkt-btn { text-decoration:none; display:inline-flex; align-items:center; }
   #dm-tkt-modal .modal-card.dm-tkt-pannello { padding:14px 12px; }
   .dm-tkt-tipi { grid-template-columns:1fr; }
   .dm-tkt-tipo { flex-direction:row; text-align:left; gap:12px; }
-  .dm-tkt-tipo-ico { font-size:20px; }
+  .dm-tkt-tipo-ico { width:26px; height:26px; }
   .dm-tkt-tipo-ds { display:none; }
   .dm-tkt-azioni .dm-tkt-btn { flex:1 1 auto; }
 }
@@ -1003,7 +1014,7 @@ function moduloMarkup() {
         state.tipo === tipo.id ? " attivo" : ""
       }" data-dm-tipo="${tipo.id}" style="--tk-rgb:${tipo.rgb};"
         aria-pressed="${state.tipo === tipo.id}">
-        <span class="dm-tkt-tipo-ico">${tipo.icona}</span>
+        <span class="dm-tkt-tipo-ico">${disegnoDelCatalogo(tipo.disegno, 30)}</span>
         <span class="dm-tkt-tipo-nm">${esc(tipo.nome())}</span>
         <span class="dm-tkt-tipo-ds">${esc(tipo.che())}</span>
       </button>`,
@@ -1261,7 +1272,7 @@ export function voceMarkup(ticket) {
   return `
     <div class="dm-tkt-voce">
       <div class="dm-tkt-voce-testa">
-        <span>${tipo.icona}</span>
+        <span class="dm-tkt-voce-ico">${disegnoDelCatalogo(tipo.disegno, 22)}</span>
         <span class="dm-tkt-voce-tit">${esc(ticket.title)}</span>
         ${
           nonLetto(numero)
@@ -1451,7 +1462,7 @@ function colonneMarkup(coda) {
     .map(
       (colonna) => `
         <div class="ed-kpi-item" style="--kpi-rgb:${colonna.rgb};">
-          <div class="ed-kpi-icon" aria-hidden="true">${colonna.icona}</div>
+          <div class="ed-kpi-icon" aria-hidden="true">${disegnoDelCatalogo(colonna.disegno, 26)}</div>
           <div class="ed-kpi-val">${colonna.quante}</div>
           <div class="ed-kpi-label">${esc(colonna.nome())}</div>
         </div>`,
@@ -1825,7 +1836,7 @@ export function codaVoceMarkup(ticket) {
       <div class="dm-tkt-voce-testa">
         <span class="dm-tkt-tipo-pill" role="img" aria-label="${esc(
           tipo.nome(),
-        )}" title="${esc(tipo.nome())}">${tipo.icona}</span>
+        )}" title="${esc(tipo.nome())}">${disegnoDelCatalogo(tipo.disegno, 22)}</span>
         <span class="dm-tkt-voce-tit">${esc(clean(ticket.title))}</span>
         ${segniMarkup(ticket)}
         ${statoMarkup(clean(ticket.state) || "inviato")}

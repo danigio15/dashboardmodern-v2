@@ -48,6 +48,7 @@ export const ALARM_MODES = Object.freeze([
     service: "alarm_arm_home",
     state: "armed_home",
     icon: "🏡",
+    disegno: "home",
   }),
   Object.freeze({
     mode: "away",
@@ -55,6 +56,7 @@ export const ALARM_MODES = Object.freeze([
     service: "alarm_arm_away",
     state: "armed_away",
     icon: "🏠",
+    disegno: "security",
   }),
   Object.freeze({
     mode: "night",
@@ -62,6 +64,7 @@ export const ALARM_MODES = Object.freeze([
     service: "alarm_arm_night",
     state: "armed_night",
     icon: "🌙",
+    disegno: "moon",
   }),
   Object.freeze({
     mode: "vacation",
@@ -69,6 +72,7 @@ export const ALARM_MODES = Object.freeze([
     service: "alarm_arm_vacation",
     state: "armed_vacation",
     icon: "✈️",
+    disegno: "plane",
   }),
   Object.freeze({
     mode: "custom",
@@ -76,6 +80,7 @@ export const ALARM_MODES = Object.freeze([
     service: "alarm_arm_custom_bypass",
     state: "armed_custom_bypass",
     icon: "🎚️",
+    disegno: "sliders",
   }),
 ]);
 
@@ -85,6 +90,7 @@ export const ALARM_DISARM = Object.freeze({
   service: "alarm_disarm",
   state: "disarmed",
   icon: "🔓",
+  disegno: "unlock",
 });
 
 /* Le modalita' da mostrare quando la centrale non dichiara niente.

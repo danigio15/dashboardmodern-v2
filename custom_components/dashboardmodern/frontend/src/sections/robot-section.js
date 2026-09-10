@@ -36,6 +36,7 @@ allStates,
   t,
   wrapFunction,
 } from "./shared.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
 
 const KEY = "__DASHBOARDMODERN_ROBOT__";
 const state = (root[KEY] ||= {
@@ -210,7 +211,7 @@ function mapMarkup(view) {
 /* Il segno della specie: il tagliaerba non e' un aspirapolvere e non si
  * traveste da lui — l'icona e l'etichetta piccola lo dicono a colpo d'occhio. */
 function speciesIcon(view) {
-  return view.species === "lawn_mower" ? "🌱" : "🤖";
+  return disegnoDelCatalogo(view.species === "lawn_mower" ? "mower" : "robot", 32);
 }
 
 /* La stanza del robot, scritta come si legge.
@@ -238,7 +239,7 @@ function cardMarkup(view) {
     .map(
       (action) =>
         `<button type="button" class="dm-robot-btn" data-dm-robot-act="${esc(action.act)}" title="${esc(t(action.it, action.en))}">
-          <span aria-hidden="true">${action.glyph}</span><span class="dm-robot-btn-tx">${esc(t(action.it, action.en))}</span>
+          <span aria-hidden="true">${disegnoDelCatalogo(action.disegno, 24)}</span><span class="dm-robot-btn-tx">${esc(t(action.it, action.en))}</span>
         </button>`,
     )
     .join("");
@@ -832,7 +833,7 @@ function installStyles() {
       #page-robot .dm-robot-wrap{box-sizing:border-box;width:100%;max-width:var(--dm-page-room,none);margin:0 auto;padding:0 4px 18px;display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
       #page-robot .dm-robot-card{display:grid;align-content:start;gap:12px;padding:14px;border:1px solid var(--divider-color,#dbe4ee);border-radius:20px;background:var(--card-bg,#fff);box-shadow:0 18px 34px -28px rgba(15,23,42,.55)}
       #page-robot .dm-robot-head{display:flex;align-items:center;gap:10px;min-width:0}
-      #page-robot .dm-robot-icon{font-size:22px;flex:0 0 auto}
+      #page-robot .dm-robot-icon{display:grid;place-items:center;width:32px;height:32px;flex:0 0 auto}
       #page-robot .dm-robot-title{display:grid;min-width:0;flex:1 1 auto}
       #page-robot .dm-robot-title strong{font-size:15px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       #page-robot .dm-robot-title small{color:var(--secondary-text-color,#64748b);font-size:11.5px;font-weight:700}
@@ -923,7 +924,8 @@ function installStyles() {
       #page-robot .dm-robot-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:8px}
       #page-robot .dm-robot-btn{display:inline-flex;flex-direction:column;align-items:center;gap:3px;padding:9px 6px;border:1px solid var(--divider-color,#dbe4ee);border-radius:13px;background:var(--card-bg,#fff);font:inherit;font-size:11px;font-weight:800;cursor:pointer;color:var(--text,#0f172a)}
       #page-robot .dm-robot-btn:hover{border-color:#0ea5e9}
-      #page-robot .dm-robot-btn span[aria-hidden]{font-size:16px}
+      #page-robot .dm-robot-btn span[aria-hidden]{display:grid;place-items:center;width:24px;height:24px}
+      #page-robot .dm-robot-btn .dm-appliance-art,#page-robot .dm-robot-icon .dm-appliance-art{display:block;line-height:0}
       /* I comandi a parte (#306): una fila sotto quelli di sempre, separata da
          un filo; l'interruttore acceso si vede dal bordo e dal fondo. */
       #page-robot .dm-robot-comandi{margin-top:8px;padding-top:10px;border-top:1px dashed var(--divider-color,#dbe4ee)}

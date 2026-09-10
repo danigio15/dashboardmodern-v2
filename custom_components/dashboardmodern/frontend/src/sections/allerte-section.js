@@ -39,6 +39,7 @@ import {
   root,
   t,
 } from "./shared.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
 
 const KEY = "__DASHBOARDMODERN_ALLERTE__";
 const state = (root[KEY] ||= { installed: false, frame: 0, firma: "" });
@@ -63,52 +64,65 @@ export function lettureAllerte() {
 
 /* ── le parole ────────────────────────────────────────────────────────── */
 
-/* Nome, simbolo e la frase di quiete di ogni fonte. Il simbolo e' quello che
- * la tessera in Home e la barra useranno: una famiglia sola. */
+/* Nome, disegno e frase di quiete di ogni fonte. Il `disegno` e' il nome nel
+ * catalogo — non il markup: qui dentro non ci va HTML, ci va il nome della
+ * cosa. Chi disegna lo chiede al catalogo, e cosi' la tessera in Home, la
+ * barra e il dettaglio dicono la stessa allerta con lo stesso disegno.
+ *
+ * L'`icona` resta per chi legge questa voce senza poter disegnare (una
+ * notifica, un titolo): a schermo non ci va piu'. */
 export function categoriaDelleAllerte(chiave) {
   const voci = {
     terremoti: {
       icona: "🌍",
+      disegno: "globe",
       nome: t("Terremoti", "Earthquakes"),
       quiete: t("Nessuna scossa rilevante", "No notable quake"),
     },
     meteo: {
       icona: "⚠️",
+      disegno: "warning",
       nome: t("Protezione civile", "Civil protection"),
       quiete: t("Nessun avviso in corso", "No warning in force"),
     },
     fulmini: {
       icona: "⚡",
+      disegno: "storm",
       nome: t("Fulmini", "Lightning"),
       quiete: t("Nessun fulmine vicino", "No lightning nearby"),
     },
     pollini: {
       icona: "🌼",
+      disegno: "flower",
       nome: t("Pollini", "Pollen"),
       quiete: t("Concentrazione bassa", "Low concentration"),
     },
     comfort: {
       icona: "🌡️",
+      disegno: "thermometer",
       nome: t("Comfort termico", "Thermal comfort"),
       quiete: t("Si sta bene", "Comfortable"),
     },
     voli: {
       icona: "✈️",
+      disegno: "plane",
       nome: t("Voli sopra casa", "Flights overhead"),
       quiete: t("Cielo libero", "Clear sky"),
     },
     scioperi: {
       icona: "🪧",
+      disegno: "strike",
       nome: t("Scioperi", "Strikes"),
       quiete: t("Nessuno sciopero in vista", "No strike ahead"),
     },
     treni: {
       icona: "🚆",
+      disegno: "train",
       nome: t("Treni", "Trains"),
       quiete: t("In orario", "On time"),
     },
   };
-  return voci[chiave] || { icona: "•", nome: clean(chiave), quiete: "" };
+  return voci[chiave] || { icona: "•", disegno: "warning", nome: clean(chiave), quiete: "" };
 }
 
 export function parolaDelLivello(livello) {
@@ -659,7 +673,7 @@ function apriIlDettaglio(chiave) {
   const testa = modal.querySelector(".dm-allerta-dettaglio");
   if (testa) testa.dataset.livello = lettura.livello;
   const icona = dentro("[data-dm-ic]");
-  if (icona) icona.textContent = categoria.icona;
+  if (icona) icona.innerHTML = disegnoDelCatalogo(categoria.disegno, 34);
   const nome = dentro("[data-dm-nome]");
   if (nome) nome.textContent = lettura.nome || categoria.nome;
   const livello = dentro("[data-dm-livello]");
@@ -686,7 +700,7 @@ function tesseraMarkup(lettura) {
     : "";
   return `<article class="dm-allerta${apribile ? " dm-allerta-apribile" : ""}"${invito} data-livello="${esc(lettura.livello)}" data-chiave="${esc(lettura.chiave)}">
     <header class="dm-allerta-testa">
-      <span class="dm-allerta-ic" aria-hidden="true">${categoria.icona}</span>
+      <span class="dm-allerta-ic" aria-hidden="true">${disegnoDelCatalogo(categoria.disegno, 30)}</span>
       <span class="dm-allerta-nome">${esc(lettura.nome || categoria.nome)}</span>
       <span class="dm-allerta-livello">${esc(parolaDelLivello(lettura.livello))}</span>
     </header>
@@ -800,7 +814,8 @@ function installStyles() {
     /* Il nome della fonte si legge intero: «Protezione civile» e «Voli sopra
        casa» vanno su due righe piuttosto che finire in «PROTE…». */
     ${P} .dm-allerta-testa{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
-    ${P} .dm-allerta-ic{font-size:18px;flex:0 0 auto}
+    ${P} .dm-allerta-ic{display:grid;place-items:center;width:30px;height:30px;flex:0 0 auto}
+    ${P} .dm-allerta-ic .dm-appliance-art{display:block;line-height:0}
     ${P} .dm-allerta-nome{
       flex:1 1 90px;min-width:0;font-size:12px;font-weight:900;letter-spacing:.04em;line-height:1.15;
       text-transform:uppercase;color:var(--text,#0f172a);overflow-wrap:anywhere}

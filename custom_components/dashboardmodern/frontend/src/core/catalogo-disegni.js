@@ -251,6 +251,83 @@ const CORPI = Object.freeze({
 
   /* Piumoni: il capo grande, con le sue cuciture. */
   "wash-duvet": `${PANNELLO}<rect ${SCOCCA} x="16" y="26" width="64" height="46" rx="10"/><path ${TRATTO_CHIARO} d="M16 42h64M16 58h64M38 26v46M60 26v46"/><circle ${ACCENTO} cx="27" cy="34" r="3"/>`,
+
+  /* ── quello che restava a emoji ────────────────────────────────────────
+   *
+   * «Non voglio vedere icone che non sono nostre.» Dopo i bidoni erano questi
+   * gli ultimi posti dove si vedeva davvero una faccina di sistema: le
+   * categorie delle allerte, le specie degli animali, i modi dell'antifurto,
+   * i tasti del robot, gli stati di una segnalazione. Il disegno che c'era
+   * gia' si riusa — la campanella, la casa, la luna, la chiave inglese, la
+   * spunta, la stella — e qui ci sono solo le cose che il catalogo non sapeva
+   * ancora disegnare. */
+
+  /* L'avviso: il triangolo, che e' l'unica forma che dice «attenzione» senza
+   * bisogno di parole. `error` non lo copriva: quello e' una croce, e dice
+   * un'altra cosa. */
+  warning: `${PANNELLO}<path fill="#fbbf24" stroke="#fbbf24" stroke-width="9" stroke-linejoin="round" d="M48 22 79 74H17Z"/><rect ${SCOCCA} x="43.5" y="40" width="9" height="20" rx="4.5"/><circle ${SCOCCA} cx="48" cy="67" r="4.6"/>`,
+
+  /* Il mondo: le allerte che arrivano da fuori casa — la protezione civile, il
+   * terremoto, la cosa che riguarda un posto e non una stanza. */
+  globe: `${PANNELLO}<circle ${SCOCCA} cx="48" cy="48" r="32"/><ellipse fill="none" stroke="#8be2ff" stroke-width="3" cx="48" cy="48" rx="14" ry="32"/><path fill="none" stroke="#8be2ff" stroke-width="3" stroke-linecap="round" d="M17 40h62M17 56h62M48 16v64"/>`,
+
+  /* Il temporale: la nuvola e il fulmine. */
+  storm: `${PANNELLO}<circle ${SCOCCA} cx="35" cy="40" r="14"/><circle ${SCOCCA} cx="57" cy="35" r="17"/><rect ${SCOCCA} x="21" y="40" width="52" height="18" rx="9"/><path ${CALDO} d="M50 54 34 82h11l-3 8 18-24H49l5-12Z"/>`,
+
+  /* Il fiore: i pollini, che sono l'allerta di chi ha il naso che cola a
+   * marzo. */
+  flower: `${PANNELLO}<path fill="none" stroke="#22c55e" stroke-width="5" stroke-linecap="round" d="M48 54v28"/><path fill="#22c55e" d="M48 72c-10-2-15-9-15-9s10-5 15 4Z"/><ellipse ${SCOCCA} cx="48" cy="24" rx="9" ry="13"/><ellipse ${SCOCCA} cx="48" cy="52" rx="9" ry="13"/><ellipse ${SCOCCA} cx="34" cy="38" rx="13" ry="9"/><ellipse ${SCOCCA} cx="62" cy="38" rx="13" ry="9"/><ellipse ${SCOCCA} cx="38" cy="28" rx="11" ry="9" transform="rotate(-45 38 28)"/><ellipse ${SCOCCA} cx="58" cy="48" rx="11" ry="9" transform="rotate(-45 58 48)"/><circle ${CALDO} cx="48" cy="38" r="11"/>`,
+
+  /* L'aereo: i voli in ritardo, e la vacanza dell'antifurto. */
+  plane: `${PANNELLO}<path ${SCOCCA} d="M48 10c4.4 0 8 6.7 8 15v7l26 15v9l-26-7.5V64l9 7.5V78l-17-4.6L31 78v-6.5l9-7.5V48.5L14 56v-9l26-15v-7c0-8.3 3.6-15 8-15Z"/><circle ${ACCENTO} cx="48" cy="30" r="4"/>`,
+
+  /* Il treno: gli scioperi e i ritardi di chi viaggia in ferrovia. */
+  train: `${PANNELLO}<rect ${SCOCCA} x="22" y="12" width="52" height="58" rx="14"/><rect ${VETRO} x="30" y="22" width="36" height="20" rx="6"/><rect ${FRONTALE} x="30" y="50" width="13" height="9" rx="4"/><rect ${FRONTALE} x="53" y="50" width="13" height="9" rx="4"/><rect ${SCOCCA} x="34" y="68" width="28" height="7" rx="3.5"/><path ${TRATTO} d="M30 76 20 88M66 76l10 12"/>`,
+
+  /* Il cartello: lo sciopero. Un cartello alzato lo si riconosce anche a
+   * ventidue pixel, una folla no. */
+  strike: `${PANNELLO}<rect ${SCOCCA} x="44" y="44" width="8" height="40" rx="4"/><rect ${SCOCCA} x="16" y="14" width="64" height="38" rx="8"/><path ${TRATTO_CHIARO} d="M26 27h44M26 39h26"/><circle ${ACCENTO} cx="64" cy="39" r="5"/>`,
+
+  /* Il gatto: orecchie a punta, baffi, e gli occhi che restano aperti. */
+  cat: `${PANNELLO}<path ${SCOCCA} d="M24 44 20 16l20 10a34 34 0 0 1 16 0l20-10-4 28Z"/><circle ${SCOCCA} cx="48" cy="54" r="26"/><ellipse ${VETRO} cx="38" cy="50" rx="4.5" ry="6"/><ellipse ${VETRO} cx="58" cy="50" rx="4.5" ry="6"/><path ${ACCENTO} d="M48 60c3 0 5 2 5 4s-2 4-5 4-5-2-5-4 2-4 5-4Z"/><path ${TRATTO_CHIARO} d="M28 62h-9M28 69h-8M68 62h9M68 69h8"/>`,
+
+  /* Il cane: orecchie che cadono e il tartufo. */
+  dog: `${PANNELLO}<ellipse ${SCOCCA} cx="23" cy="48" rx="9" ry="16"/><ellipse ${SCOCCA} cx="73" cy="48" rx="9" ry="16"/><circle ${SCOCCA} cx="48" cy="44" r="24"/><ellipse ${FRONTALE} cx="48" cy="60" rx="15" ry="12"/><circle ${VETRO} cx="39" cy="38" r="4.5"/><circle ${VETRO} cx="57" cy="38" r="4.5"/><ellipse ${SCOCCA} cx="48" cy="54" rx="6.5" ry="5"/><path fill="none" stroke="#0f2942" stroke-width="3" stroke-linecap="round" d="M48 59v4M48 63c-2.5 3-6 3-8 1M48 63c2.5 3 6 3 8 1"/>`,
+
+  /* La spirale: la pulizia di un punto solo, che il robot chiama «spot». */
+  spiral: `${PANNELLO}<path fill="none" stroke="#0f2942" stroke-width="6.5" stroke-linecap="round" d="M76 48A28 28 0 0 1 20 48 22 22 0 0 1 64 48 16 16 0 0 1 32 48 10 10 0 0 1 52 48"/><circle ${ACCENTO} cx="52" cy="48" r="4.5"/>`,
+
+  /* La coccinella: una segnalazione aperta. */
+  bug: `${PANNELLO}<path ${TRATTO} d="M22 34 32 42M74 34 64 42M18 58h12M78 58H66M24 80l10-10M72 80 62 70"/><ellipse ${SCOCCA} cx="48" cy="54" rx="22" ry="26"/><circle ${SCOCCA} cx="48" cy="26" r="11"/><path ${TRATTO_CHIARO} d="M48 32v48"/><circle ${FRONTALE} cx="37" cy="46" r="4"/><circle ${FRONTALE} cx="59" cy="46" r="4"/><circle ${FRONTALE} cx="37" cy="64" r="4"/><circle ${FRONTALE} cx="59" cy="64" r="4"/>`,
+
+  /* La nuvoletta: qualcuno ha risposto. */
+  chat: `${PANNELLO}<path ${SCOCCA} d="M20 16h56a10 10 0 0 1 10 10v30a10 10 0 0 1-10 10H46L26 84V66h-6a10 10 0 0 1-10-10V26a10 10 0 0 1 10-10Z"/><circle ${FRONTALE} cx="33" cy="41" r="4.5"/><circle ${FRONTALE} cx="48" cy="41" r="4.5"/><circle ${ACCENTO} cx="63" cy="41" r="4.5"/>`,
+
+  /* La cassetta della posta in arrivo: quello che e' appena entrato. */
+  inbox: `${PANNELLO}<path ${TRATTO_ACCENTO} d="M48 10v28m-10-10 10 10 10-10"/><path ${SCOCCA} d="M14 48h20l7 11h14l7-11h20v24a10 10 0 0 1-10 10H24a10 10 0 0 1-10-10Z"/>`,
+
+  /* Il lucchetto aperto: disarmato. E' il compagno di `lock`, con l'arco
+   * scostato — la differenza si vede anche piccola, che e' il punto. */
+  unlock: `${PANNELLO}<path ${TRATTO} d="M62 44V34a14 14 0 0 0-28 0"/><rect ${SCOCCA} x="24" y="44" width="48" height="38" rx="10"/><circle ${VETRO} cx="48" cy="59" r="6"/><rect ${VETRO} x="45" y="59" width="6" height="12" rx="3"/>`,
+
+  /* I tasti del robot: avvia, pausa, ferma. Erano tre segni da tastiera in
+   * mezzo a tre emoji — sei tasti e tre stili. Nella famiglia del cerchio,
+   * come `check` e `error`, sono sei tasti soli. */
+  play: `${PANNELLO}<circle ${SCOCCA} cx="48" cy="48" r="32"/><path ${FRONTALE} d="M41 33.5 66 48 41 62.5Z"/>`,
+
+  pause: `${PANNELLO}<circle ${SCOCCA} cx="48" cy="48" r="32"/><rect ${FRONTALE} x="36" y="33" width="9" height="30" rx="4.5"/><rect ${FRONTALE} x="51" y="33" width="9" height="30" rx="4.5"/>`,
+
+  stop: `${PANNELLO}<circle ${SCOCCA} cx="48" cy="48" r="32"/><rect ${FRONTALE} x="36" y="36" width="24" height="24" rx="5"/>`,
+
+  /* L'aspirapolvere visto dall'alto: il paraurti chiaro davanti e la torretta
+   * che gira. */
+  robot: `${PANNELLO}<circle ${SCOCCA} cx="48" cy="50" r="31"/><path ${FRONTALE} d="M18.7 40a31 31 0 0 1 58.6 0Z"/><circle ${VETRO} cx="48" cy="54" r="13"/><circle ${ACCENTO} cx="48" cy="54" r="6"/><rect ${SCOCCA} x="22" y="72" width="13" height="7" rx="3.5"/><rect ${SCOCCA} x="61" y="72" width="13" height="7" rx="3.5"/>`,
+
+  /* Il tagliaerba: la scocca, la lama e l'erba che taglia. */
+  mower: `${PANNELLO}<path fill="#22c55e" d="M12 76h72v8H12ZM20 76c0-8 4-12 4-12s4 4 4 12ZM68 76c0-8 4-12 4-12s4 4 4 12Z"/><path ${SCOCCA} d="M22 44h30a16 16 0 0 1 16 16v10H22a6 6 0 0 1-6-6V50a6 6 0 0 1 6-6Z"/><path ${TRATTO} d="M52 44 70 26h10"/><circle ${SCOCCA} cx="30" cy="72" r="8"/><circle ${SCOCCA} cx="62" cy="72" r="8"/><circle ${ACCENTO} cx="34" cy="56" r="6"/>`,
+
+  /* I cursori: l'antifurto su misura, quello che uno si e' scritto da se'. */
+  sliders: `${PANNELLO}<path ${TRATTO} d="M18 28h60M18 48h60M18 68h60"/><circle ${SCOCCA} cx="34" cy="28" r="9"/><circle ${SCOCCA} cx="62" cy="48" r="9"/><circle ${ACCENTO} cx="42" cy="68" r="9"/>`,
 });
 
 /* I nomi con cui il resto della plancia chiede la stessa cosa. Un disegno solo,

@@ -65,6 +65,8 @@ import {
   t,
   writeJsonIfChanged,
 } from "./shared.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
+import { iconGlyphMarkup } from "./icon-engine-section.js";
 
 const KEY = "__DASHBOARDMODERN_SECURITY_SHOWCASE__";
 const STYLE_ID = "dm-security-showcase-style";
@@ -373,7 +375,7 @@ function vesteLaFinestraRapida() {
     .map(
       (voce) => `<button class="qa-alarm-btn${voce.mode === acceso ? " active" : ""}"
         data-mode="${voce.mode}" onclick="promptPinAndSet('${voce.service}')">
-        <span class="qa-alarm-btn-icon">${voce.icon}</span>
+        <span class="qa-alarm-btn-icon">${disegnoDelTasto(voce)}</span>
         <span class="qa-alarm-btn-name">${esc(voce.label)}</span>
         <span class="qa-alarm-btn-sub">${esc(voce.hint)}</span>
       </button>`,
@@ -399,6 +401,17 @@ function agganciaLaFinestraRapida() {
   vestita.__dmPrevious = originale;
   root.renderQuickAntifurto = vestita;
   return true;
+}
+
+/* Il disegno di un tasto della centrale.
+ *
+ * I modi di serie ce l'hanno scritto in `disegno`; quelli su misura hanno il
+ * nome dell'icona che ha scelto chi ha la casa, e quello lo sa risolvere il
+ * motore delle icone — lo stesso che veste le azioni rapide, cosi' il tasto
+ * «Notte» e l'azione «Notte» non escono con due disegni diversi. */
+function disegnoDelTasto(voce) {
+  if (voce?.suMisura) return iconGlyphMarkup("action", voce.icona, { size: 26 });
+  return disegnoDelCatalogo(voce?.disegno || "security", 26);
 }
 
 function modeRow(labels, stateObj = alarmStateObject()) {

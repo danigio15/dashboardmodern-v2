@@ -395,10 +395,11 @@ test("una senza tipo non si traveste da difetto", () => {
    * il primo dell'elenco vorrebbe dire chiamarle tutte «difetto», che e'
    * comodo e falso. */
   const ignota = codaVoceMarkup(inCoda({ type: "" }));
-  assert.ok(!ignota.includes("🐞"), "una senza tipo mostra la coccinella");
+  assert.ok(!ignota.includes('data-dm-art="bug"'), "una senza tipo mostra la coccinella");
   assert.ok(ignota.includes("--tk-rgb:113,113,122"), "manca la pastiglia grigia");
   const difetto = codaVoceMarkup(inCoda({ type: "bug" }));
-  assert.ok(difetto.includes("🐞"), "un difetto ha perso la sua icona");
+  /* La coccinella e' disegnata, non e' piu' l'emoji di sistema. */
+  assert.ok(difetto.includes('data-dm-art="bug"'), "un difetto ha perso la sua icona");
 });
 
 test("la coda dice se una segnalazione arriva da una plancia o da GitHub", () => {

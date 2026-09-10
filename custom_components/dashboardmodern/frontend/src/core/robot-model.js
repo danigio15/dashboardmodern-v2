@@ -506,27 +506,33 @@ export function robotView(robot = {}, states = {}) {
  * robot che non dichiara niente — capita con le integrazioni fatte in casa —
  * li ha tutti, perche' negarglieli sulla base di un silenzio sarebbe peggio. */
 export const ROBOT_ACTIONS = Object.freeze([
-  { act: "start", glyph: "▶", it: "Avvia", en: "Start", feature: VACUUM_FEATURES.START },
-  { act: "pause", glyph: "⏸", it: "Pausa", en: "Pause", feature: VACUUM_FEATURES.PAUSE },
-  { act: "stop", glyph: "⏹", it: "Ferma", en: "Stop", feature: VACUUM_FEATURES.STOP },
-  { act: "return", glyph: "🏠", it: "Alla base", en: "Dock", feature: VACUUM_FEATURES.RETURN_HOME },
+  { act: "start", disegno: "play", it: "Avvia", en: "Start", feature: VACUUM_FEATURES.START },
+  { act: "pause", disegno: "pause", it: "Pausa", en: "Pause", feature: VACUUM_FEATURES.PAUSE },
+  { act: "stop", disegno: "stop", it: "Ferma", en: "Stop", feature: VACUUM_FEATURES.STOP },
+  {
+    act: "return",
+    disegno: "home",
+    it: "Alla base",
+    en: "Dock",
+    feature: VACUUM_FEATURES.RETURN_HOME,
+  },
   {
     act: "spot",
-    glyph: "🌀",
+    disegno: "spiral",
     it: "Pulizia mirata",
     en: "Spot clean",
     feature: VACUUM_FEATURES.CLEAN_SPOT,
   },
-  { act: "locate", glyph: "🔔", it: "Trovalo", en: "Locate", feature: VACUUM_FEATURES.LOCATE },
+  { act: "locate", disegno: "bell", it: "Trovalo", en: "Locate", feature: VACUUM_FEATURES.LOCATE },
 ]);
 
 /* I pulsanti del tagliaerba: tre in tutto, come i suoi servizi. Non c'e' uno
  * «stop» — un tagliaerba fermo in mezzo al prato non e' uno stato che Home
  * Assistant conosca — e non c'e' pulizia mirata ne' «trovalo». */
 export const MOWER_ACTIONS = Object.freeze([
-  { act: "start", glyph: "▶", it: "Avvia", en: "Start", feature: MOWER_FEATURES.START_MOWING },
-  { act: "pause", glyph: "⏸", it: "Pausa", en: "Pause", feature: MOWER_FEATURES.PAUSE },
-  { act: "return", glyph: "🏠", it: "Alla base", en: "Dock", feature: MOWER_FEATURES.DOCK },
+  { act: "start", disegno: "play", it: "Avvia", en: "Start", feature: MOWER_FEATURES.START_MOWING },
+  { act: "pause", disegno: "pause", it: "Pausa", en: "Pause", feature: MOWER_FEATURES.PAUSE },
+  { act: "return", disegno: "home", it: "Alla base", en: "Dock", feature: MOWER_FEATURES.DOCK },
 ]);
 
 export function robotActions(view = {}) {

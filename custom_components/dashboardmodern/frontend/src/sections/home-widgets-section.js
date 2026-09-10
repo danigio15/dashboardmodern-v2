@@ -243,6 +243,7 @@ import {
   t,
 } from "./shared.js";
 import { disegnaComeStaLaCasa } from "./come-sta-la-casa-section.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
 
 const KEY = "__DASHBOARDMODERN_HOME_WIDGETS__";
 const STYLE_ID = "dm-widgets-style";
@@ -2132,7 +2133,10 @@ function robotsModel(states) {
      * conta. Senza, un aspirapolvere che sta pulendo veniva annunciato come
      * fermo, e l'avviso di batteria scarica non poteva mai uscire. */
     rows: viste.map((vista) => ({
-      glyph: vista.mowing ? "🌱" : vista.cleaning ? "🧹" : vista.charging ? "🔌" : "🤖",
+      glyph: disegnoDelCatalogo(
+        vista.mowing ? "mower" : vista.cleaning ? "broom" : vista.charging ? "socket" : "robot",
+        20,
+      ),
       name: vista.name,
       cleaning: vista.cleaning,
       charging: vista.charging,
@@ -4293,7 +4297,7 @@ function allerteModel(states) {
    * che manca. Si dice, al posto del tutto tranquillo. */
   const mute = letture.filter((lettura) => lettura.livello === IGNOTO);
   const rows = letture.map((lettura) => ({
-    glyph: categoriaDelleAllerte(lettura.chiave).icona,
+    glyph: disegnoDelCatalogo(categoriaDelleAllerte(lettura.chiave).disegno, 20),
     name: clean(lettura.nome) || categoriaDelleAllerte(lettura.chiave).nome,
     entity: lettura.entity,
     value: fraseDellAllerta(lettura),
