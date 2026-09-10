@@ -448,7 +448,7 @@ def _companion_view(entry: Any, config_profile: str, primary: bool) -> dict[str,
 async def _aggiorna_scheda_compagna(
     collezione: Any, url_path: str, titolo: str, solo_admin: bool
 ) -> None:
-    """Rimetti in pari il nome e il «solo amministratori» di una gia' esistente.
+    """Rimetti in pari nome, «solo amministratori» e il fuori dalla barra.
 
     Creare la dashboard di appoggio scriveva il titolo una volta sola. Chi poi
     rinominava la plancia — o la chiudeva agli amministratori — si ritrovava il
@@ -457,8 +457,25 @@ async def _aggiorna_scheda_compagna(
     questo lo sostituisse, l'aggiornava con `lovelace/dashboards/update`; qui si
     fa la stessa cosa dal di dentro.
 
-    Si scrive solo se qualcosa e' davvero cambiato: la collezione salva su disco
-    a ogni aggiornamento, e un avvio non e' una modifica.
+    E il fuori dalla barra e' la terza cosa, che qui mancava.
+
+    «Perche' nel mio ha ci sono 2 plance Dashboard modern v2?», con la
+    schermata di una barra laterale che porta due volte «iPhone Dash», stesso
+    nome e stessa icona. Sono il pannello e la dashboard di appoggio: portano
+    il titolo della plancia tutt'e due — e devono, perche' l'appoggio si sceglie
+    per nome nel selettore delle dashboard — e l'unica cosa che li teneva
+    distinti era che l'appoggio sta fuori dalla barra.
+
+    Quel «fuori» si scriveva alla nascita e mai piu'. Basta che una volta sola
+    diventi «dentro» — un tocco su «Mostra nella barra laterale» nelle
+    impostazioni delle dashboard, una versione di Lovelace che al momento della
+    nascita non ha letto il campo, un'importazione da un backup — e resta dentro
+    per sempre: nessuno lo rimetteva a posto, e chi guardava la barra vedeva due
+    plance identiche di cui una sola funziona come plancia.
+
+    Adesso si rimette a posto a ogni avvio, come il nome. Si scrive solo se
+    qualcosa e' davvero cambiato: la collezione salva su disco a ogni
+    aggiornamento, e un avvio non e' una modifica.
     """
     elenca = getattr(collezione, "async_items", None)
     aggiorna = getattr(collezione, "async_update_item", None)
@@ -475,9 +492,44 @@ async def _aggiorna_scheda_compagna(
         cambi["title"] = titolo
     if bool(voce.get("require_admin", False)) != solo_admin:
         cambi["require_admin"] = solo_admin
+    if bool(voce.get("show_in_sidebar", True)):
+        # Nella barra c'e' gia' il pannello: due voci con lo stesso nome e la
+        # stessa icona sono due plance per chi guarda, e una delle due non e'
+        # la plancia.
+        cambi["show_in_sidebar"] = False
+        _LOGGER.info(
+            "La dashboard di appoggio %s era finita nella barra laterale "
+            "accanto al pannello: la rimetto fuori",
+            url_path,
+        )
     if not cambi:
         return
     await aggiorna(voce["id"], cambi)
+
+
+def _la_compagna_e_gia_registrata(collezione: Any, plance: Any, url_path: str) -> bool:
+    """Se la scheda della dashboard di appoggio c'e' gia', ovunque risulti.
+
+    La mappa `dashboards` da sola non basta: quella la riempie un ascoltatore
+    della collezione, e all'avvio puo' essere ancora vuota mentre la scheda sul
+    disco c'e' da un pezzo — e' la stessa corsa che `_magazzino_della_compagna`
+    aspetta piu' sotto. Chi guarda solo li' crede che manchi e la crea daccapo,
+    e la guardia di Lovelace contro i doppioni guarda quella stessa mappa,
+    quindi nemmeno lei se ne accorge: sul disco restano due schede con lo stesso
+    indirizzo, e nel menu delle dashboard due voci con lo stesso nome — proprio
+    quelle che poi non si sa quale scegliere come predefinita.
+
+    La collezione le sue schede le sa sempre, anche prima che l'ascoltatore
+    abbia girato. Si guardano tutt'e due: basta una a dire che c'e'.
+    """
+    if url_path in plance:
+        return True
+    elenca = getattr(collezione, "async_items", None)
+    if elenca is None:
+        return False
+    return any(
+        isinstance(voce, dict) and voce.get("url_path") == url_path for voce in elenca()
+    )
 
 
 async def _magazzino_della_compagna(plance: Any, url_path: str) -> Any:
@@ -558,7 +610,7 @@ async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> boo
     titolo = entry.title or "DashboardModern"
     solo_admin = bool(entry.options.get(OPTION_ADMIN_ONLY, False))
     try:
-        if url_path not in plance:
+        if not _la_compagna_e_gia_registrata(collezione, plance, url_path):
             await collezione.async_create_item(
                 {
                     "allow_single_word": True,

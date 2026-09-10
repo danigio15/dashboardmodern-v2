@@ -195,6 +195,31 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Due plance identiche nella barra laterale**
+
+  «Perché nel mio ha ci sono 2 plance Dashboard modern v2?», con la schermata
+  di una barra laterale che porta due volte lo stesso nome e la stessa icona.
+  Le due voci sono il pannello della plancia e la dashboard di appoggio —
+  quella che esiste solo perché Home Assistant, come predefinita, lascia
+  scegliere una dashboard Lovelace e non un pannello. Il nome ce l'hanno
+  uguale per forza: l'appoggio si sceglie per nome nel selettore. A tenerle
+  distinte c'era una cosa sola, che l'appoggio sta fuori dalla barra.
+
+  Quel «fuori» si scriveva alla nascita e mai più. Bastava che diventasse
+  «dentro» una volta — un tocco su «Mostra nella barra laterale», un ripristino
+  da un backup — e restava dentro per sempre, perché nessuno lo rimetteva a
+  posto. Adesso si rimette a ogni avvio, come il nome e come il «solo
+  amministratori», e si scrive solo se è davvero cambiato: la collezione di
+  Lovelace salva su disco a ogni aggiornamento, e un avvio non è una modifica.
+
+  Nella stessa strada c'era un secondo modo di ritrovarsi doppioni, e stavolta
+  nel menu delle dashboard. Per sapere se la dashboard di appoggio esisteva già
+  si guardava la mappa che Home Assistant riempie con un ascoltatore: all'avvio
+  può essere ancora vuota mentre la scheda sul disco c'è da un pezzo. Chi
+  guardava solo lì la creava daccapo — e la guardia di Lovelace contro i
+  doppioni guarda quella stessa mappa, quindi nemmeno lei se ne accorgeva. Ora
+  si chiede anche alla collezione, che le sue schede le sa sempre.
+
 - **Le telecamere prendono la strada che Home Assistant dichiara** (#418)
 
   «La live non parte in nessun modo» su una Arlo, mentre nella finestra di Home
