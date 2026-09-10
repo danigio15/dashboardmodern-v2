@@ -41,6 +41,19 @@ export const VOCI_DELLA_BARRA = Object.freeze([
   Object.freeze({ chiave: "posta", tessera: "" }),
   Object.freeze({ chiave: "rifiuti", tessera: "rifiuti" }),
   Object.freeze({ chiave: "sicurezza", tessera: "sicurezza" }),
+  /* Le porte e i varchi aperti, subito dopo l'antifurto (#482).
+   *
+   * «Sotto al meteo non appare l'allert dei varchi aperti. Ho finestre aperte
+   * ma non vengono conteggiate. Nella card varchi tutto regolare.» La card era
+   * regolare davvero: la fascia queste due voci non le aveva mai avute, quindi
+   * non c'era un conto sbagliato da correggere ma una pastiglia da fare.
+   *
+   * Stanno prima delle luci e non dopo, perche' un varco aperto e' una
+   * notizia, non una cosa rimasta accesa: e' la stessa ragione per cui le loro
+   * tessere diventano rosse mentre quella delle luci resta gialla. E stanno
+   * dopo l'antifurto, che e' la notizia piu' grossa delle tre. */
+  Object.freeze({ chiave: "porte", tessera: "porte" }),
+  Object.freeze({ chiave: "varchi", tessera: "varchi" }),
   Object.freeze({ chiave: "luci", tessera: "luci" }),
   Object.freeze({ chiave: "tapparelle", tessera: "tapparelle" }),
   Object.freeze({ chiave: "clima", tessera: "clima" }),
@@ -110,6 +123,11 @@ const ACCESE = Object.freeze({
   clima: "on",
   prese: "on",
   media: "suonano",
+  /* Le due voci dei passaggi (#482). Anche loro portano le righe aperte nel
+   * modello, e anche qui vale la regola di sopra: si legge il campo, non si
+   * rifiltrano le righe. */
+  porte: "open",
+  varchi: "open",
 });
 
 /** La configurazione della barra, ripulita: quali voci si vedono e la cassetta. */

@@ -5,6 +5,36 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.19
+
+### Corretto
+
+- **La fascia sotto il meteo non diceva niente dei varchi aperti** (#482)
+
+  «Sotto al meteo non appare l'allert dei varchi aperti. Ho finestre aperte ma
+  non vengono conteggiate. Nella card varchi tutto regolare.»
+
+  La card era regolare davvero, e non c'era nessun conto sbagliato da
+  correggere: la fascia quelle due voci non le aveva mai avute. Ne aveva
+  undici — la posta, il ritiro, l'antifurto, le luci accese, le tapparelle su,
+  il clima, le prese, le casse, e in fondo le quattro letture — e fra quelle
+  non c'erano né i Varchi né le Porte, che dalla 1.4.17 è una tessera a sé.
+
+  Adesso ci sono, e stanno **prima** delle luci: un varco aperto è una notizia,
+  non una cosa rimasta accesa, ed è la stessa ragione per cui quelle due
+  tessere diventano rosse mentre quella delle luci resta gialla. Dopo
+  l'antifurto, che è la notizia più grossa delle tre.
+
+  Il numero è quello **già contato dalla tessera**, non un secondo conto fatto
+  nella fascia: le due tessere pubblicano le loro aperture insieme al resto del
+  modello, come facevano già le Finestre, e la fascia legge quel campo. Per
+  queste due la regola vale il doppio, perché un contatto che non risponde non
+  è né aperto né chiuso: deciderlo una seconda volta qui vorrebbe dire una casa
+  che, prima o poi, si sente dare due numeri diversi della stessa cosa.
+
+  Come tutte le altre voci, una pastiglia che non ha niente da dire non compare:
+  a casa chiusa non si vede niente.
+
 ## 1.4.18
 
 ### Aggiunto

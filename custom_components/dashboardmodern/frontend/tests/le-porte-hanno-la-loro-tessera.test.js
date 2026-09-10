@@ -177,6 +177,16 @@ test("la tessera esiste, porta alla Sicurezza e si può ordinare e spegnere", ()
   assert.match(EDITOR, /\["porte", "🚪", t\("Porte", "Doors"\)\]/);
 });
 
+/* La fascia sotto il meteo legge questo campo, e senza non ha niente da dire
+ * (#482). Chi tocchera' la tessera se ne accorge qui, non dalla segnalazione
+ * di chi ha le porte aperte e la fascia muta. */
+test("la tessera pubblica le porte aperte, che è quello che la fascia legge", () => {
+  const inizio = PONTE.indexOf('key: "porte"');
+  assert.notEqual(inizio, -1);
+  const corpo = PONTE.slice(inizio, PONTE.indexOf("};", inizio));
+  assert.match(corpo, /open: aperte\.map\(/, "le porte aperte non escono col modello");
+});
+
 test("il tasto che apre è uno solo, e adesso sta nelle Porte", () => {
   /* Conferma, tastierino del PIN e chiamata li ascolta il documento intero
    * dalla pagina Sicurezza: qui non si ricopia niente, si sposta e basta. */

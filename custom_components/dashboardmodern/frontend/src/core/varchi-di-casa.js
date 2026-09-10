@@ -160,5 +160,13 @@ export function contoDeiVarchi(righe = []) {
     muti: muti.length,
     totale: tutte.length,
     nomi: aperti.map((riga) => clean(riga.name)).filter(Boolean),
+    /* Le righe aperte, non solo quante sono (#482).
+     *
+     * La fascia sotto il meteo dice «3 varchi aperti» e mette i nomi nel
+     * titolo, e per farlo le serve la stessa lista che la tessera usa per la
+     * didascalia. Filtrarla una seconda volta la' vorrebbe dire due regole su
+     * cosa conta come aperto, e due regole sulla stessa cosa divergono al
+     * primo caso strano: un contatto che non risponde. Qui la regola e' una. */
+    aperte: aperti,
   };
 }
