@@ -130,6 +130,91 @@ async def test_una_dashboard_che_c_e_gia_si_riempie_e_basta(hass: Any) -> None:
     assert dati["dashboards"][url_path].salvata["views"]
 
 
+class _PlanceLente(dict):
+    """La mappa `dashboards` che si riempie un giro dopo, come quella vera.
+
+    A riempirla e' un ascoltatore della collezione, non chi crea la scheda:
+    all'avvio la si puo' chiedere e trovarla ancora vuota.
+    """
+
+    def __init__(self, url_path: str, magazzino: Any) -> None:
+        super().__init__()
+        self._url_path = url_path
+        self._magazzino = magazzino
+        self.sbirciate = 0
+
+    def get(self, chiave: str, default: Any = None) -> Any:
+        if chiave != self._url_path:
+            return super().get(chiave, default)
+        self.sbirciate += 1
+        return self._magazzino if self.sbirciate > 1 else default
+
+
+async def test_una_scheda_che_c_e_gia_non_si_crea_una_seconda_volta(
+    hass: Any,
+) -> None:
+    """La scheda c'e', il suo magazzino non e' ancora comparso: non si ricrea.
+
+    Guardare solo la mappa `dashboards` voleva dire crearla di nuovo, e la
+    guardia di Lovelace contro i doppioni guarda quella stessa mappa: si
+    finiva con due schede sullo stesso indirizzo e due voci con lo stesso nome
+    nel menu delle dashboard.
+    """
+    entry = _voce(hass)
+    url_path = fe._lovelace_url_path(entry)
+    magazzino = _Magazzino()
+    voci = [
+        {
+            "id": "gia-c-e",
+            "url_path": url_path,
+            "title": "Casa 3.0",
+            "require_admin": False,
+            "show_in_sidebar": False,
+        }
+    ]
+    dati = _lovelace(hass, _PlanceLente(url_path, magazzino), voci)
+
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
+    assert dati["dashboards_collection"].create == []
+    assert dati["dashboards_collection"].aggiornate == []
+    assert magazzino.salvata["views"], "e la si riempie lo stesso"
+
+
+async def _niente(*_argomenti: Any, **_parole: Any) -> None:
+    """Un pezzo dell'avvio che questa prova non guarda."""
+
+
+def _niente_subito(*_argomenti: Any, **_parole: Any) -> None:
+    """Lo stesso, per i pezzi che non si aspettano."""
+
+
+async def test_lovelace_a_meta_dell_avvio_non_si_guarda(
+    hass: Any, monkeypatch: Any
+) -> None:
+    """Una collezione che c'e' ma non ha ancora letto il disco non e' una casa
+    senza dashboard.
+
+    Lovelace, mentre parte, mette in `hass.data` la collezione delle dashboard
+    PRIMA di leggerci dentro le schede che ci sono. Un'integrazione che parte
+    nello stesso momento — e questa parte proprio li' — la trovava vuota e
+    creava una dashboard di appoggio che sul disco c'era gia'.
+
+    Adesso non si guarda affatto in quel momento: si aspetta che Lovelace abbia
+    finito. Qui Lovelace non finisce mai, e infatti non si crea niente.
+    """
+    monkeypatch.setattr(fe, "_ensure_static_registered", _niente)
+    for nome in ("_ensure_dashboard_card_registered", "_register_or_update_panel"):
+        monkeypatch.setattr(fe, nome, _niente_subito)
+    entry = _voce(hass)
+    dati = _lovelace(hass)
+    assert "lovelace" not in hass.config.components
+
+    await fe.async_register_frontend(hass, entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert dati["dashboards_collection"].create == []
+
+
 async def test_senza_lovelace_non_si_rompe_niente(hass: Any) -> None:
     """All'avvio Lovelace puo' non esserci ancora: si dice di no e si riprova."""
     entry = _voce(hass)
@@ -228,6 +313,7 @@ async def test_chi_rinomina_la_plancia_rinomina_anche_la_dashboard(hass: Any) ->
             "url_path": url_path,
             "title": "Casa 3.0",
             "require_admin": False,
+            "show_in_sidebar": False,
         }
     ]
     dati = _lovelace(hass, {url_path: _Magazzino()}, voci)
@@ -241,6 +327,57 @@ async def test_chi_rinomina_la_plancia_rinomina_anche_la_dashboard(hass: Any) ->
     ]
 
 
+async def test_la_compagna_finita_nella_barra_ne_esce(hass: Any) -> None:
+    """«Perche' nel mio ha ci sono 2 plance Dashboard modern v2?»
+
+    La schermata mostrava una barra laterale con due volte «iPhone Dash»,
+    stesso nome e stessa icona. Sono il pannello e la dashboard di appoggio:
+    il titolo ce l'hanno uguale per forza — l'appoggio si sceglie per nome nel
+    selettore delle dashboard — e l'unica cosa che li teneva distinti era che
+    l'appoggio sta FUORI dalla barra.
+
+    Quel «fuori» si scriveva alla nascita e mai piu'. Bastava che una volta
+    diventasse «dentro» perche' ci restasse per sempre.
+    """
+    entry = _voce(hass, title="iPhone Dash")
+    url_path = fe._lovelace_url_path(entry)
+    voci = [
+        {
+            "id": "finita-dentro",
+            "url_path": url_path,
+            "title": "iPhone Dash",
+            "require_admin": False,
+            "show_in_sidebar": True,
+        }
+    ]
+    dati = _lovelace(hass, {url_path: _Magazzino()}, voci)
+
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
+    assert dati["dashboards_collection"].aggiornate == [
+        ("finita-dentro", {"show_in_sidebar": False})
+    ]
+
+
+async def test_una_compagna_gia_fuori_dalla_barra_non_si_riscrive(hass: Any) -> None:
+    """Rimetterla fuori quando e' gia' fuori sarebbe un salvataggio su disco a
+    ogni avvio, e un avvio non e' una modifica."""
+    entry = _voce(hass, title="iPhone Dash")
+    url_path = fe._lovelace_url_path(entry)
+    voci = [
+        {
+            "id": "gia-fuori",
+            "url_path": url_path,
+            "title": "iPhone Dash",
+            "require_admin": False,
+            "show_in_sidebar": False,
+        }
+    ]
+    dati = _lovelace(hass, {url_path: _Magazzino()}, voci)
+
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
+    assert dati["dashboards_collection"].aggiornate == []
+
+
 async def test_un_avvio_qualunque_non_riscrive_la_scheda(hass: Any) -> None:
     """La collezione salva su disco a ogni aggiornamento: un avvio non lo e'."""
     entry = _voce(hass, title="Casa 3.0")
@@ -251,6 +388,7 @@ async def test_un_avvio_qualunque_non_riscrive_la_scheda(hass: Any) -> None:
             "url_path": url_path,
             "title": "Casa 3.0",
             "require_admin": False,
+            "show_in_sidebar": False,
         }
     ]
     dati = _lovelace(hass, {url_path: _Magazzino()}, voci)

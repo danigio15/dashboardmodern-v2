@@ -14,7 +14,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+import { contoDelleAperture } from "../src/core/cover-kind.js";
+
 const leggi = (rel) => readFile(new URL(rel, import.meta.url), "utf8");
+
+const nomi = (righe) => righe.map((riga) => riga.name);
 
 /* La tessera si legge dal sorgente: `coversModel` chiede al guscio le
  * tapparelle di casa e la mappa dei versi, e montarne uno per una parola
@@ -30,12 +34,29 @@ const modello = async () => {
   return dentro;
 };
 
-test("le coperture e i contatti si contano separati", async () => {
+/* La regola vive in `contoDelleAperture`, che e' pura: si prova con le righe
+ * vere invece che rileggendo il sorgente della tessera. */
+test("le coperture e i contatti si contano separati", () => {
+  const conto = contoDelleAperture([
+    { name: "Camera", soloSensore: false, open: true },
+    { name: "Camera · Finestra", soloSensore: true, open: false },
+    { name: "Cucina", soloSensore: false, open: false },
+    { name: "Cucina · Finestra", soloSensore: true, open: true },
+  ]);
+  assert.deepEqual(nomi(conto.coperture), ["Camera", "Cucina"]);
+  assert.deepEqual(nomi(conto.contatti), ["Camera · Finestra", "Cucina · Finestra"]);
+  /* La tapparella su e' «alzata», l'anta aperta e' «aperta»: due insiemi, mai
+   * lo stesso. */
+  assert.deepEqual(nomi(conto.alzate), ["Camera"]);
+  assert.deepEqual(nomi(conto.aperte), ["Cucina · Finestra"]);
+});
+
+test("la tessera legge quel conto e non se lo rifa' per conto suo", async () => {
   const dentro = await modello();
-  assert.match(dentro, /const coperture = rows\.filter\(\(row\) => !row\.soloSensore\)/);
-  assert.match(dentro, /const contatti = rows\.filter\(\(row\) => row\.soloSensore\)/);
-  assert.match(dentro, /const alzate = coperture\.filter\(\(row\) => row\.open\)/);
-  assert.match(dentro, /const aperte = contatti\.filter\(\(row\) => row\.open\)/);
+  assert.match(
+    dentro,
+    /const \{ alzate, aperte, soloMotori, insieme, contate \} = contoDelleAperture\(rows\);/,
+  );
 });
 
 test("senza un solo contatto la tessera si chiama come quello che conta", async () => {

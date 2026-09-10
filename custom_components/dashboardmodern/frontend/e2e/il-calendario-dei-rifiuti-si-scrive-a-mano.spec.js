@@ -62,8 +62,12 @@ test("un giorno si tocca, il bidone si sceglie, e la pagina lo dice", async ({
   await tendina.locator(".dm-turno-fatto").click();
   await expect(tendina).toHaveCount(0);
 
-  // La casella se lo porta scritto, prima ancora di salvare.
-  await expect(page.locator(`#ed-body [data-dm-turno-giorno="${domani}"]`)).toContainText("📦");
+  // La casella se lo porta disegnato, prima ancora di salvare: il bidone della
+  // carta, non piu' la scatola a emoji che cambiava faccia da un telefono
+  // all'altro.
+  await expect(
+    page.locator(`#ed-body [data-dm-turno-giorno="${domani}"] [data-dm-art="bidone-carta"]`),
+  ).toHaveCount(1);
 
   await page.locator("#ed-body [data-dm-rifiuti-save]").evaluate((bottone) => bottone.click());
   await expect

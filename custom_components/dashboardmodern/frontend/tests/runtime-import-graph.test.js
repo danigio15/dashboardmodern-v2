@@ -1116,8 +1116,77 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // finestra addosso a chi guarda è il gesto più facile da sbagliare della
   // plancia, e i tre modi di sbagliarlo si evitano tutti rispondendo bene a
   // quella domanda.
+  // 319 con le soglie di ricarica (#408): «una scheda che mostri la percentuale
+  // del tablet che usiamo a muro, e magari schiacciando le impostazioni per
+  // attivare la ricarica, tipo soglia bassa 20% soglia alta 80%».
+  // `core/ricarica-a-soglie.js` è puro: dice come si legge una soglia — coi
+  // limiti che DICHIARA l'entità, non con quelli che ci inventiamo — e quale
+  // servizio la sposta, che fra `number` e `input_number` non è lo stesso.
+  // Chiamare quello sbagliato non dà errore: non fa niente, e da fuori è un
+  // cursore rotto.
+  // 320 con i bidoni disegnati: «icone rifiuti non secondo lo stile del nostro
+  // catalogo, rendile omogenee e creale visto che non ci sono». I materiali
+  // erano le ultime emoji di sistema che si vedevano davvero.
+  // `core/disegni-rifiuti.js` sta accanto agli altri disegni e non tocca
+  // niente: un bidone solo, il coperchio del colore che la sezione usa gia' e
+  // un emblema per materiale. Sta qui, e non dentro la sezione, perche' un
+  // disegno lo chiedono in tre posti — la pagina, la scheda e il menu dei
+  // turni — e tre copie dello stesso bidone sono tre bidoni diversi fra sei
+  // mesi.
+  // 323 con le stampanti (#469): «volevo chiedere se c'era la possibilita' del
+  // controllo delle tv e stampanti». Tre moduli in un colpo — il modello puro,
+  // la pagina e la scheda — perche' una sezione nuova e' fatta cosi': le
+  // regole stanno in `core/stampanti-model.js` (che stato ha detto la
+  // stampante, e quali entita' sono le sue cartucce), e le due sezioni le
+  // vestono. Il modello e' puro apposta: le cartucce si cercano da sole, e un
+  // indovinello si prova solo se lo si puo' chiamare senza un documento.
+  // 324 con l'azione accesa (#477): «color the active Quick Action cards when
+  // they are active». `core/azione-accesa.js` risponde a una domanda sola —
+  // questa azione e' accesa? — e la risposta ha tre esiti, non due: acceso,
+  // spento, e «uno stato non ce l'ha». Una scena non e' mai accesa, e una luce
+  // che non risponde non e' spenta: sono i due modi di dire una cosa falsa
+  // colorando un tasto, e stanno scritti dove si possono provare senza un
+  // documento.
+  // 326 con le altre letture del robot (#468): «sarebbe possibile aggiungere
+  // piu' valori tra quelli che mostra?». Due moduli, e il secondo e' il piu'
+  // interessante. `core/robot-letture.js` sa quali entita' di un robot sono
+  // cose che si leggono, quali si riconoscono da sole — filtro, spazzole,
+  // area, durata — e come si scrive il numero che portano.
+  // `core/nome-accanto-al-dispositivo.js` invece non e' nuovo: e' la regola
+  // «togli il nome del dispositivo dal nome dell'entita'» che stava dentro il
+  // modello del robot e serviva gia' anche agli elettrodomestici. Le letture
+  // ne avevano bisogno pure loro, e tenerla di la' avrebbe voluto dire due
+  // moduli che si importano a vicenda oppure la stessa regola scritta due
+  // volte: e' scesa dove tutt'e tre la vedono.
+  // 327 con i comandi accanto (#451): «le TV dove vanno messe?». Non un modulo
+  // nuovo di sostanza, ma uno spostamento: le regole dei comandi in piu' —
+  // quali entita' possono esserlo, cosa fa toccarne una, quali stanno accanto
+  // — stavano nel modello del robot perche' li' e' arrivata la domanda per
+  // prima (#306), e gli elettrodomestici se le prendevano da li' con un
+  // commento che lo ammetteva. Alla terza sezione che le chiede — i lettori,
+  // per le TV — tenerle di la' voleva dire un lettore che importa dal robot.
+  // 328 con la pioggia caduta (#478): «per chi ha una stazione meteo sarebbe
+  // utile vedere il rain rate e la pioggia caduta nella giornata. Questo
+  // potrebbe integrarsi anche su gestione irrigazione». Il modulo risponde a
+  // una domanda sola — l'irrigazione ha ancora senso, guardando il cielo di
+  // oggi? — e la risposta ha tre esiti, non due: «sta piovendo» e «ha piovuto
+  // abbastanza» sono due ragioni diverse per saltare il giro, e chi legge la
+  // pagina vuole sapere quale delle due e'.
+  // 331 con gli altri nodi del cluster (#470): «sarebbe utile poter configurare
+  // piu' di un mini pc in modo da monitorare piu' nodi, comodo per chi ha un
+  // cluster proxmox». Tre moduli, che e' come si aggiunge una cosa a una
+  // sezione che c'e' gia': le regole in `core/nodi-del-cluster.js` — cos'e' un
+  // nodo, quando un carico smette di essere normale, quali entita' di un
+  // dispositivo sono le sue — e le due sezioni che le vestono, la fascia sulla
+  // pagina Server e la scheda dentro quella del MiniPC.
+  // 334 col citofono e la cassetta della posta (#449): «avendo un intercom ho
+  // un button.cancello per aprire, inoltre volevo chiedere una sezione per la
+  // cassetta della posta». Tre moduli, come sempre quando nasce una sezione:
+  // le regole in `core/citofono-e-posta.js` — quale verbo apre quale dominio,
+  // e come si legge una cassetta da due sensori — e le due sezioni che le
+  // vestono, la pagina e la scheda della configurazione.
   assert.ok(
-    relative.length <= 318,
+    relative.length <= 334,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

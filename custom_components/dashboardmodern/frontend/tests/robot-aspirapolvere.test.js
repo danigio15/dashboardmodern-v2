@@ -342,14 +342,14 @@ test("la pagina del robot non si sceglie una larghezza sua", async () => {
 
 import {
   COMANDI_MASSIMI,
-  comandiDelRobot,
-  comandiSuggeriti,
-  comandoDelRobot,
+  comandiDelDispositivo,
+  comandiVicini,
+  comandoDelDispositivo,
   DOMINI_COMANDO,
   elencoComandi,
   genereDelComando,
-  nomeDelComando,
-} from "../src/core/robot-model.js";
+} from "../src/core/comandi-accanto.js";
+import { nomeAccantoAlDispositivo } from "../src/core/nome-accanto-al-dispositivo.js";
 import { readFile } from "node:fs/promises";
 
 const ROBOROCK = "vacuum.roborock_qrevo_edge_series";
@@ -440,23 +440,23 @@ test("i comandi a parte sono tasti, tendine e interruttori, e restano dopo la no
 test("il nome del comando non ripete il nome del robot (#306)", () => {
   const robot = { entity: ROBOROCK };
   assert.equal(
-    nomeDelComando("button.roborock_qrevo_edge_series_asp_e_lav", robot, casaRoborock),
+    nomeAccantoAlDispositivo("button.roborock_qrevo_edge_series_asp_e_lav", robot, casaRoborock),
     "Asp e lav",
   );
   assert.equal(
-    nomeDelComando("select.roborock_qrevo_edge_series_mop_mode", robot, casaRoborock),
+    nomeAccantoAlDispositivo("select.roborock_qrevo_edge_series_mop_mode", robot, casaRoborock),
     "Mop mode",
   );
   /* Senza friendly_name si legge la coda dell'id, resa leggibile. */
   assert.equal(
-    nomeDelComando("button.roborock_qrevo_edge_series_solo_lavaggio", robot, {}),
+    nomeAccantoAlDispositivo("button.roborock_qrevo_edge_series_solo_lavaggio", robot, {}),
     "Solo lavaggio",
   );
   /* Un nome che non comincia col robot resta com'e'. */
-  assert.equal(nomeDelComando("button.cancello_apri", robot, casaRoborock), "Cancello apri");
+  assert.equal(nomeAccantoAlDispositivo("button.cancello_apri", robot, casaRoborock), "Cancello apri");
   /* E il nome che e' solo il nome del robot non diventa vuoto. */
   assert.equal(
-    nomeDelComando("switch.x", robot, {
+    nomeAccantoAlDispositivo("switch.x", robot, {
       "switch.x": stato("on", { friendly_name: "Roborock Qrevo Edge Series" }),
     }),
     "Roborock Qrevo Edge Series",
@@ -474,7 +474,7 @@ test("i comandi come stanno adesso, e il servizio dietro ognuno (#306)", () => {
       "input_select.mancante",
     ],
   };
-  const voci = comandiDelRobot(robot, casaRoborock);
+  const voci = comandiDelDispositivo(robot, casaRoborock);
   assert.deepEqual(
     voci.map((voce) => [voce.entity.split(".")[0], voce.genere, voce.name, voce.available]),
     [
@@ -493,37 +493,37 @@ test("i comandi come stanno adesso, e il servizio dietro ognuno (#306)", () => {
   /* E la vista del robot li porta con se'. */
   assert.equal(robotView(robot, casaRoborock).comandi.length, 5);
 
-  assert.deepEqual(comandoDelRobot(voci[0]), {
+  assert.deepEqual(comandoDelDispositivo(voci[0]), {
     domain: "button",
     service: "press",
     data: { entity_id: "button.roborock_qrevo_edge_series_asp_e_lav" },
   });
-  assert.deepEqual(comandoDelRobot(voci[2], "deep"), {
+  assert.deepEqual(comandoDelDispositivo(voci[2], "deep"), {
     domain: "select",
     service: "select_option",
     data: { entity_id: "select.roborock_qrevo_edge_series_mop_mode", option: "deep" },
   });
-  assert.equal(comandoDelRobot(voci[2], ""), null);
-  assert.deepEqual(comandoDelRobot(voci[3]), {
+  assert.equal(comandoDelDispositivo(voci[2], ""), null);
+  assert.deepEqual(comandoDelDispositivo(voci[3]), {
     domain: "switch",
     service: "toggle",
     data: { entity_id: "switch.roborock_qrevo_edge_series_child_lock" },
   });
-  assert.deepEqual(comandoDelRobot({ entity: "script.pulizia" }), {
+  assert.deepEqual(comandoDelDispositivo({ entity: "script.pulizia" }), {
     domain: "script",
     service: "turn_on",
     data: { entity_id: "script.pulizia" },
   });
-  assert.deepEqual(comandoDelRobot({ entity: "input_button.x" }), {
+  assert.deepEqual(comandoDelDispositivo({ entity: "input_button.x" }), {
     domain: "input_button",
     service: "press",
     data: { entity_id: "input_button.x" },
   });
-  assert.equal(comandoDelRobot({ entity: "sensor.x" }), null);
+  assert.equal(comandoDelDispositivo({ entity: "sensor.x" }), null);
 });
 
 test("i comandi accanto al robot si propongono, quelli gia' scelti no (#306)", () => {
-  const proposte = comandiSuggeriti(
+  const proposte = comandiVicini(
     { entity: ROBOROCK, comandi: ["button.roborock_qrevo_edge_series_asp_e_lav"] },
     casaRoborock,
   );
@@ -539,7 +539,7 @@ test("i comandi accanto al robot si propongono, quelli gia' scelti no (#306)", (
   ]);
   /* Anche quando l'id non coincide, il nome basta: e' cosi' che Home
    * Assistant chiama le entita' di uno stesso dispositivo. */
-  const perNome = comandiSuggeriti(
+  const perNome = comandiVicini(
     { entity: "vacuum.robottino" },
     {
       "vacuum.robottino": stato("docked", { friendly_name: "Piano terra" }),
@@ -548,7 +548,7 @@ test("i comandi accanto al robot si propongono, quelli gia' scelti no (#306)", (
     },
   );
   assert.deepEqual(perNome, ["button.qualcosa_altro"]);
-  assert.deepEqual(comandiSuggeriti({ entity: "" }, casaRoborock), []);
+  assert.deepEqual(comandiVicini({ entity: "" }, casaRoborock), []);
 });
 
 test("la scheda e la configurazione portano i comandi a parte (#306)", async () => {
@@ -565,8 +565,8 @@ test("la scheda e la configurazione portano i comandi a parte (#306)", async () 
   assert.match(scheda, /\$\{comandiTendineMarkup\(view\)\}/);
   assert.match(scheda, /class="dm-robot-actions dm-robot-comandi" data-dm-robot-comandi/);
   /* Il tocco chiama il servizio giusto, e la tendina la sua entita'. */
-  assert.match(scheda, /callService\(comandoDelRobot\(voce\)\)/);
-  assert.match(scheda, /callService\(comandoDelRobot\(voce, tendina\.value\)\)/);
+  assert.match(scheda, /chiamaServizio\(comandoDelDispositivo\(voce\)\)/);
+  assert.match(scheda, /chiamaServizio\(comandoDelDispositivo\(voce, tendina\.value\)\)/);
   /* La firma li conosce: un comando aggiunto rifa' la scheda. */
   assert.match(
     scheda,
@@ -577,17 +577,20 @@ test("la scheda e la configurazione portano i comandi a parte (#306)", async () 
     new URL("../src/sections/robot-editor-section.js", import.meta.url),
     "utf8",
   );
-  assert.match(scheda2, /data-robot-field="comandi"/);
-  /* Le pastiglie: proposte col piu', scelte con la croce, e il piu' della casella. */
-  assert.match(scheda2, /chipMarkup\(entity, "robot-cmd-sug", "＋", robot, states\)/);
-  assert.match(scheda2, /chipMarkup\(entity, "robot-cmd-del", "✕", robot, states\)/);
-  assert.match(scheda2, /data-robot-cmd-add/);
-  assert.match(scheda2, /event\.target\.closest\("\[data-robot-cmd-sug\]"\)/);
-  assert.match(scheda2, /event\.target\.closest\("\[data-robot-cmd-del\]"\)/);
-  assert.match(scheda2, /comandiSuggeriti\(robot, states\)/);
+  assert.match(scheda2, /data-robot-field="\$\{esc\(tipo\)\}"/);
+  assert.match(scheda2, /listaMarkup\("comandi", robot, index\)/);
+  /* Le pastiglie: proposte col piu', scelte con la croce, e il piu' della
+   * casella. Da #468 la stessa riga serve tre liste — comandi, mappe,
+   * letture — e il tipo viaggia con la pastiglia. */
+  assert.match(scheda2, /chipMarkup\(entity, tipo, "sug", "＋", robot, states\)/);
+  assert.match(scheda2, /chipMarkup\(entity, tipo, "del", "✕", robot, states\)/);
+  assert.match(scheda2, /data-robot-chip-add="\$\{esc\(tipo\)\}"/);
+  assert.match(scheda2, /event\.target\.closest\("\[data-robot-chip-sug\]"\)/);
+  assert.match(scheda2, /event\.target\.closest\("\[data-robot-chip-del\]"\)/);
+  assert.match(scheda2, /suggerite: comandiVicini/);
   /* La scelta si salva subito, con quello che c'e' scritto nelle altre caselle. */
   assert.match(scheda2, /const letta = leggiRiga\(riga, robots\[index\]\);/);
-  assert.match(scheda2, /next\[index\] = \{ \.\.\.letta, comandi \};/);
+  assert.match(scheda2, /next\[index\] = \{ \.\.\.letta, \[tipo\]: elenco \};/);
 });
 
 /* Il robot preso da un'integrazione.
@@ -694,14 +697,14 @@ test("un'automazione e' un tasto, e si fa partire invece di accendersi", () => {
   /* Il verbo e' quello che conta: «turn_on» riabilita l'automazione e lascia
    * il robot fermo, e per giunta cambia di nascosto un'impostazione di Home
    * Assistant. Chi tocca «Pulizia» vuole che parta. */
-  assert.deepEqual(comandoDelRobot({ entity: "automation.piper_pulizia" }), {
+  assert.deepEqual(comandoDelDispositivo({ entity: "automation.piper_pulizia" }), {
     domain: "automation",
     service: "trigger",
     data: { entity_id: "automation.piper_pulizia" },
   });
   // Gli altri verbi restano quelli di prima.
-  assert.equal(comandoDelRobot({ entity: "script.piper_dock" }).service, "turn_on");
-  assert.equal(comandoDelRobot({ entity: "button.piper_dock" }).service, "press");
+  assert.equal(comandoDelDispositivo({ entity: "script.piper_dock" }).service, "turn_on");
+  assert.equal(comandoDelDispositivo({ entity: "button.piper_dock" }).service, "press");
 });
 
 test("le automazioni del robot entrano nell'elenco dei comandi", () => {

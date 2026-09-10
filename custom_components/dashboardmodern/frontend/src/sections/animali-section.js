@@ -36,6 +36,7 @@ import {
   t,
   wrapFunction,
 } from "./shared.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
 
 const KEY = "__DASHBOARDMODERN_ANIMALI__";
 const state = (root[KEY] ||= { installed: false, frame: 0, firma: "" });
@@ -307,7 +308,7 @@ function testoLettura(voce) {
 function ritrattoMarkup(vista) {
   if (vista.foto)
     return `<span class="dm-animale-ritratto" data-dm-animale-foto><img src="${esc(vista.foto)}" alt="" loading="lazy" decoding="async"></span>`;
-  return `<span class="dm-animale-ritratto dm-vuoto" aria-hidden="true">${vista.icona}</span>`;
+  return `<span class="dm-animale-ritratto dm-vuoto" aria-hidden="true">${disegnoDelCatalogo(vista.disegno, 44)}</span>`;
 }
 
 function avvisiMarkup(vista) {
@@ -504,7 +505,8 @@ function installStyles() {
       #page-animali .dm-animale-card[data-gravita="attenzione"]{border-color:color-mix(in srgb,#f59e0b 55%,transparent)}
       #page-animali .dm-animale-card[data-gravita="urgente"]{border-color:color-mix(in srgb,#dc2626 55%,transparent)}
       #page-animali .dm-animale-head{display:flex;align-items:center;gap:11px;min-width:0}
-      #page-animali .dm-animale-ritratto{flex:0 0 52px;width:52px;height:52px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--secondary-background-color,#eef3f8);font-size:26px}
+      #page-animali .dm-animale-ritratto{flex:0 0 52px;width:52px;height:52px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--secondary-background-color,#eef3f8)}
+      #page-animali .dm-animale-ritratto .dm-appliance-art{display:block;line-height:0}
       #page-animali .dm-animale-ritratto img{width:100%;height:100%;object-fit:cover;display:block}
       #page-animali .dm-animale-titolo{display:grid;min-width:0;flex:1 1 auto}
       #page-animali .dm-animale-titolo strong{font-size:15px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

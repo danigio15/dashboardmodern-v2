@@ -32,6 +32,12 @@ import {
   batterieLette,
   sogliaDelleBatterie,
 } from "../core/batterie-di-casa.js";
+import {
+  CHIAVE_RICARICA,
+  eSogliaDiRicarica,
+  normalizzaRicariche,
+  ricaricaDellaBatteria,
+} from "../core/ricarica-a-soglie.js";
 import { BATTERIE_TAB, renderBatterie } from "./batterie-section.js";
 import {
   batterieSorvegliate,
@@ -154,7 +160,46 @@ function battezza(entity, nome) {
   return true;
 }
 
+/* Le due soglie di una batteria (#408).
+ *
+ * Si scrivono nella riga della batteria a cui appartengono, non in un elenco a
+ * parte: sono una proprieta' di QUELLA batteria, e un secondo elenco vorrebbe
+ * dire tenere in piedi due posti dove dire la stessa cosa. La riga sparisce da
+ * se' quando restano vuote tutte e due — una riga senza soglie non e' una riga
+ * a meta', e' una batteria come tutte le altre. */
+function salvaSogliaDiRicarica(battery, quale, valore) {
+  const id = clean(battery);
+  if (!id || (quale !== "bassa" && quale !== "alta")) return false;
+  const scritte = readJson(CHIAVE_RICARICA, []);
+  const righe = Array.isArray(scritte) ? scritte.filter(Boolean) : [];
+  const posizione = righe.findIndex((riga) => clean(riga?.battery) === id);
+  const prima = posizione >= 0 ? righe[posizione] : { id: `ricarica-${id}`, battery: id };
+  const scelta = clean(valore);
+  /* Un'entita' che non sa cambiare un numero non diventa una soglia a meta':
+   * o e' `number.*`/`input_number.*`, o la casella si svuota. */
+  const dopo = { ...prima, [quale]: eSogliaDiRicarica(scelta) ? scelta : "" };
+  const restano = clean(dopo.bassa) || clean(dopo.alta);
+  const prossime = righe.filter((_riga, indice) => indice !== posizione);
+  if (restano) prossime.push(dopo);
+  writeJsonIfChanged(CHIAVE_RICARICA, prossime);
+  renderBatterie();
+  return true;
+}
+
 /* ── il disegno della scheda ──────────────────────────────────────────── */
+
+/* Una casella per una soglia: le due hanno la stessa forma, e scriverla due
+ * volte vorrebbe dire due caselle che col tempo diventano diverse. */
+function campoDellaSoglia(riga, quale, etichetta, esempio) {
+  const id = `dm-batt-soglia-${quale}-${riga.entity.replace(/[^a-z0-9]+/gi, "-")}`;
+  const valore = clean(riga.ricarica?.[quale]);
+  return `<label class="ed-slot dm-batt-ed-soglia"><span class="ed-slot-lbl">${esc(etichetta)}</span>
+    <span class="ed-form-row"><input id="${esc(id)}" class="ed-input mono" value="${esc(valore)}"
+      placeholder="${esc(esempio)}" autocomplete="off" spellcheck="false"
+      data-dm-batt-ricarica="${esc(riga.entity)}" data-dm-batt-quale="${esc(quale)}"><button type="button"
+      class="dm-entity-picker" data-dm-batt-pick="${esc(id)}"
+      aria-label="${esc(t("Scegli entità", "Choose entity"))}">🔍</button></span></label>`;
+}
 
 function rigaMarkup(riga, aggiunte) {
   const stato = riga.muta ? "muta" : riga.scarica ? "scarica" : "carica";
@@ -169,6 +214,17 @@ function rigaMarkup(riga, aggiunte) {
     <button type="button" class="ed-del dm-batt-ed-togli" data-dm-batt-escludi="${esc(riga.entity)}"
       title="${esc(t("Togli dall'elenco", "Drop from the list"))}"
       aria-label="${esc(t("Togli dall'elenco", "Drop from the list"))}">🗑️</button>
+    <details class="dm-batt-ed-ricarica"${riga.ricarica ? " open" : ""}>
+      <summary>⚡ ${esc(t("Soglie di ricarica", "Charge thresholds"))}</summary>
+      <small>${esc(
+        t(
+          "Per quello che si ricarica e non si cambia: il tablet a muro, un accumulatore. Le due entità sono number.* o input_number.*, quelle che il dispositivo espone per dire sotto quanto riparte e sopra quanto si ferma. Lasciale vuote e questa resta una batteria come le altre.",
+          "For what recharges instead of being replaced: the wall tablet, a power bank. The two entities are number.* or input_number.*, the ones the device exposes to say where it starts again and where it stops. Leave them empty and this stays a battery like the others.",
+        ),
+      )}</small>
+      ${campoDellaSoglia(riga, "bassa", t("Riparte sotto il", "Starts again below"), "number.tablet_soglia_bassa")}
+      ${campoDellaSoglia(riga, "alta", t("Si ferma sopra il", "Stops above"), "number.tablet_soglia_alta")}
+    </details>
   </article>`;
 }
 
@@ -188,10 +244,11 @@ function schedaMarkup() {
   const aggiunte = elenco(readJson(CHIAVE_AGGIUNTE, {})?.[GRUPPO]);
   const tolte = elenco(readJson(CHIAVE_TOLTE, {})?.[GRUPPO]);
   const nomi = readJson(CHIAVE_NOMI, {}) || {};
+  const ricariche = normalizzaRicariche(readJson(CHIAVE_RICARICA, []));
   const righe = batterieLette(batterieSorvegliate(), states, {
     soglia,
     nome: (entity) => nomeDellaBatteria(entity, states, nomi),
-  });
+  }).map((riga) => ({ ...riga, ricarica: ricaricaDellaBatteria(riga.entity, ricariche) }));
   return `${root.cdSecToggleHtml?.(BATTERIE_EDITOR_TAB) || ""}
   <div class="ed-intro">${esc(
     t(
@@ -295,6 +352,12 @@ function onChange(event) {
     root.edToast?.(t("🔋 Soglia salvata", "🔋 Threshold saved"));
     return;
   }
+  const soglia = event.target.closest?.("[data-dm-batt-ricarica]");
+  if (soglia) {
+    salvaSogliaDiRicarica(soglia.dataset.dmBattRicarica, soglia.dataset.dmBattQuale, soglia.value);
+    root.edToast?.(t("⚡ Soglia di ricarica salvata", "⚡ Charge threshold saved"));
+    return;
+  }
   const nome = event.target.closest?.("[data-dm-batt-nome]");
   if (nome) battezza(nome.dataset.dmBattNome, nome.value);
 }
@@ -332,7 +395,12 @@ export function installBatterieEditor() {
   installStyles();
   ensureBatterieEditorTab();
   doc.addEventListener("click", onClick);
-  doc.addEventListener("change", onChange);
+  /* In CATTURA e non in bolla: il selettore 🔍 scrive nel campo e annuncia con
+   * un `change` che non sale, e in bolla non lo sentirebbe nessuno — la
+   * batteria scelta con la lente resterebbe sullo schermo e in nessun altro
+   * posto. In cattura l'evento passa comunque, perche' quella fase scende fino
+   * al bersaglio anche per gli eventi che non salgono. */
+  doc.addEventListener("change", onChange, true);
   onEditorRedraw("__dmBatterieEditor", () => {
     ensureBatterieEditorTab();
     root.queueMicrotask?.(ensureBatterieEditor);

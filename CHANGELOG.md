@@ -5,7 +5,429 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## Non ancora rilasciato
+## 1.4.18
+
+### Aggiunto
+
+- **Citofono e cassetta della posta** (#449)
+
+  «Avendo un intercom ho un button.cancello per aprire, inoltre volevo chiedere
+  una sezione per la cassetta della posta: all'interno c'è un Vallhorn di IKEA
+  che espone un pir per segnalare la presenza posta e un sensore luminosità
+  che, quando rileva luce (apertura cassetta), segnala il ritiro della posta.»
+
+  Sezione nuova, **📮 Citofono e posta**, con la sua scheda in configurazione,
+  la sua tessera in Home e la sua pagina.
+
+  Del **citofono** servono il tasto che apre e, se c'è, il campanello e la
+  telecamera. Il tasto non è per forza un `button`: una serratura scatta
+  (`lock.open`, o `unlock` se quella serratura lo scatto non lo dichiara), un
+  cancello motorizzato si apre come una tapparella, uno script si accende, una
+  automazione parte. Cinque verbi per nove domini, e nessuno inventato.
+
+  Della **cassetta** servono i due sensori: quello che dice che è arrivato
+  qualcosa e quello che dice che lo sportello è stato aperto. Il verdetto è il
+  confronto fra i due momenti — se l'ultimo movimento è più recente
+  dell'ultima apertura, la posta è ancora dentro — e regge perché una cassetta
+  chiusa è una scatola buia: la luce, lì dentro, non cambia da sola. Il
+  luxmetro ha la sua soglia, di solito venti lux, e chi ha un contatto al posto
+  del luxmetro non ha soglie da tarare.
+
+  Chi ha **una sola** delle due entità non riceve un verdetto inventato: col
+  solo rilevatore si sa che qualcosa si è mosso e quando, non se è stato
+  ritirato, e allora la carta dice «non si sa» invece di dire «vuota».
+
+  C'è anche **«🔗 Aggiungi da un'integrazione»** per tutt'e due gli elenchi:
+  Ring, Doorbird, 2N, il Vallhorn di IKEA — scegli il dispositivo e le caselle
+  si compilano da sole.
+
+- **Gli altri nodi del cluster** (#470)
+
+  «Sarebbe utile poter configurare più di un mini pc in modo da monitorare più
+  nodi, comodo per chi ha, ad esempio, un cluster proxmox.» La pagina Server
+  aveva una scheda sola, ed è quella del computer su cui gira Home Assistant.
+  Le sue macchine e i suoi container si vedevano già (#382); il ferro degli
+  altri nodi no.
+
+  In **Config → 🖥️ MiniPC** c'è adesso **Altri nodi del cluster**: uno per riga,
+  con il nome che gli dai e cinque entità — stato, processore, memoria, disco,
+  gradi. Tutte facoltative, perché non tutte le integrazioni le pubblicano
+  tutte: Proxmox VE dà lo stato e le tre percentuali, Glances aggiunge i gradi,
+  un ping dà solo il su e giù. Una casella vuota è una barra che non compare.
+
+  C'è anche **«🔗 Aggiungi da un'integrazione»**, come per gli elettrodomestici,
+  il robot e i lettori: scegli il dispositivo del nodo e le cinque caselle si
+  compilano da sole.
+
+  Sulla pagina Server i nodi stanno **sopra** le fasce delle macchine — prima il
+  ferro, poi quello che ci gira sopra — e ognuno porta le sue barre, verdi fino
+  al settanta per cento, gialle fino al novanta, rosse oltre. «Spento» e «non
+  risponde» restano due cose diverse, e un nodo di cui non hai indicato lo stato
+  non è né l'una né l'altra: è un nodo di cui non lo si è chiesto, e non si
+  colora di rosso per un allarme inventato.
+
+- **La pioggia caduta, sotto il meteo e dentro l'irrigazione** (#478)
+
+  «Per chi ha una stazione meteo sarebbe utile vedere il rain rate e la pioggia
+  caduta nella giornata. Questo potrebbe integrarsi anche su gestione
+  irrigazione.» Due pastiglie nuove nella barra sotto il meteo: quanto sta
+  venendo giù adesso e quanti millimetri sono caduti oggi. Come le altre due
+  letture, il sensore lo scegli tu e l'unità la dice Home Assistant.
+
+  L'irrigazione una regola sulla pioggia ce l'aveva già, ma guarda un'altra
+  cosa: la *probabilità* che piova, secondo le previsioni. Un pluviometro dice
+  un fatto più forte — quanta acqua è arrivata a terra — e adesso la pagina
+  Irrigazione dice tutt'e due: «sta piovendo», oppure «terreno bagnato · oggi
+  11,2 mm» quando la pioggia ha già fatto il giro che avrebbe fatto l'impianto.
+  Cinque millimetri è la soglia, perché cinque millimetri sono quello che mette
+  un impianto da giardino in un turno.
+
+  I due sensori si scrivono una volta sola, nella barra: chiederli anche
+  nell'irrigazione vorrebbe dire due caselle per lo stesso pluviometro.
+
+- **Il robot dice anche il filtro, le spazzole e i metri quadri** (#468)
+
+  «Sarebbe possibile aggiungere più valori tra quelli che mostra?» Un robot
+  pubblica molto più di quello che la scheda mostrava: quanto manca al filtro,
+  quanto alle spazzole, quanti metri quadri ha pulito, quante volte, per quante
+  ore. Erano tutte lì accanto e nessuno le guardava.
+
+  Nella scheda Robot c'è adesso **Altre letture**: scegli tu quali sensori
+  vedere, e la card li scrive sotto i comandi col loro nome e la loro unità.
+  Quelle che hanno quasi tutti si riconoscono da sole — filtro, spazzola
+  principale e laterale, mocio, area pulita, pulizie fatte, durata — e chi
+  aggiunge il robot da un'integrazione se le trova già dentro. L'indirizzo IP e
+  il wi-fi no: restano scegliibili a mano, ma in fondo alle proposte.
+
+  Un filtro che dura 8100 minuti si legge «135 h», perché in minuti a quella
+  distanza non pensa nessuno; sotto le due ore restano minuti. Un sensore che
+  non risponde scrive un trattino, non uno zero.
+
+- **Il robot tiene più di una mappa** (#468)
+
+  «In più io ho due mappe e mi visualizza solo una.» Un robot che gira su due
+  piani ne disegna due, e il campo era uno solo. Adesso le mappe sono un
+  elenco, e con più di una la card mette le linguette per passare dall'una
+  all'altra. Chi ne ha una sola non deve riscrivere niente.
+
+  E il riquadro prende le proporzioni del disegno invece di essere sempre
+  quattro terzi: una mappa quadrata o alta ci stava tutta ma piccola, con due
+  bande vuote ai lati — «non me la mette intera».
+
+- **Le TV entrano dal menù delle integrazioni** (#451)
+
+  «Le TV dove vanno messe?» Nella scheda 🔊 Musica, perché per Home Assistant
+  una TV è un `media_player` come uno speaker — e i comandi del brano la scheda
+  li copriva già. Quello che non copriva è il resto che un'integrazione porta
+  con sé: «samsung ha una sua integrazione che si potrebbe importare».
+
+  Adesso la scheda dei lettori ha **🔗 Aggiungi da un'integrazione**, come gli
+  elettrodomestici e il robot: scegli il dispositivo e il lettore arriva fatto.
+  E ha le stesse due liste: **Altri comandi** — l'interruttore
+  dell'alimentazione di una TV, la tendina della sorgente — e **Altre letture**
+  — il canale, la sorgente, cosa sta facendo, il volume. Compaiono sulla card
+  sotto i comandi del brano.
+
+  I sensori del consumo si riconoscono ma non si scelgono da soli: una TV
+  SmartThings ne pubblica sette, e una scheda fatta di consumi non serve a
+  nessuno. Chi ne vuole uno lo aggiunge, e porta il suo disegno.
+
+- **Stanze: la cassa e il condizionatore si comandano da lì** (#467)
+
+  «The media player card must have media player functions, the climate card must
+  have climate control functions.» La riga della stanza diceva com'è messa una
+  cosa e portava alla sua sezione: per una luce basta — c'è l'interruttore — e
+  per una cassa o un condizionatore no, perché quello che si vuole fare lì è
+  mettere in pausa e alzare di un grado, non leggere.
+
+  Adesso la card del lettore porta i suoi tasti — precedente, pausa, successivo,
+  spegni — e quella del clima porta il suo pannello, con le modalità e le ventole
+  che *quell'unità* dichiara. Non sono comandi nuovi: sono gli stessi della
+  pagina Musica e della finestra del Clima, e i loro gestori stanno sul
+  documento, quindi funzionano anche qui senza che nessuno li riattacchi.
+
+  La riga resta la riga di tutte le altre: i comandi si aggiungono sotto, non al
+  posto suo. E un tocco su un comando non è più un tocco sulla card — prima
+  saliva alla riga, che porta altrove, e mettere in pausa voleva dire andarsene
+  dalla stanza.
+
+- **Il tablet a muro: la percentuale c'era, adesso ci sono le soglie** (#408)
+
+  «Una scheda che mostri la percentuale del nostro tablet che usiamo a muro, e
+  magari che schiacciando mostri le impostazioni per attivare la ricarica, tipo
+  soglia bassa 20% soglia alta 80%.» La percentuale c'era già — un tablet a muro
+  pubblica un sensore di batteria, e la pagina Batterie lo trova da sé. Mancava
+  l'altra metà.
+
+  Nella scheda Batterie ogni riga ha adesso **⚡ Soglie di ricarica**: due caselle
+  facoltative per le entità `number.*` o `input_number.*` che il dispositivo
+  espone. Compilate, la riga nella pagina Batterie porta due cursori — «riparte
+  sotto il» e «si ferma sopra il» — coi limiti che dichiara l'entità, non con
+  quelli che ci inventiamo noi. Vuote, resta una batteria come tutte le altre:
+  una stilo non decide quando smettere di caricarsi.
+
+- **La tessera della musica dice cosa suona** (#460)
+
+  «Display the track title and artist name on the media player.» C'erano già,
+  ma dentro la stessa riga della didascalia, separati da un trattino e scritti
+  tutti uguali: due fatti diversi detti come se fossero uno. Adesso il titolo
+  sta sulla riga della didascalia e l'artista sotto, più piccolo — la stessa
+  coppia con cui parla il resto della plancia, la cosa e sotto la sua qualifica.
+
+  Mentre suona una cosa sola, al posto del disegno dell'altoparlante va la
+  **copertina del disco**: il disegno smette di dire cos'è la tessera — lo dice
+  già il nome — e dice cosa sta suonando. In alto a destra tre puntini dicono
+  che lì dentro non c'è un elenco ma i comandi: play, pausa, avanti, volume.
+  Non sono un secondo tasto, perché toccare la mattonella li apre già.
+
+  Con più casse accese non c'è UN brano: la didascalia torna a elencarli col
+  posto davanti e la seconda riga tace, invece di mettere l'artista di uno dei
+  tre e far credere che sia quello che suona.
+
+  Il nome della tessera resta, e resta la sua forma: in una Home di venti
+  mattonelle una senza nome è una mattonella che non si trova.
+
+- **La barra sotto il meteo dice anche i gradi e l'umidità** (#461)
+
+  «Sarebbe possibile inserire temperatura e umidità di sensori personali? Io ho
+  un sensore esterno all'abitazione con cui mi regolo con i clima interni.» Due
+  pastiglie nuove nella fascia, e i due sensori li scegli tu da **Config → Home
+  → Barra sotto il meteo**: quello che guardi per decidere, non una media della
+  casa.
+
+  Stanno in fondo alla fascia, e non è un dettaglio: sono due letture, non due
+  notizie — non succedono, ci sono sempre — e chi legge da sinistra deve trovare
+  per prima la cosa che è successa. Toccandole si apre la tessera Temperature,
+  dove la stessa domanda ha la risposta lunga.
+
+  L'unità la dichiara Home Assistant, quindi chi ha i Fahrenheit legge i
+  Fahrenheit. La temperatura si scrive col decimo — fra 21 e 21,5 c'è la
+  differenza per cui uno il sensore lo guarda — l'umidità no. E un sensore che
+  non risponde non scrive «—»: la pastiglia semplicemente non c'è, come per
+  tutte le altre voci che non hanno niente da dire.
+
+- **Prese: quanto sta tirando, scritto sulla card** (#465)
+
+  «Le prese che hanno anche la lettura dei consumi: è possibile mettere oltre lo
+  switch anche l'entità del consumo?» Una presa smart pubblica due entità —
+  l'interruttore e il wattmetro — e sono due entità distinte, non due letture
+  della stessa: la seconda va indicata, non indovinata. La casella **Consumo**
+  sta nella scheda Prese, accanto a quella dell'interruttore, col suo selettore.
+
+  Sulla card i watt escono accanto allo stato, in una pastiglia. È facoltativa:
+  chi il wattmetro non ce l'ha non compila niente e la card resta identica a
+  prima.
+
+  I watt li legge lo stesso lettore che li legge in tutta la plancia — sa di kW e
+  di mW, e senza unità dichiarata assume i watt — e li scrive nella stessa forma
+  degli elettrodomestici, perché la stessa misura scritta in due modi diversi è
+  due cose diverse per chi legge. Un wattmetro che non risponde non scrive
+  «0 W»: zero watt vuol dire che non sta consumando, ed è una notizia diversa da
+  «non si sa».
+
+### Corretto
+
+- **«Il flag c'è ma tra le plance non la vedo»**
+
+  La dashboard di appoggio — quella che permette di scegliere la plancia come
+  predefinita — si preparava all'avvio dell'integrazione, e con Lovelace ancora
+  a metà del suo. Lovelace, mentre parte, mette a disposizione la collezione
+  delle dashboard **prima** di leggere dal disco le schede che ci sono: chi
+  guarda in quel momento la trova vuota, crede che la dashboard di appoggio non
+  esista e la crea sull'indirizzo dove c'è già. Da lì in poi l'esito dipendeva
+  da chi dei due arrivava primo — e chi perdeva quella corsa non vedeva la
+  plancia fra le dashboard, né a quel riavvio né a nessuno dei successivi,
+  perché si ripercorreva ogni volta la stessa strada.
+
+  Adesso la si prepara quando Lovelace ha finito davvero di alzarsi, sempre — e
+  subito, se aveva già finito. E se la creazione viene comunque rifiutata
+  perché la scheda c'era già, non ci si arrende: si rimette in pari e si
+  riempie, che era quello che serviva. Un rifiuto vero, invece, adesso finisce
+  nel registro scritto per esteso: dice che la plancia non comparirà fra le
+  dashboard, invece di lasciarlo scoprire.
+
+  Queste strade avevano un buco nelle prove: la Lovelace era finta, quindi le
+  prove dicevano che la plancia chiedeva la cosa giusta, non che Home Assistant
+  gliela concedesse. Ci sono adesso anche le prove contro la Lovelace vera, con
+  la sua collezione, il suo magazzino e il suo registro dei pannelli.
+
+- **Due plance identiche nella barra laterale**
+
+  «Perché nel mio ha ci sono 2 plance Dashboard modern v2?», con la schermata
+  di una barra laterale che porta due volte lo stesso nome e la stessa icona.
+  Le due voci sono il pannello della plancia e la dashboard di appoggio —
+  quella che esiste solo perché Home Assistant, come predefinita, lascia
+  scegliere una dashboard Lovelace e non un pannello. Il nome ce l'hanno
+  uguale per forza: l'appoggio si sceglie per nome nel selettore. A tenerle
+  distinte c'era una cosa sola, che l'appoggio sta fuori dalla barra.
+
+  Quel «fuori» si scriveva alla nascita e mai più. Bastava che diventasse
+  «dentro» una volta — un tocco su «Mostra nella barra laterale», un ripristino
+  da un backup — e restava dentro per sempre, perché nessuno lo rimetteva a
+  posto. Adesso si rimette a ogni avvio, come il nome e come il «solo
+  amministratori», e si scrive solo se è davvero cambiato: la collezione di
+  Lovelace salva su disco a ogni aggiornamento, e un avvio non è una modifica.
+
+  Nella stessa strada c'era un secondo modo di ritrovarsi doppioni, e stavolta
+  nel menu delle dashboard. Per sapere se la dashboard di appoggio esisteva già
+  si guardava la mappa che Home Assistant riempie con un ascoltatore: all'avvio
+  può essere ancora vuota mentre la scheda sul disco c'è da un pezzo. Chi
+  guardava solo lì la creava daccapo — e la guardia di Lovelace contro i
+  doppioni guarda quella stessa mappa, quindi nemmeno lei se ne accorgeva. Ora
+  si chiede anche alla collezione, che le sue schede le sa sempre.
+
+- **Quello che la revisione ha trovato, prima che uscisse**
+
+  Dodici rilievi sul codice di questa versione, verificati e corretti uno per
+  uno:
+
+  - **L'irrigazione adesso guarda davvero il pluviometro.** La pastiglia
+    scriveva «terreno bagnato» e un istante dopo l'impianto partiva lo stesso:
+    il cancello del programma guardava solo la *previsione* e il terreno. Ora
+    guarda anche l'acqua caduta — che è quello che chiedeva la #478 — e il
+    tasto che fa partire a mano passa comunque.
+  - **La pioggia in pollici.** Chi ha Home Assistant in unità imperiali ha un
+    pluviometro che scrive `in`: zero virgola tre pollici sono sette
+    millimetri e mezzo, e confrontati con cinque senza convertirli diventavano
+    «asciutto», scritti «0,3 mm».
+  - **I nodi del cluster.** «Non risponde» e «spento» erano diventati la stessa
+    cosa per un nodo che Home Assistant non riesce a raggiungere; i gradi in
+    Fahrenheit finivano contro soglie in Celsius (70 °F, cioè 21°, segnati come
+    caldi); dall'integrazione entrava anche un sensore in GiB dove serviva una
+    percentuale — e 150 GiB diventavano una barra rossa piena; e la fascia non
+    si ridisegnava ai cambi di stato, cioè restava ferma proprio mentre il nodo
+    lavorava.
+  - **Le due mappe di un robot.** Chi toccava la linguetta mentre il disegno di
+    prima era ancora per strada se lo vedeva arrivare sopra quello giusto, e da
+    lì in poi la card accettava il disegno scambiato.
+  - **«m» sono metri.** Una lettura scelta a mano in metri — «50 m» — veniva
+    scritta «50 min».
+  - **Le letture di un dispositivo** sono adesso quelle di *quel* dispositivo,
+    prese dall'elenco del registro invece che indovinate dal nome: prima
+    restava fuori una lettura chiamata in un altro modo, ed entrava il sensore
+    di un altro apparecchio che comincia uguale.
+  - **La tessera delle stampanti** contava due volte la stampante ferma *e*
+    agli sgoccioli: diceva «2» con sotto scritto «1 ferma».
+  - **Le azioni rapide** scritte con una scorciatoia della plancia non si
+    coloravano mai: chi le esegue traduce la scorciatoia, chi ne legge lo stato
+    no.
+
+- **Un solo posto per chiamare un servizio di Home Assistant**
+
+  La stessa funzione stava scritta uguale in tre sezioni — robot, luci, stanze —
+  e le tre copie si erano già scollate: due si mangiavano il rifiuto della
+  promessa, la terza no, e lì un servizio negato da Home Assistant finiva nella
+  console del browser come errore non gestito. Adesso è una sola, e il rifiuto
+  se lo mangia sempre.
+
+- **Le telecamere prendono la strada che Home Assistant dichiara** (#418)
+
+  «La live non parte in nessun modo» su una Arlo, mentre nella finestra di Home
+  Assistant si vede. Nella 1.4.16 avevo scritto che a una telecamera che dorme
+  — Ring, Arlo, Blink — l'HLS si toglie e si dà il proxy MJPEG, «la stessa cosa
+  che fa `camera_view: live`». Quella frase era falsa: `camera_view: live`
+  disegna il flusso, e il proxy è quello che Home Assistant usa quando la
+  telecamera un flusso non ce l'ha. Alla Arlo si stava togliendo proprio la
+  strada che le funziona.
+
+  Adesso la regola è la stessa della `ha-camera-stream` di Home Assistant:
+  `web_rtc` si negozia, `hls` si trasmette, e chi non dichiara nessun flusso
+  prende il proxy. Il dormire non decide più la strada: decide quanto tempo le
+  si concede, e intanto l'istantanea è già a schermo.
+
+  Nella stessa regola c'era un difetto più largo: «dorme» lo decideva anche
+  «dichiara un flusso ma non sta trasmettendo». Lo stato di una telecamera è
+  `idle` finché nessuno la guarda, anche per quella cablata in corridoio — così
+  dormivano tutte, e tutte finivano sul proxy invece che sul loro flusso.
+
+  E il proxy non si butta più via quando c'è un flusso: resta sotto come rete,
+  e si percorre se il flusso cade davvero.
+
+- **Report: un mese senza dati mostrava i numeri del mese prima**
+
+  «Se seleziono 2025 o mesi precedenti non effettua il calcolo.» Non è che non
+  calcolava: teneva i numeri del periodo precedente. Quando i valori di un
+  periodo tornavano vuoti si ripescavano quelli di prima — regola nata per una
+  ragione buona (il Recorder che non risponde: meglio numeri vecchi ma veri che
+  uno zero, che è una bugia) ma applicata anche quando il Recorder risponde
+  «per questo periodo non ho niente», che è una risposta e non un silenzio.
+
+  Il risultato erano i kWh di settembre scritti sotto l'etichetta di agosto: da
+  fuori «non calcola» e «calcola sbagliato» sono la stessa cosa. La differenza
+  fra domanda caduta e periodo vuoto il codice la sapeva già e non se la
+  chiedeva. Adesso sì, e la card del dispositivo scrive **«Nessun dato per
+  questo periodo»** con i trattini, invece di lasciare in piedi numeri che
+  parlano di un altro mese.
+
+- **La ventilazione meccanica non è più «dentro» la Sicurezza o il MiniPC**
+
+  Le sezioni del Config non sono linguette separate: stanno tutte nello stesso
+  corpo, a fisarmonica. La scheda della VMC si appendeva in fondo al corpo — e
+  il fondo del corpo, per chi ha aperto la Sicurezza o il MiniPC, è sotto la
+  Sicurezza o sotto il MiniPC. Adesso si aggancia al tasto che aggiunge
+  un'unità del Clima, che è lo stesso appiglio del blocco Clima rapido: quello
+  infatti non è mai scappato.
+
+- **Varchi: un contatto scritto nelle Finestre è un varco anche lì**
+
+  «Quelle che non sono configurate in varchi non le vedo nel widget relativo.» I
+  Varchi trovavano un contatto solo se Home Assistant gli aveva messo un
+  `device_class`, o se qualcuno lo aveva riscritto a mano nella loro scheda. Ma
+  un contatto messo nella casella dell'anta di una riga delle Finestre è una
+  dichiarazione — l'ha battuta chi abita la casa — e dice «questa è una finestra»
+  meglio di qualunque etichetta automatica. Adesso vale.
+
+  Restano due tessere che raccontano lo stesso contatto, ed è voluto: sono due
+  domande diverse. Chi ne vuole una sola spegne la riga in UNA delle due, che
+  dalla 1.4.15 si può fare per tessera e non per entità.
+
+- **«Rimetti le norme» era una scritta vestita da icona**
+
+  Il tasto portava la classe del cestino: una pastiglia tonda col contenuto
+  centrato, dove ci sta un glifo e non tre parole. Le tre parole andavano a capo
+  due volte dentro il cerchio, e da fuori si legge «manca l'icona» — invece
+  l'icona non c'è mai stata. Adesso è un tasto di testo, e ha la forma di un
+  tasto di testo.
+
+- **Apri porte: quello che si scrive non sparisce più** (#439, #450)
+
+  «Ho riprovato con la nuova versione ma lo switch del cancelletto non viene
+  memorizzato.» Si salvava eccome — ma solo premendo il tasto verde: fino a quel
+  momento l'entità viveva nel documento e in nessun altro posto.
+
+  E «＋ Aggiungi apertura», la matita di un'altra riga e la spunta della conferma
+  ridisegnano l'elenco leggendolo da quello che è salvato: cancellavano in
+  silenzio quello che si era appena battuto. Chi aggiungeva due cancelli di fila
+  perdeva il primo, e da fuori si chiama esattamente «non viene memorizzato».
+
+  Adesso quello che c'è nei campi viene messo al sicuro prima di ogni gesto che
+  ridisegna, e anche quando lo scrive il selettore 🔍 — che annuncia la scelta
+  con un evento che non sale, e che nessun ascoltatore delegato avrebbe mai
+  sentito. La convalida resta al tasto verde, che è dove chi configura si aspetta
+  di essere corretto.
+
+  Per la cronaca: `cover.*` e `button.*` erano già accettati fra le aperture
+  insieme a `lock.*`, `switch.*`, `input_boolean.*`, `input_button.*`, `script.*`
+  e `scene.*` — non serviva una categoria «cancelli» a parte. Era questo a farli
+  sparire.
+
+- **Finestre: sei finestre non fanno undici** (#462)
+
+  «Ne ho 6 ma ne risultano 11, credo conti ancora i sensori e le tapparelle
+  insieme.» Contava esattamente quello. La 1.4.16 aveva corretto il nome della
+  tessera e la didascalia — le tapparelle si *alzano*, le ante si *aprono* — ma
+  il numero grande era rimasto la somma delle righe aperte, e una finestra
+  configurata come si configura, la tapparella più il contatto del suo infisso,
+  di righe ne porta due.
+
+  Adesso il numero conta la cosa di cui la tessera porta il nome: le ante aperte
+  dove i contatti ci sono, i motori alzati dove non ce n'è nessuno. Le tapparelle
+  su restano nella didascalia, dove stavano già, e l'anello ha per denominatore
+  lo stesso insieme del numeratore invece di tutte le righe insieme — sei
+  finestre aperte su sei disegnavano poco più di metà anello.
+
+  La regola sta adesso in un modulo puro, e si prova con i numeri: la casa della
+  segnalazione — undici righe, sei finestre — è una delle prove.
 
 ## 1.4.17
 

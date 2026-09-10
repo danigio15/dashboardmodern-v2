@@ -376,6 +376,35 @@ const OGGETTI = Object.freeze({
     <path d="M8.2 8.6h4.4M8.2 12.4h4.4" stroke="#f59e0b" stroke-opacity=".5" stroke-width="1.4"
       stroke-linecap="round" fill="none"/>`,
 
+  /* La stampante: il corpo, il foglio che esce e le quattro cartucce.
+   *
+   * «Volevo chiedere se c'era la possibilita' del controllo delle tv e
+   * stampanti» (#469). L'oggetto e' quello vero, visto un po' dall'alto: il
+   * foglio bianco che esce dalla fessura si vede anche piccolo, ed e' la cosa
+   * che dice «stampante» prima di ogni altra. Le quattro pastiglie sotto sono
+   * le cartucce, coi loro colori veri — nero, ciano, magenta, giallo — che
+   * sono la seconda domanda che uno si fa. */
+  stampanti: `<defs>
+      <linearGradient id="dmoStamC" x1="0" y1="0" x2=".3" y2="1">
+        <stop offset="0" stop-color="#f8fafc"/><stop offset=".5" stop-color="#cbd5e1"/>
+        <stop offset="1" stop-color="#64748b"/></linearGradient>
+      <linearGradient id="dmoStamS" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#334155"/><stop offset="1" stop-color="#0f172a"/></linearGradient>
+      <linearGradient id="dmoStamF" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e2e8f0"/></linearGradient></defs>
+    ${OMBRA(16, 28.2, 9.4)}
+    <path d="M9.6 2.6h12.8v5.4H9.6z" fill="url(#dmoStamF)"/>
+    <rect x="4.6" y="8" width="22.8" height="12.6" rx="3" fill="url(#dmoStamC)"/>
+    <rect x="9.6" y="16.4" width="12.8" height="10.2" rx="1.4" fill="url(#dmoStamF)"/>
+    <rect x="8.6" y="14.6" width="14.8" height="3" rx="1.5" fill="url(#dmoStamS)"/>
+    <path d="M11.8 19.8h8.4M11.8 22.4h6" stroke="#94a3b8" stroke-opacity=".85" stroke-width="1.2"
+      stroke-linecap="round" fill="none"/>
+    <rect x="6.6" y="10.2" width="3" height="2.6" rx="1.3" fill="#0f172a"/>
+    <rect x="17.6" y="10.4" width="2.2" height="2.4" rx="1.1" fill="#0f172a"/>
+    <rect x="20.4" y="10.4" width="2.2" height="2.4" rx="1.1" fill="#06b6d4"/>
+    <rect x="23.2" y="10.4" width="2.2" height="2.4" rx="1.1" fill="#d946ef"/>
+    <rect x="14.8" y="10.4" width="2.2" height="2.4" rx="1.1" fill="#eab308"/>`,
+
   /* La presenza: il rilevatore a muro, con le onde che scendono.
    *
    * «Ci vorrebbe una sezione con i sensori presenza o movimento» (#432).
@@ -403,6 +432,38 @@ const OGGETTI = Object.freeze({
       <path d="M11.4 22.4a6.4 6.4 0 0 1 9.2 0"/>
       <path d="M13.6 25.8a3.4 3.4 0 0 1 4.8 0"/>
     </g>`,
+
+  /* Il citofono a muro, con la fessura della posta.
+   *
+   * «Avendo un intercom ho un button.cancello per aprire, inoltre volevo
+   * chiedere una sezione per la cassetta della posta» (#449). L'oggetto e'
+   * quello che sta accanto alla porta: la scatola chiara appesa al muro, tre
+   * feritoie per la voce e il tasto tondo sotto — verde, perche' e' l'unica
+   * cosa di questa sezione che si comanda. La fessura in basso e' l'altra
+   * meta' della stessa domanda: chi e' passato dal cancello, e cosa ha
+   * lasciato.
+   */
+  citofono: `<defs>
+      <linearGradient id="dmoCitC" x1="0" y1="0" x2=".4" y2="1">
+        <stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#e2e8f0"/>
+        <stop offset="1" stop-color="#94a3b8"/></linearGradient>
+      <linearGradient id="dmoCitG" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#475569"/><stop offset="1" stop-color="#1e293b"/></linearGradient>
+      <radialGradient id="dmoCitB" cx=".35" cy=".3" r=".85">
+        <stop offset="0" stop-color="#6ee7b7"/><stop offset="1" stop-color="#059669"/></radialGradient></defs>
+    ${OMBRA(16, 28.6, 8.2)}
+    <rect x="8.4" y="3.2" width="15.2" height="22.4" rx="4.2" fill="url(#dmoCitC)"/>
+    <rect x="10.6" y="5.8" width="10.8" height="7.4" rx="2.2" fill="url(#dmoCitG)"/>
+    <g fill="#94a3b8" fill-opacity=".9">
+      <rect x="12.2" y="7.6" width="7.6" height="1.1" rx=".55"/>
+      <rect x="12.2" y="9.6" width="7.6" height="1.1" rx=".55"/>
+      <rect x="12.2" y="11.6" width="7.6" height="1.1" rx=".55"/>
+    </g>
+    <circle cx="16" cy="17.4" r="2.6" fill="url(#dmoCitB)"/>
+    <circle cx="15.2" cy="16.6" r=".8" fill="#fff" fill-opacity=".75"/>
+    <rect x="11.4" y="21.6" width="9.2" height="1.8" rx=".9" fill="url(#dmoCitG)"/>
+    <path d="M11.4 22.5h9.2" stroke="#fff" stroke-opacity=".35" stroke-width=".8"
+      stroke-linecap="round" fill="none"/>`,
 
   /* Il server e la rete: il rack con le sue macchine, e il segnale che esce.
    *

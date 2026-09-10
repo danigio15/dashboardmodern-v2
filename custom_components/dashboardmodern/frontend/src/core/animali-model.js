@@ -37,12 +37,14 @@ export const CHIAVE_ANIMALI = "cd_animali";
  * scorre all'infinito non aiuta nessuno. */
 export const MASSIMO_ANIMALI = 12;
 
-/* Le specie che si sanno riconoscere. Il simbolo e' un dato, non una parola:
- * le parole stanno nella sezione. */
+/* Le specie che si sanno riconoscere. Il `disegno` e' il nome nel catalogo —
+ * un dato, come il simbolo: qui dentro non ci va HTML, questo modulo e' puro.
+ * Chi disegna chiede quel nome al catalogo; l'`icona` resta per chi la specie
+ * la deve dire senza poterla disegnare. */
 export const SPECIE = Object.freeze([
-  Object.freeze({ chiave: "gatto", icona: "🐱" }),
-  Object.freeze({ chiave: "cane", icona: "🐶" }),
-  Object.freeze({ chiave: "altro", icona: "🐾" }),
+  Object.freeze({ chiave: "gatto", icona: "🐱", disegno: "cat" }),
+  Object.freeze({ chiave: "cane", icona: "🐶", disegno: "dog" }),
+  Object.freeze({ chiave: "altro", icona: "🐾", disegno: "pet" }),
 ]);
 
 export function specieDiSerie(chiave) {
@@ -752,6 +754,7 @@ export function vistaAnimale(animale = {}, states = {}, adesso = 0) {
     nome: suo.nome,
     specie: suo.specie,
     icona: specieDiSerie(suo.specie).icona,
+    disegno: specieDiSerie(suo.specie).disegno,
     foto: suo.foto,
     stanza: suo.stanza,
     dispositivi: suo.dispositivi,

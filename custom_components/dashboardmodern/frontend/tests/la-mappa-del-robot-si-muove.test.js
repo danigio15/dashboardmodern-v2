@@ -54,7 +54,9 @@ test("il momento si segna prima della risposta, non dopo", () => {
   /* Una richiesta che fallisce non deve tornare al beat dopo: su una rete
    * lenta si accoderebbero. */
   const dentro = sezione.slice(sezione.indexOf("if (conGettone) {"));
-  const segna = dentro.indexOf("mappeChieste.set(view.entity, Date.now())");
+  /* La chiave e' quella della MAPPA, non del robot: da #468 un robot puo'
+   * averne piu' d'una, e il momento dell'ultima richiesta e' di ognuna. */
+  const segna = dentro.indexOf("mappeChieste.set(chiave, Date.now())");
   const chiede = dentro.indexOf("await root.fetch(picture");
   assert.ok(segna > 0 && chiede > 0);
   assert.ok(segna < chiede, "il momento si segna prima di chiedere");
@@ -62,4 +64,21 @@ test("il momento si segna prima della risposta, non dopo", () => {
 
 test("niente timer nuovo: il battito è quello del disegno", () => {
   assert.doesNotMatch(sezione, /setInterval/);
+});
+
+/* ── quello che la revisione della #481 ha trovato ─────────────────────── */
+
+test("una mappa che arriva quando non è più quella guardata se ne va in silenzio", () => {
+  /* Le due mappe di un robot condividono lo stesso riquadro: chi tocca la
+   * linguetta mentre il disegno di prima è ancora per strada se lo vedeva
+   * arrivare sopra quello giusto — e il suo `onload` metteva a memoria
+   * «pronta» sotto il nome sbagliato, così i giri successivi accettavano il
+   * disegno scambiato per sempre. */
+  assert.match(sezione, /image\.dataset\.dmMappa = chiave;/);
+  assert.match(sezione, /const suaAncora = \(\) => image\.dataset\.dmMappa === chiave;/);
+  /* Il controllo sta in tutt'e quattro i punti in cui si scrive qualcosa. */
+  const quante = (sezione.match(/suaAncora\(\)/g) || []).length;
+  assert.ok(quante >= 4, `il controllo si fa in ogni ritorno, non solo in uno (${quante})`);
+  /* E il disegno inutile non resta in memoria. */
+  assert.match(sezione, /revokeObjectURL\?\.\(objectUrl\)/);
 });

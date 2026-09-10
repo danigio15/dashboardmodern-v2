@@ -19,9 +19,11 @@
  * c'e' soltanto la pagina, la sua voce nella barra e la scheda che tiene
  * l'elenco: cioe' esattamente la cosa che mancava, e nient'altro.
  */
+import { formatPowerLabel } from "../core/appliance-card-view-model.js";
 import { lightSummary, lightView } from "../core/light-model.js";
 import { directEmoji } from "../core/personalization-catalog.js";
 import { eEntitaDiPresa, normalizzaPrese, presePerStanza } from "../core/prese-model.js";
+import { wattsFromState } from "../core/signed-energy.js";
 import { iconGlyphMarkup, openIconPicker } from "./icon-engine-section.js";
 import { pageCardMarkup, pageSummaryMarkup } from "./lights-page-section.js";
 import {
@@ -97,13 +99,36 @@ function stanze() {
   return Array.isArray(elenco) ? elenco : [];
 }
 
+/* Quanti watt sta tirando la presa, in parole (#465).
+ *
+ * Il numero lo legge `wattsFromState`, che e' la risposta unica della plancia
+ * alla domanda «quanti watt sono» — sa di kW e di mW, e senza unita' dichiarata
+ * assume i watt come ha sempre fatto il runtime. La forma la da'
+ * `formatPowerLabel`, la stessa degli elettrodomestici: due misure della stessa
+ * cosa scritte in due modi diversi sono due cose diverse per chi legge.
+ *
+ * Un wattmetro che non risponde non scrive «0 W»: zero watt e' una notizia —
+ * vuol dire che non sta consumando — e darla quando non si sa sarebbe
+ * inventarla. */
+export function consumoDellaPresa(presa, states) {
+  const entity = clean(presa?.power);
+  if (!entity) return "";
+  const watt = wattsFromState(states?.[entity]);
+  return watt == null ? "" : formatPowerLabel(watt);
+}
+
 function vistaDi(presa, states = allStates()) {
-  return lightView(presa.entity, {
-    name: presa.name,
-    state: states?.[presa.entity],
-    room: presa.room_id,
-    comandabile: siComanda(presa.entity),
-  });
+  return {
+    ...lightView(presa.entity, {
+      name: presa.name,
+      state: states?.[presa.entity],
+      room: presa.room_id,
+      comandabile: siComanda(presa.entity),
+    }),
+    /* La scheda e' quella delle luci, e una luce un wattmetro non ce l'ha: il
+     * campo esce solo di qui, e li' si disegna solo se c'e'. */
+    consumo: consumoDellaPresa(presa, states),
+  };
 }
 
 /* ── la pagina e la sua voce nella barra ─────────────────────────────────── */
@@ -184,11 +209,19 @@ function insegnaLaVisibilita() {
 function gruppoMarkup(gruppo, states) {
   const viste = gruppo.prese.map((presa) => vistaDi(presa, states));
   const riepilogo = lightSummary(viste);
+  /* Le card dentro la griglia delle Luci, che le mette in colonne (#474).
+   *
+   * «Sarebbe piu bella come la sezione luci (sul desktop).» E infatti: la
+   * regola della griglia esiste da sempre e nomina anche questa pagina, ma qui
+   * le card uscivano nude sotto il titolo della stanza — senza il contenitore
+   * la regola non aveva su cosa applicarsi, e su un monitor restavano una per
+   * riga mentre le luci accanto stavano su tre colonne. La stessa plancia con
+   * due layout diversi per la stessa cosa. */
   return `<div class="dm-lucip-room" data-dm-prese-group="${esc(gruppo.room)}" role="heading" aria-level="3">
-      <span>${esc(gruppo.room)}</span>
+      <span class="dm-lucip-room-name">${esc(gruppo.room)}</span>
       <span class="dm-lucip-room-count">${pageSummaryMarkup(riepilogo)}</span>
     </div>
-    ${viste.map((vista) => pageCardMarkup(vista)).join("")}`;
+    <div class="dm-lucip-grid">${viste.map((vista) => pageCardMarkup(vista)).join("")}</div>`;
 }
 
 function vuotoMarkup() {
@@ -208,7 +241,7 @@ function firma(gruppi, states) {
     .flatMap((gruppo) =>
       gruppo.prese.map(
         (presa) =>
-          `${gruppo.room}~${presa.entity}~${presa.name}~${clean(states?.[presa.entity]?.state)}~${siComanda(presa.entity)}`,
+          `${gruppo.room}~${presa.entity}~${presa.name}~${clean(states?.[presa.entity]?.state)}~${siComanda(presa.entity)}~${consumoDellaPresa(presa, states)}`,
       ),
     )
     .join("|");
@@ -270,7 +303,7 @@ function rigaMarkup(presa, indice) {
     <div class="dm-presa-icon" aria-hidden="true">${iconaPresaMarkup(presa.icon, 22)}</div>
     <div class="ed-row-main">
       <div class="ed-row-new">${esc(presa.name)}</div>
-      <div class="ed-row-old mono">${esc(presa.entity)}${stanza ? ` · 🏠 ${esc(clean(stanza.name))}` : ""}</div>
+      <div class="ed-row-old mono">${esc(presa.entity)}${stanza ? ` · 🏠 ${esc(clean(stanza.name))}` : ""}${presa.power ? ` · ⚡ ${esc(presa.power)}` : ""}</div>
     </div>
     <button type="button" class="ed-del" data-presa-edit title="${esc(t("Modifica", "Edit"))}">✏️</button>
     <button type="button" class="ed-del" data-presa-del title="${esc(t("Elimina", "Delete"))}">🗑️</button>
@@ -298,6 +331,13 @@ export function renderPreseEditor(target) {
     <div class="ed-sec-title">${corrente ? `✏️ ${esc(t("Modifica presa", "Edit socket"))}` : `＋ ${esc(t("Aggiungi presa", "Add socket"))}`}</div>
     <label class="ed-slot"><span class="ed-slot-lbl">${esc(t("Nome", "Name"))}</span><input id="ed-presa-name" class="ed-input" value="${esc(corrente?.name || "")}" placeholder="${esc(t("TV Salotto", "Living-room TV"))}"></label>
     <label class="ed-slot"><span class="ed-slot-lbl">${esc(t("Entità Home Assistant", "Home Assistant entity"))}</span><span class="ed-form-row"><input id="ed-presa-ent" class="ed-input mono" value="${esc(corrente?.entity || "")}" placeholder="switch.tv_salotto" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-presa-pick aria-label="${esc(t("Scegli entità", "Choose entity"))}">🔍</button></span></label>
+    <label class="ed-slot"><span class="ed-slot-lbl">${esc(t("Consumo (facoltativo)", "Power draw (optional)"))}</span><span class="ed-form-row"><input id="ed-presa-power" class="ed-input mono" value="${esc(corrente?.power || "")}" placeholder="sensor.tv_salotto_power" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-presa-power-pick aria-label="${esc(t("Scegli entità", "Choose entity"))}">🔍</button></span></label>
+    <div class="ed-hint">${esc(
+      t(
+        "Il wattmetro della presa, se ce l'ha: la card scrive quanto sta consumando accanto allo stato. Senza, la card resta com'è.",
+        "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.",
+      ),
+    )}</div>
     <div class="ed-form-row">
       <label class="ed-slot"><span class="ed-slot-lbl">${esc(t("Icona", "Icon"))}</span><span class="ed-form-row dm-presa-icon-row"><input id="ed-presa-icon" class="ed-input" value="${esc(corrente?.icon || ICONA_PRESA_PREDEFINITA)}" hidden><button type="button" class="dm-presa-icon-btn" data-presa-icon-pick aria-label="${esc(t("Scegli icona dal catalogo", "Choose icon from the catalog"))}" title="${esc(t("Scegli icona dal catalogo", "Choose icon from the catalog"))}">${iconaPresaMarkup(corrente?.icon, 26)}</button></span></label>
       <label class="ed-slot"><span class="ed-slot-lbl">${esc(t("Stanza", "Room"))}</span><select id="ed-presa-room" class="ed-input">${opzioniStanza(corrente?.room_id)}</select></label>
@@ -331,6 +371,7 @@ function leggiModulo() {
   return {
     name: clean(doc?.getElementById("ed-presa-name")?.value),
     entity: clean(doc?.getElementById("ed-presa-ent")?.value),
+    power: clean(doc?.getElementById("ed-presa-power")?.value),
     icon: clean(doc?.getElementById("ed-presa-icon")?.value) || ICONA_PRESA_PREDEFINITA,
     room_id: clean(doc?.getElementById("ed-presa-room")?.value),
     bloccata: Boolean(doc?.getElementById("ed-presa-lock")?.checked),
@@ -350,6 +391,11 @@ function onEditorClick(event) {
   if (event.target.closest("[data-presa-pick]")) {
     event.preventDefault();
     root.wzPickEntity?.(doc.getElementById("ed-presa-ent"));
+    return;
+  }
+  if (event.target.closest("[data-presa-power-pick]")) {
+    event.preventDefault();
+    root.wzPickEntity?.(doc.getElementById("ed-presa-power"));
     return;
   }
   if (event.target.closest("[data-presa-icon-pick]")) {
@@ -394,6 +440,7 @@ function onEditorClick(event) {
       entity: modulo.entity,
       icon: modulo.icon,
       room_id: modulo.room_id,
+      power: modulo.power,
     };
     /* Se la riga cambia entita', il blocco non resta appeso alla vecchia:
      * cd_solo_lettura e' la guardia condivisa coi comandi di tutta la

@@ -17,11 +17,11 @@ import test from "node:test";
 import { readFile } from "node:fs/promises";
 
 import {
-  comandiDelRobot,
-  comandoDelRobot,
+  comandiDelDispositivo,
+  comandoDelDispositivo,
   elencoComandi,
   genereDelComando,
-} from "../src/core/robot-model.js";
+} from "../src/core/comandi-accanto.js";
 
 const leggi = (percorso) => readFile(new URL(`../src/${percorso}`, import.meta.url), "utf8");
 
@@ -29,37 +29,37 @@ test("uno script e' un comando valido per un elettrodomestico, e si accende", ()
   /* E' la strada che l'asciugatrice prende: `hon.start_program` con il suo
    * programma non e' un'entita', uno script che la chiama si'. */
   assert.equal(genereDelComando("script.asciugatrice_rapido_30"), "tasto");
-  assert.deepEqual(comandoDelRobot({ entity: "script.asciugatrice_rapido_30" }), {
+  assert.deepEqual(comandoDelDispositivo({ entity: "script.asciugatrice_rapido_30" }), {
     domain: "script",
     service: "turn_on",
     data: { entity_id: "script.asciugatrice_rapido_30" },
   });
   /* E gli altri domini che la scheda accetta fanno quello che promettono. */
   assert.equal(
-    comandoDelRobot({ entity: "button.asciugatrice_avvio" }).service,
+    comandoDelDispositivo({ entity: "button.asciugatrice_avvio" }).service,
     "press",
     "un tasto si preme",
   );
   assert.equal(
-    comandoDelRobot({ entity: "switch.asciugatrice_eco" }).service,
+    comandoDelDispositivo({ entity: "switch.asciugatrice_eco" }).service,
     "toggle",
     "un interruttore si inverte",
   );
-  assert.deepEqual(comandoDelRobot({ entity: "select.asciugatrice_programma" }, "Rapido"), {
+  assert.deepEqual(comandoDelDispositivo({ entity: "select.asciugatrice_programma" }, "Rapido"), {
     domain: "select",
     service: "select_option",
     data: { entity_id: "select.asciugatrice_programma", option: "Rapido" },
   });
   /* Un sensore non e' un comando: non entra nell'elenco e non si preme. */
   assert.equal(genereDelComando("sensor.asciugatrice_umidita"), "");
-  assert.equal(comandoDelRobot({ entity: "sensor.asciugatrice_umidita" }), null);
+  assert.equal(comandoDelDispositivo({ entity: "sensor.asciugatrice_umidita" }), null);
 });
 
 test("l'elenco di un elettrodomestico si legge come quello del robot", () => {
   const scelti = elencoComandi("script.rapido_30, button.avvio ,sensor.umidita,script.rapido_30");
   assert.deepEqual(scelti, ["script.rapido_30", "button.avvio"]);
   /* E la vista che la finestra disegna porta nome, genere e disponibilita'. */
-  const vista = comandiDelRobot(
+  const vista = comandiDelDispositivo(
     { entity: "switch.asciugatrice", comandi: scelti },
     {
       "switch.asciugatrice": { state: "on", attributes: { friendly_name: "Asciugatrice" } },
@@ -81,9 +81,12 @@ test("l'elenco di un elettrodomestico si legge come quello del robot", () => {
 
 test("la scheda dell'elettrodomestico ha il campo «Altri comandi» (#338)", async () => {
   const editor = await leggi("sections/appliance-editor-section.js");
-  /* Le regole sono quelle del robot: un elenco solo, non due. */
-  assert.match(editor, /from "\.\.\/core\/robot-model\.js"/);
-  assert.match(editor, /comandiSuggeriti as comandiVicini/);
+  /* Le regole dei comandi sono una sola copia per tutti: stavano nel modello
+   * del robot perche' li' e' arrivata la domanda per prima, adesso stanno in
+   * un modulo loro che robot, elettrodomestici e lettori vedono uguale. Un
+   * elenco solo, non tre. */
+  assert.match(editor, /from "\.\.\/core\/comandi-accanto\.js"/);
+  assert.match(editor, /comandiVicini/);
   /* Il campo: pastiglie, il «＋», e le proposte. La lente non la disegna
    * questa scheda: il campo dichiara di volere un'entita' col suo placeholder,
    * e la pastiglia «Scegli entità» di casa gliela mette addosso — una seconda
@@ -108,8 +111,8 @@ test("la scheda dell'elettrodomestico ha il campo «Altri comandi» (#338)", asy
 test("la finestra dell'elettrodomestico li disegna, e non li disegna due volte", async () => {
   const popup = await leggi("sections/appliance-detail-popup-section.js");
   /* Stesso vocabolario, stesso verbo. */
-  assert.match(popup, /comandiDelRobot as comandiScelti/);
-  assert.match(popup, /comandoDelRobot as servizioDelComando/);
+  assert.match(popup, /comandiDelDispositivo as comandiScelti/);
+  assert.match(popup, /comandoDelDispositivo as servizioDelComando/);
   assert.match(popup, /function aggiungiAltriComandi/);
   assert.match(popup, /t\("Altri comandi", "Other commands"\)/);
   /* Il ponte vuole il bersaglio da una parte e i parametri dall'altra. */

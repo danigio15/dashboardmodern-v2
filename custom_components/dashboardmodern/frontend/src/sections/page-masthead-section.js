@@ -200,6 +200,23 @@ const PAGES = Object.freeze([
     it: ["Presenza", "Movimento · Stanze libere · Ultimo passaggio"],
     en: ["Presence", "Motion · Free rooms · Last seen"],
   },
+  /* Il citofono e la cassetta della posta, la segnalazione #449: due domande
+   * che si fanno sulla stessa porta, e il sottotitolo le dice tutte e due. */
+  {
+    id: "page-citofono",
+    tint: ["249,115,22", "37,99,235"],
+    it: ["Citofono e posta", "Chi suona · Apri · Cassetta"],
+    en: ["Intercom and mail", "Who rings · Open · Mailbox"],
+  },
+  /* Le stampanti (#469): «volevo chiedere se c'era la possibilità del
+   * controllo delle tv e stampanti». Della stampante si guardano due cose, e
+   * il sottotitolo le dice tutt'e due. */
+  {
+    id: "page-stampanti",
+    tint: ["100,116,139", "14,165,233"],
+    it: ["Stampanti", "Pronte · Inchiostro · Pagine"],
+    en: ["Printers", "Ready · Ink · Pages"],
+  },
   {
     id: "page-rifiuti",
     tint: ["34,197,94", "14,165,233"],

@@ -16,9 +16,11 @@
  * strada impossibile venga saltata, con il suo perche' scritto nei registri,
  * invece di essere aspettata, e che il giro intero resti sotto il secondo.
  *
- * Delle due saltate ne e' rimasta una: il MJPEG adesso si prova anche a chi
- * dorme, ed e' la strada che ha ridato il video alle Arlo. Il perche' sta
- * accanto all'asserzione che lo pretende.
+ * Delle due saltate ne e' rimasta una: il MJPEG non si salta piu'. Non e'
+ * pero' la strada scelta — quella la dichiara Home Assistant, e per una Ring o
+ * un'Arlo che dicono `hls` e' l'HLS, la stessa che funziona nella finestra di
+ * Home Assistant (#418) — e' la rete sotto, per quando il flusso cade davvero.
+ * Il perche' sta accanto all'asserzione che lo pretende.
  */
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";

@@ -35,12 +35,15 @@ import {
   roomSceneSummary,
 } from "../core/room-overview.js";
 import { CHIAVE_VERSI, insiemeInvertiti } from "../core/verso-aperture.js";
+import { climatePanelMarkup } from "./home-widgets-section.js";
 import { pageCardMarkup } from "./lights-page-section.js";
+import { comandiMediaMarkup } from "./media-player-section.js";
 import { azioniDellaPorta } from "../core/security-door-model.js";
 import { configuredSecurityDoors, parolaDelGesto } from "./security-doors-section.js";
 import { temperatureEntries } from "./beta25-real-device-fixes-section.js";
 import {
   allStates,
+  chiamaServizio,
   clean,
   doc,
   esc,
@@ -589,7 +592,7 @@ function aperturePerEntita() {
   return per;
 }
 
-function rowMarkup(item, blocco, states, aperture = aperturePerEntita()) {
+function rowMarkup(item, blocco, states, aperture = aperturePerEntita(), sotto = "") {
   const entity = entitaVoce(item);
   const porta = aperture.get(entity);
   if (porta) {
@@ -617,7 +620,35 @@ function rowMarkup(item, blocco, states, aperture = aperturePerEntita()) {
       <span class="dm-stanze-title"><b>${esc(nomeVoce(item, states))}</b><s data-dm-stanza-stato="${esc(entity)}" data-dm-stanza-blocco="${esc(blocco.key)}">${esc(statoVoce(item, states, blocco.key))}</s></span>
       ${tocco}
     </div>
+    ${sotto}
   </article>`;
+}
+
+/* I comandi veri dentro la card della stanza (#467).
+ *
+ * «The media player card must have media player functions, the climate card
+ * must have climate control functions.» La riga della stanza diceva com'e'
+ * messa una cosa e portava alla sua sezione: per una luce basta — c'e'
+ * l'interruttore — e per una cassa o un condizionatore no, perche' quello che
+ * si vuole fare li' e' mettere in pausa e alzare di un grado, non leggere.
+ *
+ * Niente comandi nuovi: sono gli stessi della pagina Musica e della finestra
+ * del Clima, e i loro gestori stanno sul documento — quindi funzionano anche
+ * qui senza che nessuno li riattacchi. La riga resta la riga di tutte le
+ * altre: i comandi si aggiungono sotto, non al posto suo. */
+function comandiDellaVoce(item, blocco, states) {
+  const entity = entitaVoce(item);
+  if (!entity) return "";
+  if (blocco.key === "media") {
+    const riga = letturaDelLettore(
+      { entity, nome: nomeVoce(item, states) },
+      states,
+      root.resolveEntity || ((valore) => valore),
+    );
+    return riga.muto ? "" : comandiMediaMarkup(riga);
+  }
+  if (blocco.key === "clima") return climatePanelMarkup(entity);
+  return "";
 }
 
 /* Dove si comanda davvero ogni tipo di cosa. */
@@ -658,7 +689,17 @@ export function blockMarkup(blocco, states) {
             );
           })
           .join("")
-      : blocco.voci.map((item) => rowMarkup(item, conTab, states)).join("");
+      : (() => {
+          /* La mappa delle aperture si legge una volta per blocco: prima la
+           * rifaceva ogni riga, e con dieci righe erano dieci letture della
+           * stessa configurazione. */
+          const aperture = aperturePerEntita();
+          return blocco.voci
+            .map((item) =>
+              rowMarkup(item, conTab, states, aperture, comandiDellaVoce(item, conTab, states)),
+            )
+            .join("");
+        })();
   return `<h2 class="dm-stanze-h"><span>${esc(nomeBlocco(blocco))}</span><span class="dm-stanze-n">${blocco.voci.length}</span></h2>
     <div class="dm-stanze-grid">${card}</div>`;
 }
@@ -782,25 +823,6 @@ function schedule() {
 
 /* ─────────────────────────────────── ascolto ────────────────────────────── */
 
-function callService(command) {
-  if (!command) return false;
-  try {
-    if (typeof root.cdCallServiceJson === "function") {
-      root.cdCallServiceJson(command.domain, command.service, command.data);
-      return true;
-    }
-    if (typeof root.dmCallHaService === "function") {
-      root.dmCallHaService(command.domain, command.service, command.data)?.catch?.(() => {});
-      return true;
-    }
-    if (typeof root.callService === "function") {
-      root.callService(command.domain, command.service, command.data);
-      return true;
-    }
-  } catch (_error) {}
-  return false;
-}
-
 function runScene(on) {
   const states = allStates();
   const pagina = pickRoomPage(roomPages(), state.room);
@@ -808,7 +830,7 @@ function runScene(on) {
   for (const entity of roomSceneEntities(pagina)) {
     const view = lightView(entity, { state: states[entity], comandabile: siComanda(entity) });
     if (view.on === on || !view.available) continue;
-    callService(lightCommand(view, { power: on }));
+    chiamaServizio(lightCommand(view, { power: on }));
   }
   state.signature = "";
   schedule();
@@ -884,7 +906,7 @@ function handleClick(event) {
     const domain = entity.split(".")[0];
     const acceso = accesa(entity, allStates());
     root.navigator?.vibrate?.(8);
-    callService({
+    chiamaServizio({
       domain,
       service: acceso ? "turn_off" : "turn_on",
       data: { entity_id: entity },
@@ -897,6 +919,11 @@ function handleClick(event) {
     tocca.setAttribute("aria-checked", acceso ? "false" : "true");
     return;
   }
+  /* Un tocco su un comando non e' un tocco sulla card (#467): i tasti del
+   * lettore e il pannello del clima stanno DENTRO la riga, e la riga porta
+   * altrove. Senza questo, mettere in pausa cambiava pagina. Chi esegue quei
+   * comandi e' il gestore della loro sezione, che ascolta sul documento. */
+  if (event.target?.closest?.("[data-dm-mp],[data-dm-w-panel]")) return;
   const vai = event.target?.closest?.("[data-dm-stanza-vai]");
   if (vai) {
     const tab = doc?.querySelector?.(`.tab[data-tab="${vai.getAttribute("data-dm-stanza-vai")}"]`);

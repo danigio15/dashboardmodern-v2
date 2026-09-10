@@ -408,6 +408,31 @@ export function applianceAlarm(device = {}, states = {}, mode = "") {
   return /^(on|problem|triggered|alert|alarm|fault|error|leak|open)$/i.test(clean(snapshot.state));
 }
 
+/**
+ * La porta dell'elettrodomestico, quando qualcuno l'ha dichiarata (#471).
+ *
+ * «Potresti aggiungere un entità al frigorifero di apertura chiusura porta? il
+ * classico sensore porte.»
+ *
+ * Su un frigorifero e' l'unica cosa che vale la pena sapere di sfuggita: se e'
+ * rimasta aperta. Non e' un allarme — un frigo aperto per prendere il latte
+ * non e' un guasto — ma non e' nemmeno niente: e' un fatto, e la card lo dice
+ * con la sua pastiglia.
+ *
+ * Torna `null` quando la porta non c'e' o non risponde: aperta e chiusa sono
+ * due risposte, «non lo so» e' un'altra cosa e non deve sembrare «chiusa».
+ */
+export function applianceDoor(device = {}, states = {}) {
+  const snapshot = stateSnapshot(states, device.door_entity);
+  if (!snapshot) return null;
+  const stato = clean(snapshot.state).toLowerCase();
+  if (!stato || stato === "unavailable" || stato === "unknown" || stato === "none") return null;
+  /* I dialetti con cui un contatto dice «aperto»: `on` e' quello dei
+   * binary_sensor, `open` quello delle cover e di certe integrazioni degli
+   * elettrodomestici, che la porta la dichiarano a parole. */
+  return /^(on|open|opened|aperta|aperto|dooropen)$/.test(stato);
+}
+
 export function applianceArtworkType(device = {}) {
   // Si guardano tutti i campi, non solo il primo che ha qualcosa scritto
   // dentro. Un'icona impostata a mano non dice niente al catalogo dei disegni,
@@ -466,6 +491,9 @@ export function applianceCardModel(device = {}, states = {}, options = {}) {
       running,
     }),
     alarm: applianceAlarm(device, states, base.mode),
+    /* La porta, quando e' stata dichiarata: `true` aperta, `false` chiusa,
+     * `null` quando non c'e' — e allora la card non ne parla. */
+    door: applianceDoor(device, states),
     dailyKwh: daily,
     /* Cosa sta facendo, in parole: la fase del programma, i gradi, i giri, il
      * programma. Un apparecchio senza integrazione non ne ha, e la card resta

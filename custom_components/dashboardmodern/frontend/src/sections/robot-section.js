@@ -12,7 +12,6 @@
  * arrivate dopo.
  */
 import {
-  comandoDelRobot,
   drawableRobots,
   robotActions,
   robotCommand,
@@ -21,8 +20,10 @@ import {
   robotView,
   SPECIES_LABELS,
 } from "../core/robot-model.js";
+import { comandoDelDispositivo } from "../core/comandi-accanto.js";
 import {
-allStates,
+  allStates,
+  chiamaServizio,
   clean,
   dashboardStore,
   doc,
@@ -30,12 +31,13 @@ allStates,
   gettoneDiAccesso,
   installStyle,
   readJson,
-  root,
   roomLabel,
+  root,
   section,
   t,
   wrapFunction,
 } from "./shared.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
 
 const KEY = "__DASHBOARDMODERN_ROBOT__";
 const state = (root[KEY] ||= {
@@ -44,6 +46,9 @@ const state = (root[KEY] ||= {
   signature: "",
   mapUrls: new Map(),
   mapPictures: new Map(),
+  /* Quale mappa si sta guardando, per ogni robot (#468). E' una scelta di chi
+   * guarda, non una configurazione: vale finche' la pagina resta aperta. */
+  mappaScelta: new Map(),
 });
 
 export const ROBOT_PAGE_ID = "page-robot";
@@ -195,10 +200,35 @@ function comandiTendineMarkup(view) {
     .join("");
 }
 
+/* Quale mappa si guarda adesso: quella scelta, se e' ancora fra le sue. */
+export function mappaCorrente(view) {
+  const mappe = Array.isArray(view?.mappe) ? view.mappe : [];
+  const scelta = clean(state.mappaScelta.get(clean(view?.entity)));
+  return mappe.find((mappa) => mappa.entity === scelta) || mappe[0] || null;
+}
+
+/* Le linguette delle mappe (#468).
+ *
+ * «In piu' io ho due mappe e mi visualizza solo una.» Con una mappa sola non
+ * c'e' niente da scegliere e le linguette non compaiono: comparirebbero per
+ * dire una cosa sola, che e' il modo di sporcare una scheda. */
+function mappeLinguetteMarkup(view) {
+  const mappe = Array.isArray(view.mappe) ? view.mappe : [];
+  if (mappe.length < 2) return "";
+  const corrente = mappaCorrente(view)?.entity || "";
+  return `<div class="dm-robot-mappe" role="group" aria-label="${esc(t("Mappe del robot", "Robot maps"))}">${mappe
+    .map(
+      (mappa) =>
+        `<button type="button" class="dm-robot-mappa-tab" data-dm-robot-mappa="${esc(mappa.entity)}" aria-pressed="${mappa.entity === corrente}">${esc(mappa.name || mappa.entity)}</button>`,
+    )
+    .join("")}</div>`;
+}
+
 function mapMarkup(view) {
   if (!view.mapEntity)
     return `<div class="dm-robot-map dm-vuota" data-dm-robot-map><span class="dm-robot-map-hint">${esc(t("Nessuna mappa collegata", "No map linked"))}</span></div>`;
-  return `<div class="dm-robot-map" data-dm-robot-map data-dm-map-state="loading"
+  return `${mappeLinguetteMarkup(view)}
+  <div class="dm-robot-map" data-dm-robot-map data-dm-map-state="loading"
       role="button" tabindex="0" data-dm-robot-map-open="${esc(view.entity)}"
       title="${esc(t("Apri la mappa", "Open the map"))}">
     <img alt="${esc(t(`Mappa di ${view.name}`, `Map of ${view.name}`))}" data-dm-robot-map-image decoding="async">
@@ -207,10 +237,32 @@ function mapMarkup(view) {
   </div>`;
 }
 
+/* Le altre letture del robot (#468).
+ *
+ * «Sarebbe possibile aggiungere piu' valori tra quelli che mostra?» Filtro,
+ * spazzole, area pulita, pulizie fatte: quelle che chi configura ha scelto,
+ * col loro nome e la loro unita'. Quelle che si riconoscono portano il
+ * disegno della loro famiglia; le altre il nome e basta — inventare un'icona
+ * per un sensore che non si conosce vorrebbe dire dire una cosa non vera. */
+function lettureMarkup(view) {
+  const letture = Array.isArray(view.letture) ? view.letture : [];
+  if (!letture.length) return "";
+  return `<div class="dm-robot-letture" data-dm-robot-letture>${letture
+    .map(
+      (lettura) =>
+        `<span class="dm-robot-lettura" data-dm-lettura="${esc(lettura.entity)}" title="${esc(lettura.entity)}">
+        ${lettura.disegno ? `<i aria-hidden="true">${disegnoDelCatalogo(lettura.disegno, 22)}</i>` : ""}
+        <small>${esc(lettura.name)}</small>
+        <b data-dm-lettura-valore>${esc(lettura.testo)}</b>
+      </span>`,
+    )
+    .join("")}</div>`;
+}
+
 /* Il segno della specie: il tagliaerba non e' un aspirapolvere e non si
  * traveste da lui — l'icona e l'etichetta piccola lo dicono a colpo d'occhio. */
 function speciesIcon(view) {
-  return view.species === "lawn_mower" ? "🌱" : "🤖";
+  return disegnoDelCatalogo(view.species === "lawn_mower" ? "mower" : "robot", 32);
 }
 
 /* La stanza del robot, scritta come si legge.
@@ -238,7 +290,7 @@ function cardMarkup(view) {
     .map(
       (action) =>
         `<button type="button" class="dm-robot-btn" data-dm-robot-act="${esc(action.act)}" title="${esc(t(action.it, action.en))}">
-          <span aria-hidden="true">${action.glyph}</span><span class="dm-robot-btn-tx">${esc(t(action.it, action.en))}</span>
+          <span aria-hidden="true">${disegnoDelCatalogo(action.disegno, 24)}</span><span class="dm-robot-btn-tx">${esc(t(action.it, action.en))}</span>
         </button>`,
     )
     .join("");
@@ -258,6 +310,7 @@ function cardMarkup(view) {
       ${fanMarkup(view)}
       ${comandiTendineMarkup(view)}
     </div>
+    ${lettureMarkup(view)}
     <p class="dm-robot-error" data-dm-robot-error${view.error ? "" : " hidden"}>${esc(view.error)}</p>
     <div class="dm-robot-actions">${actions}</div>
     ${
@@ -281,7 +334,10 @@ function signatureOf(views) {
         view.name,
         stanzaDelRobot(view),
         view.features,
-        view.mapEntity,
+        /* Quali mappe ci sono e come si chiamano: quando ne arriva una
+         * seconda le linguette devono nascere, non aspettare il prossimo
+         * ridisegno (#468). */
+        (view.mappe || []).map((mappa) => `${mappa.entity}:${mappa.name}`).join("+"),
         view.fanSpeeds.join("+"),
         /* La presenza della batteria decide se la sua casella esiste nel
          * markup: quando compare — il sensore a parte che arriva dopo — la
@@ -293,6 +349,9 @@ function signatureOf(views) {
         (view.comandi || [])
           .map((voce) => `${voce.entity}:${voce.name}:${voce.available}:${voce.opzioni.join("/")}`)
           .join("+"),
+        /* Le letture (#468): quali sono e come si chiamano. Il numero che
+         * portano si aggiorna sul posto, come la batteria. */
+        (view.letture || []).map((lettura) => `${lettura.entity}:${lettura.name}`).join("+"),
       ].join("~"),
     )
     .join("|");
@@ -329,6 +388,14 @@ function syncCard(card, view) {
       if (tendina && tendina !== doc.activeElement && voce.scelta && tendina.value !== voce.scelta)
         tendina.value = voce.scelta;
     }
+  }
+
+  /* Le altre letture (#468): il numero cambia, la casella resta dov'e'. */
+  for (const lettura of view.letture || []) {
+    const casella = card.querySelector(
+      `[data-dm-lettura="${CSS.escape(lettura.entity)}"] [data-dm-lettura-valore]`,
+    );
+    if (casella && casella.textContent !== lettura.testo) casella.textContent = lettura.testo;
   }
 
   const error = card.querySelector("[data-dm-robot-error]");
@@ -637,18 +704,46 @@ const MAPPA_OGNI_MS = 4000;
  * torna col fotogramma di adesso. L'altra — l'immagine messa nella pagina per
  * indirizzo — non si puo' rinfrescare senza cambiare l'indirizzo, e cambiarlo
  * vorrebbe dire rompere la firma del gettone: li' resta la regola di prima. */
+/* Il riquadro prende le proporzioni della mappa (#468).
+ *
+ * «Non me la mette intera.» Il riquadro era quattro terzi comunque: dentro,
+ * una mappa quadrata o alta ci stava tutta ma piccola, con due bande vuote ai
+ * lati — larga la meta' di quanto poteva essere. Le proporzioni giuste sono
+ * quelle del disegno, e il disegno le dice appena arriva.
+ *
+ * Il limite serve perche' una mappa e' una fotografia della casa, e certe
+ * integrazioni la pubblicano lunghissima: senza un tetto, una card diventerebbe
+ * una colonna. Fra tre quarti in altezza e due volte in larghezza ci sta ogni
+ * pianta di casa che si sia mai vista. */
+const MAPPA_PIU_ALTA = 0.75;
+const MAPPA_PIU_LARGA = 2;
+
+function adattaIlRiquadro(host, image) {
+  const larghezza = Number(image?.naturalWidth) || 0;
+  const altezza = Number(image?.naturalHeight) || 0;
+  if (!larghezza || !altezza) return;
+  const proporzione = Math.min(MAPPA_PIU_LARGA, Math.max(MAPPA_PIU_ALTA, larghezza / altezza));
+  host.style.setProperty("aspect-ratio", String(proporzione));
+}
+
 async function loadMap(card, view) {
   const host = card.querySelector("[data-dm-robot-map]");
   const image = card.querySelector("[data-dm-robot-map-image]");
   if (!host || !image) return;
-  const picture = clean(view.mapPicture);
+  /* Il ricordo e' della MAPPA, non del robot: un robot con due mappe le
+   * guarda a turno, e ricordarsi «questo disegno ce l'ho gia'» sotto il nome
+   * del robot vorrebbe dire mostrare il piano di sopra dicendo che e' quello
+   * di sotto (#468). */
+  const mappa = mappaCorrente(view);
+  const chiave = clean(mappa?.entity) || clean(view.entity);
+  const picture = clean(mappa?.picture);
   if (!picture) {
     host.dataset.dmMapState = "missing";
     /* E si scorda quello di prima: se la telecamera torna col disegno di
      * sempre, va ripreso. Tenendo il ricordo, il giro dopo si direbbe «questo
      * ce l'ho gia'» a una mappa che sullo schermo non c'e' piu'. */
-    state.mapPictures.delete(view.entity);
-    state.mapAt?.delete?.(view.entity);
+    state.mapPictures.delete(chiave);
+    state.mapAt?.delete?.(chiave);
     return;
   }
   /* Si ricorda il disegno gia' preso, per non richiederlo uguale a ogni giro.
@@ -664,12 +759,40 @@ async function loadMap(card, view) {
    * riparte. */
   const mappeChieste = (state.mapAt ||= new Map());
   const inMoto = Boolean(view.cleaning || view.mowing);
-  const scaduta = inMoto && Date.now() - (Number(mappeChieste.get(view.entity)) || 0) >= MAPPA_OGNI_MS;
+  const scaduta = inMoto && Date.now() - (Number(mappeChieste.get(chiave)) || 0) >= MAPPA_OGNI_MS;
   const gia =
-    state.mapPictures.get(view.entity) === picture &&
+    state.mapPictures.get(chiave) === picture &&
     host.dataset.dmMapState === "ready" &&
     clean(image.getAttribute("src"));
   if (gia && !scaduta) return;
+
+  /* Chi tocca una linguetta mentre il disegno di prima e' ancora per strada.
+   *
+   * Le due mappe di un robot condividono lo stesso riquadro: la richiesta di
+   * quella di prima puo' tornare DOPO che si e' passati all'altra, e allora
+   * scriveva la sua immagine sopra quella giusta — e il suo `onload` metteva a
+   * memoria «pronta» sotto il nome sbagliato, cosi' i giri successivi
+   * accettavano il disegno scambiato per sempre.
+   *
+   * Il riquadro adesso porta scritto quale mappa sta guardando, e una risposta
+   * che arriva quando non e' piu' la sua se ne va senza toccare niente. */
+  image.dataset.dmMappa = chiave;
+  const suaAncora = () => image.dataset.dmMappa === chiave;
+
+  /* Che il disegno arrivi per gettone o per indirizzo, quello che succede
+   * quando arriva e' lo stesso: si dice che e' pronto, si tiene a mente qual
+   * era, e il riquadro prende le sue proporzioni. */
+  image.onload = () => {
+    if (!suaAncora()) return;
+    host.dataset.dmMapState = "ready";
+    state.mapPictures.set(chiave, picture);
+    adattaIlRiquadro(host, image);
+  };
+  image.onerror = () => {
+    if (!suaAncora()) return;
+    host.dataset.dmMapState = "missing";
+    state.mapPictures.delete(chiave);
+  };
 
   const token = gettoneDiAccesso();
   const conGettone = typeof root.fetch === "function" && Boolean(token);
@@ -681,7 +804,7 @@ async function loadMap(card, view) {
     try {
       /* Il momento si segna PRIMA della risposta: una richiesta che fallisce
        * non deve tornare al beat dopo, o su una rete lenta si accodano. */
-      mappeChieste.set(view.entity, Date.now());
+      mappeChieste.set(chiave, Date.now());
       const response = await root.fetch(picture, {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
@@ -689,24 +812,19 @@ async function loadMap(card, view) {
       if (response.ok) {
         const objectUrl = root.URL?.createObjectURL?.(await response.blob());
         if (objectUrl) {
-          releaseMap(view.entity, objectUrl);
+          if (!suaAncora()) {
+            root.URL?.revokeObjectURL?.(objectUrl);
+            return;
+          }
+          releaseMap(chiave, objectUrl);
           image.src = objectUrl;
-          host.dataset.dmMapState = "ready";
-          state.mapPictures.set(view.entity, picture);
           return;
         }
       }
     } catch (_error) {}
   }
-  image.onload = () => {
-    host.dataset.dmMapState = "ready";
-    state.mapPictures.set(view.entity, picture);
-  };
-  image.onerror = () => {
-    host.dataset.dmMapState = "missing";
-    state.mapPictures.delete(view.entity);
-  };
-  releaseMap(view.entity, picture);
+  if (!suaAncora()) return;
+  releaseMap(chiave, picture);
   image.src = picture;
 }
 
@@ -721,26 +839,29 @@ function releaseMap(entity, next) {
 
 /* ── i comandi ───────────────────────────────────────────────────────────── */
 
-function callService(command) {
-  if (!command) return false;
-  try {
-    if (typeof root.cdCallServiceJson === "function") {
-      root.cdCallServiceJson(command.domain, command.service, command.data);
-      return true;
-    }
-    if (typeof root.dmCallHaService === "function") {
-      root.dmCallHaService(command.domain, command.service, command.data);
-      return true;
-    }
-    if (typeof root.callService === "function") {
-      root.callService(command.domain, command.service, command.data);
-      return true;
-    }
-  } catch (_error) {}
-  return false;
-}
-
 export function handleRobotClick(event) {
+  /* La linguetta di una mappa (#468): cambia quella che si guarda, e basta —
+   * non apre niente e non comanda niente. Sta prima di tutto il resto perche'
+   * le linguette stanno sopra la mappa, e la mappa apre a chi la tocca. */
+  const linguetta = event.target?.closest?.("[data-dm-robot-mappa]");
+  if (linguetta) {
+    event.preventDefault();
+    const card = linguetta.closest("[data-dm-robot]");
+    const scelta = clean(linguetta.dataset.dmRobotMappa);
+    state.mappaScelta.set(clean(card?.dataset?.dmRobot), scelta);
+    for (const tasto of card?.querySelectorAll?.("[data-dm-robot-mappa]") || [])
+      tasto.setAttribute("aria-pressed", String(clean(tasto.dataset.dmRobotMappa) === scelta));
+    /* Il riquadro torna in attesa e si svuota: senza, il disegno di prima
+     * resterebbe sotto gli occhi mentre arriva l'altro, e chi ha appena
+     * toccato «primo piano» starebbe guardando il piano terra. */
+    const host = card?.querySelector?.("[data-dm-robot-map]");
+    const image = card?.querySelector?.("[data-dm-robot-map-image]");
+    if (host) host.dataset.dmMapState = "loading";
+    image?.removeAttribute?.("src");
+    const view = vistaDi(linguetta);
+    if (card && view) loadMap(card, view);
+    return true;
+  }
   /* Il tocco sulla mappa la apre. Sta prima dei comandi perche' la mappa non
    * e' un comando: e' la cosa piu' grande della card, e chi la tocca vuole
    * guardarla da vicino. */
@@ -761,7 +882,7 @@ export function handleRobotClick(event) {
     if (root.navigator?.vibrate) root.navigator.vibrate(12);
     if (voce.genere === "interruttore")
       comando.setAttribute("aria-pressed", String(voce.acceso !== true));
-    callService(comandoDelRobot(voce));
+    chiamaServizio(comandoDelDispositivo(voce));
     schedule();
     return true;
   }
@@ -771,7 +892,7 @@ export function handleRobotClick(event) {
   if (!view) return false;
   event.preventDefault();
   if (root.navigator?.vibrate) root.navigator.vibrate(12);
-  callService(robotCommand(button.dataset.dmRobotAct, view));
+  chiamaServizio(robotCommand(button.dataset.dmRobotAct, view));
   schedule();
   return true;
 }
@@ -795,7 +916,7 @@ function handleFanChange(event) {
       (item) => item.entity === clean(tendina.dataset.dmRobotTendina),
     );
     if (!voce) return;
-    callService(comandoDelRobot(voce, tendina.value));
+    chiamaServizio(comandoDelDispositivo(voce, tendina.value));
     schedule();
     return;
   }
@@ -803,7 +924,7 @@ function handleFanChange(event) {
   if (!select) return;
   const view = vistaDi(select);
   if (!view) return;
-  callService(robotFanCommand(view, select.value));
+  chiamaServizio(robotFanCommand(view, select.value));
   schedule();
 }
 
@@ -832,7 +953,7 @@ function installStyles() {
       #page-robot .dm-robot-wrap{box-sizing:border-box;width:100%;max-width:var(--dm-page-room,none);margin:0 auto;padding:0 4px 18px;display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
       #page-robot .dm-robot-card{display:grid;align-content:start;gap:12px;padding:14px;border:1px solid var(--divider-color,#dbe4ee);border-radius:20px;background:var(--card-bg,#fff);box-shadow:0 18px 34px -28px rgba(15,23,42,.55)}
       #page-robot .dm-robot-head{display:flex;align-items:center;gap:10px;min-width:0}
-      #page-robot .dm-robot-icon{font-size:22px;flex:0 0 auto}
+      #page-robot .dm-robot-icon{display:grid;place-items:center;width:32px;height:32px;flex:0 0 auto}
       #page-robot .dm-robot-title{display:grid;min-width:0;flex:1 1 auto}
       #page-robot .dm-robot-title strong{font-size:15px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       #page-robot .dm-robot-title small{color:var(--secondary-text-color,#64748b);font-size:11.5px;font-weight:700}
@@ -863,6 +984,19 @@ function installStyles() {
         background:rgba(15,23,42,.55);color:#fff;font-size:13px;line-height:1}
       #page-robot .dm-robot-map[data-dm-map-state="ready"] .dm-robot-map-zoom{display:grid}
       #page-robot .dm-robot-map:focus-visible{outline:2px solid #0ea5e9;outline-offset:2px}
+      /* Le linguette delle mappe (#468): una riga sopra il riquadro, che scorre
+         se le mappe sono tante. */
+      #page-robot .dm-robot-mappe{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+      #page-robot .dm-robot-mappe::-webkit-scrollbar{display:none}
+      #page-robot .dm-robot-mappa-tab{flex:0 0 auto;padding:5px 11px;border:1px solid var(--divider-color,#dbe4ee);border-radius:999px;background:var(--card-bg,#fff);font:inherit;font-size:11.5px;font-weight:800;color:var(--text-dim,#64748b);cursor:pointer}
+      #page-robot .dm-robot-mappa-tab[aria-pressed="true"]{border-color:#0ea5e9;background:color-mix(in srgb,#0ea5e9 12%,transparent);color:#0369a1}
+      /* Le altre letture (#468): caselle piccole, una accanto all'altra, che
+         vanno a capo quando non ci stanno. */
+      #page-robot .dm-robot-letture{display:flex;flex-wrap:wrap;gap:6px}
+      #page-robot .dm-robot-lettura{display:inline-flex;align-items:center;gap:7px;min-width:0;padding:6px 10px;border-radius:12px;background:var(--surface-2,#f8fafc);border:1px solid var(--divider-color,#dbe4ee)}
+      #page-robot .dm-robot-lettura>i{flex:0 0 auto;display:grid;place-items:center;line-height:0}
+      #page-robot .dm-robot-lettura>small{min-width:0;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;font-weight:800;letter-spacing:.2px;text-transform:uppercase;color:var(--text-dim,#94a3b8)}
+      #page-robot .dm-robot-lettura>b{font-size:12.5px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap}
       #page-robot .dm-robot-map-hint{position:absolute;color:var(--secondary-text-color,#94a3b8);font-size:12px;font-weight:700;text-align:center;padding:0 12px}
       #page-robot .dm-robot-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
       #page-robot .dm-robot-batt{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800}
@@ -923,7 +1057,8 @@ function installStyles() {
       #page-robot .dm-robot-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:8px}
       #page-robot .dm-robot-btn{display:inline-flex;flex-direction:column;align-items:center;gap:3px;padding:9px 6px;border:1px solid var(--divider-color,#dbe4ee);border-radius:13px;background:var(--card-bg,#fff);font:inherit;font-size:11px;font-weight:800;cursor:pointer;color:var(--text,#0f172a)}
       #page-robot .dm-robot-btn:hover{border-color:#0ea5e9}
-      #page-robot .dm-robot-btn span[aria-hidden]{font-size:16px}
+      #page-robot .dm-robot-btn span[aria-hidden]{display:grid;place-items:center;width:24px;height:24px}
+      #page-robot .dm-robot-btn .dm-appliance-art,#page-robot .dm-robot-icon .dm-appliance-art{display:block;line-height:0}
       /* I comandi a parte (#306): una fila sotto quelli di sempre, separata da
          un filo; l'interruttore acceso si vede dal bordo e dal fondo. */
       #page-robot .dm-robot-comandi{margin-top:8px;padding-top:10px;border-top:1px dashed var(--divider-color,#dbe4ee)}

@@ -18,6 +18,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  ATTESE,
   daProvare,
   stradaScelta,
   strategieDellaTelecamera,
@@ -39,24 +40,32 @@ const CASI = [
   {
     che: "una telecamera di casa col flusso pronto prende l'HLS",
     cam: {},
+    /* Lo stato di una telecamera e' `idle` finche' qualcuno non guarda, anche
+     * per quella cablata in corridoio: non e' quello a dire se dorme. Questa
+     * prova lo scriveva `streaming` per aggirare una regola sbagliata, e cosi'
+     * copriva proprio il caso che non funzionava. */
     stato: {
       entity_id: "camera.ingresso",
-      state: "streaming",
+      state: "idle",
       attributes: { frontend_stream_type: "hls" },
     },
     attesa: "HLS",
   },
   {
-    che: "un'Arlo che dorme prende il proxy dal vivo",
+    che: "un'Arlo col flusso dichiarato prende l'HLS, come nella finestra di Home Assistant",
     cam: {},
-    stato: { entity_id: "camera.arlo_giardino" },
-    attesa: "MJPEG",
+    stato: {
+      entity_id: "camera.aarlo_giardino",
+      state: "idle",
+      attributes: { frontend_stream_type: "hls" },
+    },
+    attesa: "HLS",
   },
   {
-    che: "una che non dichiara niente e non dorme prende l'HLS",
+    che: "una che non dichiara nessun flusso prende il proxy dal vivo",
     cam: {},
     stato: { entity_id: "camera.generica" },
-    attesa: "HLS",
+    attesa: "MJPEG",
   },
 ];
 
@@ -66,9 +75,12 @@ for (const caso of CASI) {
     assert.equal(stradaScelta(strade)?.nome, caso.attesa);
     /* Percorribili: la strada scelta e l'ultima rete. Nient'altro — cioe'
      * nessun'altra attesa da spendere per sentirsi dire no. */
+    /* Percorribili: la strada scelta, il proxy come rete dal vivo, e le
+     * istantanee. Nient'altro — cioe' nessun'altra attesa spesa prima di
+     * cominciare, e nessuna strada dal vivo buttata via per sempre. */
     assert.deepEqual(
       daProvare(strade).map((strada) => strada.nome),
-      [caso.attesa, "Istantanee"],
+      caso.attesa === "MJPEG" ? ["MJPEG", "Istantanee"] : [caso.attesa, "MJPEG", "Istantanee"],
     );
   });
 }
@@ -120,4 +132,46 @@ test("un browser che non sa fare ne' WebRTC ne' HLS resta col proxy dal vivo", (
   /* Non si dice di svegliare una telecamera che non dorme: il proxy qui e' la
    * strada scelta, non la sveglia di una che sta in cloud. */
   assert.equal(strade.find((s) => s.nome === "MJPEG").sveglia, false);
+});
+
+test("il flusso dichiarato batte l'HLS anche quando il browser sa fare tutto (#418)", () => {
+  /* Un'Arlo dichiara `hls` e non sta trasmettendo, perche' nessuno la sta
+   * guardando. Per un po' qui si diceva «dorme, quindi niente HLS»: le si
+   * toglieva proprio la strada che nella finestra di Home Assistant le
+   * funziona, e la segnalazione continuava. */
+  const arlo = strategieDellaTelecamera(
+    {},
+    {
+      entity_id: "camera.aarlo_ingresso",
+      state: "idle",
+      attributes: { frontend_stream_type: "hls" },
+    },
+    {},
+  );
+  const strada = stradaScelta(arlo);
+  assert.equal(strada?.nome, "HLS");
+  /* Il dormire non cambia la strada: cambia il tempo che le si concede. */
+  assert.equal(strada.sveglia, true);
+  assert.equal(strada.attesa, ATTESE.HLS_SVEGLIA);
+  /* Il proxy resta sotto come rete: non si percorre se l'HLS regge, e si
+   * percorre se l'HLS cade — che e' l'unico momento in cui serve. */
+  assert.equal(arlo.find((s) => s.nome === "MJPEG").salta, undefined);
+
+  /* La stessa telecamera in casa: stessa strada, meno attesa. */
+  const casa = strategieDellaTelecamera(
+    {},
+    { entity_id: "camera.ingresso", state: "idle", attributes: { frontend_stream_type: "hls" } },
+    {},
+  );
+  assert.equal(stradaScelta(casa)?.attesa, ATTESE.HLS_LOCALE);
+  assert.equal(stradaScelta(casa)?.sveglia, false);
+});
+
+test("chi non dichiara nessun flusso non spende un'attesa per sentirsi dire no", () => {
+  /* Home Assistant scrive `frontend_stream_type` solo per le entita' che
+   * sanno trasmettere. Dove non c'e', chiedere `camera/stream` vorrebbe dire
+   * pagare un'attesa per un no gia' scritto. */
+  const strade = strategieDellaTelecamera({}, { entity_id: "camera.vecchia" }, {});
+  assert.equal(strade.find((s) => s.nome === "HLS").salta, "senza-flusso-dichiarato");
+  assert.equal(stradaScelta(strade)?.nome, "MJPEG");
 });

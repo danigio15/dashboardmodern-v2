@@ -137,9 +137,15 @@ import { installVarchi } from "./varchi-section.js";
 import { installVarchiEditor } from "./varchi-editor-section.js";
 import { installPresenza } from "./presenza-section.js";
 import { installPresenzaEditor } from "./presenza-editor-section.js";
+import { installCitofono } from "./citofono-section.js";
+import { installCitofonoEditor } from "./citofono-editor-section.js";
+import { installStampanti } from "./stampanti-section.js";
+import { installStampantiEditor } from "./stampanti-editor-section.js";
 import { installVersoBatteriaEditorSection } from "./verso-batteria-editor-section.js";
 import { installMacchine } from "./macchine-e-rete-section.js";
 import { installMacchineEditor } from "./macchine-editor-section.js";
+import { installNodiSection } from "./nodi-section.js";
+import { installNodiEditor } from "./nodi-editor-section.js";
 import { installAgendaEditorSection } from "./agenda-editor-section.js";
 import { installLinguaSection } from "./lingua-section.js";
 import { installSostieniIlProgetto } from "./sostieni-il-progetto-section.js";
@@ -1067,9 +1073,15 @@ export function installSectionRuntime() {
     installVarchiEditor();
     installPresenza();
     installPresenzaEditor();
+    installCitofono();
+    installCitofonoEditor();
+    installStampanti();
+    installStampantiEditor();
     installVersoBatteriaEditorSection();
     installMacchine();
     installMacchineEditor();
+    installNodiSection();
+    installNodiEditor();
     /* Il calendario (#259) ha una pagina sua accanto alla Home, e con le liste
      * ToDo una scheda sola nella configurazione: sono la stessa pagina, e chi
      * le configura le pensa nello stesso momento. */
@@ -1184,6 +1196,8 @@ export function installSectionRuntime() {
         "varchi-editor",
         "presenza",
         "presenza-editor",
+        "stampanti",
+        "stampanti-editor",
         "verso-batteria-editor",
         "macchine-e-rete",
         "macchine-editor",

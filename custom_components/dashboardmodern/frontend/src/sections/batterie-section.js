@@ -26,6 +26,13 @@ import {
   sogliaDelleBatterie,
 } from "../core/batterie-di-casa.js";
 import {
+  CHIAVE_RICARICA,
+  comandoDellaSoglia,
+  normalizzaRicariche,
+  ricaricaDellaBatteria,
+  sogliePronte,
+} from "../core/ricarica-a-soglie.js";
+import {
   allStates,
   clean,
   doc,
@@ -61,10 +68,13 @@ export function batterieInPlancia() {
   const states = allStates();
   /* I nomi si leggono una volta per tutta la pagina, non una per riga. */
   const nomi = readJson(CHIAVE_NOMI_SCELTI, {}) || {};
+  /* Le soglie di ricarica si leggono una volta per tutta la pagina, come i
+   * nomi: sono la configurazione di casa, non una lettura per riga. */
+  const ricariche = normalizzaRicariche(readJson(CHIAVE_RICARICA, []));
   return batterieLette(batterieSorvegliate(), states, {
     soglia: sogliaDiCasa(),
     nome: (entity) => nomeDellaBatteria(entity, states, nomi),
-  });
+  }).map((riga) => ({ ...riga, ricarica: ricaricaDellaBatteria(riga.entity, ricariche) }));
 }
 
 /** Se c'è almeno una batteria da mostrare. */
@@ -165,7 +175,39 @@ function glifoDelLivello(riga) {
 
 /* ── il disegno ───────────────────────────────────────────────────────── */
 
-function rigaMarkup(riga) {
+/* Le due soglie sotto la riga, per quello che si ricarica invece di cambiarsi
+ * (#408).
+ *
+ * «Magari schiacciando mostra le impostazioni per attivare la ricarica, tipo
+ * soglia bassa 20% soglia alta 80%.» Non sono una lettura: sono due numeri che
+ * si spostano, quindi due cursori — e i limiti fin dove si spostano li dichiara
+ * l'entita', non li decidiamo noi. Compaiono solo dove le soglie sono state
+ * dette: una stilo non decide quando smettere di caricarsi. */
+const PAROLA_DELLA_SOGLIA = () => ({
+  bassa: t("Riparte sotto il", "Starts again below"),
+  alta: t("Si ferma sopra il", "Stops above"),
+});
+
+function soglieMarkup(riga, states) {
+  const soglie = sogliePronte(riga.ricarica, states);
+  if (!soglie.length) return "";
+  const parole = PAROLA_DELLA_SOGLIA();
+  return `<div class="dm-batt-soglie">${soglie
+    .map(
+      (soglia) => `<label class="dm-batt-limite">
+      <span class="dm-batt-limite-testa"><span>${esc(parole[soglia.quale])}</span><b data-dm-soglia-valore="${esc(soglia.entity)}">${esc(
+        `${Math.round(soglia.valore)}${soglia.unita}`,
+      )}</b></span>
+      <input type="range" class="dm-batt-limite-cursore" min="${esc(String(soglia.min))}"
+        max="${esc(String(soglia.max))}" step="${esc(String(soglia.passo))}"
+        value="${esc(String(soglia.valore))}" data-dm-soglia="${esc(soglia.entity)}"
+        aria-label="${esc(`${parole[soglia.quale]} — ${riga.name}`)}">
+    </label>`,
+    )
+    .join("")}</div>`;
+}
+
+function rigaMarkup(riga, states = {}) {
   const stato = riga.muta ? "muta" : riga.scarica ? "scarica" : "carica";
   const quanto = riga.muta ? 0 : Math.max(0, Math.min(100, riga.level));
   return `<article class="dm-batt" data-batt="${esc(stato)}" data-dm-entita="${esc(riga.entity)}">
@@ -176,6 +218,7 @@ function rigaMarkup(riga) {
       <span class="dm-batt-barra"><i style="width:${esc(String(quanto))}%"></i></span>
     </div>
     <b class="dm-batt-livello">${esc(riga.muta ? "—" : `${Math.round(riga.level)}%`)}</b>
+    ${soglieMarkup(riga, states)}
   </article>`;
 }
 
@@ -231,11 +274,21 @@ function dipingi() {
   }
   const soglia = sogliaDiCasa();
   const conto = riepilogoBatterie(righe);
-  const firma = `${soglia}|${righe.map((riga) => `${riga.entity}:${riga.level}`).join(",")}`;
+  const states = allStates();
+  /* Anche le soglie entrano nella firma: sono numeri che cambiano, e un
+   * cursore che non si ridisegna resta fermo su quello di prima. */
+  const firma = `${soglia}|${righe
+    .map(
+      (riga) =>
+        `${riga.entity}:${riga.level}:${sogliePronte(riga.ricarica, states)
+          .map((limite) => `${limite.entity}=${limite.valore}`)
+          .join("+")}`,
+    )
+    .join(",")}`;
   if (state.firma === firma) return;
   state.firma = firma;
   dove.innerHTML = `${testaMarkup(conto, soglia)}
-    <div class="dm-batt-elenco">${righe.map(rigaMarkup).join("")}</div>`;
+    <div class="dm-batt-elenco">${righe.map((riga) => rigaMarkup(riga, states)).join("")}</div>`;
 }
 
 function schedule() {
@@ -278,6 +331,17 @@ function installStyles() {
       color:var(--text-dim,#64748b)}
     ${P} .dm-batt-soglia{opacity:.75}
     ${P} .dm-batt-elenco{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+    /* Le due soglie di chi si ricarica: sotto la riga, tutta larga. La riga
+       resta la riga di sempre — tre colonne — e questa e' una quarta cella che
+       le attraversa, cosi' una batteria normale non cambia di un pixel. */
+    ${P} .dm-batt-soglie{grid-column:1/-1;display:grid;gap:8px;margin-top:2px;
+      padding-top:10px;border-top:1px solid color-mix(in srgb,var(--dm-batt) 22%,transparent)}
+    ${P} .dm-batt-limite{display:grid;gap:4px}
+    ${P} .dm-batt-limite-testa{display:flex;align-items:baseline;justify-content:space-between;
+      gap:8px;font-size:10.5px;font-weight:850;color:var(--text-dim,#64748b)}
+    ${P} .dm-batt-limite-testa b{font-size:12.5px;font-weight:900;color:var(--text,#0f172a);
+      font-variant-numeric:tabular-nums}
+    ${P} .dm-batt-limite-cursore{width:100%;accent-color:var(--dm-batt);margin:0}
     ${P} .dm-batt{
       --dm-batt:#10b981;
       display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;
@@ -307,10 +371,46 @@ function installStyles() {
   );
 }
 
+/* Spostare una soglia (#408).
+ *
+ * Il numero accanto si scrive subito, mentre il dito trascina: aspettare che
+ * Home Assistant ritorni lo stato vorrebbe dire un cursore che si muove e un
+ * numero fermo. La chiamata invece parte quando il dito si stacca — `change`,
+ * non `input` — o si manderebbe un comando per ogni pixel percorso.
+ *
+ * Il servizio lo decide il dominio: `number.set_value` e
+ * `input_number.set_value` sono due servizi diversi, e chiamare quello
+ * sbagliato non da' errore — non fa niente, che da fuori e' un cursore rotto.
+ */
+function onSoglia(event) {
+  const cursore = event.target?.closest?.("[data-dm-soglia]");
+  if (!cursore) return;
+  const entity = clean(cursore.dataset.dmSoglia);
+  const chiamata = comandoDellaSoglia(entity, cursore.value);
+  if (!chiamata) return;
+  const scritta = cursore
+    .closest(".dm-batt-limite")
+    ?.querySelector(`[data-dm-soglia-valore="${CSS.escape(entity)}"]`);
+  if (scritta) scritta.textContent = `${Math.round(Number(cursore.value))}%`;
+  if (event.type !== "change") return;
+  root.navigator?.vibrate?.(6);
+  try {
+    if (typeof root.dmCallHaService === "function")
+      root.dmCallHaService(chiamata.domain, chiamata.service, chiamata.data);
+    else if (typeof root.callService === "function")
+      root.callService(chiamata.domain, chiamata.service, chiamata.data);
+    else (root.hass || root._hass)?.callService?.(chiamata.domain, chiamata.service, chiamata.data);
+  } catch (errore) {
+    root.console?.warn?.("[DashboardModern] soglia di ricarica", errore);
+  }
+}
+
 export function installBatterie() {
   if (!doc || state.installed) return false;
   state.installed = true;
   installStyles();
+  doc.addEventListener("input", onSoglia);
+  doc.addEventListener("change", onSoglia);
   ensureBatteriePage();
   ensureBatterieTab();
   for (const nome of ["render", "cdApplyNavVis"]) {

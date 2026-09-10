@@ -206,7 +206,22 @@
  * CARICA, e da un valore solo non si indovina. È una cosa dell'impianto, non
  * del vetro: la batteria è una sola per tutta la casa, e chi ha girato il verso
  * dal computer non deve vedere le frecce al contrario sul telefono. */
-export const CONFIG_KEYS_REVISION = 41;
+/* La revisione 42 aggiunge le soglie di ricarica (`cd_batterie_ricarica`,
+ * #408): quale batteria e' quella di un tablet a muro, e quali due entita'
+ * dicono sotto quanto riparte e sopra quanto si ferma. Una stilo non decide
+ * quando smettere di caricarsi; un tablet appeso al muro si', e chi lo
+ * configura da un telefono deve ritrovarlo dal tablet stesso. */
+/* La revisione 43 aggiunge le stampanti (`cd_stampanti`, #469): quale entita'
+ * dice se la stampante e' pronta, e — quando non si trovano da sole — quali
+ * dicono quanto inchiostro resta. E' roba di casa, non del vetro: la
+ * stampante e' una sola, e chi la configura dal computer deve ritrovarla dal
+ * telefono. */
+/* La revisione 45 aggiunge il citofono e la cassetta della posta
+ * (`cd_citofono`, #449): «avendo un intercom ho un button.cancello per aprire,
+ * inoltre volevo chiedere una sezione per la cassetta della posta». Chi apre,
+ * chi suona, e i due sensori della cassetta: sono cose del cancello di casa,
+ * uguali su ogni dispositivo che le guarda. */
+export const CONFIG_KEYS_REVISION = 45;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -253,6 +268,15 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_luci_room_order",
   // I sensori porta/finestra che parlano al contrario (#244): ON = chiuso.
   "cd_stati_invertiti",
+  // Gli altri nodi del cluster (#470): «poter configurare piu' di un mini pc in
+  // modo da monitorare piu' nodi, comodo per chi ha un cluster proxmox». La
+  // scheda grande resta il computer su cui gira Home Assistant; qui stanno gli
+  // altri, con le loro cinque entita' facoltative.
+  "cd_nodi",
+  /* Il citofono e la cassetta della posta (#449): chi apre il cancello, chi
+   * suona, e i due sensori della cassetta. E' roba di casa — il cancello e' uno
+   * solo — e chi la configura dal telefono la deve ritrovare dal computer. */
+  "cd_citofono",
   // Le voci della parte Caldo del Clima (caldaia, pompe): lista libera.
   "cd_termico_caldo",
   // I programmi rapidi della lavatrice: nome, entita', icona.
@@ -285,6 +309,13 @@ export const CONFIG_KEYS = Object.freeze([
   // Sotto quanto una batteria e' da cambiare (#398): una soglia per tutta la
   // casa, non per questo dispositivo.
   "cd_batterie",
+  /* Le soglie con cui si ricarica un tablet a muro (#408): quale batteria,
+   * sotto quanto riparte, sopra quanto si ferma. Le entita' sono di casa e
+   * la scelta pure: chi la fa dal telefono la vuole ritrovare sul tablet. */
+  "cd_batterie_ricarica",
+  /* Le stampanti (#469): l'entita' dello stato, e le cartucce quando non si
+   * lasciano indovinare dal nome. */
+  "cd_stampanti",
   "cd_calendari",
   // Le sezioni che si fa l'utente (#262): titolo, icona, e le entita' dentro.
   "cd_sezioni_mie",

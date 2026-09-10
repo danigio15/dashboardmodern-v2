@@ -193,9 +193,57 @@ function grezze() {
   return Array.isArray(stored) ? stored : [];
 }
 
+/* Quello che è scritto nei campi, messo al sicuro PRIMA di ridisegnare (#439,
+ * #450).
+ *
+ * «Lo switch del cancelletto non viene memorizzato.» Si salvava eccome, ma
+ * solo premendo il tasto verde: fino a quel momento l'entità viveva nel
+ * documento e in nessun altro posto. E «＋ Aggiungi apertura», la matita di
+ * un'altra riga e la spunta della conferma RIDISEGNANO l'elenco leggendolo da
+ * quello che è salvato — cioè cancellano in silenzio quello che si era appena
+ * battuto. Chi aggiunge due cancelli di fila perde il primo, e da fuori si
+ * chiama «non viene memorizzato».
+ *
+ * Non serve un secondo salvataggio: le righe grezze sono già una forma
+ * legittima di questa configurazione — è la stessa che scrive «Aggiungi
+ * apertura» quando crea la riga vuota, ed è la sezione a normalizzarle. Qui si
+ * ricopia quello che c'è nei campi, e basta: nessuna convalida, nessun
+ * messaggio. La convalida resta al tasto verde, che è dove chi configura si
+ * aspetta di essere corretto.
+ */
+function raccogli(body) {
+  const raw = grezze();
+  const next = raw.slice();
+  let cambiato = false;
+  for (const riga of body?.querySelectorAll?.("[data-door-index]") || []) {
+    const index = Number(riga.dataset.doorIndex);
+    if (!Number.isFinite(index) || !next[index]) continue;
+    const letta = leggiRiga(riga, next[index]);
+    if (JSON.stringify(letta) === JSON.stringify(next[index])) continue;
+    next[index] = letta;
+    cambiato = true;
+  }
+  if (cambiato) writeJsonIfChanged(CONFIG_KEY, next);
+  return cambiato;
+}
+
+/* Il selettore 🔍 scrive nel campo e annuncia con un `change` che NON sale:
+ * un ascoltatore delegato in bolla non lo sentirebbe mai. In cattura invece
+ * l'evento passa di qui comunque, perché la fase di cattura scende fino al
+ * bersaglio anche per gli eventi che non salgono. */
+function onChange(event) {
+  const body = doc?.getElementById("ed-body");
+  if (!body || activeTab() !== DOORS_EDITOR_TAB || !body.contains(event.target)) return;
+  if (!event.target?.closest?.("[data-door-index]")) return;
+  raccogli(body);
+}
+
 function onClick(event) {
   const body = doc?.getElementById("ed-body");
   if (!body || activeTab() !== DOORS_EDITOR_TAB || !body.contains(event.target)) return;
+  /* Prima di qualunque gesto: un clic su un tasto che ridisegna arriva sempre
+   * dopo che il dito ha lasciato il campo, e quel campo va letto adesso. */
+  raccogli(body);
 
   const conferma = event.target.closest("[data-door-conferma]");
   if (conferma) {
@@ -400,6 +448,7 @@ export function installSecurityDoorsEditorSection() {
   installStyles();
   ensureDoorsEditorTab();
   doc.addEventListener("click", onClick);
+  doc.addEventListener("change", onChange, true);
   onEditorRedraw("__dmDoorsEditor", () => {
     root.queueMicrotask?.(() => {
       ensureDoorsEditorTab();

@@ -130,13 +130,74 @@ export function vestiIlPopup(cam, content, states = allStates()) {
   return true;
 }
 
+/**
+ * Il fermo immagine si toglie appena il video vero dipinge.
+ *
+ * «Sembrano 2 immagini sovrapposte» (#476). Erano due davvero: il fermo resta
+ * come SFONDO del riquadro, e il commento qui sopra dava per scontato che il
+ * video, opaco, lo coprisse. Lo copre solo se lo riempie. Una telecamera
+ * verticale dentro un riquadro 16:9 lascia scoperte le due bande ai lati, e
+ * li' sotto continuava a vedersi l'istantanea di prima — piu' il velo che la
+ * smorza, addosso al video vivo.
+ *
+ * Quindi il fermo non e' un fondo permanente: e' quello che si guarda mentre
+ * il video arriva, e appena arriva se ne va. «Arrivato» vuol dire che
+ * l'elemento ha dipinto qualcosa — il primo fotogramma di un `video`, il
+ * `load` di un'immagine MJPEG, il caricamento di un iframe — non che il
+ * negoziato e' partito.
+ */
+export function spogliaIlPopup(content) {
+  if (!content?.classList?.contains?.("dm-cam-con-fermo")) return false;
+  content.classList.remove("dm-cam-con-fermo");
+  content.style?.removeProperty?.("--dm-cam-fermo");
+  return true;
+}
+
+/* Gli eventi con cui ogni lettore dice «sto dipingendo». Sono diversi perche'
+ * sono elementi diversi, e aspettare quello sbagliato vorrebbe dire togliere
+ * il fermo troppo presto — cioe' tornare al rettangolo nero. */
+const PRONTO = Object.freeze({
+  VIDEO: ["loadeddata", "playing"],
+  IMG: ["load"],
+  IFRAME: ["load"],
+});
+
+function quandoDipinge(content) {
+  if (!content?.querySelectorAll) return;
+  for (const nodo of content.querySelectorAll("video,img,iframe")) {
+    if (nodo.dataset?.dmCamAtteso === "1") continue;
+    if (nodo.classList?.contains?.("dm-cam-anteprima")) continue;
+    if (nodo.dataset) nodo.dataset.dmCamAtteso = "1";
+    for (const evento of PRONTO[nodo.tagName] || [])
+      nodo.addEventListener(evento, () => spogliaIlPopup(content), { once: true });
+    /* Un'immagine che era gia' in cache il suo `load` l'ha gia' fatto. */
+    if (nodo.tagName === "IMG" && nodo.complete && nodo.naturalWidth) spogliaIlPopup(content);
+    if (nodo.tagName === "VIDEO" && nodo.readyState >= 2) spogliaIlPopup(content);
+  }
+}
+
+/* Il guscio riscrive i figli del popup quando una strada vince: l'osservatore
+ * e' l'unico modo per accorgersene senza mettere le mani nel guscio. Si spegne
+ * da solo quando il popup si chiude. */
+function guardaIlPopup(content) {
+  if (!content || content.__dmCamGuardia) return;
+  const Osservatore = root.MutationObserver;
+  if (typeof Osservatore !== "function") return;
+  const guardia = new Osservatore(() => quandoDipinge(content));
+  guardia.observe(content, { childList: true, subtree: true });
+  content.__dmCamGuardia = guardia;
+  quandoDipinge(content);
+}
+
 /** Disegna subito l'istantanea dentro il popup. Torna `true` se ce n'era una. */
 export function mostraSubito(cam, content) {
   if (!content) return false;
   const foto = istantaneaDi(cam?.entity);
   content.innerHTML = anteprimaMarkup(foto, clean(cam?.name) || clean(cam?.entity));
-  /* E il fermo resta anche dopo che il guscio avra' riscritto tutto. */
+  /* E il fermo resta anche dopo che il guscio avra' riscritto tutto — ma solo
+   * finche' il video non dipinge davvero. */
   vestiIlPopup(cam, content);
+  guardaIlPopup(content);
   return Boolean(foto);
 }
 

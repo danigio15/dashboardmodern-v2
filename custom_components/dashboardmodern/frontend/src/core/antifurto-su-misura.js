@@ -186,6 +186,9 @@ export function tastiSuMisura(stored) {
       service: `${PREFISSO_SU_MISURA}${modo.id}`,
       state: "",
       icon: actionCatalogMatch(modo.icona)?.glyph || "\u{1F6E1}\u{FE0F}",
+      /* Il nome dell'icona scelta, non il glifo: chi disegna lo passa al
+       * motore delle icone, che il disegno lo trova da se'. */
+      icona: modo.icona,
       label: modo.nome || modo.id,
       hint: modo.entita,
       suMisura: true,

@@ -17,35 +17,55 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 
+import { COMANDI_MASSIMI } from "../src/core/comandi-accanto.js";
 import {
-  COMANDI_MASSIMI,
-  ESITI_COMANDO,
+  ESITI_ELENCO,
   bindRobotToDevice,
-  conIlComando,
+  conLaVoce,
+  tettoDellElenco,
 } from "../src/core/robot-model.js";
 
 const pieni = Array.from({ length: COMANDI_MASSIMI }, (_, i) => `button.dreame_uno_${i}`);
+const conIlComando = (comandi, nuovo) => conLaVoce(comandi, nuovo, "comandi");
 
 test("con la riga piena il comando non entra, e l'esito lo dice", () => {
   const esito = conIlComando(pieni, "script.pulizia_cucina");
-  assert.equal(esito.esito, ESITI_COMANDO.pieno);
-  assert.deepEqual(esito.comandi, pieni);
+  assert.equal(esito.esito, ESITI_ELENCO.pieno);
+  assert.deepEqual(esito.elenco, pieni);
 });
 
 test("con posto libero entra, ed è in fondo", () => {
   const quasi = pieni.slice(0, COMANDI_MASSIMI - 1);
   const esito = conIlComando(quasi, "script.pulizia_cucina");
-  assert.equal(esito.esito, ESITI_COMANDO.aggiunto);
-  assert.equal(esito.comandi.length, COMANDI_MASSIMI);
-  assert.equal(esito.comandi.at(-1), "script.pulizia_cucina");
+  assert.equal(esito.esito, ESITI_ELENCO.aggiunto);
+  assert.equal(esito.elenco.length, COMANDI_MASSIMI);
+  assert.equal(esito.elenco.at(-1), "script.pulizia_cucina");
 });
 
 test("i due rifiuti che c'erano già restano distinti da quello nuovo", () => {
   /* Un doppione non è un errore di scrittura, e nessuno dei due è «pieno»:
    * tre motivi diversi meritano tre frasi diverse. */
-  assert.equal(conIlComando(["script.a"], "script.a").esito, ESITI_COMANDO.gia);
-  assert.equal(conIlComando([], "sensor.temperatura").esito, ESITI_COMANDO.nonComando);
-  assert.equal(conIlComando([], "").esito, ESITI_COMANDO.nonComando);
+  assert.equal(conIlComando(["script.a"], "script.a").esito, ESITI_ELENCO.gia);
+  assert.equal(conIlComando([], "sensor.temperatura").esito, ESITI_ELENCO.nonValida);
+  assert.equal(conIlComando([], "").esito, ESITI_ELENCO.nonValida);
+});
+
+test("mappe e letture hanno il loro tetto, e lo dicono allo stesso modo (#468)", () => {
+  /* La regola e' una sola, scritta una volta: tre liste, tre tetti, e gli
+   * stessi quattro esiti. Prima era scritta solo per i comandi, e quando sono
+   * arrivate le mappe e le letture il rischio era riscriverla due volte —
+   * cioe' due posti nuovi dove il tetto poteva tornare muto. */
+  const mappe = Array.from({ length: tettoDellElenco("mappe") }, (_, i) => `image.piano_${i}`);
+  assert.equal(conLaVoce(mappe, "image.mansarda", "mappe").esito, ESITI_ELENCO.pieno);
+  assert.equal(conLaVoce(mappe.slice(1), "image.mansarda", "mappe").esito, ESITI_ELENCO.aggiunto);
+  assert.equal(conLaVoce([], "sensor.temperatura", "mappe").esito, ESITI_ELENCO.nonValida);
+
+  const letture = Array.from({ length: tettoDellElenco("letture") }, (_, i) => `sensor.robot_${i}`);
+  assert.equal(conLaVoce(letture, "sensor.filtro", "letture").esito, ESITI_ELENCO.pieno);
+  assert.equal(conLaVoce([], "sensor.filtro", "letture").esito, ESITI_ELENCO.aggiunto);
+  assert.equal(conLaVoce([], "button.premi", "letture").esito, ESITI_ELENCO.nonValida);
+  /* Una lista che non esiste non aggiunge niente a caso. */
+  assert.equal(conLaVoce([], "sensor.filtro", "boh").esito, ESITI_ELENCO.nonValida);
 });
 
 test("è proprio l'integrazione che riempie la riga fino al tetto", () => {
@@ -57,10 +77,10 @@ test("è proprio l'integrazione che riempie la riga fino al tetto", () => {
   entities.push({ entity_id: "vacuum.dreame" });
   const robot = bindRobotToDevice({ device: { name: "Dreame" }, entities, index: 0 });
   assert.equal(robot.comandi.length, COMANDI_MASSIMI);
-  assert.equal(conIlComando(robot.comandi, "script.pulizia_cucina").esito, ESITI_COMANDO.pieno);
+  assert.equal(conIlComando(robot.comandi, "script.pulizia_cucina").esito, ESITI_ELENCO.pieno);
   /* Tolto uno, lo script entra: è la via d'uscita che la frase deve indicare. */
   const dopo = conIlComando(robot.comandi.slice(1), "script.pulizia_cucina");
-  assert.equal(dopo.esito, ESITI_COMANDO.aggiunto);
+  assert.equal(dopo.esito, ESITI_ELENCO.aggiunto);
 });
 
 test("l'editor non aggiunge più senza guardare l'esito", () => {
@@ -70,8 +90,10 @@ test("l'editor non aggiunge più senza guardare l'esito", () => {
     new URL("../src/sections/robot-editor-section.js", import.meta.url),
     "utf8",
   );
-  assert.match(sorgente, /const esito = conIlComando\(comandi, nuovo\)/);
+  assert.match(sorgente, /const esito = conLaVoce\(elenco, nuovo, tipo\)/);
   assert.doesNotMatch(sorgente, /elencoComandi\(\[\.\.\.comandi, nuovo\]\)/);
-  /* E la frase del tetto esiste, con dentro la via d'uscita. */
+  /* E la frase del tetto esiste, con dentro la via d'uscita — per tutt'e tre
+   * le liste che un robot si porta dietro, non solo per i comandi (#468). */
   assert.match(sorgente, /togline uno per farci stare questo/);
+  assert.match(sorgente, /togline una per farci stare questa/);
 });

@@ -32,6 +32,7 @@ import { configuredLightGroups } from "./lights-alerts-section.js";
 import { openLightControl } from "./lights-scene-section.js";
 import {
   allStates,
+  chiamaServizio,
   clean,
   doc,
   esc,
@@ -225,6 +226,7 @@ export function pageCardMarkup(view) {
         <strong>${esc(view.name)}</strong>
         <span class="dm-lucip-meta">
           <small class="dm-lucip-state" data-dm-lucip-state>${stateText(view)}</small>
+          ${view.consumo ? `<span class="dm-lucip-badge" data-kind="consumo">⚡ ${esc(view.consumo)}</span>` : ""}
           ${bloccata ? `<span class="dm-lucip-badge" data-kind="bloccata">🔒 ${esc(t("Solo lettura", "Read only"))}</span>` : ""}
           ${badge ? `<span class="dm-lucip-badge" data-kind="${badge.kind}">${badge.label}</span>` : ""}
         </span>
@@ -474,28 +476,8 @@ function viewOf(id) {
   return { ...view, on: promesso };
 }
 
-function callService(command) {
-  if (!command) return false;
-  try {
-    if (typeof root.cdCallServiceJson === "function") {
-      root.cdCallServiceJson(command.domain, command.service, command.data);
-      return true;
-    }
-    if (typeof root.dmCallHaService === "function") {
-      const result = root.dmCallHaService(command.domain, command.service, command.data);
-      result?.catch?.(() => {});
-      return true;
-    }
-    if (typeof root.callService === "function") {
-      root.callService(command.domain, command.service, command.data);
-      return true;
-    }
-  } catch (_error) {}
-  return false;
-}
-
 function send(view, change) {
-  callService(lightCommand(view, change));
+  chiamaServizio(lightCommand(view, change));
 }
 
 function feedback(pattern = 10) {
@@ -757,6 +739,7 @@ function installStyles() {
          vero sta nel motore: qui c'e' solo il modo di accorgersene prima di
          provarci. */
       :is(#page-luci,#page-stanze,#page-prese) .dm-lucip-badge[data-kind="bloccata"]{background:rgba(148,163,184,.16);color:var(--secondary-text-color,#64748b);border-color:rgba(148,163,184,.34)}
+      :is(#page-luci,#page-stanze,#page-prese) .dm-lucip-badge[data-kind="consumo"]{background:rgba(245,158,11,.16);color:#b45309;border-color:rgba(245,158,11,.34);font-variant-numeric:tabular-nums}
       :is(#page-luci,#page-stanze,#page-prese) .dm-lucip-card[data-dm-lucip-comandabile="false"] .dm-lucip-main{cursor:default}
       :is(#page-luci,#page-stanze,#page-prese) .dm-lucip-card[data-dm-lucip-comandabile="false"] .dm-lucip-orb,
       :is(#page-luci,#page-stanze,#page-prese) .dm-lucip-card[data-dm-lucip-comandabile="false"] .dm-lucip-led{opacity:.5}

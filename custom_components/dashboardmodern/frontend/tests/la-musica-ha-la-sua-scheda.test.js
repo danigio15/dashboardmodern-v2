@@ -70,18 +70,31 @@ const STATI = {
 
 const QUANDO = Date.parse("2026-09-03T07:00:00+00:00");
 
-test("un lettore è quattro cose, e senza entità non è un lettore", () => {
+test("un lettore è quello che è, e senza entità non è un lettore", () => {
   assert.deepEqual(normalizzaLettore({ entity: " media_player.x ", name: "Sala", icon: "🔊" }), {
     id: "lettore-1",
     entity: "media_player.x",
     nome: "Sala",
     icona: "🔊",
     room_id: "",
+    /* Le due liste che si porta dietro (#451): vuote finché nessuno le
+     * riempie, ma nominate — un campo che il modello non nomina sparisce al
+     * primo salvataggio. */
+    comandi: [],
+    letture: [],
   });
   const lista = [{ entity: "media_player.a" }, { entity: "" }, { entity: "media_player.b" }];
   assert.equal(lettoriConfigurati(lista).length, 2, "la riga a metà resta fuori");
   assert.deepEqual(entitaDeiLettori(lista), ["media_player.a", "media_player.b"]);
   assert.equal(CHIAVE_MEDIA, "cd_media_player");
+  /* E quelle accanto si guardano insieme al lettore: se il canale cambia e
+   * nessuno le guarda, la scheda resta ferma su quello di prima. */
+  assert.deepEqual(
+    entitaDeiLettori([
+      { entity: "media_player.tv", comandi: ["switch.tv"], letture: ["sensor.tv_canale"] },
+    ]),
+    ["media_player.tv", "switch.tv", "sensor.tv_canale"],
+  );
 });
 
 test("i tasti che compaiono sono quelli che quel lettore sa fare", () => {

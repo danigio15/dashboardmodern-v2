@@ -46,6 +46,25 @@ export const VOCI_DELLA_BARRA = Object.freeze([
   Object.freeze({ chiave: "clima", tessera: "clima" }),
   Object.freeze({ chiave: "prese", tessera: "prese" }),
   Object.freeze({ chiave: "media", tessera: "media" }),
+  /* Le due misure stanno in fondo, e non e' un dettaglio (#461).
+   *
+   * «Sarebbe possibile inserire temperatura e umidita' di sensori personali?
+   * Io ho un sensore esterno all'abitazione con cui mi regolo con i clima
+   * interni.» Sono due letture, non due notizie: non succedono, ci sono
+   * sempre. Chi legge la fascia da sinistra deve trovare per prima la cosa
+   * che e' successa — la posta, il ritiro, l'antifurto — e queste due dopo,
+   * dove si guardano quando si vogliono. Aprono la tessera Temperature, che
+   * e' dove la stessa domanda ha la risposta lunga. */
+  Object.freeze({ chiave: "temperatura", tessera: "temperatura" }),
+  Object.freeze({ chiave: "umidita", tessera: "temperatura" }),
+  /* E la pioggia, per chi ha una stazione meteo (#478).
+   *
+   * «Sarebbe utile vedere il rain rate e la pioggia caduta nella giornata.»
+   * Sono due letture come le altre due, e stanno nello stesso posto: sotto il
+   * meteo, che e' dove uno le cerca. Una tessera non ce l'hanno — la pioggia
+   * caduta non e' una sezione — quindi la pastiglia si guarda e basta. */
+  Object.freeze({ chiave: "pioggia", tessera: "" }),
+  Object.freeze({ chiave: "pioggiaOggi", tessera: "" }),
 ]);
 
 const NOTE = new Set(VOCI_DELLA_BARRA.map((voce) => voce.chiave));
@@ -55,6 +74,26 @@ const NOTE = new Set(VOCI_DELLA_BARRA.map((voce) => voce.chiave));
  * fatto sono due fatti. La posta una tessera non ce l'ha — nasce da un
  * contatto, non da una sezione — e tiene il blu degli avvisi. */
 export const TINTA_POSTA = "#2563eb";
+
+/* Le due misure una tessera ce l'hanno — Temperature — ma la sua tinta parla
+ * delle stanze di casa, e queste due parlano di un sensore scelto a mano, che
+ * spesso e' fuori. Portano il colore della cosa che misurano: il caldo e
+ * l'acqua. */
+export const TINTA_TEMPERATURA = "#f97316";
+export const TINTA_UMIDITA = "#0ea5e9";
+/* La pioggia e' l'acqua che cade: il blu dell'umidita' sarebbe la stessa cosa
+ * detta due volte, e queste due pastiglie stanno accanto a quella. */
+export const TINTA_PIOGGIA = "#4f46e5";
+
+/* Le voci che non vengono da una tessera ma da un sensore scelto: quale
+ * disegno portano e di che colore. Il valore lo legge la sezione — questo
+ * modulo non guarda nessuna entita' — e arriva gia' letto, come la posta. */
+const MISURE = Object.freeze({
+  temperatura: Object.freeze({ icona: "🌡️", mdi: "mdi:thermometer", tinta: TINTA_TEMPERATURA }),
+  umidita: Object.freeze({ icona: "💧", mdi: "mdi:water-percent", tinta: TINTA_UMIDITA }),
+  pioggia: Object.freeze({ icona: "🌧️", mdi: "mdi:weather-pouring", tinta: TINTA_PIOGGIA }),
+  pioggiaOggi: Object.freeze({ icona: "☔", mdi: "mdi:weather-rainy", tinta: TINTA_PIOGGIA }),
+});
 
 /* Quante ne sono accese, aperte, in funzione.
  *
@@ -82,7 +121,20 @@ export function normalizzaBarra(salvato) {
    * comunque, quindi partire con tutte accese non riempie niente di inutile e
    * fa trovare la barra gia' fatta a chi non apre mai la configurazione. */
   for (const voce of VOCI_DELLA_BARRA) voci[voce.chiave] = scelte[voce.chiave] !== false;
-  return { voci, posta: pulito(dato.posta) };
+  return {
+    voci,
+    posta: pulito(dato.posta),
+    /* I due sensori scelti a mano. Vuoti di serie: una misura che nessuno ha
+     * indicato non si indovina, e senza la pastiglia non c'e'. */
+    temperatura: pulito(dato.temperatura),
+    umidita: pulito(dato.umidita),
+    /* I due della pioggia (#478): quanto sta venendo giu' adesso e quanto ne
+     * e' caduta oggi. Sono gli stessi che legge l'irrigazione, e si scrivono
+     * qui una volta sola: chiederli due volte vorrebbe dire due caselle che
+     * possono discordare sulla stessa stazione meteo. */
+    pioggia: pulito(dato.pioggia),
+    pioggiaOggi: pulito(dato.pioggiaOggi),
+  };
 }
 
 /* Il ritiro che riguarda adesso: oggi o domani, non fra sei giorni.
@@ -106,7 +158,7 @@ function ritiroVicino(modello) {
  * pastiglia. Una barra che dice «0 luci accese» occupa spazio per non dire
  * niente.
  */
-export function pastiglieDellaCasa(modelli, { barra, posta } = {}) {
+export function pastiglieDellaCasa(modelli, { barra, posta, misure } = {}) {
   const config = normalizzaBarra(barra);
   const perChiave = new Map(
     (Array.isArray(modelli) ? modelli : [])
@@ -125,6 +177,24 @@ export function pastiglieDellaCasa(modelli, { barra, posta } = {}) {
           tinta: TINTA_POSTA,
           avviso: true,
         });
+      continue;
+    }
+    const misura = MISURE[voce.chiave];
+    if (misura) {
+      const letta = misure?.[voce.chiave];
+      /* Un sensore che non risponde non scrive «—»: la pastiglia non c'e', come
+       * per tutte le altre voci che non hanno niente da dire. */
+      if (!Number.isFinite(Number(letta?.valore))) continue;
+      fuori.push({
+        chiave: voce.chiave,
+        tessera: voce.tessera,
+        icona: misura.icona,
+        mdi: misura.mdi,
+        tinta: misura.tinta,
+        valore: Number(letta.valore),
+        unita: pulito(letta.unita),
+        nome: pulito(letta.nome),
+      });
       continue;
     }
     const modello = perChiave.get(voce.chiave);

@@ -45,6 +45,7 @@ import {
   t,
   writeJsonIfChanged,
 } from "./shared.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
 
 const KEY = "__DASHBOARDMODERN_ANIMALI_EDITOR__";
 const state = (root[KEY] ||= { installed: false, aperto: -1 });
@@ -323,7 +324,7 @@ function rigaMarkup(animale, indice) {
   const aperto = state.aperto === indice;
   return `<article class="ed-row dm-animale-row" data-animale-index="${indice}" data-open="${aperto}">
     <div class="dm-animale-row-head">
-      <span class="dm-animale-row-icon" aria-hidden="true">${specieDiSerie(animale.specie).icona}</span>
+      <span class="dm-animale-row-icon" aria-hidden="true">${disegnoDelCatalogo(specieDiSerie(animale.specie).disegno, 26)}</span>
       <span class="ed-row-main"><strong class="ed-row-new">${esc(nomeDi(animale, indice))}</strong><small class="ed-row-old mono">${esc(clean(animale.cibo_livello) || clean(animale.lettiera_ultima) || clean(animale.porta) || t("nessuna entità", "no entity"))}</small></span>
       <button type="button" class="ed-del dm-animale-edit" data-animale-edit aria-label="${t("Modifica", "Edit")}">✏️</button>
       <button type="button" class="ed-del dm-animale-del" data-animale-del aria-label="${t("Elimina", "Remove")}">🗑️</button>
@@ -332,7 +333,9 @@ function rigaMarkup(animale, indice) {
       <label class="ed-slot dm-animale-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-animale-${indice}-nome" class="ed-input" data-animale-field="nome" value="${esc(animale.nome)}" placeholder="${t("Micio", "Whiskers")}"></span></label>
       <label class="ed-slot dm-animale-field"><span class="ed-slot-lbl">${t("Specie", "Species")}</span><span class="ed-form-row"><select id="dm-animale-${indice}-specie" class="ed-input" data-animale-field="specie">${SPECIE.map(
         (voce) =>
-          `<option value="${esc(voce.chiave)}"${voce.chiave === animale.specie ? " selected" : ""}>${voce.icona} ${esc(nomeSpecie(voce.chiave))}</option>`,
+          /* Dentro un <option> ci sta solo testo: il disegno della specie
+           * sta accanto, nella riga. */
+          `<option value="${esc(voce.chiave)}"${voce.chiave === animale.specie ? " selected" : ""}>${esc(nomeSpecie(voce.chiave))}</option>`,
       ).join("")}</select></span></label>
       <div class="ed-slot dm-animale-field">
         <span class="ed-slot-lbl">${t("Foto", "Photo")}</span>
@@ -673,7 +676,8 @@ function installStyles() {
       #ed-body .dm-animale-list{display:grid;gap:8px;margin-bottom:10px}
       #ed-body .dm-animale-row{display:block!important;padding:0!important;overflow:hidden}
       #ed-body .dm-animale-row-head{display:flex;align-items:center;gap:10px;padding:10px 12px}
-      #ed-body .dm-animale-row-icon{font-size:18px}
+      #ed-body .dm-animale-row-icon{display:grid;place-items:center;width:26px;height:26px;flex:0 0 auto}
+      #ed-body .dm-animale-row-icon .dm-appliance-art{display:block;line-height:0}
       #ed-body .dm-animale-row-body{display:grid;gap:8px;padding:0 12px 12px}
       #ed-body .dm-animale-row-body[hidden]{display:none!important}
       #ed-body .dm-animale-field{display:grid;gap:4px;margin:0}

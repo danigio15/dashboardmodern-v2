@@ -13,6 +13,8 @@ import {
   poolRunToday,
   poolTargetHours as modelTargetHours,
 } from "../core/pool-model.js";
+import { inMillimetri, siPuoSaltare, verdettoDellaPioggia } from "../core/pioggia-caduta.js";
+import { letturePioggia } from "./come-sta-la-casa-section.js";
 import { decorateEntityFields } from "./editor-slots-section.js";
 import { extraPoolCommand } from "./pool-extra-section.js";
 import {
@@ -692,6 +694,32 @@ function syncIrrigationValues(host, grid, config) {
     if (rain != null) {
       chips.push(`<span class="dm-irr-meta-chip" data-alert="${String(rain >= threshold)}">🌧️ ${t("pioggia", "rain")} ${Math.round(rain)}% · ${t("soglia", "threshold")} ${threshold}%</span>`);
     }
+    /* Quanta ne e' caduta davvero (#478).
+     *
+     * Il gettone qui sopra dice la PROBABILITA' che piova: serve a decidere la
+     * sera per la mattina dopo. Il pluviometro dice un fatto piu' forte —
+     * quanta acqua e' arrivata a terra — e le due cose stanno insieme perche'
+     * una previsione sbagliata capita, un millimetro caduto no.
+     *
+     * I sensori sono quelli della barra sotto il meteo: chi ha una stazione
+     * l'ha gia' dichiarata li' una volta, e chiederla di nuovo qui vorrebbe
+     * dire due caselle per lo stesso pluviometro. */
+    const pioggia = pioggiaDiOggi(states);
+    if (pioggia) {
+      const quanta =
+        pioggia.oggi === null
+          ? ""
+          : ` · ${t("oggi", "today")} ${pioggia.oggi.toFixed(1)} mm`;
+      const parola =
+        pioggia.chiave === "piove"
+          ? t("sta piovendo", "raining now")
+          : pioggia.chiave === "bagnato"
+            ? t("terreno bagnato", "ground already wet")
+            : t("asciutto", "dry");
+      chips.push(
+        `<span class="dm-irr-meta-chip" data-dm-irr-caduta data-alert="${String(siPuoSaltare(pioggia))}">☔ ${esc(parola)}${esc(quanta)}</span>`,
+      );
+    }
     const markup = chips.join("");
     scriviSeCambia(meta, markup);
     meta.hidden = !markup;
@@ -891,8 +919,20 @@ function installStyles() {
     #page-piscina .dm-pool-name{display:flex!important;align-items:center!important;gap:9px!important;margin:2px 2px -2px!important}
     #page-piscina .dm-pool-name strong{font-size:15px!important;font-weight:900!important;letter-spacing:.01em!important;color:var(--text,#0f172a)!important}
     #page-piscina .dm-pool-name-icon{font-size:17px!important}
-    #page-irrigazione .dm-irr{display:grid!important;gap:14px!important;width:100%!important;margin:0 0 14px!important}
-    #page-irrigazione #irr-grid{grid-template-columns:repeat(auto-fill,minmax(232px,1fr))!important;gap:12px!important;padding:0 4px 18px!important}
+    /* La stessa larghezza della piscina, e centrata come lei (#479).
+     *
+     * «Il layout dei comandi dell'irrigazione è errato (verificato su schermo
+     * 27 pollici).» Su un ventisette la piscina si ferma a 1040 e sta in mezzo,
+     * l'irrigazione invece prendeva tutta la finestra: la stessa plancia con
+     * due misure diverse a seconda della pagina, e i tre tasti del programma
+     * larghi mezzo schermo. */
+    #page-irrigazione .dm-irr{
+      display:grid!important;gap:14px!important;box-sizing:border-box!important;
+      width:min(100%,1040px)!important;max-width:1040px!important;margin:0 auto 14px!important}
+    #page-irrigazione #irr-grid{
+      box-sizing:border-box!important;width:min(100%,1040px)!important;margin:0 auto!important;
+      grid-template-columns:repeat(auto-fill,minmax(232px,1fr))!important;gap:12px!important;
+      padding:0 4px 18px!important}
 
     /* ── shared atoms ─────────────────────────────────────────────────── */
     .dm-scene-empty{display:grid;justify-items:center;gap:6px;padding:44px 20px;border:1px dashed var(--card-border,#dbe4ee);border-radius:24px;background:var(--card-bg,#fff);color:var(--text-dim,#64748b);text-align:center}
@@ -1211,7 +1251,11 @@ function installStyles() {
     .dm-irr-meta-chip{padding:5px 11px;border-radius:12px;background:var(--surface-2,#f1f5f9);color:var(--text,#0f172a);font-size:12px;font-weight:750}
     .dm-irr-meta-chip[data-alert="true"]{background:rgba(245,158,11,.16);color:#b45309}
     .dm-irr-skip{padding:9px 12px;border-radius:12px;background:rgba(245,158,11,.14);color:#b45309;font-size:12.5px;font-weight:800}
-    .dm-irr-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(146px,1fr));gap:8px}
+    /* I tasti si allargano fino a un limite, poi vanno a capo: in colonna sul
+       telefono, in fila e di misura umana sul monitor grande. Con la griglia a
+       colonne uguali, su un ventisette erano tre tasti da mezzo metro. */
+    .dm-irr-actions{display:flex;flex-wrap:wrap;gap:8px}
+    .dm-irr-actions>.dm-btn{flex:1 1 146px;min-width:0;max-width:300px}
     .dm-irr-overflow{margin:0;color:var(--text-dim,#64748b);font-size:12px;font-weight:700;text-align:center}
 
     .dm-irr-card{box-sizing:border-box;display:grid;gap:9px;padding:14px;border:1px solid var(--card-border,#dbe4ee);border-radius:20px;background:var(--card-bg,#fff);box-shadow:var(--shadow-sculpted,0 6px 18px rgba(15,23,42,.07));transition:border-color .25s ease,box-shadow .25s ease,transform .25s ease}
@@ -1292,7 +1336,7 @@ function installStyles() {
       .dm-lawn{height:clamp(250px,62vw,320px);border-radius:24px}
       .dm-lawn-tree{display:none}
       .dm-zone-tag em{max-width:6em}
-      .dm-irr-actions{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}
+      .dm-irr-actions>.dm-btn{flex-basis:112px}
       #page-irrigazione #irr-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))!important}
     }
 
@@ -1587,12 +1631,50 @@ function armaSoilEditor() {
  * `cdIrrProgram`: e' li' che gia' vive lo skip per pioggia, con lo stesso
  * avviso in card (`CD_IRR.skip`). L'override — non `wrapFunction`, che corre
  * DOPO l'originale e non puo' fermarlo — lascia passare il tasto «forza». */
+/* Il verdetto della pioggia, letto una volta e usato da tutt'e due.
+ *
+ * Lo guardano la pastiglia sotto la scheda — che dice come sta il cielo — e il
+ * cancello del programma, che decide se il giro parte. Erano due domande sulla
+ * stessa cosa, e prima solo la prima la faceva: la pastiglia scriveva «terreno
+ * bagnato», e un istante dopo l'impianto partiva lo stesso.
+ *
+ * I millimetri si convertono qui, prima del giudizio: chi ha Home Assistant in
+ * unita' imperiali ha un pluviometro che scrive pollici, e zero virgola tre
+ * pollici sono sette millimetri e mezzo — un giro di irrigazione gia' fatto
+ * dal cielo, che confrontato con cinque senza convertirlo diventava
+ * «asciutto». */
+function pioggiaDiOggi(states) {
+  const dalCielo = letturePioggia(states);
+  return verdettoDellaPioggia({
+    intensita: inMillimetri(dalCielo.intensita?.valore, dalCielo.intensita?.unita),
+    oggi: inMillimetri(dalCielo.oggi?.valore, dalCielo.oggi?.unita),
+  });
+}
+
 function installProgramGate() {
   const current = root.cdIrrProgram;
   if (typeof current !== "function" || current.__dmIrrSoilGate) return false;
   function gated(force) {
     try {
       if (!force) {
+        /* Il cielo prima del terreno: se e' appena piovuto abbastanza, il giro
+         * non serve — e questo e' il pezzo che la segnalazione chiedeva,
+         * «questo potrebbe integrarsi anche su gestione irrigazione». Il tasto
+         * che fa partire a mano passa comunque: `force` vuol dire «lo so, e lo
+         * voglio lo stesso». */
+        const pioggia = pioggiaDiOggi(allStates());
+        if (siPuoSaltare(pioggia)) {
+          const parola =
+            pioggia.chiave === "piove"
+              ? t("sta piovendo", "raining now")
+              : t("ha gia' piovuto abbastanza", "enough rain already");
+          if (root.CD_IRR) root.CD_IRR.skip = `☔ ${parola} — ${t("programma saltato", "program skipped")}`;
+          try {
+            root.renderIrrigazione?.();
+          } catch (_error) {}
+          root.edToast?.(clean(root.CD_IRR?.skip) || t("Programma saltato", "Program skipped"));
+          return undefined;
+        }
         const config = irrigationConfig();
         const soglia = num(config.soilSkipAbove);
         const soil = soilMoisture(config);

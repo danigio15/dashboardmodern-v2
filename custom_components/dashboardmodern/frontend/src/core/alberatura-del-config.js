@@ -143,6 +143,9 @@ export const SCHEDE = Object.freeze({
   appliances: { famiglia: "casa", posizione: 40 }, // Elettrodomestici
   media: { famiglia: "casa", posizione: 50 }, // Musica
   robot: { famiglia: "casa", posizione: 60 },
+  /* Le stampanti (#469): stanno accanto al robot, che e' l'altra macchina di
+   * casa che si guarda per sapere se ha finito. */
+  stampanti: { famiglia: "casa", posizione: 65 },
   animali: { famiglia: "casa", posizione: 70 },
   people: { famiglia: "casa", posizione: 80 }, // Persone
   sez8: { famiglia: "casa", posizione: 90 }, // Azioni rapide e scene
@@ -156,6 +159,9 @@ export const SCHEDE = Object.freeze({
   varchi: { famiglia: "sicurezza", posizione: 20 }, // Contatti di porte e finestre
   presenza: { famiglia: "sicurezza", posizione: 25 }, // Movimento e presenza
   doors: { famiglia: "sicurezza", posizione: 30 }, // Apri porte/cancelli
+  /* Il citofono e la posta (#449) stanno subito dopo: è la stessa porta vista
+   * da fuori — chi suona, e cosa è stato lasciato. */
+  citofono: { famiglia: "sicurezza", posizione: 35 },
 
   /* ── 🔔 Avvisi ─────────────────────────────────────────────────────── */
   avvisi: { famiglia: "avvisi", posizione: 10 }, // Notifiche della plancia

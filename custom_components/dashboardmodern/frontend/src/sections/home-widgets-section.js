@@ -157,6 +157,7 @@ import {
   CHIAVE_SOGLIA_CHIUSA,
   sogliaDellaCopertura,
   coverEntries,
+  contoDelleAperture,
   coverKindLabel,
   coverPositionChoices,
   coverPresetPosition,
@@ -176,6 +177,16 @@ import {
   contoDellaPresenza,
   presenzaDiCasa,
 } from "../core/presenza-in-casa.js";
+import {
+  CHIAVE_CITOFONO,
+  lettureDellIngresso,
+  riassuntoDellIngresso,
+} from "../core/citofono-e-posta.js";
+import {
+  CHIAVE_STAMPANTI,
+  lettureDelleStampanti,
+  riassuntoDelleStampanti,
+} from "../core/stampanti-model.js";
 import {
   CHIAVE_MACCHINE,
   contoDelleMacchine,
@@ -242,6 +253,7 @@ import {
   t,
 } from "./shared.js";
 import { disegnaComeStaLaCasa } from "./come-sta-la-casa-section.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
 
 const KEY = "__DASHBOARDMODERN_HOME_WIDGETS__";
 const STYLE_ID = "dm-widgets-style";
@@ -937,6 +949,14 @@ function rigaClima(states, unit) {
     modi: elenco(attributi.hvac_modes),
     ventole: elenco(attributi.fan_modes),
     ventola: clean(attributi.fan_mode),
+    /* Le alette (#475): «oltre la modalita temperature etc... poter
+     * visualizzare le modalita delle alette». Home Assistant le pubblica
+     * accanto alle ventole e con la stessa forma — un elenco e quella scelta —
+     * quindi qui non c'e' nessun motore nuovo: c'e' una riga in piu' che porta
+     * dentro quello che l'unita' dichiara gia'. Un condizionatore che le
+     * alette non le muove non dichiara niente, e la riga non compare. */
+    alette: elenco(attributi.swing_modes),
+    aletta: clean(attributi.swing_mode),
     /* Fin dove il pannello lascia andare l'obiettivo: la scala e' quella che
      * l'unita' dichiara, e la regola sta nel nucleo insieme a quella della
      * pagina Clima — erano due copie della stessa cosa, e una delle due si
@@ -1127,7 +1147,6 @@ function coversModel(states) {
     })
     .filter(Boolean);
   if (!rows.length) return null;
-  const open = rows.filter((row) => row.open);
   /* Una tapparella alzata non e' una finestra aperta (#442).
    *
    * «Nella home il chip indica 6 finestre aperte ma in realta' sono 6
@@ -1146,11 +1165,10 @@ function coversModel(states) {
    * quelli scritti dentro una riga delle Finestre. Qui si corregge la parola,
    * che e' il pezzo che diceva il falso; e quando la sezione porta le due cose
    * insieme, la didascalia le dice separate invece di sommarle in silenzio. */
-  const coperture = rows.filter((row) => !row.soloSensore);
-  const contatti = rows.filter((row) => row.soloSensore);
-  const alzate = coperture.filter((row) => row.open);
-  const aperte = contatti.filter((row) => row.open);
-  const soloMotori = coperture.length > 0 && contatti.length === 0;
+  /* Chi si alza e chi si apre, e quale delle due cose conta il numero grande:
+   * la regola sta tutta in `contoDelleAperture`, che e' pura e si prova con i
+   * numeri invece che rileggendo queste righe. */
+  const { alzate, aperte, soloMotori, insieme, contate } = contoDelleAperture(rows);
   const didascalia = () => {
     if (soloMotori) return nomiAccesi(alzate, () => true, t("Tutte abbassate", "All down"));
     /* Le finestre aperte si NOMINANO, una per una.
@@ -1172,15 +1190,15 @@ function coversModel(states) {
     /* Il nome dice cosa c'e' dentro: senza un solo contatto sull'anta questa
      * tessera parla di motori, e si chiama come loro. */
     label: soloMotori ? t("Tapparelle", "Shutters") : t("Finestre", "Windows"),
-    value: String(open.length),
+    value: String(contate.length),
     caption: didascalia(),
-    ring: Math.round((open.length / rows.length) * 100),
+    ring: Math.round((contate.length / insieme.length) * 100),
     rows,
     /* Le aperture escono col modello, come le luci accese: chi le conta senza
      * disegnarle legge questo campo invece di rifiltrare le righe per conto
      * suo, e due conti sulla stessa cosa non possono divergere se il conto e'
      * uno. */
-    open,
+    open: contate,
   };
 }
 
@@ -2133,7 +2151,10 @@ function robotsModel(states) {
      * conta. Senza, un aspirapolvere che sta pulendo veniva annunciato come
      * fermo, e l'avviso di batteria scarica non poteva mai uscire. */
     rows: viste.map((vista) => ({
-      glyph: vista.mowing ? "🌱" : vista.cleaning ? "🧹" : vista.charging ? "🔌" : "🤖",
+      glyph: disegnoDelCatalogo(
+        vista.mowing ? "mower" : vista.cleaning ? "broom" : vista.charging ? "socket" : "robot",
+        20,
+      ),
       name: vista.name,
       cleaning: vista.cleaning,
       charging: vista.charging,
@@ -2909,15 +2930,45 @@ function mediaModel(states) {
   const righe = lettureDeiLettori(dentro, states, root.resolveEntity || ((valore) => valore));
   const suonano = righe.filter((riga) => riga.suona);
   const conIlPosto = suonano.length > 1;
+  /* Quando suona UNA cosa sola, la tessera diventa quella cosa (#460).
+   *
+   * «Add the song title and artist name in the bottom-left corner»: il titolo
+   * e l'artista c'erano gia', ma dentro la stessa riga della didascalia,
+   * separati da un trattino e scritti tutti uguali — cioe' due fatti diversi
+   * detti come se fossero uno. Adesso il titolo sta sulla riga della
+   * didascalia e l'artista sotto, piu' piccolo: e' la stessa coppia con cui
+   * parla il resto della plancia, la cosa e sotto la sua qualifica.
+   *
+   * Con piu' di una cassa accesa non c'e' UN brano: la didascalia torna a
+   * elencarli col posto davanti, e la seconda riga non ha niente da dire —
+   * mettere l'artista di uno dei tre sarebbe scegliere per chi guarda. */
+  const unico = suonano.length === 1 ? suonano[0] : null;
+  /* Sotto il titolo va chi lo suona; se il brano non ha un artista — una
+   * radio, un ingresso HDMI — va la cassa, che e' l'altra cosa vera. Mai
+   * l'entity_id: sulla plancia non si legge mai. */
+  const chiSuona = unico ? unico.artista || unico.album || unico.nome : "";
   return {
     key: "media",
     accent: "#8b5cf6",
     icon: "🔊",
     label: t("Musica", "Media"),
+    /* La copertina al posto dell'altoparlante mentre suona: il disegno smette
+     * di dire cos'e' la tessera — lo dice il nome — e dice cosa sta suonando. */
+    faccia: unico?.copertina
+      ? `<img class="dm-tile-arte" src="${esc(unico.copertina)}" alt="" aria-hidden="true">`
+      : "",
+    facciaFirma: unico?.copertina || "",
+    /* I tre puntini dicono che li' dentro non c'e' un elenco: ci sono i
+     * comandi — play, pausa, avanti, volume. Toccare la mattonella li apre
+     * gia', quindi non e' un secondo tasto: e' il segno che ci sono. */
+    menu: true,
     value: String(suonano.length),
-    caption: suonano.length
-      ? suonano.map((riga) => cosaSuona(riga, conIlPosto)).join(" · ")
-      : t("Nessuno in riproduzione", "Nothing playing"),
+    caption: unico
+      ? titoloDelLettore(unico)
+      : suonano.length
+        ? suonano.map((riga) => cosaSuona(riga, conIlPosto)).join(" · ")
+        : t("Nessuno in riproduzione", "Nothing playing"),
+    sottotitolo: chiSuona,
     ring: righe.length ? Math.round((suonano.length / righe.length) * 100) : null,
     attiva: suonano.length > 0,
     /* Le letture intere viaggiano con la tessera: la finestra ci disegna un
@@ -3419,11 +3470,54 @@ function ariaModel(states) {
  * casa chiusa non c'e' niente da dire, e un avviso che si accende sempre non e'
  * piu' un avviso. Le righe sono pastiglie, rosse le aperte e verdi le chiuse,
  * che e' esattamente la colorazione chiesta nella segnalazione. */
+/* I contatti che una riga delle Finestre dichiara (#367, #377, e la
+ * segnalazione dal campo).
+ *
+ * «Quelle che non sono configurate in varchi non le vedo nel widget relativo.»
+ * Vero, ed era un difetto: i Varchi trovavano un contatto solo se Home
+ * Assistant gli aveva messo un `device_class`, o se qualcuno lo aveva aggiunto
+ * a mano nella loro scheda. Ma un contatto scritto nella casella dell'anta di
+ * una riga delle Finestre e' una DICHIARAZIONE — l'ha battuta chi abita la
+ * casa, e dice «questa e' una finestra» meglio di qualunque etichetta
+ * automatica. Chiedergli di ridichiararlo in un'altra scheda per vederlo nella
+ * tessera dei Varchi vuol dire dire due volte la stessa cosa.
+ *
+ * Il commento della #442 lo prometteva gia' — «i contatti di porte e finestre
+ * li trova da se', anche quelli scritti dentro una riga delle Finestre» — e la
+ * promessa non era mantenuta. Adesso si'.
+ *
+ * Le due tessere continuano a raccontarlo tutte e due, ed e' voluto: sono due
+ * domande diverse — «come stanno le mie finestre» e «cosa e' aperto in casa» —
+ * e chi ne vuole una sola spegne la riga in UNA delle due, che dalla 1.4.15 si
+ * puo' fare per tessera e non per entita'. */
+function contattiDelleFinestre() {
+  const righe = root.getTapparelle?.() || readJson("cd_tapparelle", []);
+  const presi = [];
+  for (const item of Array.isArray(righe) ? righe : []) {
+    for (const entity of [contactEntity(item), inferriataEntity(item)]) {
+      const id = clean(entity);
+      if (id) presi.push(id);
+    }
+  }
+  return presi;
+}
+
 function varchiModel(states) {
   const fuori = widgetExcludedEntities("varchi");
   const config = readJson(CHIAVE_VARCHI, {});
   const girati = insiemeInvertiti(readJson(CHIAVE_VERSI, {}));
-  const righe = varchiDiCasa(states, config, girati, (entity) =>
+  /* I contatti dichiarati nelle Finestre entrano fra gli aggiunti: e' la
+   * stessa strada di chi li aggiunge a mano nella scheda dei Varchi, perche' e'
+   * la stessa cosa — qualcuno ha detto che quello e' un varco. Chi ne aveva
+   * escluso uno resta escluso: l'esclusione si legge dopo, e vince. */
+  const dichiarati = contattiDelleFinestre();
+  const conLeFinestre = dichiarati.length
+    ? { ...(config && typeof config === "object" ? config : {}) , aggiunte: [
+        ...(Array.isArray(config?.aggiunte) ? config.aggiunte : []),
+        ...dichiarati,
+      ] }
+    : config;
+  const righe = varchiDiCasa(states, conLeFinestre, girati, (entity) =>
     friendlyName(states, entity),
   ).filter((riga) => widgetIncludes(riga.entity, fuori));
   if (!righe.length) return null;
@@ -3508,6 +3602,142 @@ function presenzaModel(states) {
             : t("Non risponde", "Not answering"),
     })),
   };
+}
+
+/* Il citofono e la cassetta della posta (#449).
+ *
+ * «Avendo un intercom ho un button.cancello per aprire, inoltre volevo chiedere
+ * una sezione per la cassetta della posta.»
+ *
+ * Due domande, una tessera: c'è qualcuno alla porta, e c'è qualcosa in
+ * cassetta. La prima vince sulla seconda quando succede — un campanello che
+ * suona è adesso, la posta può aspettare — ed è l'unico caso in cui questa
+ * tessera si accende.
+ */
+function citofonoModel(states) {
+  const fuori = widgetExcludedEntities("citofono");
+  const letture = lettureDellIngresso(readJson(CHIAVE_CITOFONO, {}), states);
+  const citofoni = letture.citofoni.filter((voce) =>
+    widgetIncludes(voce.campanello || voce.apri, fuori),
+  );
+  const cassette = letture.cassette.filter((voce) =>
+    widgetIncludes(voce.posta || voce.ritiro, fuori),
+  );
+  if (!citofoni.length && !cassette.length) return null;
+  const riassunto = riassuntoDellIngresso({ citofoni, cassette });
+  return {
+    key: "citofono",
+    accent: riassunto.suona ? "#f97316" : riassunto.conPosta ? "#2563eb" : "#16a34a",
+    icon: "📮",
+    label: t("Citofono e posta", "Intercom and mail"),
+    value: riassunto.suona ? t("Suona", "Ringing") : String(riassunto.conPosta),
+    caption: riassunto.suona
+      ? t("C'è qualcuno alla porta", "Someone is at the door")
+      : riassunto.conPosta
+        ? t("C'è posta in cassetta", "Mail in the box")
+        : t("Niente di nuovo", "Nothing new"),
+    rows: [
+      ...citofoni.map((voce) => ({
+        entity: voce.campanello || voce.apri,
+        name: voce.nome,
+        glyph: "🔔",
+        on: voce.suona === true,
+        tono: voce.suona === true ? "acceso" : "",
+        value:
+          voce.suona === true
+            ? t("Sta suonando", "Ringing")
+            : voce.suona === false
+              ? t("Silenzio", "Quiet")
+              : t("Nessun campanello", "No doorbell"),
+      })),
+      ...cassette.map((voce) => ({
+        entity: voce.posta || voce.ritiro,
+        name: voce.nome,
+        glyph: "📬",
+        on: voce.ce === true,
+        tono: voce.ce === true ? "acceso" : voce.ce === false ? "quiete" : "",
+        value:
+          voce.aperta === true
+            ? t("Aperta", "Open")
+            : voce.ce === true
+              ? t("C'è posta", "Mail inside")
+              : voce.ce === false
+                ? t("Vuota", "Empty")
+                : t("Non si sa", "Unknown"),
+      })),
+    ],
+  };
+}
+
+/* Le stampanti: se sono pronte, e quanto inchiostro resta (#469).
+ *
+ * «Volevo chiedere se c'era la possibilita' del controllo delle tv e
+ * stampanti.»
+ *
+ * Il numero grande e' quello che fa alzare la testa: quante stampanti hanno
+ * qualcosa da dire — ferme o agli sgoccioli. A tutto in ordine dice quante ne
+ * sta guardando, che e' il modo in cui una sorveglianza si fa vedere anche
+ * quando non ha niente da dire.
+ *
+ * L'anello e' la cartuccia messa peggio di tutta la casa: e' il numero che
+ * decide se stasera si stampa o no, e su una tessera ci sta.
+ */
+function stampantiModel(states) {
+  const fuori = widgetExcludedEntities("stampanti");
+  const letture = lettureDelleStampanti(readJson(CHIAVE_STAMPANTI, []), states, root.resolveEntity)
+    .filter((lettura) => widgetIncludes(lettura.entity, fuori));
+  if (!letture.length) return null;
+  const riassunto = riassuntoDelleStampanti(letture);
+  /* Una stampante ferma CON la cartuccia agli sgoccioli sta in tutt'e due gli
+   * elenchi, e sommarli la contava due volte: la tessera diceva «2» con sotto
+   * scritto «1 ferma», e chi legge si chiede quale sia l'altra. Sono le
+   * stampanti che hanno qualcosa da dire, non le ragioni per dirlo. */
+  const daDire = new Set(
+    [...riassunto.ferme, ...riassunto.sgoccioli].map((lettura) => lettura.entity),
+  ).size;
+  const peggiore = letture
+    .map((lettura) => lettura.piuScarica)
+    .filter(Boolean)
+    .reduce((peggio, voce) => (!peggio || voce.quanta < peggio.quanta ? voce : peggio), null);
+  return {
+    key: "stampanti",
+    accent: riassunto.verdetto === "ferma" ? "#dc2626" : daDire ? "#f59e0b" : "#0ea5e9",
+    icon: "🖨️",
+    label: t("Stampanti", "Printers"),
+    value: String(daDire || letture.length),
+    caption: daDire
+      ? riassunto.ferme.length
+        ? t(`${riassunto.ferme.length} ferme`, `${riassunto.ferme.length} stopped`)
+        : t("Inchiostro agli sgoccioli", "Ink almost out")
+      : peggiore
+        ? t(`Inchiostro al ${peggiore.quanta}%`, `Ink at ${peggiore.quanta}%`)
+        : t("Tutte pronte", "All ready"),
+    /* L'anello e' quanto inchiostro resta, non quante stampanti vanno: una
+     * stampante pronta con la cartuccia a zero non e' pronta. */
+    ring: peggiore ? peggiore.quanta : null,
+    attiva: daDire > 0,
+    rows: letture.map((lettura) => ({
+      entity: lettura.entity,
+      name: lettura.nome,
+      glyph: disegnoDelCatalogo("printer", 20),
+      on: lettura.stampa,
+      tono: lettura.ferma ? "allarme" : lettura.stampa ? "acceso" : lettura.muta ? "" : "quiete",
+      value: lettura.piuScarica
+        ? `${parolaDelloStatoStampante(lettura)} · ${lettura.piuScarica.quanta}%`
+        : parolaDelloStatoStampante(lettura),
+    })),
+  };
+}
+
+/* La parola di stato di una stampante, per la riga della tessera. E' la stessa
+ * della pagina: due copie della stessa parola sono il modo in cui una delle
+ * due invecchia. */
+function parolaDelloStatoStampante(lettura) {
+  if (lettura.stampa) return t("In stampa", "Printing");
+  if (lettura.ferma) return t("Ferma", "Stopped");
+  if (lettura.muta) return t("Non risponde", "Not answering");
+  if (lettura.stato === "spenta") return t("Spenta", "Off");
+  return t("Pronta", "Ready");
 }
 
 /* Le macchine del server e la rete (#382).
@@ -4221,7 +4451,7 @@ function allerteModel(states) {
    * che manca. Si dice, al posto del tutto tranquillo. */
   const mute = letture.filter((lettura) => lettura.livello === IGNOTO);
   const rows = letture.map((lettura) => ({
-    glyph: categoriaDelleAllerte(lettura.chiave).icona,
+    glyph: disegnoDelCatalogo(categoriaDelleAllerte(lettura.chiave).disegno, 20),
     name: clean(lettura.nome) || categoriaDelleAllerte(lettura.chiave).nome,
     entity: lettura.entity,
     value: fraseDellAllerta(lettura),
@@ -4408,8 +4638,10 @@ export function modelliDelleTessere(states) {
       coversModel(states),
       securityModel(states),
       porteModel(states),
+      citofonoModel(states),
       varchiModel(states),
       presenzaModel(states),
+      stampantiModel(states),
       camerasModel(states),
       ...energyModels(states),
       appliancesModel(states),
@@ -4674,8 +4906,24 @@ function unitaSimbolo(unita) {
  * Chi sa disegnare un nome mdi e' il motore delle icone, che e' anche quello
  * che ha riempito il catalogo da cui la scelta viene. */
 function facciaDellaTessera(widget) {
+  /* Una tessera puo' portarsi la faccia da sola (#460).
+   *
+   * «Remove the speaker icon and its name from the media player»: sulla musica
+   * il disegno dell'altoparlante dice cos'e' la tessera, che si sa gia' dal
+   * nome, e non dice cosa sta suonando — che e' l'unica cosa che si vuole
+   * sapere. Con la copertina del disco al suo posto la pastiglia diventa la
+   * risposta invece dell'etichetta. La pastiglia resta dov'e' e com'e': cambia
+   * cosa ci sta sopra, non la forma della tessera. */
+  if (widget?.faccia) return widget.faccia;
   if (haOggettoWidget(widget?.key)) return oggettoWidget(widget.key);
   return iconGlyphMarkup("action", widget?.icon, { size: 22 });
+}
+
+/* La firma della faccia: serve a chi ridipinge senza rifare la tessera, per
+ * sapere se c'e' da riscriverla. Una copertina che cambia e' una copertina
+ * nuova; tutto il resto non cambia mai. */
+function firmaDellaFaccia(widget) {
+  return clean(widget?.facciaFirma);
 }
 
 function tileMarkup(widget, index = 0) {
@@ -4687,12 +4935,16 @@ function tileMarkup(widget, index = 0) {
       style="--dm-widget-accent:${widget.accent};--dm-tile-i:${index}" aria-expanded="${open}" aria-label="${esc(widget.label)}">
       <span class="dm-tile-alone" aria-hidden="true"></span>
       <span class="dm-tile-cima">
-        <span class="dm-tile-chip" aria-hidden="true">${facciaDellaTessera(widget)}</span>
+        <span class="dm-tile-chip" aria-hidden="true" data-dm-faccia="${esc(firmaDellaFaccia(widget))}">${facciaDellaTessera(widget)}</span>
         <span class="dm-tile-label" data-dm-tile-label>${esc(widget.label)}</span>
+        ${widget.menu ? `<span class="dm-tile-menu" aria-hidden="true">⋮</span>` : ""}
       </span>
       <span class="dm-tile-val"><b class="dm-tile-value" data-dm-tile-value data-dm-len="${misuraValore(widget.value)}">${esc(numero)}</b><i class="dm-tile-unit" data-dm-tile-unit data-simbolo="${unitaSimbolo(unita)}">${esc(unita)}</i></span>
       <span class="dm-tile-fondo">
-        <small class="dm-tile-caption"><span class="dm-tile-scroll" data-dm-tile-caption>${esc(widget.caption)}</span></small>
+        <span class="dm-tile-testo">
+          <small class="dm-tile-caption"><span class="dm-tile-scroll" data-dm-tile-caption>${esc(widget.caption)}</span></small>
+          <small class="dm-tile-sotto" data-dm-tile-sotto${widget.sottotitolo ? "" : " hidden"}>${esc(widget.sottotitolo || "")}</small>
+        </span>
         <span class="dm-tile-misura" data-dm-misura="${esc(firmaMisura(widget))}" aria-hidden="true">${misuraMarkup(widget)}</span>
       </span>
     </button>`;
@@ -5161,6 +5413,20 @@ function climatePanel(row, solo = false) {
           .join("")}</div>
       </div>`
     : "";
+  const aletteMarkup = row.alette?.length
+    ? `<div class="dm-w-panel-row">
+        <span class="dm-w-panel-lbl">${esc(t("Alette", "Swing"))}</span>
+        <div class="dm-w-chips">${row.alette
+          .map(
+            (voce) =>
+              `<button type="button" class="dm-w-chip" data-dm-w-swing="${esc(voce)}"
+                 data-dm-w-target="${esc(row.entity)}" data-on="${voce === row.aletta}">${esc(
+                   voce,
+                 )}</button>`,
+          )
+          .join("")}</div>
+      </div>`
+    : "";
   const azione = NOMI_AZIONE()[row.azione] || "";
   const noteMarkup =
     azione || row.umidita != null
@@ -5172,7 +5438,7 @@ function climatePanel(row, solo = false) {
           .map(esc)
           .join(" · ")}</p>`
       : "";
-  const dentro = `${modiMarkup}${temperaturaMarkup}${ventoleMarkup}${noteMarkup}`;
+  const dentro = `${modiMarkup}${temperaturaMarkup}${ventoleMarkup}${aletteMarkup}${noteMarkup}`;
   if (!dentro) return "";
   if (solo)
     return `<div class="dm-w-panel dm-w-panel-solo" data-dm-w-panel="${esc(row.entity)}">${dentro}</div>`;
@@ -6751,6 +7017,24 @@ export function renderHomeWidgets() {
         caption.textContent = widget.caption;
         cambiato = true;
       }
+      /* La seconda riga e la copertina cambiano da un brano all'altro, quindi
+       * stanno qui e non nella struttura: rifare la tessera a ogni canzone
+       * vorrebbe dire farle ricominciare l'animazione di apertura mentre uno
+       * la guarda. */
+      const sotto = tile.querySelector("[data-dm-tile-sotto]");
+      const testoSotto = clean(widget.sottotitolo);
+      if (sotto && sotto.textContent !== testoSotto) {
+        sotto.textContent = testoSotto;
+        sotto.hidden = !testoSotto;
+        cambiato = true;
+      }
+      const chip = tile.querySelector(".dm-tile-chip");
+      const firmaFaccia = firmaDellaFaccia(widget);
+      if (chip && clean(chip.dataset.dmFaccia) !== firmaFaccia) {
+        chip.dataset.dmFaccia = firmaFaccia;
+        chip.innerHTML = facciaDellaTessera(widget);
+        cambiato = true;
+      }
       /* L'avviso non fa piu' parte della struttura: si accende qui, come tutto
        * il resto che cambia da un momento all'altro.
        *
@@ -7441,6 +7725,16 @@ function onClick(event) {
     callHa("climate", "set_fan_mode", {
       entity_id: clean(ventola.dataset.dmWTarget),
       fan_mode: clean(ventola.dataset.dmWFan),
+    });
+    root.setTimeout?.(schedule, 500);
+    return;
+  }
+  const aletta = event.target?.closest?.("[data-dm-w-swing]");
+  if (aletta) {
+    event.preventDefault();
+    callHa("climate", "set_swing_mode", {
+      entity_id: clean(aletta.dataset.dmWTarget),
+      swing_mode: clean(aletta.dataset.dmWSwing),
     });
     root.setTimeout?.(schedule, 500);
     return;
@@ -8507,6 +8801,25 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
 /* La terza riga: il dettaglio, e la misura che gli sta accanto. */
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-fondo{
   display:flex;align-items:center;gap:10px;min-width:0;margin-top:auto}
+/* Le due righe del fondo stanno in colonna: la didascalia e, sotto, la riga
+   che la qualifica — l'artista di quel brano. La seconda c'e' solo dove il
+   modello la scrive, e la mattonella resta la mattonella di sempre. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-testo{
+  flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-sotto{
+  min-width:0;font-size:9.5px;font-weight:700;letter-spacing:.2px;
+  color:var(--text-dim,#94a3b8);opacity:.72;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* I tre puntini: dentro non c'e' una lista, ci sono i comandi. Non sono un
+   secondo tasto — toccare la mattonella apre gia' la finestra — sono il segno
+   che li' dentro si comanda qualcosa. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-menu{
+  position:absolute;top:0;right:0;line-height:1;font-size:16px;font-weight:900;
+  color:var(--text-dim,#94a3b8);opacity:.72;letter-spacing:0}
+/* La copertina riempie la pastiglia: e' l'unico disegno che non e' un'icona. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-arte{
+  width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-chip:has(.dm-tile-arte){overflow:hidden;padding:0}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-caption{
   flex:1;min-width:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8);
   white-space:nowrap;overflow:hidden;
@@ -8904,6 +9217,10 @@ ${radice} .dm-tile-unit[data-simbolo="true"]{
   line-height:1.5;letter-spacing:0;color:var(--text-dim,#64748b)}
 /* Didascalie e misure non ci sono: la pillola dice il nome e il numero. */
 ${radice} .dm-tile-fondo{display:none}
+/* I tre puntini seguono la didascalia: nella pillola non c'e' il posto dove
+   stavano — qui la riga di cima e' display:contents, quindi non fa piu' da
+   riferimento a niente — e una pillola alta quarantotto pixel e' gia' piena. */
+${radice} .dm-tile-menu{display:none}
 /* La pillola d'avviso: il velo piatto del colore d'avviso al 10%, l'hairline
    in tinta, la tacca piu' spessa e il valore in tinta scura. Niente gradienti
    ne' alone animato: l'avviso si legge, non lampeggia. */

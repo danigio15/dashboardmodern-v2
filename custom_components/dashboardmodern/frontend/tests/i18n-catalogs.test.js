@@ -181,6 +181,13 @@ const SHARED_ACROSS_LANGUAGES = new Set([
   "System OK",
   "of",
   "pH",
+  /* Le due misure del tempo sulle letture del robot (#468): «min» e «h» sono
+     i simboli internazionali del minuto e dell'ora, e in alfabeto latino si
+     scrivono cosi' dappertutto. Dove non e' vero — russo, giapponese,
+     coreano, cinese, arabo, hindi — il catalogo di quella lingua li traduce
+     lo stesso: questa riga permette, non impone. */
+  "min",
+  "h",
   "🔥 Boiler",
 ]);
 
@@ -276,6 +283,12 @@ const LOCALE_IDENTITIES = {
     "Radius (km)",
     /* La modulazione di una caldaia si chiama Modulation anche in tedesco. */
     "Modulation (%)",
+    /* Un lettore multimediale in tedesco e' un «Player»: la parola inglese e'
+       quella che si usa, e «Abspielgerät» sarebbe piu' lungo e meno chiaro. */
+    "Player",
+    /* E un nodo di un cluster e' un «Node»: chi amministra Proxmox in tedesco
+       lo chiama cosi', e «Knoten» in quel contesto non lo dice nessuno. */
+    "Node",
     "Polo",
     "💨 Wind",
     "${value} offline",
@@ -337,6 +350,17 @@ const LOCALE_IDENTITIES = {
     "Volume",
   ]),
   nl: new Set([
+    /* Een node van een cluster heet in het Nederlands ook gewoon node — wie
+     * Proxmox beheert zegt geen «knooppunt» — enkelvoud en meervoud gelijk aan
+     * het Engels. */
+    "Node",
+    "node",
+    "nodes",
+    /* Een printer heet in het Nederlands ook gewoon printer, in het enkelvoud
+     * en in het meervoud: er is geen ander woord voor. */
+    "Printers",
+    "1 printer",
+    "${riassunto.quante} printers",
     /* Het volume van een speaker heet in het Nederlands ook zo. */
     "Volume",
     /* Het dashboard heet in het Nederlands ook gewoon dashboard. */

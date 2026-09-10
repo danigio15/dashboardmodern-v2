@@ -94,7 +94,20 @@ export function normalizzaAllerte(stored) {
     fuori[chiave] = { nome: pulito(voce.nome) };
     for (const casella of caselle) fuori[chiave][casella] = pulito(voce[casella]);
   }
-  return fuori;
+  /* Quello che non e' una categoria resta dov'e' (#440).
+   *
+   * «Inserisco il sensore, faccio salva sezione, esco, rientro e non c'è.»
+   * Non era la casella: era questa funzione. Costruiva un oggetto NUOVO con
+   * dentro solo le categorie, e la scheda salva sempre quello che questa
+   * funzione le ha dato — quindi ogni salvataggio riscriveva la casella
+   * `cd_allerte` senza il blocco dell'aria, che vive li' dentro insieme alle
+   * allerte. Il sensore si scriveva davvero, e il salvataggio dopo lo
+   * cancellava.
+   *
+   * Normalizzare vuol dire mettere in ordine quello che si conosce, non
+   * buttare quello che non si conosce: una funzione che ripulisce un
+   * salvataggio altrui e' un modo di perdere i dati di qualcun altro. */
+  return { ...dato, ...fuori };
 }
 
 /** Le categorie che hanno almeno l'entita' principale. */

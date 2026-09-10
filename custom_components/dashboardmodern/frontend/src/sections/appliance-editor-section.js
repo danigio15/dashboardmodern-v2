@@ -26,14 +26,12 @@ import { APPLIANCE_BINDING_FIELDS } from "../core/device-model.js";
 /* Le regole dei comandi a parte sono quelle del robot (#306), e non se ne
  * scrive un secondo elenco per gli elettrodomestici (#338): quali domini
  * possono fare da comando, come si chiama un comando senza ripetere il nome
- * dell'apparecchio, quali entita' gli stanno accanto. Sono nate li' perche' li'
- * e' arrivata la domanda per prima; sono le stesse. */
-import {
-  comandiSuggeriti as comandiVicini,
-  elencoComandi,
-  genereDelComando,
-  nomeDelComando,
-} from "../core/robot-model.js";
+ * dell'apparecchio, quali entita' gli stanno accanto. Stavano dentro il
+ * modello del robot, perche' li' e' arrivata la domanda per prima; adesso
+ * stanno in un modulo loro, che le tre sezioni che le usano — robot,
+ * elettrodomestici, lettori — vedono senza sapere niente l'una dell'altra. */
+import { comandiVicini, elencoComandi, genereDelComando } from "../core/comandi-accanto.js";
+import { nomeAccantoAlDispositivo } from "../core/nome-accanto-al-dispositivo.js";
 import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
 import { CAMPI_SCELTI } from "../core/energy-loads-config.js";
 import {
@@ -275,6 +273,7 @@ const CARD_FIELD_KEYS = [
   "temp_max",
   "max_power",
   "price_kwh",
+  "door_entity",
   "alert_entity",
   "last_start_entity",
   "last_duration_entity",
@@ -307,6 +306,7 @@ function cardFieldsMarkup(device = {}) {
       ${numberField("price_kwh", t("Costo energia (€/kWh)", "Energy cost (€/kWh)"), value("price_kwh"), t("Vuoto = tariffa della sezione Energia.", "Empty = tariff from the Energy section."), { step: "0.001", placeholder: "es. 0.25" })}
       ${numberField("threshold_standby", t("Soglia standby (W)", "Standby threshold (W)"), value("threshold_standby") === "" ? (device.metadata?.threshold_standby ?? "") : value("threshold_standby"), t("Sotto la soglia In funzione e sopra questa = Standby.", "Below the running threshold and above this = Standby."), { step: "0.1", placeholder: "1" })}
       ${numberField("off_delay_minutes", t("Ritardo fine ciclo (minuti)", "End-of-cycle delay (minutes)"), value("off_delay_minutes"), t("La card resta In funzione per questi minuti dopo l'ultima potenza sopra soglia: copre l'asciugatura a 0 W della lavastoviglie e le pause del ciclo.", "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses."), { step: "1", placeholder: "es. 30" })}
+      ${entityField("door_entity", t("Entità porta", "Door entity"), device.door_entity, t("Il classico sensore porta: la card dice «Porta aperta» quando resta aperta. Su un frigorifero è l'unica cosa che vale la pena sapere di sfuggita.", "The usual door contact: the card says “Door open” while it stays open. On a fridge that is the one thing worth knowing at a glance."))}
       ${entityField("alert_entity", t("Entità allarme/anomalia", "Alarm/problem entity"), device.alert_entity, t("binary_sensor di problema: accende il contatore Allarme.", "Problem binary_sensor: feeds the Alarm counter."))}
       ${entityField("last_start_entity", t("Ultimo ciclo · avvio", "Last cycle · start"), device.last_start_entity, t("Timestamp di avvio fornito dall'integrazione (es. Home Connect).", "Start timestamp provided by the integration (e.g. Home Connect)."))}
       ${entityField("last_duration_entity", t("Ultimo ciclo · durata", "Last cycle · duration"), device.last_duration_entity)}
@@ -333,7 +333,7 @@ function cardFieldsMarkup(device = {}) {
  * Non si salva niente finche' non si preme il tasto in fondo: l'elenco vive in
  * un campo nascosto del modulo, come il collegamento all'integrazione. */
 function chipComandoMarkup(entity, azione, segno, apparecchio, states) {
-  return `<button type="button" class="dm-appl-cmd-chip" data-${azione}="${esc(entity)}" data-genere="${esc(genereDelComando(entity))}" title="${esc(entity)}"><span>${esc(nomeDelComando(entity, apparecchio, states))}</span><i aria-hidden="true">${segno}</i></button>`;
+  return `<button type="button" class="dm-appl-cmd-chip" data-${azione}="${esc(entity)}" data-genere="${esc(genereDelComando(entity))}" title="${esc(entity)}"><span>${esc(nomeAccantoAlDispositivo(entity, apparecchio, states))}</span><i aria-hidden="true">${segno}</i></button>`;
 }
 
 /* L'apparecchio come lo vede il vocabolario dei comandi: la sua entita' e i

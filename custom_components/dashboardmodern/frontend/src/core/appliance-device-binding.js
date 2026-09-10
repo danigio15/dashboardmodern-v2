@@ -254,6 +254,18 @@ const ROLES = Object.freeze([
     },
   },
   {
+    /* La porta (#471): «il classico sensore porte». Un `device_class: door`
+     * non lascia dubbi; senza quello vale il nome, ma solo se dice porta e non
+     * qualcos'altro che si apre — un oblo' e' una porta, un blocco bambini no. */
+    key: "door_entity",
+    score(entity, clues, states) {
+      if (domainOf(entity.entity_id) !== "binary_sensor") return null;
+      const classe = deviceClassOf(entity, states);
+      if (classe === "door" || classe === "opening") return 9;
+      return /\b(door|porta|sportello|oblo)\b/.test(clues) ? 6 : null;
+    },
+  },
+  {
     key: "alert_entity",
     score(entity, clues, states) {
       if (domainOf(entity.entity_id) !== "binary_sensor") return null;

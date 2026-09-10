@@ -98,6 +98,9 @@ export const SEZIONI = Object.freeze(
      * varchi perché è la stessa domanda — cosa succede in casa adesso — fatta
      * su un'altra famiglia di sensori. */
     { scheda: "presenza", chiave: "presenza", glifo: "🏃", it: "Presenza", en: "Presence" },
+    /* Le stampanti (#469): sono nella famiglia delle macchine — una spina e un
+     * indirizzo — non in quella delle stanze. */
+    { scheda: "stampanti", chiave: "stampanti", glifo: "🖨️", it: "Stampanti", en: "Printers" },
     {
       scheda: "doors",
       chiave: "porte",
@@ -107,6 +110,16 @@ export const SEZIONI = Object.freeze(
       glifo: "🔓",
       it: "Porte e cancelli",
       en: "Doors and gates",
+    },
+    /* Il citofono e la cassetta della posta, la segnalazione #449: sta subito
+     * dopo «Porte e cancelli» perché è la stessa porta vista da fuori — chi
+     * suona, e cosa è stato lasciato. */
+    {
+      scheda: "citofono",
+      chiave: "citofono",
+      glifo: "📮",
+      it: "Citofono e posta",
+      en: "Intercom and mail",
     },
     { scheda: "media", chiave: "media", glifo: "🎵", it: "Musica", en: "Music" },
     { scheda: "batterie", chiave: "batterie", glifo: "🔋", it: "Batterie", en: "Batteries" },

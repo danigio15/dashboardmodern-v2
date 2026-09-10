@@ -44,6 +44,7 @@ import {
   wrapFunction,
   writeJsonIfChanged,
 } from "./shared.js";
+import { disegnoDelBidone } from "../core/disegni-rifiuti.js";
 
 const KEY = "__DASHBOARDMODERN_RIFIUTI_EDITOR__";
 const state = (root[KEY] ||= { installed: false, bozza: null, contatore: 0 });
@@ -89,12 +90,15 @@ function nuovaRiga(materiale = "plastica") {
 
 /* ── il disegno ───────────────────────────────────────────────────────── */
 
+/* La tendina dei materiali. Dentro un <option> ci sta solo testo — niente
+ * disegno — quindi qui l'emoji non si sostituisce: si toglie. Il bidone
+ * disegnato sta accanto, nella testa della riga, e il colore ce l'ha gia'. */
 function materialiMarkup(scelto) {
   return MATERIALI.map(
     (voce) =>
       `<option value="${esc(voce.chiave)}"${voce.chiave === scelto ? " selected" : ""}>${esc(
-        voce.icona,
-      )} ${esc(nomeDelMateriale(voce.chiave))}</option>`,
+        nomeDelMateriale(voce.chiave),
+      )}</option>`,
   ).join("");
 }
 
@@ -103,7 +107,7 @@ function rigaMarkup(riga, indice) {
   const id = `dm-rifiuti-entity-${indice}`;
   return `<article class="ed-row dm-todo-ed-row dm-rifiuti-ed-riga" data-open="true" data-dm-rifiuti-riga="${esc(riga.id)}" style="--dm-bidone:${esc(voce.colore)}">
     <div class="dm-rifiuti-ed-testa">
-      <span class="dm-rifiuti-ed-ic" aria-hidden="true">${esc(voce.icona)}</span>
+      <span class="dm-rifiuti-ed-ic" aria-hidden="true">${disegnoDelBidone(voce.chiave, voce.colore, 32)}</span>
       <select class="ed-input dm-rifiuti-ed-materiale" data-dm-rifiuti-campo="materiale" aria-label="${esc(t("Materiale", "Material"))}">${materialiMarkup(voce.chiave)}</select>
       <button type="button" class="ed-del" data-dm-rifiuti-togli="${esc(riga.id)}" title="${esc(t("Togli", "Remove"))}" aria-label="${esc(t("Togli", "Remove"))}">🗑️</button>
     </div>
@@ -169,7 +173,10 @@ function nomeDelGiorno(inizio, indice) {
 function bidoniDellaCasella(giorno) {
   if (!giorno.length) return `<span class="dm-turno-vuoto">—</span>`;
   return giorno
-    .map((materiale) => `<span>${esc(materialeDiSerie(materiale).icona)}</span>`)
+    .map((materiale) => {
+      const voce = materialeDiSerie(materiale);
+      return `<span>${disegnoDelBidone(voce.chiave, voce.colore, 22)}</span>`;
+    })
     .join("");
 }
 
@@ -221,7 +228,7 @@ function apriLaTendinaDelGiorno(indice) {
     riga.className = "dm-turno-voce";
     riga.dataset.dmTurnoVoce = materiale.chiave;
     riga.setAttribute("aria-pressed", scelti.has(materiale.chiave) ? "true" : "false");
-    riga.innerHTML = `<span aria-hidden="true">${esc(materiale.icona)}</span><span>${esc(nomeDelMateriale(materiale.chiave))}</span>`;
+    riga.innerHTML = `<span aria-hidden="true">${disegnoDelBidone(materiale.chiave, materiale.colore, 26)}</span><span>${esc(nomeDelMateriale(materiale.chiave))}</span>`;
     riga.addEventListener("click", () => {
       const acceso = riga.getAttribute("aria-pressed") === "true";
       riga.setAttribute("aria-pressed", acceso ? "false" : "true");
@@ -418,7 +425,7 @@ function onChange(event) {
   if (!riga) return;
   riga.style.setProperty("--dm-bidone", voce.colore);
   const icona = riga.querySelector(".dm-rifiuti-ed-ic");
-  if (icona) icona.textContent = voce.icona;
+  if (icona) icona.innerHTML = disegnoDelBidone(voce.chiave, voce.colore, 32);
   const nome = riga.querySelector('[data-dm-rifiuti-campo="nome"]');
   if (nome) nome.placeholder = nomeDelMateriale(voce.chiave);
 }
@@ -447,9 +454,10 @@ function installStyles() {
         font-size:11.5px;line-height:1.45;font-weight:700;color:#92400e;
         background:color-mix(in srgb,#f59e0b 14%,transparent)}
       #ed-body .dm-rifiuti-ed-testa{display:flex;align-items:center;gap:8px;margin:0 0 6px}
-      #ed-body .dm-rifiuti-ed-ic{
-        display:grid;place-items:center;width:32px;height:32px;border-radius:10px;font-size:17px;flex:0 0 auto;
-        background:color-mix(in srgb,var(--dm-bidone,#0ea5e9) 18%,transparent)}
+      /* Il disegno del bidone ha gia' il suo pannello: dietro non ci va altro. */
+      #ed-body .dm-rifiuti-ed-ic{display:grid;place-items:center;width:32px;height:32px;flex:0 0 auto}
+      #ed-body .dm-rifiuti-ed-ic .dm-appliance-art{display:block;line-height:0}
+      .dm-turno-voce .dm-appliance-art,#ed-body .dm-turno-casella .dm-appliance-art{display:block;line-height:0}
       #ed-body .dm-rifiuti-ed-materiale{flex:1 1 auto;min-width:0;margin:0}
       #ed-body .dm-rifiuti-ed-aggiungi{width:100%;margin:6px 0 12px}
       /* Il calendario di casa (#366): due file da sette, come un calendario da
