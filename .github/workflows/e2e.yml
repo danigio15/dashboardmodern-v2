@@ -34,7 +34,15 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
-      max-parallel: 7
+      # Otto, quanti sono i pezzi.
+      #
+      # Era sette da quando WebKit stava in tre: allora i lavori erano sette e
+      # partivano tutti insieme. Diviso WebKit in quattro sono otto, e l'ottavo
+      # restava in coda ad aspettare che se ne liberasse uno — quindici minuti
+      # buoni di attesa per un pezzo che ne dura sedici. L'attesa di un giro e'
+      # quella del pezzo piu' lento, non la somma: un pezzo che parte in ritardo
+      # la allunga di tutto il suo ritardo, e per niente.
+      max-parallel: 8
       matrix:
         include:
           - { project: desktop, shard: 1, shards: 2 }
