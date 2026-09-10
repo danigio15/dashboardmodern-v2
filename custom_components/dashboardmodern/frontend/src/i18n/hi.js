@@ -3353,4 +3353,6 @@ export default Object.freeze({
   "My battery writes positive while charging": "मेरी बैटरी चार्ज होते समय धनात्मक लिखती है",
   "Off: a positive number means the battery is feeding the house. If the battery arrows on the map point the opposite way to what it is really doing, turn this on.": "बंद: धनात्मक संख्या का मतलब है कि बैटरी घर को बिजली दे रही है। अगर नक़्शे पर बैटरी के तीर असल में हो रहे काम के उलट दिखें, तो इसे चालू करें।",
   "On: a positive number means the battery is charging.": "चालू: धनात्मक संख्या का मतलब है कि बैटरी चार्ज हो रही है।",
+  "Power draw (optional)": "खपत (वैकल्पिक)",
+  "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "सॉकेट का वॉटमीटर, अगर उसमें है: कार्ड उसकी स्थिति के बगल में लिखता है कि वह कितनी बिजली खींच रहा है। इसके बिना कार्ड जैसा है वैसा ही रहता है।",
 });

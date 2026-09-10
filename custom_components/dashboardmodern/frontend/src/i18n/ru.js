@@ -3353,4 +3353,6 @@ export default Object.freeze({
   "My battery writes positive while charging": "Моя батарея пишет плюс, когда заряжается",
   "Off: a positive number means the battery is feeding the house. If the battery arrows on the map point the opposite way to what it is really doing, turn this on.": "Выключено: положительное число значит, что батарея питает дом. Если на схеме стрелки батареи идут в обратную сторону от того, что она делает на самом деле, включи это.",
   "On: a positive number means the battery is charging.": "Включено: положительное число значит, что батарея заряжается.",
+  "Power draw (optional)": "Потребление (необязательно)",
+  "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "Ваттметр розетки, если он есть: карточка пишет рядом с состоянием, сколько она сейчас потребляет. Без него карточка остаётся прежней.",
 });

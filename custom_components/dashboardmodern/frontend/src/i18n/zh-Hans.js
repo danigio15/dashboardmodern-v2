@@ -3353,4 +3353,6 @@ export default Object.freeze({
   "My battery writes positive while charging": "我家电池充电时写正数",
   "Off: a positive number means the battery is feeding the house. If the battery arrows on the map point the opposite way to what it is really doing, turn this on.": "关闭：正数表示电池正在给家里供电。如果图上电池的箭头和它实际在做的相反，就把这个打开。",
   "On: a positive number means the battery is charging.": "开启：正数表示电池正在充电。",
+  "Power draw (optional)": "功耗（可选）",
+  "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "插座的功率计（如果有）：卡片会在状态旁写出它此刻的用电量。没有的话，卡片保持原样。",
 });

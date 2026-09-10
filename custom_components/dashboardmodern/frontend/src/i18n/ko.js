@@ -3353,4 +3353,6 @@ export default Object.freeze({
   "My battery writes positive while charging": "우리 집 배터리는 충전 중에 양수로 씁니다",
   "Off: a positive number means the battery is feeding the house. If the battery arrows on the map point the opposite way to what it is really doing, turn this on.": "끔: 양수는 배터리가 집에 전력을 보내고 있다는 뜻입니다. 그림에서 배터리 화살표가 실제와 반대로 향한다면 이걸 켜세요.",
   "On: a positive number means the battery is charging.": "켬: 양수는 배터리가 충전 중이라는 뜻입니다.",
+  "Power draw (optional)": "소비 전력(선택)",
+  "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "콘센트에 전력계가 있으면 카드가 상태 옆에 지금 쓰는 전력을 적습니다. 없으면 카드는 그대로입니다.",
 });

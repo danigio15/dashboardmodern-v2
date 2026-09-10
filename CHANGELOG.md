@@ -7,6 +7,27 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non ancora rilasciato
 
+### Aggiunto
+
+- **Prese: quanto sta tirando, scritto sulla card** (#465)
+
+  «Le prese che hanno anche la lettura dei consumi: è possibile mettere oltre lo
+  switch anche l'entità del consumo?» Una presa smart pubblica due entità —
+  l'interruttore e il wattmetro — e sono due entità distinte, non due letture
+  della stessa: la seconda va indicata, non indovinata. La casella **Consumo**
+  sta nella scheda Prese, accanto a quella dell'interruttore, col suo selettore.
+
+  Sulla card i watt escono accanto allo stato, in una pastiglia. È facoltativa:
+  chi il wattmetro non ce l'ha non compila niente e la card resta identica a
+  prima.
+
+  I watt li legge lo stesso lettore che li legge in tutta la plancia — sa di kW e
+  di mW, e senza unità dichiarata assume i watt — e li scrive nella stessa forma
+  degli elettrodomestici, perché la stessa misura scritta in due modi diversi è
+  due cose diverse per chi legge. Un wattmetro che non risponde non scrive
+  «0 W»: zero watt vuol dire che non sta consumando, ed è una notizia diversa da
+  «non si sa».
+
 ### Corretto
 
 - **Finestre: sei finestre non fanno undici** (#462)

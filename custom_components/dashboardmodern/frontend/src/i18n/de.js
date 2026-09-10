@@ -3353,4 +3353,6 @@ export default Object.freeze({
   "My battery writes positive while charging": "Meine Batterie schreibt positiv, während sie lädt",
   "Off: a positive number means the battery is feeding the house. If the battery arrows on the map point the opposite way to what it is really doing, turn this on.": "Aus: eine positive Zahl heißt, dass die Batterie das Haus versorgt. Zeigen die Pfeile der Batterie auf der Karte in die Gegenrichtung dessen, was sie wirklich tut, schalte das ein.",
   "On: a positive number means the battery is charging.": "Ein: eine positive Zahl heißt, dass die Batterie lädt.",
+  "Power draw (optional)": "Leistungsaufnahme (optional)",
+  "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "Der Leistungsmesser der Steckdose, falls vorhanden: Die Karte schreibt neben den Zustand, wie viel gerade gezogen wird. Ohne ihn bleibt die Karte, wie sie ist.",
 });

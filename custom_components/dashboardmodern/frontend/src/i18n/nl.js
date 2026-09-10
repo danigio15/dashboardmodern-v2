@@ -3353,4 +3353,6 @@ export default Object.freeze({
   "My battery writes positive while charging": "Mijn accu schrijft positief tijdens het laden",
   "Off: a positive number means the battery is feeding the house. If the battery arrows on the map point the opposite way to what it is really doing, turn this on.": "Uit: een positief getal betekent dat de accu het huis voedt. Wijzen de pijlen van de accu op de kaart de andere kant op dan wat hij werkelijk doet, zet dit dan aan.",
   "On: a positive number means the battery is charging.": "Aan: een positief getal betekent dat de accu aan het laden is.",
+  "Power draw (optional)": "Verbruik (optioneel)",
+  "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "De wattmeter van het stopcontact, als die er is: de kaart schrijft naast de status hoeveel er wordt verbruikt. Zonder blijft de kaart zoals hij is.",
 });

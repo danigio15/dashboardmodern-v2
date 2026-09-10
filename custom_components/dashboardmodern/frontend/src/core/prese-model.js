@@ -65,6 +65,15 @@ function normalizzata(voce, indice) {
      * leggere, e cambiare il nome della stanza non la scollega perche' dentro
      * ci va l'identificativo. */
     room_id: pulito(voce?.room_id || voce?.roomId || voce?.room),
+    /* Quanto sta consumando, se la presa lo sa dire (#465).
+     *
+     * «Le prese che hanno anche la lettura dei consumi: e' possibile mettere
+     * oltre lo switch anche l'entita' del consumo?» Una presa smart pubblica
+     * due entita' — l'interruttore e il wattmetro — e sono due entita'
+     * distinte, non due letture della stessa: la seconda va indicata, non
+     * indovinata. E' facoltativa: chi non ce l'ha non compila niente, e la
+     * card resta quella di prima. */
+    power: pulito(voce?.power || voce?.power_entity || voce?.consumo),
     order: Number.isFinite(+voce?.order) ? +voce.order : indice,
   };
 }

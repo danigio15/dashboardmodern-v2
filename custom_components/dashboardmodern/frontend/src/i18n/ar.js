@@ -3353,4 +3353,6 @@ export default Object.freeze({
   "My battery writes positive while charging": "بطاريتي تكتب قيمة موجبة أثناء الشحن",
   "Off: a positive number means the battery is feeding the house. If the battery arrows on the map point the opposite way to what it is really doing, turn this on.": "مطفأ: الرقم الموجب يعني أن البطارية تغذّي البيت. إذا كانت أسهم البطارية على الخريطة تشير عكس ما تفعله فعلًا، فشغّل هذا.",
   "On: a positive number means the battery is charging.": "مشغّل: الرقم الموجب يعني أن البطارية تُشحن.",
+  "Power draw (optional)": "استهلاك الطاقة (اختياري)",
+  "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "عدّاد استهلاك المقبس، إن وُجد: تكتب البطاقة مقدار ما يسحبه بجانب حالته. وبدونه تبقى البطاقة كما هي.",
 });

@@ -3353,4 +3353,6 @@ export default Object.freeze({
   "My battery writes positive while charging": "うちのバッテリーは充電中にプラスで書く",
   "Off: a positive number means the battery is feeding the house. If the battery arrows on the map point the opposite way to what it is really doing, turn this on.": "オフ：プラスの数値は、バッテリーが家に電力を送っていることを表します。図のバッテリーの矢印が実際と逆を向いているなら、これをオンにしてください。",
   "On: a positive number means the battery is charging.": "オン：プラスの数値は、バッテリーが充電中であることを表します。",
+  "Power draw (optional)": "消費電力（任意）",
+  "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "コンセントの電力計があれば、カードは状態の横に現在の消費電力を書きます。なければカードはそのままです。",
 });
