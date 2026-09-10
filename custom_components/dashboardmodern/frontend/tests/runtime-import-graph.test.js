@@ -1172,8 +1172,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // oggi? — e la risposta ha tre esiti, non due: «sta piovendo» e «ha piovuto
   // abbastanza» sono due ragioni diverse per saltare il giro, e chi legge la
   // pagina vuole sapere quale delle due e'.
+  // 331 con gli altri nodi del cluster (#470): «sarebbe utile poter configurare
+  // piu' di un mini pc in modo da monitorare piu' nodi, comodo per chi ha un
+  // cluster proxmox». Tre moduli, che e' come si aggiunge una cosa a una
+  // sezione che c'e' gia': le regole in `core/nodi-del-cluster.js` — cos'e' un
+  // nodo, quando un carico smette di essere normale, quali entita' di un
+  // dispositivo sono le sue — e le due sezioni che le vestono, la fascia sulla
+  // pagina Server e la scheda dentro quella del MiniPC.
   assert.ok(
-    relative.length <= 328,
+    relative.length <= 331,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

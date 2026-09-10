@@ -216,7 +216,7 @@
  * dicono quanto inchiostro resta. E' roba di casa, non del vetro: la
  * stampante e' una sola, e chi la configura dal computer deve ritrovarla dal
  * telefono. */
-export const CONFIG_KEYS_REVISION = 43;
+export const CONFIG_KEYS_REVISION = 44;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -263,6 +263,11 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_luci_room_order",
   // I sensori porta/finestra che parlano al contrario (#244): ON = chiuso.
   "cd_stati_invertiti",
+  // Gli altri nodi del cluster (#470): «poter configurare piu' di un mini pc in
+  // modo da monitorare piu' nodi, comodo per chi ha un cluster proxmox». La
+  // scheda grande resta il computer su cui gira Home Assistant; qui stanno gli
+  // altri, con le loro cinque entita' facoltative.
+  "cd_nodi",
   // Le voci della parte Caldo del Clima (caldaia, pompe): lista libera.
   "cd_termico_caldo",
   // I programmi rapidi della lavatrice: nome, entita', icona.

@@ -167,11 +167,16 @@ test("togliere una chiave non alza la revisione", async () => {
    * dice se la stampante è pronta, e quali dicono quanto inchiostro resta: la
    * stampante è una sola per la casa, e chi la configura dal computer deve
    * ritrovarla dal telefono. */
-  assert.equal(CONFIG_KEYS_REVISION, 43);
+  /* E la 44 con gli altri nodi del cluster (#470, `cd_nodi`): «sarebbe utile
+   * poter configurare più di un mini pc in modo da monitorare più nodi, comodo
+   * per chi ha un cluster proxmox». Un cluster è della casa, non dello schermo
+   * da cui lo si è dichiarato. */
+  assert.equal(CONFIG_KEYS_REVISION, 44);
   assert.ok(
     CONFIG_KEYS.includes("cd_stampanti"),
     "le stampanti si configurano per la casa, non per lo schermo",
   );
+  assert.ok(CONFIG_KEYS.includes("cd_nodi"), "un cluster è della casa, non dello schermo");
   assert.ok(
     CONFIG_KEYS.includes("cd_flusso_home"),
     "il flusso in Home si sceglie per la casa, non per lo schermo",

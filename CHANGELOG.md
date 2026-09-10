@@ -9,6 +9,31 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Gli altri nodi del cluster** (#470)
+
+  «Sarebbe utile poter configurare più di un mini pc in modo da monitorare più
+  nodi, comodo per chi ha, ad esempio, un cluster proxmox.» La pagina Server
+  aveva una scheda sola, ed è quella del computer su cui gira Home Assistant.
+  Le sue macchine e i suoi container si vedevano già (#382); il ferro degli
+  altri nodi no.
+
+  In **Config → 🖥️ MiniPC** c'è adesso **Altri nodi del cluster**: uno per riga,
+  con il nome che gli dai e cinque entità — stato, processore, memoria, disco,
+  gradi. Tutte facoltative, perché non tutte le integrazioni le pubblicano
+  tutte: Proxmox VE dà lo stato e le tre percentuali, Glances aggiunge i gradi,
+  un ping dà solo il su e giù. Una casella vuota è una barra che non compare.
+
+  C'è anche **«🔗 Aggiungi da un'integrazione»**, come per gli elettrodomestici,
+  il robot e i lettori: scegli il dispositivo del nodo e le cinque caselle si
+  compilano da sole.
+
+  Sulla pagina Server i nodi stanno **sopra** le fasce delle macchine — prima il
+  ferro, poi quello che ci gira sopra — e ognuno porta le sue barre, verdi fino
+  al settanta per cento, gialle fino al novanta, rosse oltre. «Spento» e «non
+  risponde» restano due cose diverse, e un nodo di cui non hai indicato lo stato
+  non è né l'una né l'altra: è un nodo di cui non lo si è chiesto, e non si
+  colora di rosso per un allarme inventato.
+
 - **La pioggia caduta, sotto il meteo e dentro l'irrigazione** (#478)
 
   «Per chi ha una stazione meteo sarebbe utile vedere il rain rate e la pioggia

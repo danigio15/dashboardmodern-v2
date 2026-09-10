@@ -142,6 +142,8 @@ import { installStampantiEditor } from "./stampanti-editor-section.js";
 import { installVersoBatteriaEditorSection } from "./verso-batteria-editor-section.js";
 import { installMacchine } from "./macchine-e-rete-section.js";
 import { installMacchineEditor } from "./macchine-editor-section.js";
+import { installNodiSection } from "./nodi-section.js";
+import { installNodiEditor } from "./nodi-editor-section.js";
 import { installAgendaEditorSection } from "./agenda-editor-section.js";
 import { installLinguaSection } from "./lingua-section.js";
 import { installSostieniIlProgetto } from "./sostieni-il-progetto-section.js";
@@ -1074,6 +1076,8 @@ export function installSectionRuntime() {
     installVersoBatteriaEditorSection();
     installMacchine();
     installMacchineEditor();
+    installNodiSection();
+    installNodiEditor();
     /* Il calendario (#259) ha una pagina sua accanto alla Home, e con le liste
      * ToDo una scheda sola nella configurazione: sono la stessa pagina, e chi
      * le configura le pensa nello stesso momento. */

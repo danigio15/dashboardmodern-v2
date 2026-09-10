@@ -286,6 +286,9 @@ const LOCALE_IDENTITIES = {
     /* Un lettore multimediale in tedesco e' un «Player»: la parola inglese e'
        quella che si usa, e «Abspielgerät» sarebbe piu' lungo e meno chiaro. */
     "Player",
+    /* E un nodo di un cluster e' un «Node»: chi amministra Proxmox in tedesco
+       lo chiama cosi', e «Knoten» in quel contesto non lo dice nessuno. */
+    "Node",
     "Polo",
     "💨 Wind",
     "${value} offline",
@@ -347,6 +350,12 @@ const LOCALE_IDENTITIES = {
     "Volume",
   ]),
   nl: new Set([
+    /* Een node van een cluster heet in het Nederlands ook gewoon node — wie
+     * Proxmox beheert zegt geen «knooppunt» — enkelvoud en meervoud gelijk aan
+     * het Engels. */
+    "Node",
+    "node",
+    "nodes",
     /* Een printer heet in het Nederlands ook gewoon printer, in het enkelvoud
      * en in het meervoud: er is geen ander woord voor. */
     "Printers",
