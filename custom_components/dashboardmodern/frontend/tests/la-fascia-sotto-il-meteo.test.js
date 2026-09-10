@@ -24,6 +24,7 @@
  * stacca — e non si butta, perché è l'ultima cosa che dice che apparecchio sia.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { durataDellaDeriva, spazioDaPercorrere } from "../src/core/la-fascia-deriva.js";
@@ -95,4 +96,55 @@ test("un'opzione fatta di sola emoji non resta senza nome", async () => {
    * l'emoji torna a fare da nome. */
   assert.equal(nomeSenzaEmoji("🍽️").nome, "🍽️");
   assert.equal(nomeSenzaEmoji("").nome, "");
+});
+
+/* La fascia ha un bordo interno, e il nastro comincia dentro di lui.
+ *
+ * `clientWidth` comprende l'imbottitura; il nastro no — parte dopo. Prendendo
+ * quella misura così com'è, la strada risultava più corta di tutta
+ * l'imbottitura: il nastro si fermava prima del proprio capo e l'ultima
+ * pastiglia restava tagliata, cioè proprio quella che si stava aspettando, e
+ * con il velo del bordo sopra a renderla ancora meno leggibile.
+ */
+test("l'imbottitura della fascia non è strada che il nastro può usare", () => {
+  /* Sei pixel per parte, come li mette il foglio di stile. */
+  const conImbottitura = spazioDaPercorrere({
+    scrollWidth: 400,
+    clientWidth: 300,
+    imbottitura: 12,
+  });
+  assert.equal(conImbottitura, 112, "la strada cresce di quanto misura l'imbottitura");
+  /* Senza dirla, resta il conto di prima: dodici pixel in meno, e la coda
+   * dell'ultima pastiglia fuori dal bordo. */
+  assert.equal(spazioDaPercorrere({ scrollWidth: 400, clientWidth: 300 }), 100);
+});
+
+test("una fascia che ci sta tutta non si muove, imbottitura o no", () => {
+  /* 288 di spazio utile per 286 di pastiglie: dentro, e ferma. */
+  assert.equal(spazioDaPercorrere({ scrollWidth: 286, clientWidth: 300, imbottitura: 12 }), 0);
+  /* E l'imbottitura non può far muovere una fascia che ci sta: due pixel di
+   * tolleranza restano quelli, misurati sullo spazio vero. */
+  assert.equal(spazioDaPercorrere({ scrollWidth: 290, clientWidth: 300, imbottitura: 12 }), 0);
+  assert.equal(spazioDaPercorrere({ scrollWidth: 291, clientWidth: 300, imbottitura: 12 }), 3);
+});
+
+test("un'imbottitura assurda non inventa strada", () => {
+  /* Numeri che non sono numeri, o negativi, valgono zero: una misura sbagliata
+   * non deve far partire un'animazione che nessuno ha chiesto. */
+  assert.equal(spazioDaPercorrere({ scrollWidth: 100, clientWidth: 300, imbottitura: -50 }), 0);
+  assert.equal(spazioDaPercorrere({ scrollWidth: 100, clientWidth: 300, imbottitura: "boh" }), 0);
+});
+
+test("la sezione dice davvero quanto misura l'imbottitura, o il conto resta teorico", () => {
+  /* L'aritmetica qui sopra vale solo se chi ha il documento in mano passa la
+   * misura: senza, `spazioDaPercorrere` userebbe lo zero di difetto e
+   * tornerebbe esattamente il conto sbagliato di prima. */
+  const sezione = readFileSync(
+    new URL("../src/sections/come-sta-la-casa-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(sezione, /imbottitura: imbottituraDellaFascia\(riga\)/);
+  assert.match(sezione, /function imbottituraDellaFascia\(riga\)/);
+  assert.match(sezione, /paddingLeft/);
+  assert.match(sezione, /paddingRight/);
 });

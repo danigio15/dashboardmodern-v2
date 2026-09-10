@@ -155,3 +155,55 @@ test("righe senza data non entrano nel conto", () => {
   assert.deepEqual(mesiDaiGiorni(), []);
   assert.deepEqual(mesiDaiGiorni("non una lista"), []);
 });
+
+/* Un riavvio che lascia in piedi quasi tutto è comunque un riavvio.
+ *
+ * La soglia con cui si distingue una limatura del Recorder da un contatore
+ * ripartito stava a un decimo: sceso di più di un decimo, riavviato. Il
+ * ragionamento era «un riavvio lascia una frazione di quello che c'era», e
+ * quella frase non è vera.
+ *
+ * Un contatore mensile che chiude il mese a 50 kWh e il primo del mese dopo ne
+ * consuma 46 legge 46: è sceso di quattro cinquantesimi, cioè meno di un
+ * decimo, e passava per correzione. La serie 50, 46, 55 dava 5 invece di 55 —
+ * e cioè proprio i contatori a riavvio mensile, quelli che questo conto esiste
+ * per rimettere a posto, restavano quelli contati peggio.
+ *
+ * Non è la quota rimasta a dire cos'è successo: è quanto è stata grande la
+ * scesa. Le briciole del Recorder sono briciole sempre.
+ */
+const riga = (giorno, sum) => ({ start: new Date(2026, 0, giorno).toISOString(), sum });
+
+test("un contatore mensile che riparte alto conta tutto quello che segna", () => {
+  const giorni = recorderBucketConsumptions([riga(1, 50), riga(2, 46), riga(3, 55)]);
+  assert.deepEqual(
+    giorni.map((g) => g.change),
+    [50, 46, 9],
+  );
+  assert.equal(
+    giorni.reduce((somma, g) => somma + g.change, 0),
+    105,
+    "il mese chiuso a 50 più i 55 del mese nuovo",
+  );
+});
+
+test("una limatura del Recorder resta una limatura, e non conta niente", () => {
+  /* 1300,0 che diventa 1299,2: è l'arrotondamento che si ricompila, non un
+   * dato nuovo. Leggerlo come un riavvio vorrebbe dire contare milletrecento
+   * come consumo di un secchiello — che è l'errore da cui questa soglia nasce. */
+  const giorni = recorderBucketConsumptions([riga(1, 1300), riga(2, 1299.2), riga(3, 1310)]);
+  assert.deepEqual(
+    giorni.map((g) => g.change),
+    [1300, 0, 10],
+  );
+});
+
+test("fra la briciola e il riavvio la soglia non lascia zone grigie", () => {
+  /* Un cinquantesimo esatto è ancora una limatura; appena oltre è un riavvio.
+   * La direzione è scelta: prendere un riavvio per una correzione costa un
+   * secchiello, il contrario costa gli anni di storia del contatore. */
+  const briciola = recorderBucketConsumptions([riga(1, 100), riga(2, 98)]);
+  assert.equal(briciola[1].change, 0, "il 2% netto è ancora il Recorder che lima");
+  const riavvio = recorderBucketConsumptions([riga(1, 100), riga(2, 97.9)]);
+  assert.equal(riavvio[1].change, 97.9, "oltre il 2% il contatore è ripartito");
+});

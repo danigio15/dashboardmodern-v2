@@ -188,20 +188,37 @@ export function periodConsumption(rows = [], baseline = null) {
  * plancia sul contatore di rete importata.
  *
  * Le due cose si distinguono da QUANTO e' sceso, non dal fatto che sia
- * sceso. Un azzeramento riporta il contatore a zero e da li' riparte da
- * capo: il salto indietro e' grande, e quello che resta e' una frazione di
- * quello che c'era. Una correzione lima: toglie briciole, e quello che resta
- * e' praticamente tutto. Fra le due non c'e' zona grigia — un ritocco del
- * Recorder vale per mille, un riavvio vale per meta' — e la soglia sta in
- * mezzo, larga: se il contatore ha perso piu' di un decimo di se' e'
- * ripartito, altrimenti e' stato corretto e il secchiello non ha consumato.
+ * sceso. Una correzione LIMA: toglie briciole — 1300,0 che diventa 1299,2 —
+ * e quello che resta e' praticamente tutto. Un azzeramento no: il contatore
+ * riparte da capo, e quello che si legge dopo non ha piu' niente a che fare
+ * con quello che c'era prima.
  *
- * La direzione dell'errore e' scelta apposta. Prendere un riavvio per una
- * correzione costa un secchiello di consumo; prendere una correzione per un
- * riavvio costa gli anni di storia del contatore, scritti sullo schermo come
- * se fossero di oggi.
+ * ── Dove la prima soglia sbagliava ──────────────────────────────────────
+ *
+ * La soglia stava a un decimo: sceso di piu' di un decimo, riavviato. Il
+ * ragionamento era «un riavvio lascia una frazione di quello che c'era», e
+ * quella frase non e' vera. Un contatore mensile che chiude il mese a 50 kWh
+ * e il primo del mese dopo ne consuma 46 legge 46: e' sceso di soli quattro
+ * cinquantesimi, meno di un decimo, e passava per correzione. La serie
+ * 50, 46, 55 dava 5 invece di 55 — cioe' proprio i contatori a riavvio
+ * mensile, quelli che questo conto esiste per rimettere a posto, restavano
+ * quelli contati peggio.
+ *
+ * Non e' la quota RIMASTA a dire cos'e' successo: e' quanto e' stata
+ * grande la scesa. Il Recorder ritocca di briciole, sempre — e' un
+ * arrotondamento che si ricompila, non un dato nuovo. Tutto il resto e' un
+ * contatore che e' ripartito. Quindi la soglia sta stretta attorno allo
+ * zero, non a meta' strada: fino a un cinquantesimo e' una limatura, oltre
+ * e' un riavvio.
+ *
+ * La direzione dell'errore resta scelta apposta, e stringere la soglia la
+ * conferma: prendere un riavvio per una correzione costa un secchiello di
+ * consumo, prendere una correzione per un riavvio costa gli anni di storia
+ * del contatore scritti sullo schermo come se fossero di oggi — ed e' per
+ * questo che la finestra della correzione dev'essere la piu' piccola che
+ * copra le briciole del Recorder, non la piu' grande che ci stia.
  */
-const RIMASTO_DOPO_UN_RIAVVIO = 0.9;
+const LIMATURA_DEL_RECORDER = 0.02;
 export function recorderBucketConsumptions(rows = [], baseline = null) {
   const partenza = baseline && cumulativeValue(baseline) != null ? baseline : null;
   const ordered = [partenza, ...(Array.isArray(rows) ? rows : [])]
@@ -226,7 +243,10 @@ export function recorderBucketConsumptions(rows = [], baseline = null) {
       riferimento = adesso;
       return Object.freeze({ ...row, change: cresciuto });
     }
-    if (adesso < riferimento * RIMASTO_DOPO_UN_RIAVVIO) {
+    /* Sceso: di una briciola e' una limatura del Recorder e il secchiello non
+     * ha consumato niente; di piu' e' un contatore ripartito, e quello che
+     * segna adesso e' tutto consumo di adesso. */
+    if (riferimento - adesso > riferimento * LIMATURA_DEL_RECORDER) {
       riferimento = adesso;
       return Object.freeze({ ...row, change: Math.max(0, adesso) });
     }

@@ -311,12 +311,23 @@ function ospite() {
  * `data-dm-deriva` accende l'animazione e le sfumature ai bordi: senza di lui
  * una fascia che ci sta tutta resterebbe ferma ma sfumata, cioe' direbbe che
  * c'e' altro quando non c'e'. */
+/* Quanto misura il bordo interno della fascia, che il nastro non ha.
+ *
+ * E' l'unica cosa che sa il documento e non sa `spazioDaPercorrere`: la
+ * misura si prende una volta per disegno, come le altre di qui, non a ogni
+ * fotogramma. */
+function imbottituraDellaFascia(riga) {
+  const stile = root.getComputedStyle?.(riga);
+  return (parseFloat(stile?.paddingLeft) || 0) + (parseFloat(stile?.paddingRight) || 0);
+}
+
 function tieniLaFasciaInMovimento(riga) {
   const nastro = riga?.querySelector(":scope > .dm-casa-nastro");
   if (!nastro) return false;
   const strada = spazioDaPercorrere({
     scrollWidth: nastro.scrollWidth,
     clientWidth: riga.clientWidth,
+    imbottitura: imbottituraDellaFascia(riga),
   });
   if (!strada) {
     delete riga.dataset.dmDeriva;

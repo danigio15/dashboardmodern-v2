@@ -98,6 +98,41 @@ una prova che avevo guardato tardi.
 
 ### Corretto
 
+- **Quattro cose trovate da una revisione automatica sulla PR di questa versione**
+
+  Nessuna era visibile guardando la plancia, e tutte e quattro erano vere.
+
+  **Un contatore mensile che riparte alto contava per cinque.** La soglia con
+  cui si distingue una limatura del Recorder da un contatore ripartito stava a
+  un decimo, e il ragionamento — «un riavvio lascia una frazione di quello che
+  c'era» — è falso: un contatore che chiude il mese a 50 kWh e il primo del mese
+  dopo ne consuma 46 è sceso di meno di un decimo, e passava per correzione.
+  La serie 50, 46, 55 dava 5 invece di 55, cioè proprio i contatori a riavvio
+  mensile restavano quelli contati peggio. Non è la quota rimasta a dire cos'è
+  successo: è quanto è stata grande la scesa. Le briciole del Recorder sono
+  briciole sempre, e adesso la finestra della correzione è la più piccola che le
+  copra.
+
+  **Un materiale dedotto poteva comparire due volte.** Chi configura un sensore
+  per materiale senza scegliere quale lascia «altro», e il materiale vero lo dice
+  il sensore. Quella traduzione la faceva soltanto il disegno delle righe:
+  l'elenco delle esclusioni restava fermo su «altro», il calendario portava
+  allora la *sua* plastica, e uscivano due righe dello stesso bidone con due date
+  diverse. Adesso la domanda si fa in un posto solo.
+
+  **Un avviso che scattava a finestra aperta spariva.** Chi sta guardando
+  un'altra finestra ha già scelto cosa guardare, e la sua non si scavalca — ma
+  «non aprirla adesso» e «buttarla via» sono due cose diverse. La memoria si
+  scriveva prima di quel controllo, quindi l'avviso appena acceso risultava già
+  visto e la sua finestra non arrivava mai. Adesso resta in sospeso e arriva
+  quando c'è posto.
+
+  **L'ultima pastiglia della fascia restava tagliata.** La fascia sotto il meteo
+  ha un bordo interno di sei pixel per parte, e il nastro comincia dentro quel
+  bordo: la strada da percorrere veniva misurata dodici pixel più corta, e il
+  nastro si fermava prima del proprio capo — con il velo del bordo sopra a
+  rendere quell'ultima parola ancora meno leggibile.
+
 - **Energia: un contatore in Wh valeva mille volte tanto** (#447)
 
   Home Assistant lascia scegliere l'unità a chi produce il contatore, e `Wh` e

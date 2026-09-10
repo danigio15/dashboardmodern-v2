@@ -43,9 +43,22 @@ const TOLLERANZA = 2;
  *
  * È anche la condizione da cui la sezione capisce se c'è qualcosa da muovere:
  * su una casa tranquilla, con due voci, non si muove niente.
+ *
+ * ── L'imbottitura va tolta, e prima non lo era ─────────────────────────────
+ *
+ * La fascia ha un bordo interno — sei pixel per parte — e il nastro comincia
+ * DENTRO quel bordo. La larghezza che il documento chiama `clientWidth`
+ * l'imbottitura però la comprende: sottraendo quella, la strada risultava più
+ * corta di dodici pixel, il nastro si fermava prima del suo capo e l'ultima
+ * pastiglia restava tagliata — proprio quella che si stava aspettando, e col
+ * velo sul bordo sopra.
+ *
+ * Chi chiama passa quanto misura l'imbottitura: è l'unica cosa che il
+ * documento sa e questo modulo no.
  */
-export function spazioDaPercorrere({ scrollWidth, clientWidth } = {}) {
-  const oltre = numero(scrollWidth) - numero(clientWidth);
+export function spazioDaPercorrere({ scrollWidth, clientWidth, imbottitura = 0 } = {}) {
+  const dentro = numero(clientWidth) - Math.max(0, numero(imbottitura));
+  const oltre = numero(scrollWidth) - dentro;
   return oltre > TOLLERANZA ? Math.round(oltre) : 0;
 }
 

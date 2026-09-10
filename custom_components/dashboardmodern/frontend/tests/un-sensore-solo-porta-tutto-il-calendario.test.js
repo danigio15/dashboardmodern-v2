@@ -100,7 +100,10 @@ test("una voce senza data sparisce: non diventa una riga muta", () => {
 test("niente attributi, niente elenco: nessuna riga inventata", () => {
   assert.deepEqual(ritiriDaUnElenco(null, ADESSO), []);
   assert.deepEqual(ritiriDaUnElenco({ state: giorno(1) }, ADESSO), []);
-  assert.deepEqual(ritiriDaUnElenco({ state: "ok", attributes: { icon: "mdi:trash" } }, ADESSO), []);
+  assert.deepEqual(
+    ritiriDaUnElenco({ state: "ok", attributes: { icon: "mdi:trash" } }, ADESSO),
+    [],
+  );
 });
 
 test("nella lettura le voci dell'elenco diventano righe come le altre", () => {
@@ -172,4 +175,54 @@ test("un materiale che ha già il suo sensore non si ripete dall'elenco", () => 
   assert.equal(plastiche.length, 1);
   assert.equal(plastiche[0].entity, "sensor.plastica");
   assert.equal(plastiche[0].giorni, 6);
+});
+
+/* Il materiale dedotto conta come materiale, anche per l'esclusione.
+ *
+ * Chi configura un sensore per materiale ma non sceglie QUALE materiale lascia
+ * «altro», e il materiale vero lo dice il sensore: Waste Collection Schedule
+ * scrive `types`, altri `waste_type`, altri ancora solo il nome amichevole.
+ * Quella traduzione la faceva soltanto il disegno delle righe; l'elenco delle
+ * esclusioni, che decide se il calendario può portare la SUA plastica, restava
+ * fermo su «altro».
+ *
+ * Risultato: due righe dello stesso bidone — una dal sensore, una dal
+ * calendario — con due date diverse. Che è precisamente la cosa che
+ * l'esclusione esiste per impedire.
+ */
+test("un sensore col materiale dedotto zittisce il calendario su quel materiale", () => {
+  const lettura = letturaRifiuti(
+    {
+      calendario: "sensor.savno_prossimi_ritiri",
+      righe: [{ entity: "sensor.raccolta_plastica", materiale: "altro" }],
+    },
+    {
+      /* Il sensore non dice «plastica» nella configurazione: lo dice da sé. */
+      "sensor.raccolta_plastica": {
+        state: giorno(4),
+        attributes: { friendly_name: "Raccolta plastica", waste_type: "Plastica" },
+      },
+      "sensor.savno_prossimi_ritiri": {
+        state: giorno(1),
+        attributes: {
+          prossimi_ritiri: [
+            { data: giorno(1), tipo: "Plastica" },
+            { data: giorno(3), tipo: "Vetro" },
+          ],
+        },
+      },
+    },
+    (v) => v,
+    ADESSO,
+  );
+  const plastiche = lettura.righe.filter((riga) => riga.materiale === "plastica");
+  assert.equal(
+    plastiche.length,
+    1,
+    "due plastiche con due date diverse: l'esclusione ha guardato «altro» invece del materiale vero",
+  );
+  /* E quella che resta è quella del sensore, che sa la data vera. */
+  assert.equal(plastiche[0].entity, "sensor.raccolta_plastica");
+  /* Il vetro invece il sensore non ce l'ha, e il calendario lo porta. */
+  assert.ok(materiali(lettura.righe).includes("vetro"));
 });

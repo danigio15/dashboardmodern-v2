@@ -6566,9 +6566,24 @@ function apriGliAvvisiAppenaAccesi(models) {
     .filter((widget) => String(widget?.key || "").startsWith("custom-"))
     .map((widget) => widget.key);
   const passo = avvisiAppenaAccesi(state.avvisiVisti ?? null, accesi);
-  state.avvisiVisti = passo.memoria;
-  if (!passo.aperti.length || !widgetPreferences().avvisiInPopup) return false;
+  /* Niente da aprire, o la funzione e' spenta: si prende nota e si va avanti.
+   * Se e' spenta non si aprira' mai niente, e tenere in sospeso un avviso
+   * vorrebbe dire che accendendo la funzione domani si spalancherebbe la
+   * finestra di una cosa saputa ieri. */
+  if (!passo.aperti.length || !widgetPreferences().avvisiInPopup) {
+    state.avvisiVisti = passo.memoria;
+    return false;
+  }
+  /* C'e' gia' una finestra aperta: chi guarda ha scelto cosa guardare, e la
+   * sua non si scavalca.
+   *
+   * Ma l'avviso NON si consuma. La memoria si scriveva prima di questo
+   * controllo, e allora l'avviso appena acceso risultava gia' visto: chiusa
+   * la finestra che c'era, ai giri dopo non era piu' «appena acceso» e la sua
+   * finestra non arrivava mai. Restando fuori dalla memoria resta appena
+   * acceso, e la finestra arriva quando c'e' posto. */
   if (state.expanded) return false;
+  state.avvisiVisti = passo.memoria;
   toggleExpand(passo.aperti[0]);
   return true;
 }

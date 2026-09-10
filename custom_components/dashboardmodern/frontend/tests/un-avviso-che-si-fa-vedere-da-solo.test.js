@@ -77,6 +77,56 @@ test("l'interruttore sta nella scheda delle tessere, con la sua spiegazione", as
     "utf8",
   );
   assert.match(editor, /data-widget-avvisi-popup/);
-  assert.match(editor, /scriviPreferenze\(\{ avvisiInPopup: Boolean\(finestraAvvisi\.checked\) \}\)/);
+  assert.match(
+    editor,
+    /scriviPreferenze\(\{ avvisiInPopup: Boolean\(finestraAvvisi\.checked\) \}\)/,
+  );
   assert.match(editor, /Avvisi personalizzati a finestra/);
+});
+
+/* Un avviso che scatta mentre guardi un'altra finestra non si perde.
+ *
+ * Il modulo che decide COSA si è appena acceso lo dice con chiarezza: si evita
+ * di aprire una finestra sopra un'altra, perché chi sta guardando ha già
+ * scelto cosa guardare. Ma «non aprirla adesso» e «buttarla via» sono due cose
+ * diverse, e il codice faceva la seconda.
+ *
+ * La memoria si scriveva PRIMA del controllo sulla finestra già aperta: quindi
+ * l'avviso appena acceso risultava già visto. Chiusa la finestra che c'era, ai
+ * giri dopo non era più «appena acceso» — e la sua finestra non arrivava mai.
+ * L'avviso più importante della giornata, quello del distacco carichi, era
+ * proprio quello che poteva sparire.
+ */
+test("con una finestra già aperta l'avviso resta in sospeso, non si consuma", async () => {
+  const home = await readFile(
+    new URL("../src/sections/home-widgets-section.js", import.meta.url),
+    "utf8",
+  );
+  const inizio = home.indexOf("function apriGliAvvisiAppenaAccesi(");
+  assert.notEqual(inizio, -1, "non c'è più nessuna apriGliAvvisiAppenaAccesi");
+  const corpo = home.slice(inizio, home.indexOf("\n}\n", inizio));
+
+  /* La riga che scrive la memoria non deve stare prima del controllo: se ci
+   * sta, l'avviso è già consumato quando si scopre che non si può aprire. */
+  const controllo = corpo.indexOf("if (state.expanded) return false;");
+  const primaScrittura = corpo.indexOf("state.avvisiVisti = passo.memoria;");
+  assert.notEqual(controllo, -1);
+  assert.notEqual(primaScrittura, -1);
+
+  /* Le scritture della memoria sono due, ed è il punto: una sul ramo in cui
+   * non c'è niente da aprire (o la funzione è spenta), una dopo aver aperto
+   * davvero. Sul ramo della finestra già aperta non se ne scrive nessuna. */
+  const scritture = corpo.match(/state\.avvisiVisti = passo\.memoria;/g) || [];
+  assert.equal(scritture.length, 2, "una sola scrittura vuol dire che qualcuno consuma di troppo");
+
+  /* E l'ultima sta DOPO il controllo, cioè si scrive solo quando si apre. */
+  assert.ok(
+    corpo.lastIndexOf("state.avvisiVisti = passo.memoria;") > controllo,
+    "la memoria si scrive prima di sapere se la finestra si può aprire",
+  );
+  /* Il ramo che consuma è quello in cui non c'è niente da aprire. */
+  assert.match(
+    corpo,
+    /if \(!passo\.aperti\.length \|\| !widgetPreferences\(\)\.avvisiInPopup\) \{\s*state\.avvisiVisti = passo\.memoria;/,
+  );
 });
