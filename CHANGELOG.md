@@ -18,6 +18,31 @@ una prova che avevo guardato tardi.
 
 ### Aggiunto
 
+- **Le porte e i cancelli hanno la loro tessera in Home** (#457)
+
+  «Create a doors widget in the home, separate from the security widget.» Le
+  aperture stavano dentro la tessera della Sicurezza, e la richiesta ha ragione
+  per un motivo preciso: le due cose rispondono a domande diverse. La Sicurezza
+  dice **come sta la casa** — inserito, disinserito, allarme — mentre le
+  aperture sono **comandi**: aprimi il portone. Tenerle insieme voleva dire
+  aprire la tessera per una qualunque delle due.
+
+  Adesso sono due, e si ordinano e si spengono ognuna per sé da **Config →
+  Widget**: chi le preferiva insieme ne nasconde una. Il tasto che apre è lo
+  stesso di prima — stessa conferma, stesso tastierino del PIN, stessa chiamata
+  — perché è proprio quello, spostato e non ricopiato.
+
+  Il numero grande dipende da cosa c'è dentro. Una serratura dice come sta, e
+  allora è quante ne sono aperte, in rosso; un pulsante del citofono o il relè
+  di un cancello non lo dicono — il loro «acceso» dura un secondo — e contarli
+  fra le aperte sarebbe inventare un allarme, quindi lì è semplicemente quante
+  aperture ci sono.
+
+  Chi aveva già scelto qualcosa se lo tiene: un'apertura spenta dalla Home resta
+  spenta e si può riaccendere, chi aveva nascosto la Sicurezza non se le ritrova
+  in casa, e chi aveva ordinato le tessere se le trova accanto a quella da cui
+  sono uscite invece che in fondo.
+
 - **Sei tavolozze in più, e nessuna che si possa non leggere** (#436)
 
   «Quando è possibile avere qualche tema in più?» Adesso: Notte blu, Grafite e

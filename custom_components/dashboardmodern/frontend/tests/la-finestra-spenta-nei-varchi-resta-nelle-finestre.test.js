@@ -154,7 +154,9 @@ test("ogni tessera chiede il proprio elenco, nessuna chiede quello di tutti", ()
   for (const [chiamata, chiave] of [
     ['widgetExcludedEntities("varchi")', "varchi"],
     ['widgetExcludedEntities("tapparelle")', "tapparelle"],
-    ['widgetExcludedEntities("sicurezza")', "sicurezza"],
+    /* Le aperture hanno lasciato la Sicurezza e hanno tessera loro (#457):
+     * l'interruttore accanto a ognuna parla adesso delle Porte. */
+    ['widgetExcludedEntities("porte")', "porte"],
   ]) {
     assert.ok(ponte.includes(chiamata), `manca ${chiamata}`);
     assert.match(ponte, new RegExp(`key: "${chiave}"`));

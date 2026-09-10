@@ -347,6 +347,7 @@ export default Object.freeze({
   "Weather radar": "मौसम रडार",
   "The radar is not reporting.": "रडार जवाब नहीं दे रहा।",
   "Door & gate openers": "दरवाज़ा और गेट खोलने के बटन",
+  "Doors": "दरवाज़े",
   "silent": "चुप",
   "on out of": "चालू, कुल",
   "off the bar": "पट्टी से बाहर",

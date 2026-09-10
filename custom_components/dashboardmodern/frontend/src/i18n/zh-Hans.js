@@ -347,6 +347,7 @@ export default Object.freeze({
   "Weather radar": "天气雷达",
   "The radar is not reporting.": "雷达没有响应。",
   "Door & gate openers": "开门与开闸按钮",
+  "Doors": "门",
   "silent": "无响应",
   "on out of": "开，共",
   "off the bar": "不在导航栏",

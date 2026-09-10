@@ -347,6 +347,7 @@ export default Object.freeze({
   "Weather radar": "Radar météo",
   "The radar is not reporting.": "Le radar ne répond pas.",
   "Door & gate openers": "Commandes portes & portails",
+  "Doors": "Portes",
   "silent": "muettes",
   "on out of": "allumées sur",
   "off the bar": "hors de la barre",

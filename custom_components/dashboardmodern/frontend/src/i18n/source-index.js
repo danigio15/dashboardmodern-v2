@@ -2336,6 +2336,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Porta aperta": "Door open",
   "Porta col microchip": "Microchip door",
   "Portano il nome di questo apparecchio ma appartengono a un'altra voce del registro: quasi sempre la presa smart sotto la macchina, o un sensore che ti sei costruito.": "They carry this appliance's name but belong to another registry entry: almost always the smart plug under the machine, or a sensor you built yourself.",
+  "Porte": "Doors",
   "Porte · Finestre · Aperti e chiusi": "Doors · Windows · Open and closed",
   "Porte e cancelli": "Doors and gates",
   "Portiere (bloccate/aperte)": "Doors (locked/open)",

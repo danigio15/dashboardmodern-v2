@@ -347,6 +347,7 @@ export default Object.freeze({
   "Weather radar": "Hava radarı",
   "The radar is not reporting.": "Radar yanıt vermiyor.",
   "Door & gate openers": "Kapı & bahçe kapısı kumandaları",
+  "Doors": "Kapılar",
   "silent": "sessiz",
   "on out of": "açık /",
   "off the bar": "çubuğun dışında",

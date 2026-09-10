@@ -347,6 +347,7 @@ export default Object.freeze({
   "Weather radar": "Weerradar",
   "The radar is not reporting.": "De radar meldt zich niet.",
   "Door & gate openers": "Deur- & poortopeners",
+  "Doors": "Deuren",
   "silent": "stil",
   "on out of": "aan van",
   "off the bar": "buiten de balk",

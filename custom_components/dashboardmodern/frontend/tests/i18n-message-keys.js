@@ -1093,6 +1093,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Door / Opening",
   "Door & gate openers",
   "Door open",
+  "Doors",
   "Doors · Windows · Open and closed",
   "Doors (locked/open)",
   "Doors and gates",

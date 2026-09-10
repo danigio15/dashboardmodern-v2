@@ -347,6 +347,7 @@ export default Object.freeze({
   "Weather radar": "기상 레이더",
   "The radar is not reporting.": "레이더가 응답하지 않습니다.",
   "Door & gate openers": "문·대문 열기 버튼",
+  "Doors": "출입문",
   "silent": "무응답",
   "on out of": "켜짐 /",
   "off the bar": "막대 밖",

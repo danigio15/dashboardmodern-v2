@@ -1184,11 +1184,19 @@ function coversModel(states) {
   };
 }
 
+/* La Sicurezza parla dell'antifurto, e basta (#457).
+ *
+ * «Create a doors widget in the home, separate from the security widget.» Le
+ * aperture stavano qui dentro, e il motivo per cui non ci stanno piu' e' che
+ * questa tessera e quelle rispondono a due domande diverse: «come sta la
+ * casa» — inserito, disinserito, allarme — e «aprimi il portone», che non e'
+ * una lettura ma un comando. Tenerle insieme voleva dire aprire la tessera
+ * per una qualunque delle due.
+ *
+ * Le aperture hanno adesso la loro, `porteModel` qui sotto, che legge la
+ * stessa configurazione di prima: nessuno deve riscrivere niente. */
 function securityModel(states) {
-  const fuori = widgetExcludedEntities("sicurezza");
   const alarm = stateOf(states, RIF_CENTRALE);
-  /* Le entita' delle Prese non sono porte: la lista arriva gia' filtrata. */
-  const doors = configuredSecurityDoors().filter((door) => widgetIncludes(door.entity, fuori));
   /* I tasti scritti a mano da chi una centrale non ce l'ha (#413): sono un
    * antifurto quanto quello di una centrale, e la tessera deve saperlo. Senza,
    * chi ha solo quelli non aveva nessuna tessera da cui inserirlo — cioe' la
@@ -1196,9 +1204,9 @@ function securityModel(states) {
    * porta la tessera diceva «—» a antifurto inserito. */
   const miei = normalizzaModiSuMisura(readJson(CHIAVE_ANTIFURTO_SU_MISURA, []));
   const mioAcceso = miei.length ? modoSuMisuraAcceso(miei, states) : "";
-  // Senza antifurto e senza aperture non c'e' una sicurezza da raccontare: le
-  // telecamere, da sole, sono gia' la loro tessera.
-  if (!alarm && !doors.length && !miei.length) return null;
+  // Senza antifurto non c'e' una sicurezza da raccontare: le telecamere e le
+  // aperture, da sole, hanno gia' la loro tessera.
+  if (!alarm && !miei.length) return null;
   const raw = clean(alarm?.state).toLowerCase();
   const triggered = raw === "triggered" || raw === "pending";
   const armed = raw.startsWith("armed") || Boolean(mioAcceso);
@@ -1210,9 +1218,9 @@ function securityModel(states) {
         : armed
           ? t("Inserito", "Armed")
           : t("Disinserito", "Disarmed");
-  // La didascalia parla di quello che questa tessera comanda — l'antifurto e
-  // le aperture — non delle telecamere: quelle hanno la loro tessera, con le
-  // miniature, e dirle due volte era dire due volte la stessa cosa.
+  // La didascalia parla di quello che questa tessera comanda — l'antifurto —
+  // non delle telecamere ne' delle porte: quelle hanno la loro tessera, e
+  // dirle due volte era dire due volte la stessa cosa.
   return {
     key: "sicurezza",
     accent: triggered ? "#e11d48" : "#10b981",
@@ -1220,9 +1228,8 @@ function securityModel(states) {
     alert: triggered,
     label: t("Sicurezza", "Security"),
     value,
-    caption: doors.length ? clean(doors[0].name) || clean(doors[0].entity) : "",
+    caption: "",
     ring: armed || triggered ? 100 : 0,
-    doors,
     /* «C'e' un antifurto da comandare»: la centrale, oppure i tasti scritti a
      * mano. Chi legge questo campo apre la fila dei tasti, e quella fila i
      * suoi ce li ha in tutti e due i casi. */
@@ -1230,6 +1237,56 @@ function securityModel(states) {
     armed,
     triggered,
     mode: raw || mioAcceso,
+  };
+}
+
+/* Le porte e i cancelli, con la loro tessera (#457).
+ *
+ * Sono la stessa lista di «Porte e cancelli» che la Sicurezza mostrava prima:
+ * la configurazione non si tocca, cambia solo dove si guarda.
+ *
+ * Il numero grande dipende da cosa c'e' dentro, ed e' una distinzione che
+ * conta. Una serratura DICE come sta — chiusa a chiave, sbloccata — e allora
+ * il numero e' quante ne sono aperte, rosso, come nei Varchi. Un pulsante del
+ * citofono o il rele' di un cancello non dicono niente di simile: il loro
+ * «acceso» dura un secondo e non vuol dire che il cancello sia aperto.
+ * Contarli fra le aperte sarebbe inventare un allarme, quindi dove non c'e'
+ * nessuna serratura il numero e' semplicemente quante aperture ci sono — come
+ * fanno le telecamere, che nemmeno loro hanno un «aperto».
+ */
+const PORTA_APERTA = /^(unlocked|open|opening)$/;
+
+export function porteAperte(doors = [], states = {}) {
+  return doors.filter((door) => {
+    /* Solo le serrature: sono le uniche che dichiarano davvero di stare
+     * aperte. Vedi sopra perche' un rele' non conta. */
+    if (clean(door?.entity).split(".")[0] !== "lock") return false;
+    return PORTA_APERTA.test(clean(stateOf(states, door.entity)?.state).toLowerCase());
+  });
+}
+
+function porteModel(states) {
+  const fuori = widgetExcludedEntities("porte");
+  /* Le entita' delle Prese non sono porte: la lista arriva gia' filtrata. */
+  const doors = configuredSecurityDoors().filter((door) => widgetIncludes(door.entity, fuori));
+  if (!doors.length) return null;
+  const serrature = doors.filter((door) => clean(door.entity).split(".")[0] === "lock");
+  const aperte = porteAperte(doors, states);
+  const nome = (door) => clean(door.name) || clean(door.entity);
+  return {
+    key: "porte",
+    accent: aperte.length ? "#dc2626" : serrature.length ? "#16a34a" : "#d97706",
+    icon: "🚪",
+    alert: aperte.length > 0,
+    label: t("Porte", "Doors"),
+    value: String(serrature.length ? aperte.length : doors.length),
+    caption: aperte.length
+      ? aperte.map(nome).join(" · ")
+      : serrature.length
+        ? t("Tutto chiuso", "All closed")
+        : nome(doors[0]),
+    ring: serrature.length ? Math.round((aperte.length / serrature.length) * 100) : null,
+    doors,
   };
 }
 
@@ -3848,16 +3905,72 @@ function nascosteDiOggi(nascoste) {
   return [...fuori];
 }
 
+/* Le tessere nate da una che si e' divisa in due, e da chi vengono.
+ *
+ * Le porte e i cancelli stavano dentro la Sicurezza e adesso hanno tessera
+ * loro (#457). Non e' un cambio di nome — la Sicurezza c'e' ancora e parla
+ * dell'antifurto — quindi non basta tradurre: le due scelte gia' salvate, se
+ * nascondere e dove mettere, riguardavano una tessera che conteneva anche
+ * l'altra, e vanno onorate tutte e due.
+ *
+ * Come per i nomi cambiati, si traduce in lettura e non si riscrive niente:
+ * una plancia aperta con la versione di prima continua a leggere la sua, e
+ * nessuno perde niente tornando indietro. */
+const TESSERE_DIVISE = Object.freeze({ porte: "sicurezza" });
+
+/* Nascosta la madre, nascosta anche la figlia — ma una volta sola.
+ *
+ * Chi aveva spento la Sicurezza aveva spento anche le porte, perche' non
+ * c'era altro posto dove stessero: farle ricomparire in Home sarebbe
+ * rimettergli in casa una cosa che aveva tolto.
+ *
+ * «Una volta sola» e' la parte che conta. Se bastasse guardare le nascoste,
+ * chi accende le Porte tenendo spenta la Sicurezza se le vedrebbe rispegnere
+ * al giro dopo, per sempre. Il segno che la scelta e' gia' stata fatta e'
+ * l'ordine salvato: chi salva da questa versione in poi ci scrive dentro
+ * tutto il catalogo, «porte» compresa, e da quel momento qui non si tocca
+ * piu' niente. */
+function nascosteDopoLaDivisione(nascoste, ordineSalvato) {
+  const dentro = new Set(nascoste);
+  const gia = new Set(ordineSalvato);
+  for (const [nata, madre] of Object.entries(TESSERE_DIVISE)) {
+    if (gia.has(nata)) continue;
+    if (dentro.has(madre)) dentro.add(nata);
+  }
+  return [...dentro];
+}
+
+/* La figlia si mette accanto a sua madre, non in coda.
+ *
+ * Chi aveva gia' ordinato le tessere ha «sicurezza» a un certo posto e
+ * «porte» da nessuna parte: senza questo le porte finirebbero in fondo alla
+ * Home, lontane dalla cosa da cui sono uscite e dove nessuno le cerca. */
+function ordineDopoLaDivisione(ordine) {
+  const dentro = new Set(ordine);
+  const fila = [];
+  for (const nome of ordine) {
+    fila.push(nome);
+    for (const [nata, madre] of Object.entries(TESSERE_DIVISE)) {
+      if (nome === madre && !dentro.has(nata)) fila.push(nata);
+    }
+  }
+  return fila;
+}
+
 export function widgetPreferences() {
   const stored = readJson(WIDGETS_CONFIG_KEY, {});
-  const hidden = nascosteDiOggi(
-    Array.isArray(stored?.hidden) ? stored.hidden.map(clean).filter(Boolean) : [],
-  );
-  const order = [
+  const ordineSalvato = [
     ...new Set(
       (Array.isArray(stored?.order) ? stored.order.map(clean).filter(Boolean) : []).map(nomeDiOggi),
     ),
   ];
+  const hidden = nascosteDopoLaDivisione(
+    nascosteDiOggi(
+      Array.isArray(stored?.hidden) ? stored.hidden.map(clean).filter(Boolean) : [],
+    ),
+    ordineSalvato,
+  );
+  const order = ordineDopoLaDivisione(ordineSalvato);
   const excluded = Array.isArray(stored?.excluded)
     ? stored.excluded.map(clean).filter(Boolean)
     : [];
@@ -4294,6 +4407,7 @@ export function modelliDelleTessere(states) {
       climateModel(states),
       coversModel(states),
       securityModel(states),
+      porteModel(states),
       varchiModel(states),
       presenzaModel(states),
       camerasModel(states),
@@ -5194,6 +5308,8 @@ function coversDetail(widget) {
     .join("");
 }
 
+/* Dentro la tessera della Sicurezza c'e' l'antifurto. Le porte stanno nella
+ * loro (#457): vedi `porteDetail`. */
 function securityDetail(widget, states) {
   const parts = [];
   if (widget.alarm) {
@@ -5230,6 +5346,17 @@ function securityDetail(widget, states) {
       ),
     );
   }
+  return parts.join("");
+}
+
+/* Le righe delle porte: una per apertura, col suo tasto.
+ *
+ * E' lo stesso elenco che stava dentro la Sicurezza, spostato qui e non
+ * ricopiato: il tasto porta lo stesso `data-dm-door` dei tasti della pagina
+ * Sicurezza, quindi conferma, tastierino del PIN e chiamata restano una mano
+ * sola. */
+function porteDetail(widget, states) {
+  const parts = [];
   for (const door of widget.doors) {
     const raw = clean(stateOf(states, door.entity)?.state).toLowerCase();
     const label =
@@ -6164,6 +6291,7 @@ function detailRows(widget, states) {
   if (widget.key === "clima") return climateDetail(widget);
   if (widget.key === "tapparelle") return coversDetail(widget);
   if (widget.key === "sicurezza") return securityDetail(widget, states);
+  if (widget.key === "porte") return porteDetail(widget, states);
   if (widget.key === "telecamere") return camerasDetail(widget);
   if (eUnaTesseraEnergia(widget.key)) return energyDetail(widget);
   if (widget.key === "elettrodomestici") return appliancesDetail(widget);
@@ -6207,6 +6335,9 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   clima: "clima",
   tapparelle: "tapparelle",
   sicurezza: "security",
+  /* Le porte e i cancelli si configurano e si aprono nella Sicurezza: e' la
+   * sezione che li contiene davvero, anche se in Home hanno tessera loro. */
+  porte: "security",
   telecamere: "security",
   energia: "energy",
   elettrodomestici: "appliances-main",

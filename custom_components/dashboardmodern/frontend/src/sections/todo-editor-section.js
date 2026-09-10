@@ -74,6 +74,10 @@ function catalogoTessere() {
     ["clima", "❄️", t("Clima", "Climate")],
     ["tapparelle", "🪟", t("Finestre", "Windows")],
     ["sicurezza", "🛡️", t("Sicurezza", "Security")],
+    /* Le porte e i cancelli (#457): erano dentro la Sicurezza, e adesso hanno
+     * tessera loro perche' rispondono a un'altra domanda — non «come sta la
+     * casa» ma «aprimi il portone». Si ordinano e si spengono ognuna per se'. */
+    ["porte", "🚪", t("Porte", "Doors")],
     ["telecamere", "📹", t("Telecamere", "Cameras")],
     ["energia", "⚡", t("Energia", "Energy")],
     ["elettrodomestici", "🫧", t("Elettrodomestici", "Appliances")],
