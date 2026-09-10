@@ -60,6 +60,27 @@ una prova che avevo guardato tardi.
 
 ### Corretto
 
+- **Energia: un contatore in Wh valeva mille volte tanto** (#447)
+
+  Home Assistant lascia scegliere l'unità a chi produce il contatore, e `Wh` e
+  `MWh` sono legittime quanto `kWh`. La plancia però scriveva «kWh» sotto ogni
+  numero e il numero lo prendeva e basta: un contatore giornaliero da 1234 Wh —
+  che sono 1,234 kWh — si leggeva **1234 kWh**. Mille volte tanto, e senza
+  niente sullo schermo che lo facesse sospettare.
+
+  La conversione sta in un punto solo, dentro il servizio dei periodi, e da lì
+  la leggono tutti: la tessera della Home, la sezione Energia, il Report, le
+  proiezioni. Metterla nella sola tessera avrebbe fatto dire due numeri diversi
+  sulla stessa entità, che è il guasto peggiore dei due — perché toglie anche il
+  modo di accorgersene.
+
+  Il Recorder converte già per conto suo, perché gli si chiede
+  `units: { energy: "kWh" }`: quelle righe non si toccano, o si sballerebbero di
+  nuovo nell'altro verso. Restava scoperta anche la domanda di ripiego, quella
+  per le versioni di Home Assistant che `units` non lo conoscono, e adesso passa
+  di lì pure lei. Un contatore che già parla in kilowattora esce identico a com'è
+  entrato.
+
 - **Il tema scuro: i colori chiedevano nomi che non esistono** (#425)
 
   «I numeri dei giorni della settimana non selezionati sono visualizzati in nero

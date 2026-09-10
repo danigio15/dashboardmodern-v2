@@ -102,6 +102,22 @@ export function cumulativeValue(row) {
   return finite(row?.sum);
 }
 
+/* Le righe della domanda di ripiego, portate in kilowattora.
+ *
+ * Alla domanda normale si chiede `units: { energy: "kWh" }` e converte Home
+ * Assistant. La domanda di ripiego — quella per le versioni che `units` non
+ * lo conoscono — le righe le porta nell'unita' del sensore, e allora la
+ * conversione tocca a noi. Un contatore che gia' parla in kilowattora esce di
+ * qui identico a com'e' entrato, righe comprese. */
+export function righeInKilowattora(righe, unita) {
+  const elenco = Array.isArray(righe) ? righe : [];
+  if (inKilowattora(1, unita) === 1) return elenco;
+  return elenco.map((riga) => {
+    const somma = inKilowattora(riga?.sum, unita);
+    return somma == null ? riga : { ...riga, sum: somma };
+  });
+}
+
 /**
  * Return the energy consumed in a period.
  * A single lifetime sample is deliberately not treated as a period value.
@@ -458,6 +474,42 @@ export function resolveEntity(reference, resolver = globalThis.resolveEntity) {
  * primo disegno la casa e' ancora vuota, e rifiutarlo li' vorrebbe dire aprire
  * la plancia con l'energia in bianco.
  */
+/* Dal numero del sensore ai kilowattora, che sono la moneta unica di qui.
+ *
+ * Home Assistant lascia scegliere l'unita' a chi produce il contatore, e Wh e
+ * MWh sono legittime quanto kWh. La plancia pero' scrive «kWh» sotto ogni
+ * numero, e finora il numero lo prendeva e basta: un contatore giornaliero da
+ * 1234 Wh — cioe' 1,234 kWh — si leggeva 1234 kWh. Mille volte tanto, e senza
+ * niente sullo schermo che lo facesse sospettare.
+ *
+ * La conversione sta QUI e in nessun altro posto. Il Recorder converte gia'
+ * per conto suo, perche' gli si chiede `units: { energy: "kWh" }`: le righe
+ * che arrivano da li' sono a posto, e passarle una seconda volta di qui le
+ * sballerebbe di nuovo, nell'altro verso. Restano scoperte due strade sole —
+ * lo stato letto dal vivo, e la domanda di ripiego per gli Home Assistant che
+ * `units` non lo conoscono — ed e' su quelle due che questa funzione si
+ * chiama.
+ *
+ * Un sensore che non dichiara niente vale kilowattora: e' la stessa regola
+ * con cui, dall'altra parte, un sensore che non dichiara niente vale watt. */
+export function inKilowattora(valore, unita) {
+  const numero = Number(valore);
+  if (!Number.isFinite(numero)) return null;
+  const nome = String(unita || "")
+    .trim()
+    .toLowerCase();
+  if (nome === "wh") return numero / 1000;
+  if (nome === "mwh") return numero * 1000;
+  return numero;
+}
+
+/* L'unita' dichiarata da un'entita', gia' pulita e in minuscolo. */
+export function unitaDellEntita(entity, states = {}) {
+  return String(states?.[entity]?.attributes?.unit_of_measurement || "")
+    .trim()
+    .toLowerCase();
+}
+
 const UNITA_DI_POTENZA = /^(w|kw|mw)$/;
 const UNITA_DI_ENERGIA = /^(wh|kwh|mwh)$/;
 const PAROLE_DA_CONTATORE = /(^|[\s._-])(total|totale|lifetime|counter|contatore|meter)([\s._-]|$)/;
@@ -495,6 +547,10 @@ export function sourcePlans(
   overrides = {},
   resolver = (value) => value,
 ) {
+  /* Ogni piano si porta dietro l'unita' dichiarata dalla sua entita'. Serve
+   * alla domanda di ripiego del Recorder, che le righe le riporta com'erano
+   * (vedi `inKilowattora`): la' l'unita' non c'e' modo di ricavarla, perche'
+   * la casa non arriva fin li'. */
   return PERIOD_SOURCES.flatMap((definition) => {
     const group = energy?.[definition.group] || {};
     const explicitKey = definition.periodKeys[kind];
@@ -564,7 +620,7 @@ export function sourcePlans(
             : "legacy-cumulative",
       },
     ];
-  });
+  }).map((plan) => ({ ...plan, unita: unitaDellEntita(plan.entity, states) }));
 }
 
 /* I piani che si leggono dallo stato, e quelli che li deve ricavare il
@@ -699,7 +755,12 @@ function contatoreNatoDentro(prima, dentro, inizio) {
 function readDirectState(entity, states = {}) {
   const state = states?.[entity];
   const value = finite(state?.state);
-  return value == null ? null : Math.max(0, value);
+  if (value == null) return null;
+  /* Il numero e' quello del sensore, nell'unita' del sensore: qui diventa
+   * kilowattora, che e' cio' che tutti quelli che leggono i periodi si
+   * aspettano di ricevere. */
+  const inKwh = inKilowattora(value, state?.attributes?.unit_of_measurement);
+  return inKwh == null ? null : Math.max(0, inKwh);
 }
 
 /* Quanto tempo dare a una domanda di statistiche.
@@ -1174,7 +1235,7 @@ export class HomeAssistantBroker {
     return this.cache.size;
   }
 
-  async statistics(ids, start, end, period = "day") {
+  async statistics(ids, start, end, period = "day", unita = {}) {
     const originals = [...new Set((ids || []).map(String).filter(Boolean))];
     if (!originals.length) return {};
     const mapped = new Map(originals.map((id) => [id, resolveEntity(id)]));
@@ -1198,6 +1259,8 @@ export class HomeAssistantBroker {
     const eta = this.cacheHistoricalMs;
     const attesa = tempoPerLeStatistiche(startIso, endIso, this.timeout);
     let result;
+    /* Se le righe arrivano nell'unita' del sensore invece che in kilowattora. */
+    let grezze = false;
     try {
       result = await this.cachedRequest(
         payload,
@@ -1230,9 +1293,17 @@ export class HomeAssistantBroker {
         historical ? eta : this.cacheCurrentMs,
         attesa,
       );
+      /* Senza `units` le righe tornano nell'unita' del sensore: qui, e solo
+       * qui, la conversione tocca a noi. Sulla domanda normale non si passa
+       * mai di qua, perche' li' ha gia' convertito Home Assistant. */
+      grezze = true;
     }
     return Object.fromEntries(
-      originals.map((id) => [id, result?.[mapped.get(id)] || result?.[id] || []]),
+      originals.map((id) => {
+        const righe = result?.[mapped.get(id)] || result?.[id] || [];
+        if (!grezze) return [id, righe];
+        return [id, righeInKilowattora(righe, unita?.[id] || unita?.[mapped.get(id)] || "")];
+      }),
     );
   }
 
@@ -1319,7 +1390,12 @@ export class HomeAssistantBroker {
           // One Recorder request contains both the sample immediately before the
           // boundary and all samples in the requested period. This is the same data
           // contract used for Energy: growth = final sum - initial sum.
-          const righe = await this.statistics(ids, baseline.start, range.end, range.period);
+          /* Le unita' dichiarate dai piani viaggiano con la domanda: servono
+           * solo se il Recorder risponde alla vecchia maniera. */
+          const unita = Object.fromEntries(
+            plans.filter((plan) => plan.entity).map((plan) => [plan.entity, plan.unita || ""]),
+          );
+          const righe = await this.statistics(ids, baseline.start, range.end, range.period, unita);
           for (const plan of plans) {
             const continuazione =
               (primoArco.get(plan.key) ?? range.start.getTime()) < range.start.getTime();
