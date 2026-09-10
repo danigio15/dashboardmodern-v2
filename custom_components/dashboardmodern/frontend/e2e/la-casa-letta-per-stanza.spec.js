@@ -236,3 +236,77 @@ test("il lettore compare una volta sola, e nel suo blocco", async ({ page }, tes
    * cui si vedeva quale delle due righe era quella buona. */
   await expect(righe).toHaveAttribute("data-dm-stanza-vai", "media");
 });
+
+/* «The media player card must have media player functions, the climate card
+ * must have climate control functions» (#467).
+ *
+ * La riga della stanza diceva com'è messa una cosa e portava alla sua sezione:
+ * per una luce basta — c'è l'interruttore — e per una cassa o un condizionatore
+ * no, perché quello che si vuole fare lì è mettere in pausa e alzare di un
+ * grado, non leggere. I comandi sono gli stessi della pagina Musica e della
+ * finestra del Clima: qui si pretende che ci siano e che funzionino, e che
+ * toccarli NON cambi pagina.
+ */
+test("il lettore e il clima si comandano dalla stanza, senza cambiare pagina", async ({
+  page,
+}, testInfo) => {
+  await apri(page, testInfo);
+  await page.evaluate(() => {
+    /* I comandi del lettore passano dalla chiamata della plancia, non da
+     * quella del guscio: si registra anche quella, o il tasto sembra muto. */
+    window.dmCallHaService = (domain, service, data) =>
+      window.__DM_CHIAMATE__.push({ domain, service, data });
+    localStorage.setItem(
+      "cd_media_player",
+      JSON.stringify([
+        { id: "mp1", entity: "media_player.sonos", name: "Sonos", room_id: "room-salone" },
+      ]),
+    );
+    const grezzi = eval("_RAW_STATES");
+    grezzi["media_player.sonos"] = {
+      entity_id: "media_player.sonos",
+      state: "playing",
+      attributes: {
+        friendly_name: "Sonos",
+        media_title: "Bohemian Rhapsody",
+        media_artist: "Queen",
+        supported_features: 84421,
+      },
+    };
+    grezzi["climate.salone"] = {
+      entity_id: "climate.salone",
+      state: "cool",
+      attributes: {
+        friendly_name: "Condizionatore salone",
+        current_temperature: 26,
+        temperature: 24,
+        hvac_modes: ["off", "cool", "heat"],
+        supported_features: 1,
+      },
+    };
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+  });
+  await page.locator('#page-stanze [data-dm-stanza="room-salone"]').click();
+
+  const lettore = page.locator('#page-stanze [data-dm-stanza-entita="media_player.sonos"]');
+  const pausa = lettore.locator('[data-dm-mp="centro"]');
+  await expect(pausa).toHaveCount(1);
+
+  await pausa.click();
+  /* Il comando parte davvero... */
+  await expect
+    .poll(
+      () => page.evaluate(() => window.__DM_CHIAMATE__.map((c) => `${c.domain}.${c.service}`)),
+      {
+        timeout: 10000,
+      },
+    )
+    .toContain("media_player.media_play_pause");
+  /* ...e la pagina è ancora la stanza: prima il tocco saliva alla riga, che
+   * porta alla pagina Musica, e mettere in pausa voleva dire andarsene. */
+  await expect(page.locator("#page-stanze")).toHaveClass(/active/);
+
+  /* Il clima porta il suo pannello, quello vero della finestra del Clima. */
+  const clima = page.locator('#page-stanze [data-dm-stanza-entita="climate.salone"]');
+  await expect(clima.locator("[data-dm-w-panel]")).toHaveCount(1);
+});

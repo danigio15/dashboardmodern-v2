@@ -9,6 +9,25 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Stanze: la cassa e il condizionatore si comandano da lì** (#467)
+
+  «The media player card must have media player functions, the climate card must
+  have climate control functions.» La riga della stanza diceva com'è messa una
+  cosa e portava alla sua sezione: per una luce basta — c'è l'interruttore — e
+  per una cassa o un condizionatore no, perché quello che si vuole fare lì è
+  mettere in pausa e alzare di un grado, non leggere.
+
+  Adesso la card del lettore porta i suoi tasti — precedente, pausa, successivo,
+  spegni — e quella del clima porta il suo pannello, con le modalità e le ventole
+  che *quell'unità* dichiara. Non sono comandi nuovi: sono gli stessi della
+  pagina Musica e della finestra del Clima, e i loro gestori stanno sul
+  documento, quindi funzionano anche qui senza che nessuno li riattacchi.
+
+  La riga resta la riga di tutte le altre: i comandi si aggiungono sotto, non al
+  posto suo. E un tocco su un comando non è più un tocco sulla card — prima
+  saliva alla riga, che porta altrove, e mettere in pausa voleva dire andarsene
+  dalla stanza.
+
 - **La tessera della musica dice cosa suona** (#460)
 
   «Display the track title and artist name on the media player.» C'erano già,
