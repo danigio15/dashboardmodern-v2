@@ -1116,8 +1116,16 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // finestra addosso a chi guarda è il gesto più facile da sbagliare della
   // plancia, e i tre modi di sbagliarlo si evitano tutti rispondendo bene a
   // quella domanda.
+  // 319 con le soglie di ricarica (#408): «una scheda che mostri la percentuale
+  // del tablet che usiamo a muro, e magari schiacciando le impostazioni per
+  // attivare la ricarica, tipo soglia bassa 20% soglia alta 80%».
+  // `core/ricarica-a-soglie.js` è puro: dice come si legge una soglia — coi
+  // limiti che DICHIARA l'entità, non con quelli che ci inventiamo — e quale
+  // servizio la sposta, che fra `number` e `input_number` non è lo stesso.
+  // Chiamare quello sbagliato non dà errore: non fa niente, e da fuori è un
+  // cursore rotto.
   assert.ok(
-    relative.length <= 318,
+    relative.length <= 319,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

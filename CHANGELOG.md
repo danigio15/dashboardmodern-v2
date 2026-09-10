@@ -28,6 +28,21 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   saliva alla riga, che porta altrove, e mettere in pausa voleva dire andarsene
   dalla stanza.
 
+- **Il tablet a muro: la percentuale c'era, adesso ci sono le soglie** (#408)
+
+  «Una scheda che mostri la percentuale del nostro tablet che usiamo a muro, e
+  magari che schiacciando mostri le impostazioni per attivare la ricarica, tipo
+  soglia bassa 20% soglia alta 80%.» La percentuale c'era già — un tablet a muro
+  pubblica un sensore di batteria, e la pagina Batterie lo trova da sé. Mancava
+  l'altra metà.
+
+  Nella scheda Batterie ogni riga ha adesso **⚡ Soglie di ricarica**: due caselle
+  facoltative per le entità `number.*` o `input_number.*` che il dispositivo
+  espone. Compilate, la riga nella pagina Batterie porta due cursori — «riparte
+  sotto il» e «si ferma sopra il» — coi limiti che dichiara l'entità, non con
+  quelli che ci inventiamo noi. Vuote, resta una batteria come tutte le altre:
+  una stilo non decide quando smettere di caricarsi.
+
 - **La tessera della musica dice cosa suona** (#460)
 
   «Display the track title and artist name on the media player.» C'erano già,
@@ -88,6 +103,27 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   «non si sa».
 
 ### Corretto
+
+- **Varchi: un contatto scritto nelle Finestre è un varco anche lì**
+
+  «Quelle che non sono configurate in varchi non le vedo nel widget relativo.» I
+  Varchi trovavano un contatto solo se Home Assistant gli aveva messo un
+  `device_class`, o se qualcuno lo aveva riscritto a mano nella loro scheda. Ma
+  un contatto messo nella casella dell'anta di una riga delle Finestre è una
+  dichiarazione — l'ha battuta chi abita la casa — e dice «questa è una finestra»
+  meglio di qualunque etichetta automatica. Adesso vale.
+
+  Restano due tessere che raccontano lo stesso contatto, ed è voluto: sono due
+  domande diverse. Chi ne vuole una sola spegne la riga in UNA delle due, che
+  dalla 1.4.15 si può fare per tessera e non per entità.
+
+- **«Rimetti le norme» era una scritta vestita da icona**
+
+  Il tasto portava la classe del cestino: una pastiglia tonda col contenuto
+  centrato, dove ci sta un glifo e non tre parole. Le tre parole andavano a capo
+  due volte dentro il cerchio, e da fuori si legge «manca l'icona» — invece
+  l'icona non c'è mai stata. Adesso è un tasto di testo, e ha la forma di un
+  tasto di testo.
 
 - **Apri porte: quello che si scrive non sparisce più** (#439, #450)
 

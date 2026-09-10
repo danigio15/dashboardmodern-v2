@@ -3356,4 +3356,9 @@ export default Object.freeze({
   "Power draw (optional)": "소비 전력(선택)",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "콘센트에 전력계가 있으면 카드가 상태 옆에 지금 쓰는 전력을 적습니다. 없으면 카드는 그대로입니다.",
   "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "직접 고른 센서 두 개입니다. 집 평균이 아니라 판단할 때 실제로 보는 센서죠. 보통은 실외 센서이고, 그것을 기준으로 실내 냉난방을 맞춥니다. 단위는 Home Assistant가 알려 주며, 둘 다 지정하지 않으면 어느 알약도 나타나지 않습니다.",
+  "⚡ Charge threshold saved": "⚡ 충전 임계값을 저장했습니다",
+  "Charge thresholds": "충전 임계값",
+  "For what recharges instead of being replaced: the wall tablet, a power bank. The two entities are number.* or input_number.*, the ones the device exposes to say where it starts again and where it stops. Leave them empty and this stays a battery like the others.": "교체하는 대신 충전하는 것을 위한 항목입니다. 벽걸이 태블릿, 보조 배터리 같은 것들이죠. 두 엔티티는 number.* 또는 input_number.*로, 기기가 어디서 다시 시작하고 어디서 멈추는지 알려 주는 것입니다. 비워 두면 다른 배터리와 똑같이 취급됩니다.",
+  "Starts again below": "이 값 아래에서 다시 시작",
+  "Stops above": "이 값 위에서 정지",
 });

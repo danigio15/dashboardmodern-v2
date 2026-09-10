@@ -336,7 +336,7 @@ function ariaMarkup(config) {
         ),
       )}</div>
       <div class="dm-aria-ed-misure">${righeSoglie}</div>
-      <button type="button" class="ed-del dm-aria-ed-norme" data-dm-aria-norme>${esc(t("Rimetti le norme", "Restore the norms"))}</button>
+      <button type="button" class="dm-aria-ed-norme" data-dm-aria-norme>${esc(t("Rimetti le norme", "Restore the norms"))}</button>
     </div>
   </article>`;
 }
@@ -594,7 +594,18 @@ function installStyles() {
       #ed-body .dm-aria-ed-soglia{min-height:38px;padding:6px 8px;text-align:center;font-size:12.5px}
       /* Tre confini che non salgono non sono confini: la casella lo dice. */
       #ed-body .dm-aria-ed-soglia[data-dm-aria-rotta="si"]{border-color:#dc2626;background:rgba(220,38,38,.08)}
-      #ed-body .dm-aria-ed-norme{margin-bottom:4px}
+      /* «Rimetti le norme» e' un tasto di TESTO, e portava la veste del tasto
+         tondo — quello del cestino e della ✕. La classe del cestino e' una pastiglia
+         quadrata di trentaquattro pixel col contenuto centrato: dentro ci sta
+         un glifo, non tre parole, e le tre parole andavano a capo due volte
+         dentro il cerchio. Da fuori si legge «manca l'icona», e invece
+         l'icona non c'e' mai stata: c'e' una scritta vestita da icona. */
+      #ed-body .dm-aria-ed-norme{
+        margin-bottom:4px;justify-self:start;width:auto;min-height:32px;
+        padding:6px 14px;border-radius:999px;white-space:nowrap;
+        border:1px solid var(--card-border,#e2e8f0);background:var(--surface-3,#f1f5f9);
+        color:var(--secondary-text-color,#64748b);font-size:12px;font-weight:800;cursor:pointer}
+      #ed-body .dm-aria-ed-norme:hover{color:var(--text,#0f172a)}
       @media(max-width:520px){#ed-body .dm-aria-ed-misura{grid-template-columns:minmax(0,1fr);gap:4px}
         #ed-body .dm-aria-ed-misura .dm-aria-ed-soglia{text-align:left}}
 `,

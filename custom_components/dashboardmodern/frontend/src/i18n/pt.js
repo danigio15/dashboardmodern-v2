@@ -3356,4 +3356,9 @@ export default Object.freeze({
   "Power draw (optional)": "Consumo (opcional)",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "O medidor de potência da tomada, se tiver: o cartão escreve quanto está a consumir ao lado do seu estado. Sem ele, o cartão fica como está.",
   "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "Dois sensores à sua escolha: aquele que realmente olha para decidir, não uma média da casa. O típico é o de fora, por que se guia para os climas interiores. A unidade vem do Home Assistant e, se não indicar nenhum, não aparece nenhuma das duas pastilhas.",
+  "⚡ Charge threshold saved": "⚡ Limite de carga guardado",
+  "Charge thresholds": "Limites de carga",
+  "For what recharges instead of being replaced: the wall tablet, a power bank. The two entities are number.* or input_number.*, the ones the device exposes to say where it starts again and where it stops. Leave them empty and this stays a battery like the others.": "Para o que se recarrega em vez de se substituir: o tablet de parede, um power bank. As duas entidades são number.* ou input_number.*, as que o dispositivo expõe para dizer onde recomeça e onde pára. Deixa-as vazias e isto continua a ser uma pilha como as outras.",
+  "Starts again below": "Recomeça abaixo de",
+  "Stops above": "Pára acima de",
 });

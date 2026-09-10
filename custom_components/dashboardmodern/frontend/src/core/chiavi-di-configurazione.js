@@ -206,7 +206,12 @@
  * CARICA, e da un valore solo non si indovina. È una cosa dell'impianto, non
  * del vetro: la batteria è una sola per tutta la casa, e chi ha girato il verso
  * dal computer non deve vedere le frecce al contrario sul telefono. */
-export const CONFIG_KEYS_REVISION = 41;
+/* La revisione 42 aggiunge le soglie di ricarica (`cd_batterie_ricarica`,
+ * #408): quale batteria e' quella di un tablet a muro, e quali due entita'
+ * dicono sotto quanto riparte e sopra quanto si ferma. Una stilo non decide
+ * quando smettere di caricarsi; un tablet appeso al muro si', e chi lo
+ * configura da un telefono deve ritrovarlo dal tablet stesso. */
+export const CONFIG_KEYS_REVISION = 42;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -285,6 +290,10 @@ export const CONFIG_KEYS = Object.freeze([
   // Sotto quanto una batteria e' da cambiare (#398): una soglia per tutta la
   // casa, non per questo dispositivo.
   "cd_batterie",
+  /* Le soglie con cui si ricarica un tablet a muro (#408): quale batteria,
+   * sotto quanto riparte, sopra quanto si ferma. Le entita' sono di casa e
+   * la scelta pure: chi la fa dal telefono la vuole ritrovare sul tablet. */
+  "cd_batterie_ricarica",
   "cd_calendari",
   // Le sezioni che si fa l'utente (#262): titolo, icona, e le entita' dentro.
   "cd_sezioni_mie",

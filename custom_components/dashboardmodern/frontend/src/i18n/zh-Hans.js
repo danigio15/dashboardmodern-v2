@@ -3356,4 +3356,9 @@ export default Object.freeze({
   "Power draw (optional)": "功耗（可选）",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "插座的功率计（如果有）：卡片会在状态旁写出它此刻的用电量。没有的话，卡片保持原样。",
   "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "由你选择的两个传感器：你真正用来判断的那一个，而不是全屋平均值。最常见的是屋外那只，室内空调就按它来调。单位由 Home Assistant 提供；两个都不填，两个胶囊都不会出现。",
+  "⚡ Charge threshold saved": "⚡ 已保存充电阈值",
+  "Charge thresholds": "充电阈值",
+  "For what recharges instead of being replaced: the wall tablet, a power bank. The two entities are number.* or input_number.*, the ones the device exposes to say where it starts again and where it stops. Leave them empty and this stays a battery like the others.": "适用于会充电而不是被更换的东西：壁挂平板、充电宝。两个实体是 number.* 或 input_number.*，也就是设备用来说明它从哪里重新开始、到哪里停止的实体。留空的话，它就和其他电池一样。",
+  "Starts again below": "低于此值重新开始",
+  "Stops above": "高于此值停止",
 });

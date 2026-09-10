@@ -3356,4 +3356,9 @@ export default Object.freeze({
   "Power draw (optional)": "استهلاك الطاقة (اختياري)",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "عدّاد استهلاك المقبس، إن وُجد: تكتب البطاقة مقدار ما يسحبه بجانب حالته. وبدونه تبقى البطاقة كما هي.",
   "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "مستشعران تختارهما أنت: المستشعر الذي تقرأه فعلًا لتقرر، لا متوسط البيت. المعتاد هو مستشعر الخارج، الذي تعتمد عليه لضبط أجهزة التكييف الداخلية. الوحدة تأتي من Home Assistant، وإذا لم تحدّد أيًّا منهما فلن تظهر أي من الشارتين.",
+  "⚡ Charge threshold saved": "⚡ تم حفظ عتبة الشحن",
+  "Charge thresholds": "عتبات الشحن",
+  "For what recharges instead of being replaced: the wall tablet, a power bank. The two entities are number.* or input_number.*, the ones the device exposes to say where it starts again and where it stops. Leave them empty and this stays a battery like the others.": "لما يُعاد شحنه بدل استبداله: اللوح المثبت على الحائط، بطارية محمولة. الكيانان هما number.* أو input_number.*، وهما ما يعرضه الجهاز ليقول أين يبدأ الشحن من جديد وأين يتوقف. اتركهما فارغين وتبقى هذه بطارية كغيرها.",
+  "Starts again below": "يبدأ من جديد تحت",
+  "Stops above": "يتوقف فوق",
 });

@@ -3356,4 +3356,9 @@ export default Object.freeze({
   "Power draw (optional)": "Güç çekişi (isteğe bağlı)",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "Prizin varsa güç ölçeri: kart, durumunun yanına o an ne kadar çektiğini yazar. Olmadan kart olduğu gibi kalır.",
   "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "Kendi seçtiğiniz iki sensör: ev ortalaması değil, karar verirken gerçekten baktığınız sensör. Tipik olan dışarıdakidir; iç ünitelerinizi ona göre ayarlarsınız. Birimi Home Assistant söyler, hiçbirini belirtmezseniz iki rozetten hiçbiri görünmez.",
+  "⚡ Charge threshold saved": "⚡ Şarj eşiği kaydedildi",
+  "Charge thresholds": "Şarj eşikleri",
+  "For what recharges instead of being replaced: the wall tablet, a power bank. The two entities are number.* or input_number.*, the ones the device exposes to say where it starts again and where it stops. Leave them empty and this stays a battery like the others.": "Değiştirilmek yerine şarj edilen şeyler için: duvardaki tablet, bir powerbank. İki varlık number.* ya da input_number.*, yani cihazın nerede yeniden başladığını ve nerede durduğunu söylemek için sunduğu varlıklar. Boş bırakırsan bu da diğerleri gibi bir pil olarak kalır.",
+  "Starts again below": "Şunun altında yeniden başlar",
+  "Stops above": "Şunun üstünde durur",
 });

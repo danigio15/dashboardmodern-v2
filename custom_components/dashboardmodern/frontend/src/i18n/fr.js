@@ -3356,4 +3356,9 @@ export default Object.freeze({
   "Power draw (optional)": "Consommation (facultatif)",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "Le wattmètre de la prise, si elle en a un : la carte écrit ce qu'elle consomme à côté de son état. Sans lui, la carte reste telle quelle.",
   "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "Deux capteurs que vous choisissez : celui que vous regardez vraiment pour décider, pas une moyenne de la maison. Le cas typique est celui de l'extérieur, sur lequel on se règle pour les climatiseurs intérieurs. L'unité vient de Home Assistant, et si vous n'en indiquez aucun, aucune des deux pastilles n'apparaît.",
+  "⚡ Charge threshold saved": "⚡ Seuil de charge enregistré",
+  "Charge thresholds": "Seuils de charge",
+  "For what recharges instead of being replaced: the wall tablet, a power bank. The two entities are number.* or input_number.*, the ones the device exposes to say where it starts again and where it stops. Leave them empty and this stays a battery like the others.": "Pour ce qui se recharge au lieu de se remplacer : la tablette murale, une batterie externe. Les deux entités sont number.* ou input_number.*, celles que l'appareil expose pour dire où il repart et où il s'arrête. Laissez-les vides et ceci reste une pile comme les autres.",
+  "Starts again below": "Repart en dessous de",
+  "Stops above": "S'arrête au-dessus de",
 });

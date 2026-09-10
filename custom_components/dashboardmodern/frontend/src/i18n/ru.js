@@ -3356,4 +3356,9 @@ export default Object.freeze({
   "Power draw (optional)": "Потребление (необязательно)",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "Ваттметр розетки, если он есть: карточка пишет рядом с состоянием, сколько она сейчас потребляет. Без него карточка остаётся прежней.",
   "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "Два датчика на ваш выбор: тот, на который вы действительно смотрите, принимая решение, а не среднее по дому. Обычно это уличный датчик, по нему настраивают внутренние кондиционеры. Единицу измерения сообщает Home Assistant, и если не указать ни одного датчика, не появится ни одной из двух плашек.",
+  "⚡ Charge threshold saved": "⚡ Порог зарядки сохранён",
+  "Charge thresholds": "Пороги зарядки",
+  "For what recharges instead of being replaced: the wall tablet, a power bank. The two entities are number.* or input_number.*, the ones the device exposes to say where it starts again and where it stops. Leave them empty and this stays a battery like the others.": "Для того, что заряжается, а не меняется: настенный планшет, повербанк. Обе сущности — number.* или input_number.*, те, которые устройство публикует, чтобы сказать, где оно начинает заново и где останавливается. Оставьте их пустыми — и это останется батарейкой, как все прочие.",
+  "Starts again below": "Начинает заново ниже",
+  "Stops above": "Останавливается выше",
 });

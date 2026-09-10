@@ -3356,4 +3356,9 @@ export default Object.freeze({
   "Power draw (optional)": "消費電力（任意）",
   "The socket's power meter, if it has one: the card writes how much it is drawing next to its state. Without it the card stays as it is.": "コンセントの電力計があれば、カードは状態の横に現在の消費電力を書きます。なければカードはそのままです。",
   "Two sensors of your choosing: the one you actually read to decide, not a house average. The typical one is outdoors, the one you go by for the indoor units. The unit comes from Home Assistant, and if you name neither sensor neither pill shows up.": "自分で選ぶ二つのセンサーです。家の平均ではなく、判断のために実際に見ているセンサー。よくあるのは屋外のもので、それを見て室内のエアコンを調節します。単位は Home Assistant が伝え、どちらも指定しなければどちらのピルも表示されません。",
+  "⚡ Charge threshold saved": "⚡ 充電しきい値を保存しました",
+  "Charge thresholds": "充電しきい値",
+  "For what recharges instead of being replaced: the wall tablet, a power bank. The two entities are number.* or input_number.*, the ones the device exposes to say where it starts again and where it stops. Leave them empty and this stays a battery like the others.": "交換ではなく充電するもの向けです。壁掛けタブレットやモバイルバッテリーなど。二つのエンティティは number.* または input_number.* で、どこから充電を再開しどこで止めるかを機器が公開しているものです。空のままなら、ほかの電池と同じ扱いになります。",
+  "Starts again below": "これを下回ると再開",
+  "Stops above": "これを超えると停止",
 });

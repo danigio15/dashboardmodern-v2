@@ -3448,11 +3448,54 @@ function ariaModel(states) {
  * casa chiusa non c'e' niente da dire, e un avviso che si accende sempre non e'
  * piu' un avviso. Le righe sono pastiglie, rosse le aperte e verdi le chiuse,
  * che e' esattamente la colorazione chiesta nella segnalazione. */
+/* I contatti che una riga delle Finestre dichiara (#367, #377, e la
+ * segnalazione dal campo).
+ *
+ * «Quelle che non sono configurate in varchi non le vedo nel widget relativo.»
+ * Vero, ed era un difetto: i Varchi trovavano un contatto solo se Home
+ * Assistant gli aveva messo un `device_class`, o se qualcuno lo aveva aggiunto
+ * a mano nella loro scheda. Ma un contatto scritto nella casella dell'anta di
+ * una riga delle Finestre e' una DICHIARAZIONE — l'ha battuta chi abita la
+ * casa, e dice «questa e' una finestra» meglio di qualunque etichetta
+ * automatica. Chiedergli di ridichiararlo in un'altra scheda per vederlo nella
+ * tessera dei Varchi vuol dire dire due volte la stessa cosa.
+ *
+ * Il commento della #442 lo prometteva gia' — «i contatti di porte e finestre
+ * li trova da se', anche quelli scritti dentro una riga delle Finestre» — e la
+ * promessa non era mantenuta. Adesso si'.
+ *
+ * Le due tessere continuano a raccontarlo tutte e due, ed e' voluto: sono due
+ * domande diverse — «come stanno le mie finestre» e «cosa e' aperto in casa» —
+ * e chi ne vuole una sola spegne la riga in UNA delle due, che dalla 1.4.15 si
+ * puo' fare per tessera e non per entita'. */
+function contattiDelleFinestre() {
+  const righe = root.getTapparelle?.() || readJson("cd_tapparelle", []);
+  const presi = [];
+  for (const item of Array.isArray(righe) ? righe : []) {
+    for (const entity of [contactEntity(item), inferriataEntity(item)]) {
+      const id = clean(entity);
+      if (id) presi.push(id);
+    }
+  }
+  return presi;
+}
+
 function varchiModel(states) {
   const fuori = widgetExcludedEntities("varchi");
   const config = readJson(CHIAVE_VARCHI, {});
   const girati = insiemeInvertiti(readJson(CHIAVE_VERSI, {}));
-  const righe = varchiDiCasa(states, config, girati, (entity) =>
+  /* I contatti dichiarati nelle Finestre entrano fra gli aggiunti: e' la
+   * stessa strada di chi li aggiunge a mano nella scheda dei Varchi, perche' e'
+   * la stessa cosa — qualcuno ha detto che quello e' un varco. Chi ne aveva
+   * escluso uno resta escluso: l'esclusione si legge dopo, e vince. */
+  const dichiarati = contattiDelleFinestre();
+  const conLeFinestre = dichiarati.length
+    ? { ...(config && typeof config === "object" ? config : {}) , aggiunte: [
+        ...(Array.isArray(config?.aggiunte) ? config.aggiunte : []),
+        ...dichiarati,
+      ] }
+    : config;
+  const righe = varchiDiCasa(states, conLeFinestre, girati, (entity) =>
     friendlyName(states, entity),
   ).filter((riga) => widgetIncludes(riga.entity, fuori));
   if (!righe.length) return null;
