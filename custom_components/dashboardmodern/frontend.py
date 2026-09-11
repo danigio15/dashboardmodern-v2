@@ -393,18 +393,74 @@ def _dashboard_card_module_url(asset_version: str) -> str:
 def _ensure_dashboard_card_registered(
     hass: HomeAssistant, domain_data: dict[str, Any], static_url_path: str
 ) -> None:
-    """Load the companion custom card through the public frontend API."""
+    """Pubblica la card della dashboard di appoggio, anche se è presto.
+
+    «Plancia predefinita: Errore di configurazione» — la decima volta che
+    viene segnalata la stessa cosa, e ogni volta la plancia aperta dalla barra
+    laterale funziona.
+
+    Le due strade non usano lo stesso pezzo di codice. La barra laterale apre
+    il PANNELLO, che si carica da sé; la dashboard predefinita apre una
+    dashboard Lovelace che dentro ha una card nostra, e quella card esiste solo
+    se il suo modulo è stato pubblicato con `add_extra_js_url`. Senza quel
+    modulo Home Assistant non trova l'elemento, e quello che disegna al suo
+    posto è esattamente la schermata rossa che chi segnala vede: «Errore di
+    configurazione».
+
+    E `add_extra_js_url` non è gentile: scrive dentro `hass.data` in una
+    casella che apre `frontend` quando si alza, e se quella casella non c'è
+    ancora solleva `KeyError`. Qui dentro veniva chiamata a secco, in mezzo
+    all'avvio della voce e prima della registrazione del pannello: un avvio in
+    cui `frontend` non fosse ancora salito non pubblicava la card E non
+    registrava il pannello, cioè rompeva tutto in una volta.
+
+    Adesso: se `frontend` c'è, si pubblica subito; se non c'è, si aspetta che
+    si alzi e si pubblica allora — lo stesso modo con cui già si aspetta
+    Lovelace per la dashboard di appoggio. E il manifest dichiara `frontend`
+    fra le dipendenze, così Home Assistant lo alza prima di noi: la strada
+    d'attesa è la rete sotto, non il caso normale.
+    """
     from homeassistant.components import frontend
 
     module_url = _dashboard_card_module_url(static_url_path.rsplit("/", 1)[-1])
     if domain_data.get(DATA_DASHBOARD_CARD_REGISTERED) == module_url:
         return
 
-    previous = domain_data.get(DATA_DASHBOARD_CARD_REGISTERED)
-    if previous:
-        frontend.remove_extra_js_url(hass, previous)
-    frontend.add_extra_js_url(hass, module_url)
-    domain_data[DATA_DASHBOARD_CARD_REGISTERED] = module_url
+    def _pubblica() -> None:
+        previous = domain_data.get(DATA_DASHBOARD_CARD_REGISTERED)
+        if previous and previous != module_url:
+            try:
+                frontend.remove_extra_js_url(hass, previous)
+            except Exception:  # noqa: BLE001 - un indirizzo vecchio di troppo non fa danni
+                _LOGGER.debug("Non ho potuto togliere %s dai moduli extra", previous)
+        try:
+            frontend.add_extra_js_url(hass, module_url)
+        except Exception:  # noqa: BLE001 - si riprova al prossimo avvio della voce
+            _LOGGER.error(
+                "Non sono riuscito a pubblicare la card %s: chi mette questa "
+                "plancia come predefinita vedrà «Errore di configurazione», "
+                "perché Home Assistant non troverà l'elemento "
+                "dashboardmodern-card. Dalla barra laterale funziona lo stesso.",
+                module_url,
+                exc_info=True,
+            )
+            return
+        domain_data[DATA_DASHBOARD_CARD_REGISTERED] = module_url
+
+    if "frontend" in hass.config.components:
+        _pubblica()
+        return
+
+    from homeassistant.setup import async_when_setup
+
+    async def _quando_frontend(_hass: HomeAssistant, _componente: str) -> None:
+        _pubblica()
+
+    _LOGGER.debug(
+        "Frontend non ancora avviato: la card %s si pubblica appena lo è",
+        module_url,
+    )
+    async_when_setup(hass, "frontend", _quando_frontend)
 
 
 def _companion_view(entry: Any, config_profile: str, primary: bool) -> dict[str, Any]:

@@ -280,9 +280,9 @@ async def test_ogni_plancia_ha_il_suo_avviso(hass: Any) -> None:
 
 
 async def test_chi_ha_spento_la_dashboard_non_se_la_ritrova(hass: Any) -> None:
-    from custom_components.dashboardmodern.config_flow import OPTION_REGISTER_LOVELACE
-
     from homeassistant.helpers import issue_registry as ir
+
+    from custom_components.dashboardmodern.config_flow import OPTION_REGISTER_LOVELACE
 
     entry = _voce(hass, options={OPTION_REGISTER_LOVELACE: False})
     dati = _lovelace(hass)

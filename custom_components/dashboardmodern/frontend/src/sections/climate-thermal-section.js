@@ -37,6 +37,7 @@ import {
   scalaDellaZona,
 } from "../core/scala-clima.js";
 import { climateIsOff } from "../core/climate-power.js";
+import { accesoPerIlConsumo, wattDellUnita } from "../core/consumo-del-clima.js";
 import { chiamataDelModo, letturaDelModo, prossimoModo } from "../core/modo-del-clima.js";
 import {
   FERMI_DELLO_SLIDER,
@@ -267,17 +268,45 @@ function resolvedState(entity, states) {
   return states?.[reference] || states?.[resolved] || null;
 }
 
+/* L'unita' configurata che sta dietro a quell'entita'.
+ *
+ * La lettura ha bisogno di sapere se chi la possiede le ha messo accanto una
+ * presa e una soglia (#490): quella e' roba dell'unita', non dell'entita'. */
+function unitaDellEntita(entity) {
+  const cercata = clean(entity);
+  if (!cercata) return null;
+  const risolta = clean(root.resolveEntity?.(cercata) || cercata);
+  return (
+    readClimateUnits().find((unita) => {
+      const sua = clean(unita?.entity);
+      return sua === cercata || sua === risolta;
+    }) || null
+  );
+}
+
 /**
  * One reading of a unit. `on` follows the legacy rule — anything that is not
  * off/unavailable counts as running — so the card agrees with the popup.
+ *
+ * Salvo quando i watt dicono un'altra cosa (#490). «Il condizionatore da spento
+ * mi da' 7 W di consumo e quindi mi risulta acceso: e' messo sotto una presa
+ * smart.» Con una presa e una soglia configurate, a decidere sono i watt: e'
+ * la stessa regola degli elettrodomestici, e su un climatizzatore comandato da
+ * una presa la presa ha ragione piu' del suo `climate.*`. Senza soglia, o con
+ * il sensore che non risponde, non cambia niente: la lettura resta quella di
+ * sempre, che e' meglio di una card spenta per un sensore che tace.
  */
-export function climateReading(entity, states = allStates()) {
+export function climateReading(entity, states = allStates(), unita = unitaDellEntita(entity)) {
   const entry = resolvedState(entity, states);
   const raw = clean(entry?.state).toLowerCase();
   const attributes = entry?.attributes || {};
+  const daiWatt = accesoPerIlConsumo(unita, states);
   return {
     known: Boolean(entry),
-    on: Boolean(entry) && !OFF_STATES.has(raw),
+    on: daiWatt === null ? Boolean(entry) && !OFF_STATES.has(raw) : daiWatt,
+    /* I watt che si stanno leggendo, quando c'e' una presa: la card li scrive,
+     * cosi' chi ha messo la soglia vede il numero su cui l'ha messa. */
+    watt: wattDellUnita(unita, states),
     mode: raw,
     action: clean(attributes.hvac_action).toLowerCase(),
     target: finiteOrNull(attributes.temperature),
@@ -643,7 +672,14 @@ function paintCard(card, unit, reading, labels) {
   card.dataset.dmClMode = reading.on ? reading.mode : "off";
 
   const stateChip = card.querySelector("[data-dm-cl-state]");
-  if (stateChip) stateChip.textContent = stateLabel(reading, zone, labels);
+  /* Coi watt accanto, quando c'e' una presa a dirli (#490): chi ha messo la
+   * soglia vede il numero su cui l'ha messa, e capisce al volo perche' la card
+   * dice spento mentre il termostato dice freddo. */
+  if (stateChip) {
+    const parola = stateLabel(reading, zone, labels);
+    stateChip.textContent =
+      reading.watt === null ? parola : `${parola} · ${Math.round(reading.watt)} W`;
+  }
 
   /* Col flag acceso il numero grande e' l'ambiente e la riga piccola il
    * target; le didascalie seguono i numeri, o direbbero il falso. */
