@@ -9,6 +9,31 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Auto: «Ferma» non era una cosa che la tessera sapesse** (#326)
+
+  «L'indicazione "Ferma" presente dopo l'indicazione "È al xx%" sta ad indicare
+  che il motore è spento? perché se è così, quando la macchina è accesa da
+  sempre "Ferma".»
+
+  No, e la risposta è il difetto: quella parola parlava della **colonnina** —
+  cavo fuori, carica ferma — e letta accanto a una percentuale sembrava dire che
+  il motore è spento, cosa che la tessera non aveva guardato. Del motore non
+  chiedeva niente a nessuno.
+
+  Sotto c'era un guasto più vecchio. La distinzione fra il pieno di benzina e la
+  carica la fa chi racconta la tessera, guardando se **tutte** le righe vanno a
+  carburante — ma nessuno quel campo lo scriveva sulle righe. La correzione della
+  1.4.8 («si parla di serbatoio, non di spina») era scritta in un posto dove i
+  numeri veri non arrivavano mai, e le prove passavano perché si costruivano le
+  righe a mano. Adesso ogni riga porta il suo carburante, e con un serbatoio letto
+  la frase è **«Il serbatoio è al 64%»**: della spina non si parla più.
+
+  E il motore, se la sua casella c'è, si guarda davvero: a motore acceso la
+  tessera dice **«Motore acceso»** e passa al tono «in corso». Spento non lo
+  dice — è come sta un'auto in garage quasi sempre — e senza quella casella non
+  si inventa niente. Per l'elettrica staccata sopra il venti per cento la frase
+  diventa «È al 64%, **non attaccata**»: quello che si sa, e basta.
+
 - **Flusso energia: le linee tratteggiate si vedono solo dove l'energia passa**
 
   «Nello sfondo si vedono le linee tratteggiate che vanno da un cerchio

@@ -507,6 +507,18 @@ const LETTURE = Object.freeze({
      * in un garage misto la piu' scarica puo' essere l'elettrica, e li' la
      * spina torna a voler dire qualcosa. */
     const aBenzina = righe.length > 0 && righe.every((riga) => riga?.carburante === true);
+    /* Il motore, se qualcuno l'ha mappato (#326).
+     *
+     * «L'indicazione "Ferma" sta a indicare che il motore e' spento? perche'
+     * se e' cosi', quando la macchina e' accesa da sempre "Ferma".» No: quella
+     * parola parlava della colonnina — cavo fuori, carica ferma — e di una
+     * macchina a benzina non voleva dire niente. Del motore la tessera non
+     * chiedeva niente a nessuno, e lo dava per spento.
+     *
+     * Adesso, se la casella del motore c'e', la si guarda e si dice quello che
+     * dice lei; se non c'e', non si inventa: del motore non si parla. */
+    const motore = righe.find((riga) => riga?.ruolo === "motore");
+    const acceso = typeof motore?.on === "boolean" ? motore.on : null;
     /* E se e' a benzina, la presa non esiste: `attiva` puo' restare accesa per
      * altri motivi, ma «in carica» non lo si dice di un serbatoio. */
     const allaPresa = !aBenzina && tessera?.attiva === true;
@@ -532,6 +544,18 @@ const LETTURE = Object.freeze({
           frase: tr(
             `Il serbatoio e' al ${Math.round(carica)}%: conviene fare rifornimento.`,
             `The tank is at ${Math.round(carica)}%: time to refuel.`,
+          ),
+          punti,
+        };
+      /* Il motore acceso e' una notizia: la macchina e' in moto adesso. Spento
+       * non lo e' — e' come sta un'auto in garage quasi sempre — e dirlo
+       * ogni volta vorrebbe dire riempire la frase di niente. */
+      if (acceso === true)
+        return {
+          tono: VERDETTI.corso,
+          frase: tr(
+            `Motore acceso; il serbatoio e' al ${Math.round(carica)}%.`,
+            `Engine running; the tank is at ${Math.round(carica)}%.`,
           ),
           punti,
         };
@@ -569,9 +593,11 @@ const LETTURE = Object.freeze({
         tono: allaPresa ? VERDETTI.corso : VERDETTI.bene,
         frase: allaPresa
           ? tr("E' in carica.", "It is charging.")
-          : aBenzina
-            ? tr("Ferma.", "Idle.")
-            : tr("Non e' attaccata.", "Not plugged in."),
+          : acceso === true
+            ? tr("Motore acceso.", "Engine running.")
+            : aBenzina
+              ? tr("Niente da segnalare.", "Nothing to report.")
+              : tr("Non e' attaccata.", "Not plugged in."),
         punti,
       };
     if (allaPresa) {
@@ -599,9 +625,25 @@ const LETTURE = Object.freeze({
         ),
         punti,
       };
+    if (acceso === true)
+      return {
+        tono: VERDETTI.corso,
+        frase: tr(
+          `E' al ${Math.round(carica)}%, motore acceso.`,
+          `At ${Math.round(carica)}%, engine running.`,
+        ),
+        punti,
+      };
+    /* «Ferma» era la parola della colonnina — cavo fuori, carica ferma — ma
+     * letta accanto a una percentuale sembrava dire che il motore e' spento,
+     * cosa che la tessera non aveva guardato. Qui si dice quello che si sa:
+     * la spina non c'e'. */
     return {
       tono: VERDETTI.bene,
-      frase: tr(`E' al ${Math.round(carica)}%, ferma.`, `At ${Math.round(carica)}%, idle.`),
+      frase: tr(
+        `E' al ${Math.round(carica)}%, non attaccata.`,
+        `At ${Math.round(carica)}%, not plugged in.`,
+      ),
       punti,
     };
   },

@@ -1956,6 +1956,9 @@ function glifoEv(riferimento) {
 
 /* Tutte le caselle dell'auto che sono state mappate, meno quelle gia' dette e
  * quelle che l'interruttore ha messo fuori. */
+/** La casella che dice se il motore gira: la stessa della pagina Auto. */
+const RIF_MOTORE = "dm.ev_motore";
+
 function altreCaselleEv(states, mappa, fuori, visti) {
   const righe = [];
   for (const riferimento of Object.keys(mappa || {}).sort()) {
@@ -1968,7 +1971,11 @@ function altreCaselleEv(states, mappa, fuori, visti) {
     /* Le caselle della colonnina sono della casa, non di questa vettura: la
      * riga non porta il nome dell'auto, perche' il cavo e' lo stesso qualunque
      * macchina ci sia attaccata. */
-    righe.push(eDellaWallbox(riferimento) ? { ...riga, diCasa: true } : riga);
+    const vestita = eDellaWallbox(riferimento) ? { ...riga, diCasa: true } : riga;
+    /* Il motore porta scritto che e' il motore. Fra venti caselle tutte uguali
+     * era una riga come le altre, e chi racconta la tessera non aveva modo di
+     * sapere se la macchina e' accesa: diceva «ferma» a prescindere (#326). */
+    righe.push(riferimento === RIF_MOTORE ? { ...vestita, ruolo: "motore" } : vestita);
   }
   return righe;
 }
@@ -2016,22 +2023,30 @@ function letturaAttiva(states, fuori) {
 function righeVettura(lettura, conNome) {
   const righe = [];
   const prefisso = conNome && lettura.nome ? `${lettura.nome} · ` : "";
+  /* Ogni riga porta il suo `carburante` (#326).
+   *
+   * Chi racconta la tessera distingue il pieno di benzina dalla carica
+   * guardando le righe: se vanno TUTTE a carburante, la spina non esiste e non
+   * se ne parla. La distinzione era scritta ma nessuno la scriveva sulle
+   * righe, e cosi' di un serbatoio si continuava a dire che era «ferma» —
+   * parola della colonnina, non del motore. */
+  const dellaVettura = (riga) => ({ ...riga, carburante: lettura.carburante === true });
   if (lettura.percentuale != null)
-    righe.push({
+    righe.push(dellaVettura({
       glyph: lettura.carburante ? "⛽" : "🔋",
       name: `${prefisso}${lettura.carburante ? t("Carburante", "Fuel") : t("Carica", "Charge")}`,
       entity: lettura.caricaEntita || "",
       value: `${Math.round(lettura.percentuale)}%`,
-    });
+    }));
   if (lettura.km != null)
-    righe.push({
+    righe.push(dellaVettura({
       glyph: "🛣️",
       name: `${prefisso}${t("Autonomia", "Range")}`,
       entity: lettura.kmEntita || "",
       value: `${formatNumber(lettura.km, 0)} km`,
-    });
+    }));
   if (lettura.ricarica)
-    righe.push({
+    righe.push(dellaVettura({
       glyph: "🔌",
       name: `${prefisso}${t("Ricarica", "Charging")}`,
       entity: lettura.ricaricaEntita || "",
@@ -2042,12 +2057,14 @@ function righeVettura(lettura, conNome) {
       value:
         statoUmanoEV(lettura.ricarica) ||
         (autoAllaPresa(lettura.ricarica) ? t("In carica", "Charging") : t("Scollegata", "Unplugged")),
-    });
+    }));
   /* E tutte le altre caselle mappate di questa vettura: sono quelle su cui
    * l'interruttore «nel widget» sta acceso, e finora non uscivano. Quelle
    * della colonnina sono della casa e non portano il nome dell'auto. */
   for (const riga of lettura.altre || [])
-    righe.push(prefisso && !riga.diCasa ? { ...riga, name: `${prefisso}${riga.name}` } : riga);
+    righe.push(
+      dellaVettura(prefisso && !riga.diCasa ? { ...riga, name: `${prefisso}${riga.name}` } : riga),
+    );
   return righe;
 }
 
