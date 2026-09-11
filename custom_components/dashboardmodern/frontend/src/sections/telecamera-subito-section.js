@@ -335,9 +335,13 @@ function css() {
     content:"";position:absolute;inset:0;pointer-events:none;
     background:rgba(11,18,32,.34)}
   /* Il velo del guscio sta sopra il fermo, e il video sopra tutto: un video
-     senza fotogrammi e' trasparente, quindi il fermo si vede attraverso. */
-  .dm-cam-con-fermo .cam-zoom-container>*,
-  .dm-cam-con-fermo #video-iframe-container>*{position:relative;z-index:1}
+     senza fotogrammi e' trasparente, quindi il fermo si vede attraverso.
+     L'ordine lo danno gia' i piani del guscio — il video e l'immagine stanno a
+     2, il velo a 4, la pastiglia dell'audio a 6 — e il velo scuro qui sopra e'
+     un pseudo-elemento senza piano, quindi sta sotto tutti e tre: e'
+     esattamente il posto che gli serve. Qui non si tocca la posizione di
+     nessun figlio: vedi la prova «il riquadro del video non si sfonda col
+     fermo dietro». */
   .dm-cam-con-fermo video{background:transparent}
   `;
 }
