@@ -12,7 +12,12 @@
 
 export default Object.freeze({
   " — configured": " — 설정됨",
+  "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "읽을 수 있는 엔티티가 필요합니다: sensor.*, binary_sensor.*, number.*, input_number 또는 input_text.",
+  "Add reading": "측정값 추가",
+  "Advanced card — image, duration, temperature, door, costs": "고급 카드 — 이미지, 소요 시간, 온도, 문, 비용",
+  "No extra reading: the window shows what the appliance has in its own fields.": "추가 측정값 없음: 창에는 기기의 자체 항목에 있는 것만 표시됩니다.",
   "Player controls": "플레이어 제어",
+  "The sensors the appliance publishes that the fields above do not cover — air temperature and residual humidity of a dryer, a second door on a fridge: sensor.*, binary_sensor.*, number.* entities. They show up in the appliance window, with their own name and unit, in the order you add them.": "위 항목이 담지 못하는, 기기가 제공하는 센서 — 건조기의 공기 온도와 잔류 습도, 냉장고의 두 번째 문: sensor.*, binary_sensor.*, number.* 엔티티. 추가한 순서대로 이름과 단위와 함께 기기 창에 나타납니다.",
   "\" and its loads?": "\" 그룹과 그 부하를 삭제할까요?",
   "\"Long-lived access tokens\"": "\"장기 액세스 토큰\"",
   "\"Room - Detail\"": "\"방 - 상세\"",
@@ -284,7 +289,6 @@ export default Object.freeze({
   "Added ${trovate.length} lists": "목록 ${trovate.length}개 추가됨",
   "Added ${trovati.length} calendars": "캘린더 ${trovati.length}개 추가됨",
   "Administrator tools ·": "관리자 도구 ·",
-  "Advanced card — image, duration, temperature, costs": "고급 카드 — 이미지, 소요 시간, 온도, 비용",
   "Advice": "조언",
   "Agenda": "일정표",
   "Air": "공기",

@@ -12,7 +12,12 @@
 
 export default Object.freeze({
   " — configured": " — कॉन्फ़िगर किया गया",
+  "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "पढ़ी जा सकने वाली एंटिटी चाहिए: sensor.*, binary_sensor.*, number.*, input_number या input_text.",
+  "Add reading": "रीडिंग जोड़ें",
+  "Advanced card — image, duration, temperature, door, costs": "उन्नत कार्ड — छवि, अवधि, तापमान, दरवाज़ा, लागत",
+  "No extra reading: the window shows what the appliance has in its own fields.": "कोई अतिरिक्त रीडिंग नहीं: विंडो वही दिखाती है जो उपकरण के अपने फ़ील्ड में है।",
   "Player controls": "प्लेयर नियंत्रण",
+  "The sensors the appliance publishes that the fields above do not cover — air temperature and residual humidity of a dryer, a second door on a fridge: sensor.*, binary_sensor.*, number.* entities. They show up in the appliance window, with their own name and unit, in the order you add them.": "उपकरण के वे सेंसर जिन्हें ऊपर के फ़ील्ड नहीं समेटते — ड्रायर की हवा का तापमान और शेष नमी, फ़्रिज का दूसरा दरवाज़ा: sensor.*, binary_sensor.*, number.* एंटिटीज़। वे उपकरण की विंडो में अपने नाम और इकाई के साथ उसी क्रम में दिखते हैं जिसमें आप उन्हें जोड़ते हैं।",
   "\" and its loads?": "\" और उसके लोड हटाएँ?",
   "\"Long-lived access tokens\"": "\"लंबी अवधि के एक्सेस टोकन\"",
   "\"Room - Detail\"": "\"कमरा - विवरण\"",
@@ -284,7 +289,6 @@ export default Object.freeze({
   "Added ${trovate.length} lists": "${trovate.length} सूचियाँ जोड़ी गईं",
   "Added ${trovati.length} calendars": "${trovati.length} कैलेंडर जोड़े गए",
   "Administrator tools ·": "प्रशासक उपकरण ·",
-  "Advanced card — image, duration, temperature, costs": "उन्नत कार्ड — छवि, अवधि, तापमान, लागत",
   "Advice": "सलाह",
   "Agenda": "एजेंडा",
   "Air": "हवा",

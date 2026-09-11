@@ -12,7 +12,12 @@
 
 export default Object.freeze({
   " — configured": " — yapılandırıldı",
+  "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "Okunabilir bir varlık gerekir: sensor.*, binary_sensor.*, number.*, input_number veya input_text.",
+  "Add reading": "Ölçüm ekle",
+  "Advanced card — image, duration, temperature, door, costs": "Gelişmiş kart — görsel, süre, sıcaklık, kapı, maliyet",
+  "No extra reading: the window shows what the appliance has in its own fields.": "Ek ölçüm yok: pencere cihazın kendi alanlarındakileri gösterir.",
   "Player controls": "Oynatıcı denetimleri",
+  "The sensors the appliance publishes that the fields above do not cover — air temperature and residual humidity of a dryer, a second door on a fridge: sensor.*, binary_sensor.*, number.* entities. They show up in the appliance window, with their own name and unit, in the order you add them.": "Cihazın yayınladığı, yukarıdaki alanların kapsamadığı sensörler — bir kurutma makinesinin hava sıcaklığı ve kalan nemi, bir buzdolabının ikinci kapısı: sensor.*, binary_sensor.*, number.* varlıkları. Eklediğin sırayla, kendi adı ve birimiyle cihaz penceresinde görünürler.",
   "\" and its loads?": "\" grubu ve yükleri silinsin mi?",
   "\"Long-lived access tokens\"": "\"Uzun ömürlü erişim jetonları\"",
   "\"Room - Detail\"": "\"Oda - Ayrıntı\"",
@@ -284,7 +289,6 @@ export default Object.freeze({
   "Added ${trovate.length} lists": "${trovate.length} liste eklendi",
   "Added ${trovati.length} calendars": "${trovati.length} takvim eklendi",
   "Administrator tools ·": "Yönetici araçları ·",
-  "Advanced card — image, duration, temperature, costs": "Gelişmiş kart — görsel, süre, sıcaklık, maliyet",
   "Advice": "Öneri",
   "Agenda": "Ajanda",
   "Air": "Hava",

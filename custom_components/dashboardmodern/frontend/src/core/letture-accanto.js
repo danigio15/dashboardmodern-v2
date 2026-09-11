@@ -178,6 +178,10 @@ function decimaliPer(valore) {
   return 2;
 }
 
+/* I contatti che dicono se qualcosa e' aperto: sono i generi con cui Home
+ * Assistant marca porte, finestre, portoni e aperture generiche. */
+const APERTURE = new Set(["door", "garage_door", "window", "opening"]);
+
 const SPENTO = new Set(["unavailable", "unknown", "none", ""]);
 
 /**
@@ -203,9 +207,23 @@ export function letturaDelDispositivo(entity, dispositivo = {}, states = {}, lin
   };
   if (!corrente || SPENTO.has(grezzo.toLowerCase()))
     return { ...base, available: false, valore: null, testo: "—" };
-  /* Un binary_sensor dice si' o no, e «on» non e' una risposta. */
+  /* Un binary_sensor dice si' o no, e «on» non e' una risposta.
+   *
+   * Su un contatto pero' nemmeno «si'» lo e': un sensore sulla porta del
+   * congelatore che scrive «Sì» non ha risposto alla domanda che gli si fa
+   * (#471, «utilizzo dei sensori zigbee su entrambe le porte»). Quando Home
+   * Assistant dichiara che quel contatto e' un'apertura, si dice aperta o
+   * chiusa — che e' la stessa parola che la plancia usa nei Varchi. Per tutti
+   * gli altri generi resta il si' e il no, che e' la verita' che si sa. */
   if (voce.startsWith("binary_sensor.")) {
     const acceso = grezzo.toLowerCase() === "on";
+    if (APERTURE.has(clean(attributi.device_class).toLowerCase()))
+      return {
+        ...base,
+        available: true,
+        valore: null,
+        testo: acceso ? pick("Aperta", "Open", lingua) : pick("Chiusa", "Closed", lingua),
+      };
     return {
       ...base,
       available: true,

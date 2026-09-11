@@ -12,7 +12,12 @@
 
 export default Object.freeze({
   " — configured": " — مُهيّأة",
+  "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "يلزم كيان يمكن قراءته: sensor.* أو binary_sensor.* أو number.* أو input_number أو input_text.",
+  "Add reading": "إضافة قراءة",
+  "Advanced card — image, duration, temperature, door, costs": "بطاقة متقدمة — صورة ومدة ودرجة حرارة وباب وتكاليف",
+  "No extra reading: the window shows what the appliance has in its own fields.": "لا توجد قراءات إضافية: تعرض النافذة ما يوجد في حقول الجهاز نفسه.",
   "Player controls": "عناصر التحكم بالمشغّل",
+  "The sensors the appliance publishes that the fields above do not cover — air temperature and residual humidity of a dryer, a second door on a fridge: sensor.*, binary_sensor.*, number.* entities. They show up in the appliance window, with their own name and unit, in the order you add them.": "المستشعرات التي ينشرها الجهاز ولا تغطيها الحقول أعلاه — درجة حرارة الهواء والرطوبة المتبقية في المجفف، أو باب ثانٍ في الثلاجة: كيانات sensor.* وbinary_sensor.* وnumber.*. تظهر في نافذة الجهاز باسمها ووحدتها، بالترتيب الذي تضيفها به.",
   "\" and its loads?": "\" وأحماله؟",
   "\"Long-lived access tokens\"": "\"رموز الوصول طويلة الأمد\"",
   "\"Room - Detail\"": "\"الغرفة - التفصيل\"",
@@ -284,7 +289,6 @@ export default Object.freeze({
   "Added ${trovate.length} lists": "تمت إضافة ${trovate.length} قوائم",
   "Added ${trovati.length} calendars": "تمت إضافة ${trovati.length} تقويمات",
   "Administrator tools ·": "أدوات المدير ·",
-  "Advanced card — image, duration, temperature, costs": "بطاقة متقدمة — صورة ومدة ودرجة حرارة وتكاليف",
   "Advice": "نصيحة",
   "Agenda": "جدول الأعمال",
   "Air": "الهواء",

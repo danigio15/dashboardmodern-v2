@@ -12,7 +12,12 @@
 
 export default Object.freeze({
   " — configured": " — 已配置",
+  "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "需要一个可读取的实体：sensor.*、binary_sensor.*、number.*、input_number 或 input_text。",
+  "Add reading": "添加读数",
+  "Advanced card — image, duration, temperature, door, costs": "高级卡片 — 图片、时长、温度、门、费用",
+  "No extra reading: the window shows what the appliance has in its own fields.": "没有额外读数：窗口只显示设备自己字段里的内容。",
   "Player controls": "播放器控制",
+  "The sensors the appliance publishes that the fields above do not cover — air temperature and residual humidity of a dryer, a second door on a fridge: sensor.*, binary_sensor.*, number.* entities. They show up in the appliance window, with their own name and unit, in the order you add them.": "设备提供但上方字段未涵盖的传感器 — 烘干机的空气温度和残余湿度、冰箱的第二扇门：sensor.*、binary_sensor.*、number.* 实体。它们会按你添加的顺序，带着自己的名称和单位出现在设备窗口中。",
   "\" and its loads?": "”及其负载吗？",
   "\"Long-lived access tokens\"": "“长期访问令牌”",
   "\"Room - Detail\"": "“房间 - 细节”",
@@ -284,7 +289,6 @@ export default Object.freeze({
   "Added ${trovate.length} lists": "已添加${trovate.length}个列表",
   "Added ${trovati.length} calendars": "已添加 ${trovati.length} 个日历",
   "Administrator tools ·": "管理员工具 ·",
-  "Advanced card — image, duration, temperature, costs": "高级卡片 — 图片、时长、温度、费用",
   "Advice": "建议",
   "Agenda": "日程",
   "Air": "空气",

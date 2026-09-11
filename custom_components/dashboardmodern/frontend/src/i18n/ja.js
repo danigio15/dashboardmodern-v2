@@ -12,7 +12,12 @@
 
 export default Object.freeze({
   " — configured": " — 設定済み",
+  "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "読み取れるエンティティが必要です：sensor.*、binary_sensor.*、number.*、input_number、input_text。",
+  "Add reading": "計測値を追加",
+  "Advanced card — image, duration, temperature, door, costs": "詳細カード — 画像・所要時間・温度・ドア・費用",
+  "No extra reading: the window shows what the appliance has in its own fields.": "追加の計測値はありません：ウィンドウには機器の項目にあるものが表示されます。",
   "Player controls": "プレーヤーの操作",
+  "The sensors the appliance publishes that the fields above do not cover — air temperature and residual humidity of a dryer, a second door on a fridge: sensor.*, binary_sensor.*, number.* entities. They show up in the appliance window, with their own name and unit, in the order you add them.": "上の項目では覛えられない、機器が公開するセンサー — 乾燥機の気温や残留湿度、冷蔵庫の2つ目のドア：sensor.*、binary_sensor.*、number.* のエンティティ。追加した順に、それぞれの名前と単位で機器のウィンドウに表示されます。",
   "\" and its loads?": "」とその負荷を削除しますか？",
   "\"Long-lived access tokens\"": "「長期アクセストークン」",
   "\"Room - Detail\"": "「部屋 - 詳細」",
@@ -284,7 +289,6 @@ export default Object.freeze({
   "Added ${trovate.length} lists": "${trovate.length}件のリストを追加しました",
   "Added ${trovati.length} calendars": "${trovati.length} 件のカレンダーを追加しました",
   "Administrator tools ·": "管理者向けツール ·",
-  "Advanced card — image, duration, temperature, costs": "詳細カード — 画像・所要時間・温度・費用",
   "Advice": "アドバイス",
   "Agenda": "予定表",
   "Air": "空気",

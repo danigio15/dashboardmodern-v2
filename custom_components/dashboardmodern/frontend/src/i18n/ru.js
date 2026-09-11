@@ -12,7 +12,12 @@
 
 export default Object.freeze({
   " — configured": " — настроена",
+  "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "Нужна сущность, которую можно читать: sensor.*, binary_sensor.*, number.*, input_number или input_text.",
+  "Add reading": "Добавить показание",
+  "Advanced card — image, duration, temperature, door, costs": "Расширенная карточка — изображение, длительность, температура, дверь, стоимость",
+  "No extra reading: the window shows what the appliance has in its own fields.": "Дополнительных показаний нет: в окне видно то, что указано в полях прибора.",
   "Player controls": "Управление плеером",
+  "The sensors the appliance publishes that the fields above do not cover — air temperature and residual humidity of a dryer, a second door on a fridge: sensor.*, binary_sensor.*, number.* entities. They show up in the appliance window, with their own name and unit, in the order you add them.": "Датчики прибора, которые не охвачены полями выше — температура воздуха и остаточная влажность сушильной машины, вторая дверь холодильника: сущности sensor.*, binary_sensor.*, number.*. Они появляются в окне прибора со своим именем и единицей измерения, в порядке добавления.",
   "\" and its loads?": "\" вместе с её нагрузками?",
   "\"Long-lived access tokens\"": "\"Токены долгосрочного доступа\"",
   "\"Room - Detail\"": "\"Комната - Деталь\"",
@@ -284,7 +289,6 @@ export default Object.freeze({
   "Added ${trovate.length} lists": "Добавлено списков: ${trovate.length}",
   "Added ${trovati.length} calendars": "Добавлено календарей: ${trovati.length}",
   "Administrator tools ·": "Инструменты администратора ·",
-  "Advanced card — image, duration, temperature, costs": "Расширенная карточка — изображение, длительность, температура, стоимость",
   "Advice": "Совет",
   "Agenda": "Повестка",
   "Air": "Воздух",

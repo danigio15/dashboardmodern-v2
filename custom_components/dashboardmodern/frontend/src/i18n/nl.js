@@ -12,7 +12,12 @@
 
 export default Object.freeze({
   " — configured": " — geconfigureerd",
+  "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "Er is een leesbare entiteit nodig: sensor.*, binary_sensor.*, number.*, input_number of input_text.",
+  "Add reading": "Meetwaarde toevoegen",
+  "Advanced card — image, duration, temperature, door, costs": "Uitgebreide kaart — afbeelding, duur, temperatuur, deur, kosten",
+  "No extra reading: the window shows what the appliance has in its own fields.": "Geen extra meetwaarden: het venster toont wat in de velden van het apparaat staat.",
   "Player controls": "Bediening van de speler",
+  "The sensors the appliance publishes that the fields above do not cover — air temperature and residual humidity of a dryer, a second door on a fridge: sensor.*, binary_sensor.*, number.* entities. They show up in the appliance window, with their own name and unit, in the order you add them.": "De sensoren die het apparaat publiceert en die de velden hierboven niet dekken — luchttemperatuur en restvocht van een droger, een tweede deur op een koelkast: entiteiten sensor.*, binary_sensor.*, number.*. Ze verschijnen in het venster van het apparaat, met hun eigen naam en eenheid, in de volgorde waarin je ze toevoegt.",
   "\" and its loads?": "\" en de verbruikers erin verwijderen?",
   "\"Long-lived access tokens\"": "\"Langlevende toegangstokens\"",
   "\"Room - Detail\"": "\"Kamer - Detail\"",
@@ -284,7 +289,6 @@ export default Object.freeze({
   "Added ${trovate.length} lists": "${trovate.length} lijsten toegevoegd",
   "Added ${trovati.length} calendars": "${trovati.length} agenda's toegevoegd",
   "Administrator tools ·": "Beheerdershulpmiddelen ·",
-  "Advanced card — image, duration, temperature, costs": "Uitgebreide kaart — afbeelding, duur, temperatuur, kosten",
   "Advice": "Advies",
   "Agenda": "Programma",
   "Air": "Lucht",

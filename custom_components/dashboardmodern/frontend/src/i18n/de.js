@@ -12,7 +12,12 @@
 
 export default Object.freeze({
   " — configured": " — konfiguriert",
+  "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "Es wird eine lesbare Entität benötigt: sensor.*, binary_sensor.*, number.*, input_number oder input_text.",
+  "Add reading": "Messwert hinzufügen",
+  "Advanced card — image, duration, temperature, door, costs": "Erweiterte Karte — Bild, Dauer, Temperatur, Tür, Kosten",
+  "No extra reading: the window shows what the appliance has in its own fields.": "Keine zusätzlichen Messwerte: Das Fenster zeigt, was in den Feldern des Geräts steht.",
   "Player controls": "Player-Steuerung",
+  "The sensors the appliance publishes that the fields above do not cover — air temperature and residual humidity of a dryer, a second door on a fridge: sensor.*, binary_sensor.*, number.* entities. They show up in the appliance window, with their own name and unit, in the order you add them.": "Die Sensoren des Geräts, die die Felder oben nicht abdecken — Lufttemperatur und Restfeuchte eines Trockners, eine zweite Tür am Kühlschrank: Entitäten sensor.*, binary_sensor.*, number.*. Sie erscheinen im Gerätefenster mit eigenem Namen und eigener Einheit, in der Reihenfolge, in der du sie hinzufügst.",
   "\" and its loads?": "\" samt seiner Verbraucher löschen?",
   "\"Long-lived access tokens\"": "\"Langlebige Zugriffstokens\"",
   "\"Room - Detail\"": "\"Raum - Detail\"",
@@ -284,7 +289,6 @@ export default Object.freeze({
   "Added ${trovate.length} lists": "${trovate.length} Listen hinzugefügt",
   "Added ${trovati.length} calendars": "${trovati.length} Kalender hinzugefügt",
   "Administrator tools ·": "Administratorwerkzeuge ·",
-  "Advanced card — image, duration, temperature, costs": "Erweiterte Karte — Bild, Dauer, Temperatur, Kosten",
   "Advice": "Hinweis",
   "Agenda": "Termine",
   "Air": "Luft",

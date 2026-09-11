@@ -23,6 +23,7 @@ import {
   comandoDelDispositivo as servizioDelComando,
   elencoComandi,
 } from "../core/comandi-accanto.js";
+import { lettureDelDispositivo as lettureScelte } from "../core/letture-accanto.js";
 import {
   applianceModelForIndex,
   buildCardMarkup,
@@ -360,6 +361,7 @@ function riveste(indice) {
       lista.append(riga);
     }
   }
+  aggiungiAltreLetture(lista, appliance, titoletto);
   /* Gli altri comandi stanno accanto a quelli di sempre (#338): sono comandi
    * anche loro, e chi apre la finestra per far partire l'asciugatrice li cerca
    * dove ci sono i tasti. */
@@ -479,6 +481,39 @@ function tastoDelComandoExtra(voce) {
     eseguiComando(servizioDelComando(voce));
   });
   return tasto;
+}
+
+/* Le altre letture dell'apparecchio (#471).
+ *
+ * «Se su ogni elettrodomestico si potesse aggiungere un'entità dandole un nome:
+ * io nell'asciugatrice monitoro temperatura aria e umidità residua.» Le sceglie
+ * la scheda dell'apparecchio, le disegna questa riga, e a dire come si chiamano
+ * e con che unità si scrivono è lo stesso vocabolario del robot e dei lettori
+ * (`core/letture-accanto.js`): un secondo modo di scrivere «34 °C» sarebbe
+ * un secondo modo di sbagliarlo.
+ *
+ * Stanno sopra i comandi: si guardano, non si toccano, e chi apre la finestra
+ * legge prima di premere. */
+function aggiungiAltreLetture(lista, appliance, titoletto) {
+  const voci = lettureScelte(
+    { ...apparecchioDeiComandi(appliance), letture: appliance?.letture },
+    allStates(),
+  );
+  if (!voci.length) return false;
+  lista.append(titoletto(t("Altre letture", "Other readings")));
+  const griglia = doc.createElement("div");
+  griglia.className = "dm-apde-caselle";
+  for (const voce of voci) {
+    const casella = doc.createElement("button");
+    casella.type = "button";
+    casella.className = "dm-apde-casella hist-clickable";
+    casella.dataset.dmApdeEntity = voce.entity;
+    casella.innerHTML = `<span class="dm-apde-casella-ic" aria-hidden="true">📈</span><b>${esc(voce.testo)}</b><span>${esc(voce.name)}</span>`;
+    casella.addEventListener("click", (event) => apriStorico(event, voce.entity, voce.name));
+    griglia.append(casella);
+  }
+  lista.append(griglia);
+  return true;
 }
 
 function aggiungiAltriComandi(lista, appliance, titoletto) {
@@ -660,6 +695,7 @@ function vesteIntegrazione(lista, appliance, giaMostrate, titoletto) {
     lista.append(titoletto(t("I comandi del dispositivo", "The device controls")));
     for (const voce of comandi) lista.append(rigaDiComando(voce));
   }
+  aggiungiAltreLetture(lista, appliance, titoletto);
   /* Quelli scelti a mano stanno subito sotto (#338), prima della diagnostica:
    * sono i tasti per cui la finestra si apre, non un dettaglio. */
   aggiungiAltriComandi(lista, appliance, titoletto);

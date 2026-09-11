@@ -68,8 +68,13 @@ test("l'intestazione della fisarmonica non promette più il ciclo", () => {
    * nascosto, fa cercare nel posto sbagliato. */
   const sommario = SORGENTE.slice(SORGENTE.indexOf("<summary>"), SORGENTE.indexOf("</summary>"));
   assert.doesNotMatch(sommario, /immagine, ciclo, temperatura, costi/);
-  assert.match(sommario, /Card avanzata — immagine, durata, temperatura, costi/);
-  assert.match(sommario, /Advanced card — image, duration, temperature, costs/);
+  assert.match(sommario, /Card avanzata — immagine, durata, temperatura, porta, costi/);
+  assert.match(sommario, /Advanced card — image, duration, temperature, door, costs/);
+  /* E nomina la porta, che è quello che si va a cercare li' dentro: «come si
+   * aggiunge l'entità per la porta, non ci sono riuscito nemmeno nell'ultima
+   * versione» (#471). Il campo c'era; il cassetto era chiuso e il suo titolo
+   * elencava quattro cose, e la porta non era fra quelle. */
+  assert.match(sommario, /porta/);
 });
 
 test("il valore di serie dello standby resta quello dei metadati", () => {

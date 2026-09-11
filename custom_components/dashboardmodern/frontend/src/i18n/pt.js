@@ -12,7 +12,12 @@
 
 export default Object.freeze({
   " — configured": " — configurada",
+  "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "É precisa uma entidade que se leia: sensor.*, binary_sensor.*, number.*, input_number ou input_text.",
+  "Add reading": "Adicionar leitura",
+  "Advanced card — image, duration, temperature, door, costs": "Cartão avançado — imagem, duração, temperatura, porta, custos",
+  "No extra reading: the window shows what the appliance has in its own fields.": "Sem leituras adicionais: a janela mostra o que o aparelho tem nos seus próprios campos.",
   "Player controls": "Comandos do leitor",
+  "The sensors the appliance publishes that the fields above do not cover — air temperature and residual humidity of a dryer, a second door on a fridge: sensor.*, binary_sensor.*, number.* entities. They show up in the appliance window, with their own name and unit, in the order you add them.": "Os sensores que o aparelho publica e que os campos acima não cobrem — temperatura do ar e humidade residual de uma máquina de secar, uma segunda porta num frigorífico: entidades sensor.*, binary_sensor.*, number.*. Aparecem na janela do aparelho, com o seu nome e a sua unidade, pela ordem em que as adicionar.",
   "\" and its loads?": "\" e as suas cargas?",
   "\"Long-lived access tokens\"": "\"Tokens de acesso de longa duração\"",
   "\"Room - Detail\"": "\"Divisão - Detalhe\"",
@@ -284,7 +289,6 @@ export default Object.freeze({
   "Added ${trovate.length} lists": "${trovate.length} listas adicionadas",
   "Added ${trovati.length} calendars": "Adicionados ${trovati.length} calendários",
   "Administrator tools ·": "Ferramentas de administrador ·",
-  "Advanced card — image, duration, temperature, costs": "Cartão avançado — imagem, duração, temperatura, custos",
   "Advice": "Conselho",
   "Agenda": "Agenda do dia",
   "Air": "Ar",
