@@ -20,7 +20,29 @@ import test from "node:test";
 
 import { cavoDalloStato } from "../src/core/stato-della-ricarica.js";
 
-const { lettureDelleVetture } = await import("../src/sections/home-widgets-section.js");
+/* Il ponte legge la configurazione dal magazzino, e la plancia si disegna solo
+ * se la casa e' configurata: per guardare la tessera intera servono tutti e
+ * due. Le prove sulle sole letture non ne hanno bisogno. */
+const magazzino = new Map();
+globalThis.localStorage = {
+  getItem: (k) => (magazzino.has(k) ? magazzino.get(k) : null),
+  setItem: (k, v) => magazzino.set(k, String(v)),
+  removeItem: (k) => magazzino.delete(k),
+};
+globalThis.DashboardModernModules = {
+  store: { getSection: (nome) => ({ rooms: [{ id: "r1", name: "Camera" }] })[nome] },
+};
+
+const { lettureDelleVetture, modelliDelleTessere } = await import(
+  "../src/sections/home-widgets-section.js"
+);
+
+/** La tessera Auto come la disegna il ponte, con queste vetture in casa. */
+function tesseraAuto(stati, vetture) {
+  magazzino.clear();
+  magazzino.set("cd_ev_cars", JSON.stringify(vetture));
+  return (modelliDelleTessere(stati) || []).find((widget) => widget?.key === "ev") || null;
+}
 
 const stato = (state, attributes = {}) => ({ state, attributes });
 
@@ -145,4 +167,72 @@ test("il cavo lo dice il suo sensore, in un posto solo", () => {
   assert.equal(cavoDalloStato("unplugged"), false);
   assert.equal(cavoDalloStato("unknown"), null);
   assert.equal(cavoDalloStato(""), null);
+});
+
+test("un profilo che punta a un'entita' che non c'e' piu' non e' un'auto", () => {
+  /* «Vedo ancora le 5 entita'.»
+   *
+   * Quando un'integrazione si toglie e si rimette, Home Assistant non riusa i
+   * nomi: il sensore di carica torna come `..._2`, `..._3`. I profili salvati
+   * quelle volte restano a indicare quelli di prima, che non esistono piu' —
+   * e la tessera li contava lo stesso come vetture, ognuna con la sua riga
+   * della ricarica sull'unico sensore vivo. */
+  const stati = {
+    "sensor.leaf_soc_5": stato("62", { unit_of_measurement: "%" }),
+    "binary_sensor.wallbox_charging": stato("off", { friendly_name: "Wallbox charging" }),
+  };
+  const profili = [1, 2, 3, 4, 5].map((giro) => ({
+    name: `Leaf ${giro}`,
+    ov: {
+      "dm.ev_batteria_auto": giro === 5 ? "sensor.leaf_soc_5" : `sensor.leaf_soc_${giro}`,
+      "dm.ev_stato_ricarica": "binary_sensor.wallbox_charging",
+    },
+  }));
+  const letture = lettureDelleVetture(stati, profili, new Set());
+  assert.equal(letture.length, 1);
+  assert.equal(letture[0].percentuale, 62);
+
+  const tessera = tesseraAuto(stati, profili);
+  assert.equal(tessera.quante, 1);
+  assert.equal(tessera.rows.filter((riga) => /Ricarica/.test(riga.name)).length, 1);
+});
+
+test("un'auto che dorme risponde «unavailable», e resta", () => {
+  /* La differenza che conta: l'entita' che non c'e' piu' e l'entita' che c'e'
+   * e in questo momento non sa dire niente. La prima e' una mappatura vecchia,
+   * la seconda e' un'auto che dorme — e quella deve restare dov'e'. */
+  const stati = {
+    "sensor.leaf_soc": stato("unavailable"),
+    "sensor.leaf_autonomia": stato("180", { unit_of_measurement: "km" }),
+  };
+  const letture = lettureDelleVetture(
+    stati,
+    [{ name: "Leaf", ov: { "dm.ev_batteria_auto": "sensor.leaf_soc", "dm.ev_autonomia": "sensor.leaf_autonomia" } }],
+    new Set(),
+  );
+  assert.equal(letture.length, 1);
+  assert.equal(letture[0].percentuale, null);
+  assert.equal(letture[0].km, 180);
+});
+
+test("il cavo di casa fa una riga sola anche quando le auto sono due", () => {
+  /* Due vetture vere, una colonnina sola: la riga della ricarica esce una
+   * volta, non una per auto. La carica invece e' di ognuna, e resta doppia. */
+  const stati = {
+    "sensor.leaf_soc": stato("53", { unit_of_measurement: "%" }),
+    "sensor.zoe_soc": stato("80", { unit_of_measurement: "%" }),
+    "binary_sensor.wallbox_charging": stato("off", { friendly_name: "Wallbox charging" }),
+  };
+  const tessera = tesseraAuto(stati, [
+    { name: "Leaf", ov: { "dm.ev_batteria_auto": "sensor.leaf_soc", "dm.ev_stato_ricarica": "binary_sensor.wallbox_charging" } },
+    { name: "Zoe", ov: { "dm.ev_batteria_auto": "sensor.zoe_soc", "dm.ev_stato_ricarica": "binary_sensor.wallbox_charging" } },
+  ]);
+  assert.equal(tessera.quante, 2);
+  assert.equal(tessera.rows.filter((riga) => /Ricarica/.test(riga.name)).length, 1);
+  assert.equal(tessera.rows.filter((riga) => /Carica/.test(riga.name) && !/Ricarica/.test(riga.name)).length, 2);
+  // Ogni riga dice di quale entita' parla: e' su quello che si riconoscono i doppioni.
+  assert.equal(
+    tessera.rows.find((riga) => /Ricarica/.test(riga.name)).entity,
+    "binary_sensor.wallbox_charging",
+  );
 });

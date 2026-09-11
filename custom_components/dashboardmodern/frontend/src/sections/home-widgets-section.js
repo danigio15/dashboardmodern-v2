@@ -1799,6 +1799,21 @@ function letturaVettura(states, auto, fuori, indice, visti = new Set()) {
   const misura = (riferimento) => {
     const entity = clean(mappa[riferimento]);
     if (!entity || !widgetIncludes(entity, fuori)) return null;
+    /* Un'entita' che Home Assistant non ha PIU' non e' una casella vuota: e'
+     * una casella che punta a un fantasma (#348).
+     *
+     * «Vedo ancora le 5 entita'.» Quando un'integrazione si toglie e si
+     * rimette, Home Assistant non riusa i nomi: il sensore di carica torna
+     * come `..._2`, `..._3`, e il profilo salvato quella volta resta a
+     * indicare quello di prima, che non esiste piu'. Qui si rispondeva lo
+     * stesso — un valore vuoto, ma una casella compilata — e quel profilo
+     * continuava a contare come una vettura: cinque auto, cinque righe della
+     * ricarica, tutte sullo stesso sensore vivo.
+     *
+     * Attenzione a cosa si sta dicendo: un'auto che dorme c'e' e risponde
+     * «unavailable», e quella deve restare. Qui si guarda se l'entita' esiste
+     * nel registro degli stati, non cosa dice. */
+    if (!stateOf(states, entity)) return null;
     visti.add(entity);
     return { entity, value: numOf(states, entity), state: clean(states?.[entity]?.state) };
   };
@@ -1845,6 +1860,11 @@ function letturaVettura(states, auto, fuori, indice, visti = new Set()) {
     carburante: Boolean(serbatoio),
     km: autonomia?.value == null ? null : autonomia.value,
     ricarica: ricaricaDellaVettura(states, mappa, stato),
+    /* Da quale entita' viene ognuna delle tre righe: serve a non raccontare
+     * due volte la stessa, quando due vetture leggono lo stesso sensore. */
+    caricaEntita: carica?.entity || "",
+    kmEntita: autonomia?.entity || "",
+    ricaricaEntita: stato?.entity || "",
     kw: sbircia("dm.ev_potenza_ricarica"),
     target: sbircia("dm.ev_target_soc"),
     altre: altreCaselleEv(states, mappa, fuori, visti),
@@ -1984,6 +2004,9 @@ function letturaAttiva(states, fuori) {
     carburante: Boolean(serbatoio),
     km: autonomia?.value == null ? null : autonomia.value,
     ricarica: ricaricaDellaVettura(states, mappa, stato),
+    caricaEntita: carica?.entity || "",
+    kmEntita: autonomia?.entity || "",
+    ricaricaEntita: stato?.entity || "",
     kw: refValue(states, "dm.ev_potenza_ricarica", fuori)?.value ?? null,
     target: refValue(states, "dm.ev_target_soc", fuori)?.value ?? null,
     altre: altreCaselleEv(states, mappa, fuori, visti),
@@ -1997,18 +2020,21 @@ function righeVettura(lettura, conNome) {
     righe.push({
       glyph: lettura.carburante ? "⛽" : "🔋",
       name: `${prefisso}${lettura.carburante ? t("Carburante", "Fuel") : t("Carica", "Charge")}`,
+      entity: lettura.caricaEntita || "",
       value: `${Math.round(lettura.percentuale)}%`,
     });
   if (lettura.km != null)
     righe.push({
       glyph: "🛣️",
       name: `${prefisso}${t("Autonomia", "Range")}`,
+      entity: lettura.kmEntita || "",
       value: `${formatNumber(lettura.km, 0)} km`,
     });
   if (lettura.ricarica)
     righe.push({
       glyph: "🔌",
       name: `${prefisso}${t("Ricarica", "Charging")}`,
+      entity: lettura.ricaricaEntita || "",
       /* La parola, non il codice: «C» e' il gergo della wallbox, e in una
        * casella si legge malissimo. La lettera la decide il nucleo della
        * pastiglia (#348), e le parole sono le stesse del popup dell'auto;
@@ -2065,7 +2091,23 @@ function evModel(states) {
   const letture = profilate.length ? profilate : [letturaAttiva(states, fuori)].filter(Boolean);
   if (!letture.length) return null;
   const piu = letture.length > 1;
-  const rows = letture.flatMap((lettura) => righeVettura(lettura, piu));
+  /* Una entita' fa UNA riga, anche quando la leggono due vetture.
+   *
+   * Il cavo della colonnina e' uno solo, e chi ha due auto sullo stesso
+   * attacco lo ha scritto in tutti e due i profili: la riga della ricarica
+   * usciva una volta per vettura, identica, e da fuori sembravano due cose
+   * diverse che dicono la stessa. Le caselle in fondo erano gia' cosi' — qui
+   * la regola vale anche per le tre righe di testa. */
+  const dette = new Set();
+  const rows = letture
+    .flatMap((lettura) => righeVettura(lettura, piu))
+    .filter((riga) => {
+      const entity = clean(riga?.entity);
+      if (!entity) return true;
+      if (dette.has(entity)) return false;
+      dette.add(entity);
+      return true;
+    });
   if (!rows.length) return null;
 
   /* Con piu' auto la tessera mostra la piu' scarica: e' quella che chiede

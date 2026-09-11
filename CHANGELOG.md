@@ -9,6 +9,27 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Auto: «vedo ancora le 5 entità»** (#348)
+
+  La tessera toglieva già i profili gemelli — stessa mappatura, stesso sensore
+  di carica — ma non questi. Quando un'integrazione si toglie e si rimette,
+  Home Assistant **non riusa i nomi**: il sensore di carica torna come `..._2`,
+  `..._3`, e il profilo salvato quella volta resta a indicare quello di prima,
+  che non esiste più. Alla tessera quel profilo sembrava una casella compilata —
+  un valore vuoto, ma compilata — e continuava a contare come una vettura: cinque
+  auto, e cinque volte la riga della ricarica sull'unico sensore ancora vivo.
+
+  Adesso un'entità che Home Assistant non ha più non è una casella compilata: è
+  una casella che punta a un fantasma, e quel profilo non fa più un'auto.
+  Attenzione a cosa vuol dire: un'auto che **dorme** c'è e risponde
+  «unavailable», e quella resta dov'è — si guarda se l'entità esiste, non cosa
+  dice.
+
+  E una regola in più che vale comunque: un'entità fa **una** riga sola, anche
+  quando la leggono due vetture. Chi ha due auto sullo stesso attacco ha scritto
+  la colonnina in tutti e due i profili, e la riga della ricarica usciva due
+  volte, identica.
+
 - **UPS: sul telefono la scena si alza in piedi invece di accavallarsi** (#390)
 
   «Aprendo la sezione dal cellulare la scheda la si vede compressa, non c'è modo
