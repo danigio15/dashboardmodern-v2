@@ -586,6 +586,11 @@ function kioskToast(message) {
   }, 2200);
 }
 
+/** Se la plancia e' a tutto schermo adesso. Lo chiede chi disegna l'interruttore. */
+export function kioskAttivo() {
+  return Boolean(state.active);
+}
+
 export function setKioskMode(value) {
   state.override = Boolean(value);
   writeStoredKiosk(state.override);

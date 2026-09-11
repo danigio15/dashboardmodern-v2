@@ -89,6 +89,7 @@ import { installClimatePowerSection } from "./climate-power-section.js";
 import { installAlberatura } from "./alberatura-del-config-section.js";
 import { installIlDitoScorreOTocca } from "./il-dito-scorre-o-tocca-section.js";
 import { installElencoDelleSezioni } from "./lelenco-delle-sezioni-section.js";
+import { installModoChiosco } from "./modo-chiosco-section.js";
 import { installBatterie } from "./batterie-section.js";
 import { installBatterieEditor } from "./batterie-editor-section.js";
 import { installVideoSiMuove } from "./telecamera-il-video-si-muove-section.js";
@@ -981,6 +982,10 @@ export function installSectionRuntime() {
     /* L'elenco unico delle sezioni, in ⚙️ Impostazioni: cosa c'e' e se si
      * vede, senza aprire ventiquattro schede per scoprirlo. */
     installElencoDelleSezioni();
+    /* E l'interruttore del modo chiosco, nella stessa scheda (#480): c'era gia'
+     * ma si accendeva solo tenendo premuto l'hamburger o scrivendo ?kiosk=1
+     * nell'indirizzo, cioe' per chi lo cercava non c'era. */
+    installModoChiosco();
     /* Le batterie hanno la loro pagina e la loro scheda (#398): «le batterie
      * quelle cariche non le fa vedere? sarebbe carino che stessero nel config
      * come le altre cose». */

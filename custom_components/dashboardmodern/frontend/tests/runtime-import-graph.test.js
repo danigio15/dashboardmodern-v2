@@ -1191,8 +1191,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // conto ora per ora non e' roba da mettere dentro chi disegna la card. La
   // sezione gli passa tre serie di secchielli — l'apparecchio, la casa, la
   // rete — e lui torna la spartizione e da dove l'ha presa.
+  // 336 con l'interruttore del modo chiosco in ⚙️ Impostazioni (#480): «non
+  // vorrei disattivarla per tutte le plance, sarebbe possibile avere una
+  // funzione tipo kiosk mode?». Il chiosco c'era gia'; qui c'e' solo la sua
+  // riga nella configurazione, che non sa niente di suo e chiede tutto a lui.
   assert.ok(
-    relative.length <= 335,
+    relative.length <= 336,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

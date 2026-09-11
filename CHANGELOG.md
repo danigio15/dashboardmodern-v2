@@ -7,6 +7,33 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non ancora rilasciato
 
+### Aggiunto
+
+- **L'interruttore del modo chiosco, in ⚙️ Impostazioni** (#480)
+
+  «Da smartphone non me la propone, su tablet e pc ho la barra laterale, è
+  possibile toglierla?» — «Ma non vorrei disattivarla per tutte le plance,
+  sarebbe possibile avere una funzione tipo kiosk mode?»
+
+  La barra laterale la nasconde Home Assistant, ed è una preferenza del
+  **profilo**: vale per tutto quello che quell'utente apre, non per una
+  dashboard sola. Spegnerla da lì è la risposta sbagliata alla domanda giusta.
+
+  Il modo chiosco la risposta giusta ce l'aveva già: manda la plancia a tutto
+  schermo — sopra la barra laterale, sopra l'intestazione — e riguarda questa
+  plancia e basta. Su un telefono si accende da solo. Il guaio era arrivarci: a
+  mano si accendeva tenendo premuto l'hamburger della plancia, oppure scrivendo
+  `?kiosk=1` nell'indirizzo. Due cose che non stanno scritte da nessuna parte —
+  e una funzione che c'è ma non si trova, per chi la cerca, non c'è.
+
+  Adesso ha il suo interruttore in **⚙️ Impostazioni**, sotto la lingua, dov'era
+  andato a cercarlo chi l'ha chiesto. Non è un secondo modo chiosco: è lo stesso,
+  visto da un posto dove si arriva — e infatti dice quello che è vero anche
+  quando lo accende il dito tenuto premuto. La scelta vale per **questo
+  apparecchio**, come il tema e la barra in basso: la plancia a tutto schermo sul
+  tablet appeso al muro e con la barra laterale sul computer è esattamente il
+  caso della segnalazione.
+
 ### Corretto
 
 - **Auto: «Ferma» non era una cosa che la tessera sapesse** (#326)

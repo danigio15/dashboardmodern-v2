@@ -1,6 +1,7 @@
 // DM-FIX-20260817A
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import {
   explicitKioskRequest,
   isIosDevice,
@@ -179,4 +180,67 @@ test("e un mouse su uno schermo fine resta un mouse", () => {
   );
   // Un browser che non sa rispondere non diventa per questo un telefono.
   assert.equal(isTouchDevice({}, {}), false);
+});
+
+/* ── l'interruttore, dove lo si cerca (#480) ──────────────────────────── */
+
+/* «Da smartphone non me la propone, su tablet e pc ho la barra laterale, è
+ *  possibile toglierla?» — «Ma non vorrei disattivarla per tutte le plance,
+ *  sarebbe possibile avere una funzione tipo kiosk mode?»
+ *
+ * Il chiosco c'era già e fa esattamente quello: manda la plancia sopra la
+ * barra laterale, e riguarda questa plancia e basta. Ma per accenderlo a mano
+ * bisognava sapere due cose non scritte da nessuna parte — tenere premuto
+ * l'hamburger, o scrivere ?kiosk=1 nell'indirizzo. Una funzione che c'è ma non
+ * si trova, per chi la cerca, non c'è. */
+const chiosco = readFileSync(
+  new URL("../src/sections/modo-chiosco-section.js", import.meta.url),
+  "utf8",
+);
+
+test("l'interruttore del chiosco sta in ⚙️ Impostazioni, al suo posto in fila", () => {
+  const condivise = readFileSync(new URL("../src/sections/shared.js", import.meta.url), "utf8");
+  /* Fra la lingua e Assist: l'ordine è un numero che la riga si porta addosso,
+   * così chi arriva primo o ultimo non cambia quello che si legge. */
+  assert.match(
+    condivise,
+    /ORDINE_IMPOSTAZIONI = Object\.freeze\(\{ lingua: 10, chiosco: 15, assist: 20, sezioni: 30 \}\)/,
+  );
+  assert.match(chiosco, /const SCHEDA = "visib";/);
+  assert.match(chiosco, /inserisciInOrdine\(corpo, riga, ORDINE_IMPOSTAZIONI\.chiosco, dopoIGenerali\)/);
+});
+
+test("non è un secondo chiosco: è lo stesso, visto da un posto dove si arriva", () => {
+  /* Due modi di accendere la stessa cosa sarebbero due verità sullo stesso
+   * interruttore, e prima o poi una delle due invecchia. */
+  assert.match(
+    chiosco,
+    /import \{ kioskAttivo, setKioskMode \} from "\.\/beta12-room-color-lock-section\.js"/,
+  );
+  assert.match(chiosco, /setKioskMode\(!kioskAttivo\(\)\)/);
+  // E nessuna memoria propria: la preferenza la scrive `setKioskMode`.
+  assert.doesNotMatch(chiosco, /localStorage|writeStoredKiosk|readJson/);
+});
+
+test("l'interruttore dice quello che è vero adesso, anche se l'ha acceso un altro", () => {
+  /* Il chiosco si accende anche da fuori — il dito tenuto premuto, ?kiosk=1, il
+   * telefono che parte così — e chi disegna la riga lo viene a sapere
+   * dall'annuncio che `setKioskMode` manda già. */
+  assert.match(chiosco, /root\.addEventListener\?\.\("dashboardmodern:kiosk", ridipingi\)/);
+  assert.match(chiosco, /aria-checked="\$\{acceso \? "true" : "false"\}"/);
+  const beta12 = readFileSync(
+    new URL("../src/sections/beta12-room-color-lock-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(beta12, /export function kioskAttivo\(\)/);
+  assert.match(beta12, /new CustomEvent\("dashboardmodern:kiosk"/);
+});
+
+test("il modulo è installato dal runtime, come le altre righe delle Impostazioni", () => {
+  const runtime = readFileSync(
+    new URL("../src/sections/section-runtime.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(runtime, /import \{ installModoChiosco \} from "\.\/modo-chiosco-section\.js";/);
+  assert.match(runtime, /installModoChiosco\(\);/);
 });
