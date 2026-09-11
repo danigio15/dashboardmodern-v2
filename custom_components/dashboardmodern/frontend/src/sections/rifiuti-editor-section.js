@@ -90,14 +90,25 @@ function nuovaRiga(materiale = "plastica") {
 
 /* ── il disegno ───────────────────────────────────────────────────────── */
 
-/* La tendina dei materiali. Dentro un <option> ci sta solo testo — niente
- * disegno — quindi qui l'emoji non si sostituisce: si toglie. Il bidone
- * disegnato sta accanto, nella testa della riga, e il colore ce l'ha gia'. */
+/* La tendina dei materiali, ognuno col suo segno.
+ *
+ * «Nel menu a tendina dei rifiuti voglio vedere anche le icone, come hai fatto
+ *  nel menu a tendina della sezione analisi dispositivi.»
+ *
+ * Dentro un <option> ci sta solo testo, e prima da qui l'emoji si toglieva: il
+ * bidone disegnato sta accanto, nella testa della riga, e sembrava che bastasse
+ * lui. Ma il bidone accanto dice cosa e' SCELTO adesso — mentre si sceglie, la
+ * tendina e' aperta e lo copre — e la scelta la si fa leggendo undici righe di
+ * parole tutte uguali. Un segno davanti si riconosce prima della parola, ed e'
+ * esattamente quello che fa la tendina del Report: «⚡ Lavatrice».
+ *
+ * Il segno e' quello del materiale, lo stesso della card e della tessera in
+ * Home: uno solo, scritto in un posto solo. */
 function materialiMarkup(scelto) {
   return MATERIALI.map(
     (voce) =>
       `<option value="${esc(voce.chiave)}"${voce.chiave === scelto ? " selected" : ""}>${esc(
-        nomeDelMateriale(voce.chiave),
+        `${voce.icona} ${nomeDelMateriale(voce.chiave)}`,
       )}</option>`,
   ).join("");
 }

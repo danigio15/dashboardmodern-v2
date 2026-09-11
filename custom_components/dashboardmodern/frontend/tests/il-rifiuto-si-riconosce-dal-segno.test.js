@@ -117,3 +117,39 @@ test("senza niente in vista la didascalia non prova a mettere un segno", () => {
   assert.equal(rifiuti.caption, "Nessuna data in vista");
   assert.deepEqual(rifiuti.prossimi, []);
 });
+
+/* ── e anche nella tendina, mentre si sceglie ──────────────────────────── */
+
+/* «Nel menu a tendina dei rifiuti voglio vedere anche le icone, come hai fatto
+ *  nel menu a tendina della sezione analisi dispositivi.»
+ *
+ * Dentro un <option> ci sta solo testo, e prima da lì l'emoji si toglieva: il
+ * bidone disegnato sta accanto, nella testa della riga, e sembrava che
+ * bastasse lui. Ma il bidone accanto dice cosa è scelto ADESSO — mentre si
+ * sceglie la tendina è aperta e lo copre — e la scelta la si fa leggendo
+ * undici righe di parole tutte uguali.
+ */
+import { readFileSync } from "node:fs";
+
+const editor = readFileSync(
+  new URL("../src/sections/rifiuti-editor-section.js", import.meta.url),
+  "utf8",
+);
+
+test("ogni voce della tendina porta il segno del suo materiale", () => {
+  assert.match(editor, /`\$\{voce\.icona\} \$\{nomeDelMateriale\(voce\.chiave\)\}`/);
+  /* Il segno è quello del materiale, lo stesso della card e della tessera: uno
+   * solo, scritto in un posto solo. Qui non se ne inventa una tabella. */
+  assert.doesNotMatch(editor, /icona: "/);
+});
+
+test("è la stessa strada della tendina del Report", () => {
+  /* Lì il guscio scrive «⚡ Lavatrice» dentro l'option, ed è il precedente
+   * citato dalla richiesta: due tendine che si comportano diverso davanti alla
+   * stessa domanda sono due cose da imparare invece di una. */
+  const guscio = readFileSync(
+    new URL("../legacy/dashboard-runtime-it.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(guscio, /<option value="\$\{d\.sensor\}">\$\{d\.icon \|\| '⚡'\} \$\{d\.name\}<\/option>/);
+});

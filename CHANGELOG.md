@@ -26,6 +26,22 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Rifiuti: la tendina dei materiali porta il segno di ognuno**
+
+  «Nel menu a tendina dei rifiuti voglio vedere anche le icone, come hai fatto
+  nel menu a tendina della sezione analisi dispositivi.»
+
+  Dentro un `<option>` ci sta solo testo, e prima da lì l'emoji si toglieva: il
+  bidone disegnato sta accanto, nella testa della riga, e sembrava che bastasse
+  lui. Ma il bidone accanto dice cosa è scelto **adesso** — mentre si sceglie la
+  tendina è aperta e lo copre — e la scelta la si fa leggendo undici righe di
+  parole tutte uguali. Adesso la tendina dice «🍎 Organico», «📦 Carta e
+  cartone», «🍾 Vetro», come quella del Report dice «⚡ Lavatrice».
+
+  Il segno è quello del materiale, lo stesso della card e della tessera in Home:
+  uno solo, scritto in un posto solo.
+
+
 - **Rifiuti: nel widget il segno del materiale accanto al nome** (#384)
 
   «Nel widget visualizzare l'immagine del rifiuto oltre alla descrizione, sarebbe
