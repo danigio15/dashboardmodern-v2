@@ -238,6 +238,7 @@ import {
 import { loadCameraFrame } from "./live-ui-section.js";
 import { hasConfiguredData } from "../core/dashboard-store.js";
 import {
+  activeLocale,
   allStates,
   clean,
   doc,

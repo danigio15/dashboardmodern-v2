@@ -204,6 +204,26 @@ test("la tessera Telecamere dice cosa ha visto, e si accende solo allora", () =>
    * piu' un avviso. */
   assert.match(tessera, /accent: primo \? "#dc2626" : "#0284c7"/);
   assert.match(tessera, /alert: Boolean\(primo\)/);
+
+  /* E tutto quello che la tessera chiama dev'essere importato davvero.
+   *
+   * Questa riga nasce da un rosso: `camerasModel` chiamava `activeLocale()`
+   * senza che il file lo importasse. Il sorgente diceva la cosa giusta — le
+   * prove che leggono il testo passavano tutte — ma in plancia la chiamata
+   * sollevava un ReferenceError, e con lei se ne andava il disegno di TUTTE
+   * le tessere della Home: non una tessera sbagliata, zero tessere. L'ha
+   * preso l'e2e, che il codice lo esegue.
+   *
+   * Leggere il sorgente per sapere cosa fa una funzione va bene; per sapere
+   * se quella funzione gira, no. Qui almeno si pretende che i nomi che usa
+   * arrivino da qualche parte. */
+  for (const nome of ["activeLocale", "rilevamentiAccesi", "readJson", "CHIAVE_RILEVAMENTI"]) {
+    assert.match(
+      home,
+      new RegExp(`^\\s*${nome},?$`, "m"),
+      `${nome} e' usato dalla tessera ma non compare fra le importazioni`,
+    );
+  }
 });
 
 test("la chiave viaggia con la casa, e la revisione lo dice", () => {
