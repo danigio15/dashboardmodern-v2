@@ -5,6 +5,60 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.19
+
+### Corretto
+
+- **Plancia predefinita: «Errore di configurazione» all'apertura dell'app** (#107)
+
+  «Quando si imposta la plancia come predefinita e apro l'app HA va in errore;
+  se invece la seleziono dal menu laterale funziona.»
+
+  La dashboard di appoggio — quella che permette di scegliere la plancia come
+  predefinita — porta **una vista sola**, con dentro la plancia intera. Su
+  quell'unica vista veniva scritto anche il filtro delle persone ammesse, quando
+  ce n'era uno.
+
+  Un filtro su una vista sola non può fare la cosa per cui i filtri esistono —
+  mostrare a questo utente meno schede che a quell'altro — perché sotto non
+  resta niente. Può fare solo due cose: niente, se chi guarda è nell'elenco;
+  oppure lasciare la dashboard **senza nemmeno una vista**. E una dashboard
+  senza viste, aperta, è esattamente la schermata rossa: «Errore di
+  configurazione». Chi la teneva come predefinita la incontrava a ogni apertura
+  dell'app, senza modo di indovinare da dove venisse — perché la stessa plancia,
+  aperta dalla barra laterale, funziona.
+
+  Il filtro se n'è andato da lì. Il permesso non si è perso: sta dove funziona
+  davvero — la dashboard porta il «solo amministratori», e la card porta il suo
+  elenco di persone ammesse, che è lo stesso con cui il pannello decide chi
+  entra, e che sotto una vista vuota non ci finisce mai.
+
+- **La fascia sotto il meteo non diceva niente dei varchi aperti** (#482)
+
+  «Sotto al meteo non appare l'allert dei varchi aperti. Ho finestre aperte ma
+  non vengono conteggiate. Nella card varchi tutto regolare.»
+
+  La card era regolare davvero, e non c'era nessun conto sbagliato da
+  correggere: la fascia quelle due voci non le aveva mai avute. Ne aveva
+  undici — la posta, il ritiro, l'antifurto, le luci accese, le tapparelle su,
+  il clima, le prese, le casse, e in fondo le quattro letture — e fra quelle
+  non c'erano né i Varchi né le Porte, che dalla 1.4.17 è una tessera a sé.
+
+  Adesso ci sono, e stanno **prima** delle luci: un varco aperto è una notizia,
+  non una cosa rimasta accesa, ed è la stessa ragione per cui quelle due
+  tessere diventano rosse mentre quella delle luci resta gialla. Dopo
+  l'antifurto, che è la notizia più grossa delle tre.
+
+  Il numero è quello **già contato dalla tessera**, non un secondo conto fatto
+  nella fascia: le due tessere pubblicano le loro aperture insieme al resto del
+  modello, come facevano già le Finestre, e la fascia legge quel campo. Per
+  queste due la regola vale il doppio, perché un contatto che non risponde non
+  è né aperto né chiuso: deciderlo una seconda volta qui vorrebbe dire una casa
+  che, prima o poi, si sente dare due numeri diversi della stessa cosa.
+
+  Come tutte le altre voci, una pastiglia che non ha niente da dire non compare:
+  a casa chiusa non si vede niente.
+
 ## 1.4.18
 
 ### Aggiunto

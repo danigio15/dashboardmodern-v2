@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { conLeCaselleScritte } from "../src/core/vehicle-model.js";
+import { conLeCaselleScritte, laVetturaDelleCaselle } from "../src/core/vehicle-model.js";
 import { eDellaWallbox, eTargetDiCasa } from "../src/core/wallbox-device-binding.js";
 import { letturaTermica } from "../src/core/auto-termica.js";
 
@@ -167,14 +167,91 @@ test("la correzione arriva a destinazione dal salvataggio, non dal singolo campo
     sezione.indexOf("/* «SALVA SEZIONE» salva anche le foto."),
   );
   assert.ok(regola, "prendiLeCaselle non si trova più dove questa prova lo cerca");
-  /* Di chi sono le caselle lo dice la stessa domanda del tasto «Salva auto»:
-   * la matita apre quella vettura, il nome scritto sceglie chi lo porta già, e
-   * un nome nuovo è una vettura che sta nascendo — le sue caselle non sono di
-   * nessuno finché non la si salva. */
-  assert.match(regola, /if \(chiave === ""\) return false;/);
+  /* Di chi sono le caselle non lo decide più la sezione: è logica pura, sta nel
+   * modello e si prova coi numeri qui sotto. Alla sezione resta il gesto —
+   * l'elenco, la matita, il nome scritto, l'auto in uso — e la scrittura. */
+  assert.match(regola, /laVetturaDelleCaselle\(\{/);
   assert.match(regola, /getElementById\("ed-evcar-name"\)/);
-  assert.match(regola, /if \(nomeScritto && !omonima\) return false;/);
-  assert.match(regola, /bersaglio = omonima \|\| activeVehicle\(elenco\)/);
+  assert.match(regola, /inUso: activeVehicle\(elenco\)/);
   /* E si scrive dall'unico posto da cui si scrivono le auto. */
   assert.match(regola, /salvaAuto\(cars\)/);
+  /* Un rifiuto non è più muto: era il motivo per cui un salvataggio che non
+   * arrivava nel profilo si vedeva solo da fuori, come lo schermo che dice
+   * AdBlue e il grafico che dice gasolio. */
+  assert.match(regola, /spiegaIlRifiuto\(/);
+});
+
+/* ── di chi sono le caselle: la regola, coi numeri (#444) ─────────────────── */
+
+const ZOE = { uid: "zoe", name: "Zoe", ov: {} };
+const TESLA = { uid: "tesla", name: "Tesla", ov: {} };
+
+test("la matita apre una vettura, e le caselle sono di quella", () => {
+  const { auto, motivo } = laVetturaDelleCaselle({
+    elenco: [ZOE, TESLA],
+    chiave: "tesla",
+    inUso: ZOE,
+  });
+  assert.equal(auto, TESLA, "comanda la matita, non l'auto in uso");
+  assert.equal(motivo, "");
+});
+
+test("«＋ Nuova auto» non versa le caselle in nessuno", () => {
+  const { auto, motivo } = laVetturaDelleCaselle({ elenco: [ZOE], chiave: "", inUso: ZOE });
+  assert.equal(auto, null);
+  assert.equal(motivo, "auto-che-nasce");
+});
+
+/* Il caso che ha fatto nascere questa funzione, e la trappola dentro.
+ *
+ * Ci avevo messo un ripiego sull'auto in uso — «chi ha premuto Salva ha fatto
+ * un gesto esplicito, l'unica domanda è su quale auto» — e il ripiego era un
+ * modo per rifare proprio il difetto che questa regola impedisce: cancellare
+ * la vettura aperta con la matita NON azzera la chiave, quindi il salvataggio
+ * dopo avrebbe versato le caselle della cancellata dentro un'altra macchina.
+ *
+ * Sono caselle che descrivono un'auto che non esiste. La risposta è nessuno —
+ * e detta, non taciuta. */
+test("una chiave che nomina un'auto sparita non scrive su nessun'altra", () => {
+  const { auto, motivo } = laVetturaDelleCaselle({
+    elenco: [ZOE, TESLA],
+    chiave: "auto-cancellata",
+    inUso: TESLA,
+  });
+  assert.equal(auto, null, "l'auto in uso non si prende le caselle di una cancellata");
+  assert.equal(motivo, "chiave-sparita", "e il rifiuto dice perché, invece di tacere");
+});
+
+test("un nome già in elenco sceglie l'auto che lo porta", () => {
+  const { auto } = laVetturaDelleCaselle({
+    elenco: [ZOE, TESLA],
+    nomeScritto: "  Tesla  ",
+    inUso: ZOE,
+  });
+  assert.equal(auto, TESLA);
+});
+
+/* Il difetto che questa regola esiste per non rifare: si mappa la Zoe, si
+ * salva, si rimappa per la Tesla che ancora non c'è, e la Zoe si prendeva la
+ * batteria della Tesla. */
+test("un nome nuovo è una vettura che nasce, e le sue caselle aspettano", () => {
+  const { auto, motivo } = laVetturaDelleCaselle({
+    elenco: [ZOE],
+    nomeScritto: "Tesla",
+    inUso: ZOE,
+  });
+  assert.equal(auto, null, "la Zoe non si prende le caselle di una vettura che non esiste");
+  assert.equal(motivo, "nome-nuovo");
+});
+
+test("senza chiave e senza nome comanda l'auto in uso", () => {
+  const { auto, motivo } = laVetturaDelleCaselle({ elenco: [ZOE, TESLA], inUso: TESLA });
+  assert.equal(auto, TESLA);
+  assert.equal(motivo, "");
+});
+
+test("un garage vuoto non ha caselle di nessuno, e lo dice", () => {
+  const { auto, motivo } = laVetturaDelleCaselle({ elenco: [], chiave: "zoe" });
+  assert.equal(auto, null);
+  assert.equal(motivo, "nessuna-auto");
 });

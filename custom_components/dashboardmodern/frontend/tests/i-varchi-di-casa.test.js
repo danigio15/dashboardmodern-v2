@@ -101,7 +101,14 @@ test("senza contatti non c'e' niente da mostrare", () => {
   assert.equal(varchiConfigurati({ "sensor.temperatura": STATI["sensor.temperatura"] }), false);
   assert.equal(varchiConfigurati(STATI), true);
   assert.deepEqual(varchiDiCasa({}, {}, new Set()), []);
-  assert.deepEqual(contoDeiVarchi(), { aperti: 0, chiusi: 0, muti: 0, totale: 0, nomi: [] });
+  assert.deepEqual(contoDeiVarchi(), {
+    aperti: 0,
+    chiusi: 0,
+    muti: 0,
+    totale: 0,
+    nomi: [],
+    aperte: [],
+  });
 });
 
 test("la configurazione si ripulisce di quello che non e' un'entita'", () => {

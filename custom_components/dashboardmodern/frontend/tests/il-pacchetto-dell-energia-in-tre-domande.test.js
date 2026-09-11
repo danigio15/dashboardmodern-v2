@@ -99,9 +99,21 @@ function recorderFinto({ senzaStatistiche = [], cade = () => false } = {}) {
 }
 
 function periodoDiOggi() {
-  const adesso = new Date();
+  const adesso = ORA_FERMA;
   return { year: adesso.getFullYear(), month: adesso.getMonth() + 1 };
 }
+
+/* Un'ora ferma, di pomeriggio, e non «adesso».
+ *
+ * Gli archi dipendono dall'ora: il giorno in corso si chiede in due pezzi — le
+ * ore chiuse e l'ora aperta — e nella PRIMA ora del giorno le ore chiuse non
+ * esistono ancora, quindi l'arco a ore non c'e'. Una prova che contava le
+ * domande passava tutto il giorno e diventava rossa da sola fra mezzanotte e
+ * l'una, senza che nessuno avesse toccato niente.
+ *
+ * Le due e mezza del pomeriggio: ci sono ore chiuse, c'e' un'ora aperta, e la
+ * risposta e' sempre la stessa a qualunque ora giri la prova. */
+const ORA_FERMA = new Date(2026, 8, 6, 14, 30);
 
 test("il giorno si chiede a ore per quelle chiuse e a cinque minuti solo per quella aperta", () => {
   const oggi = new Date(2026, 8, 6, 14, 37);
@@ -145,7 +157,7 @@ test("l'anno sono i mesi chiusi piu' il mese aperto, e su un mese passato resta 
 test("fonti, dispositivi e carichi dello stesso arco costano una domanda sola", async () => {
   runtime.bundle = null;
   const domande = recorderFinto();
-  const pacchetto = await energia.loadAtomicEnergyBundle(periodoDiOggi());
+  const pacchetto = await energia.loadAtomicEnergyBundle(periodoDiOggi(), () => {}, ORA_FERMA);
 
   /* Tre archi — il giorno, il mese, i mesi chiusi dell'anno — piu' l'ora
    * aperta, che sono dodici righe. Erano sette domande, due da tredici mesi.
@@ -199,7 +211,7 @@ test("fonti, dispositivi e carichi dello stesso arco costano una domanda sola", 
 test("un contatore senza statistiche non butta via il pacchetto: si tiene il resto e si dice quale", async () => {
   runtime.bundle = null;
   recorderFinto({ senzaStatistiche: ["sensor.fv_tot"] });
-  const pacchetto = await energia.loadAtomicEnergyBundle(periodoDiOggi());
+  const pacchetto = await energia.loadAtomicEnergyBundle(periodoDiOggi(), () => {}, ORA_FERMA);
 
   assert.ok(pacchetto, "il pacchetto arriva lo stesso");
   assert.ok(pacchetto.day.gridImport > 0, "quello che e' arrivato si tiene");
@@ -221,7 +233,7 @@ test("una domanda caduta lascia in piedi gli archi che sono arrivati", async () 
    * giorni prima del confine, quindi il suo inizio cade a fine dicembre. */
   const primoFebbraio = new Date(new Date().getFullYear(), 1, 1).getTime();
   recorderFinto({ cade: (_period, _ids, inizio) => inizio.getTime() < primoFebbraio });
-  const pacchetto = await energia.loadAtomicEnergyBundle(periodoDiOggi());
+  const pacchetto = await energia.loadAtomicEnergyBundle(periodoDiOggi(), () => {}, ORA_FERMA);
 
   assert.ok(pacchetto, "il giorno e il mese sono arrivati: il pacchetto vale");
   assert.equal(pacchetto.letti.day, true);
@@ -235,16 +247,16 @@ test("una domanda caduta lascia in piedi gli archi che sono arrivati", async () 
 test("se non arriva niente e non c'e' niente in mano, l'errore esce e la ripresa se ne occupa", async () => {
   runtime.bundle = null;
   recorderFinto({ cade: () => true });
-  await assert.rejects(energia.loadAtomicEnergyBundle(periodoDiOggi()), /timeout/);
+  await assert.rejects(energia.loadAtomicEnergyBundle(periodoDiOggi(), () => {}, ORA_FERMA), /timeout/);
 });
 
 test("con un pacchetto vecchio in mano una domanda caduta non azzera niente", async () => {
   runtime.bundle = null;
   recorderFinto();
-  const buono = await energia.loadAtomicEnergyBundle(periodoDiOggi());
+  const buono = await energia.loadAtomicEnergyBundle(periodoDiOggi(), () => {}, ORA_FERMA);
   runtime.bundle = buono;
   recorderFinto({ cade: () => true });
-  const dopo = await energia.loadAtomicEnergyBundle(periodoDiOggi());
+  const dopo = await energia.loadAtomicEnergyBundle(periodoDiOggi(), () => {}, ORA_FERMA);
   assert.ok(dopo, "non si butta via il pacchetto buono che c'era");
   assert.equal(dopo.month.house, buono.month.house);
   assert.match(dopo.caduta, /timeout/);

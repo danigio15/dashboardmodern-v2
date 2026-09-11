@@ -1305,6 +1305,16 @@ function porteModel(states) {
         : nome(doors[0]),
     ring: serrature.length ? Math.round((aperte.length / serrature.length) * 100) : null,
     doors,
+    /* Le porte aperte escono col modello, come le aperture delle Finestre
+     * (#482). La fascia sotto il meteo legge questo campo invece di rifiltrare
+     * le righe per conto suo: il numero nella fascia e quello sulla tessera
+     * non possono discordare se il conto e' uno solo.
+     *
+     * Il nome e' gia' quello che si vede, con il ripiego sull'entita' quando
+     * la riga un nome non ce l'ha: la fascia scrive i nomi nel titolo, e una
+     * porta senza nome sparirebbe dall'elenco invece di comparire col suo
+     * indirizzo. */
+    open: aperte.map((door) => ({ entity: clean(door.entity), name: nome(door) })),
   };
 }
 
@@ -3533,6 +3543,9 @@ function varchiModel(states) {
       ? conto.nomi.join(" · ")
       : t(`Tutto chiuso · ${conto.chiusi}`, `All closed · ${conto.chiusi}`),
     ring: conto.totale ? Math.round((conto.aperti / conto.totale) * 100) : null,
+    /* Gli aperti escono col modello, per la fascia sotto il meteo (#482): la
+     * stessa lista che qui sotto diventa la didascalia. */
+    open: conto.aperte,
     rows: righe.map((riga) => ({
       entity: riga.entity,
       name: riga.name,

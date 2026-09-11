@@ -184,6 +184,8 @@ function parolaDelConto(chiave, conto) {
   if (chiave === "clima") return uno ? t("unità accesa", "unit on") : t("unità accese", "units on");
   if (chiave === "prese")
     return uno ? t("presa accesa", "socket on") : t("prese accese", "sockets on");
+  if (chiave === "porte") return uno ? t("porta aperta", "door open") : t("porte aperte", "doors open");
+  if (chiave === "varchi") return uno ? t("varco aperto", "opening open") : t("varchi aperti", "openings open");
   return uno ? t("in riproduzione", "playing") : t("in riproduzione", "playing");
 }
 
@@ -497,6 +499,8 @@ const NOMI_DELLE_VOCI = () => ({
   posta: ["📬", t("Posta", "Mail")],
   rifiuti: ["♻️", t("Rifiuti", "Waste")],
   sicurezza: ["🛡️", t("Sicurezza", "Security")],
+  porte: ["🚪", t("Porte", "Doors")],
+  varchi: ["🚪", t("Varchi", "Openings")],
   luci: ["💡", t("Luci", "Lights")],
   tapparelle: ["🪟", t("Finestre", "Windows")],
   clima: ["❄️", t("Clima", "Climate")],
