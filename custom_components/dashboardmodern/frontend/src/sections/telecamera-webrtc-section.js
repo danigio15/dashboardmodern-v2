@@ -33,6 +33,69 @@ import { allStates, chiediAHomeAssistant, clean, doc, lexicalGlobal, root } from
 const KEY = "__DASHBOARDMODERN_TELECAMERA_WEBRTC__";
 const state = (root[KEY] ||= { installed: false, sessioni: new Map() });
 
+/* ── far partire il video ─────────────────────────────────────────────── */
+
+/**
+ * Far partire un video, e se il browser non lo lascia partire con l'audio,
+ * farlo partire muto.
+ *
+ * «Telecamere nemmeno va»: il popup restava su «Connessione WebRTC…» con
+ * l'istantanea dietro e, in mezzo, il triangolo di play che disegna il
+ * browser. Non era il negoziato: quello era andato a buon fine. Era l'ultimo
+ * passo.
+ *
+ * Nessun browser di telefono lascia partire da solo un video con l'audio
+ * acceso — e' la regola dell'autoplay, e vale per tutti. Il popup del guscio
+ * accende l'audio prima ancora che il flusso arrivi (`videoEl.muted = false`),
+ * e poi si aspetta l'evento `playing` per togliere il velo. Chiedendo `play()`
+ * con l'audio acceso si riceve un rifiuto, `playing` non arriva mai, e il velo
+ * resta li' per sempre sopra un fotogramma fermo.
+ *
+ * Il guscio quel rifiuto lo sapeva gestire — `dmTryPlayUnmuted` riprova muto e
+ * accende la scritta «Tap per audio» — ma quella riga sta dentro la sua
+ * versione del negoziato, e questo modulo la sostituisce (per portarci i TURN
+ * di casa, che da fuori sono la differenza fra il video e il nero). Nel
+ * cambio, la riprova muta si era persa: il rifiuto veniva ingoiato e basta.
+ *
+ * L'ordine e' quello: prima con l'audio, perche' chi apre un popup di solito
+ * lo vuole; poi muto, e lo si dice — la pastiglia «Tap per audio» e' il modo
+ * di riaverlo con un dito. Le tessere del muro non ci provano nemmeno: una
+ * parete di telecamere che parlano tutte insieme non la vuole nessuno.
+ */
+export async function faiPartireIlVideo(video, { conAudio = false } = {}) {
+  if (!video || typeof video.play !== "function") return "";
+  const prova = async (muto) => {
+    video.muted = muto;
+    if (muto) video.setAttribute("muted", "");
+    else {
+      video.removeAttribute("muted");
+      try {
+        video.volume = 1;
+      } catch (_errore) {}
+    }
+    await video.play();
+  };
+  if (conAudio) {
+    try {
+      await prova(false);
+      try {
+        root.dmHideAudioMini?.();
+      } catch (_errore) {}
+      return "audio";
+    } catch (_errore) {}
+  }
+  try {
+    await prova(true);
+    if (conAudio) {
+      try {
+        root.dmShowAudioMini?.();
+      } catch (_errore) {}
+    }
+    return "muto";
+  } catch (_errore) {}
+  return "fermo";
+}
+
 /* ── il socket ────────────────────────────────────────────────────────── */
 
 function presa() {
@@ -83,7 +146,10 @@ function spedisci(payload) {
 async function serverIceDiCasa(entity) {
   try {
     return serverIce(
-      await chiediAHomeAssistant({ type: "camera/webrtc/get_client_config", entity_id: entity }, 4000),
+      await chiediAHomeAssistant(
+        { type: "camera/webrtc/get_client_config", entity_id: entity },
+        4000,
+      ),
     );
   } catch (_error) {
     return serverIce(null);
@@ -107,13 +173,14 @@ function raccoltaIceFinita(pc, attesa = 2500) {
 
 /* Il dialetto vecchio: una domanda, una risposta con la answer intera. */
 function offertaVecchia(entity, pc, sdp) {
-  return chiediAHomeAssistant({ type: "camera/web_rtc_offer", entity_id: entity, offer: sdp }, 12000).then(
-    (risposta) => {
-      const answer = clean(risposta?.answer);
-      if (!answer) throw new Error("web_rtc_offer");
-      return pc.setRemoteDescription({ type: "answer", sdp: answer });
-    },
-  );
+  return chiediAHomeAssistant(
+    { type: "camera/web_rtc_offer", entity_id: entity, offer: sdp },
+    12000,
+  ).then((risposta) => {
+    const answer = clean(risposta?.answer);
+    if (!answer) throw new Error("web_rtc_offer");
+    return pc.setRemoteDescription({ type: "answer", sdp: answer });
+  });
 }
 
 /**
@@ -125,7 +192,7 @@ function offertaVecchia(entity, pc, sdp) {
  * sessione ha un nome. Torna la sessione, con la connessione e il modo di
  * chiuderla; il video si riempie da solo quando arriva la traccia.
  */
-export async function avviaWebRtcNativo(entity, video, { attesa = 15000 } = {}) {
+export async function avviaWebRtcNativo(entity, video, { attesa = 15000, conAudio = false } = {}) {
   if (typeof root.RTCPeerConnection !== "function") throw new Error("browser-senza-webrtc");
   presa();
   const ice = await serverIceDiCasa(entity);
@@ -134,9 +201,7 @@ export async function avviaWebRtcNativo(entity, video, { attesa = 15000 } = {}) 
     const flusso = evento.streams?.[0];
     if (flusso && video && video.srcObject !== flusso) {
       video.srcObject = flusso;
-      try {
-        video.play?.()?.catch?.(() => {});
-      } catch (_error) {}
+      faiPartireIlVideo(video, { conAudio }).catch(() => {});
     }
   };
   pc.addTransceiver("video", { direction: "recvonly" });
@@ -173,7 +238,12 @@ export async function avviaWebRtcNativo(entity, video, { attesa = 15000 } = {}) 
     };
     const mandaCandidato = (candidato) => {
       try {
-        spedisci({ type: "camera/webrtc/candidate", entity_id: entity, session_id: sessione, candidate: candidato });
+        spedisci({
+          type: "camera/webrtc/candidate",
+          entity_id: entity,
+          session_id: sessione,
+          candidate: candidato,
+        });
       } catch (_error) {}
     };
     pc.onicecandidate = (evento) => {
@@ -183,7 +253,8 @@ export async function avviaWebRtcNativo(entity, video, { attesa = 15000 } = {}) 
       else inAttesa.push(candidato);
     };
     pc.onconnectionstatechange = () => {
-      if (["failed", "closed"].includes(pc.connectionState) && !chiusa) fallisci(new Error(pc.connectionState));
+      if (["failed", "closed"].includes(pc.connectionState) && !chiusa)
+        fallisci(new Error(pc.connectionState));
     };
     const gestore = async (messaggio) => {
       if (messaggio?.type === "result") {
@@ -221,7 +292,10 @@ export async function avviaWebRtcNativo(entity, video, { attesa = 15000 } = {}) 
       }
     };
     try {
-      sottoscrizione = sottoscrivi({ type: "camera/webrtc/offer", entity_id: entity, offer: sdp }, gestore);
+      sottoscrizione = sottoscrivi(
+        { type: "camera/webrtc/offer", entity_id: entity, offer: sdp },
+        gestore,
+      );
     } catch (errore) {
       fallisci(errore);
     }
@@ -231,10 +305,15 @@ export async function avviaWebRtcNativo(entity, video, { attesa = 15000 } = {}) 
 /* HLS: la playlist da `camera/stream`, nel video. Safari la legge da solo;
  * gli altri passano da hls.js, che il guscio porta con se'. */
 export async function avviaHls(entity, video) {
-  const risposta = await chiediAHomeAssistant({ type: "camera/stream", entity_id: entity, format: "hls" }, 15000);
+  const risposta = await chiediAHomeAssistant(
+    { type: "camera/stream", entity_id: entity, format: "hls" },
+    15000,
+  );
   const url = clean(risposta?.url);
   if (!url) throw new Error("hls-senza-url");
-  const nativo = typeof video?.canPlayType === "function" && video.canPlayType("application/vnd.apple.mpegurl") !== "";
+  const nativo =
+    typeof video?.canPlayType === "function" &&
+    video.canPlayType("application/vnd.apple.mpegurl") !== "";
   if (nativo) {
     video.src = url;
     return {
@@ -247,7 +326,8 @@ export async function avviaHls(entity, video) {
     };
   }
   const Hls = root.Hls;
-  if (!Hls || typeof Hls.isSupported !== "function" || !Hls.isSupported()) throw new Error("hls-non-supportato");
+  if (!Hls || typeof Hls.isSupported !== "function" || !Hls.isSupported())
+    throw new Error("hls-non-supportato");
   const lettore = new Hls({ lowLatencyMode: true, backBufferLength: 10, maxBufferLength: 8 });
   lettore.loadSource(url);
   lettore.attachMedia(video);
@@ -344,7 +424,10 @@ export async function provaIlVideo(camera, image) {
   sessione.timer = root.setTimeout?.(() => {
     if (!sessione.viva) caduta();
   }, attesaDelVideo(stato));
-  const avvio = tipo === "web_rtc" ? avviaWebRtcNativo(entity, video, { attesa: attesaDelVideo(stato) }) : avviaHls(entity, video);
+  const avvio =
+    tipo === "web_rtc"
+      ? avviaWebRtcNativo(entity, video, { attesa: attesaDelVideo(stato) })
+      : avviaHls(entity, video);
   avvio
     .then((esito) => {
       if (state.sessioni.get(entity) !== sessione) {
@@ -357,9 +440,7 @@ export async function provaIlVideo(camera, image) {
         pc.addEventListener("connectionstatechange", () => {
           if (["failed", "disconnected", "closed"].includes(pc.connectionState)) caduta();
         });
-      try {
-        video.play?.()?.catch?.(() => {});
-      } catch (_error) {}
+      faiPartireIlVideo(video, { conAudio: false }).catch(() => {});
     })
     .catch(() => caduta());
   return true;
@@ -368,7 +449,8 @@ export async function provaIlVideo(camera, image) {
 /** Tutti i video si fermano: si e' lasciata la pagina, o la scheda e' nascosta. */
 export function fermaIVideo() {
   let fermati = 0;
-  for (const entity of [...state.sessioni.keys()]) if (spegniSessione(entity, { pausa: false })) fermati += 1;
+  for (const entity of [...state.sessioni.keys()])
+    if (spegniSessione(entity, { pausa: false })) fermati += 1;
   return fermati;
 }
 
@@ -381,7 +463,10 @@ export function fermaIVideo() {
  * pulizia chiude. `_dmPc` e' un `let` del guscio: ci si arriva con l'eval
  * indiretto, passando per una variabile di appoggio. */
 async function avviaPerIlPopup(entityId, videoEl) {
-  const sessione = await avviaWebRtcNativo(clean(entityId), videoEl, { attesa: 15000 });
+  const sessione = await avviaWebRtcNativo(clean(entityId), videoEl, {
+    attesa: 15000,
+    conAudio: true,
+  });
   root.__dmWebRtcPc = sessione.pc;
   try {
     root.eval('typeof _dmPc !== "undefined" && (_dmPc = __dmWebRtcPc)');
@@ -391,7 +476,11 @@ async function avviaPerIlPopup(entityId, videoEl) {
 }
 
 function installaNelPopup() {
-  if (typeof root.dmStartWebRTCNative !== "function" || root.dmStartWebRTCNative.__dmTelecameraWebRtc) return false;
+  if (
+    typeof root.dmStartWebRTCNative !== "function" ||
+    root.dmStartWebRTCNative.__dmTelecameraWebRtc
+  )
+    return false;
   avviaPerIlPopup.__dmTelecameraWebRtc = true;
   avviaPerIlPopup.__dmPrevious = root.dmStartWebRTCNative;
   root.dmStartWebRTCNative = avviaPerIlPopup;
@@ -402,7 +491,8 @@ export function installTelecameraWebRtc() {
   if (!doc || state.installed) return false;
   state.installed = true;
   installaNelPopup();
-  for (const evento of ["dashboardmodern:legacy-ready", "pageshow"]) root.addEventListener?.(evento, installaNelPopup);
+  for (const evento of ["dashboardmodern:legacy-ready", "pageshow"])
+    root.addEventListener?.(evento, installaNelPopup);
   return true;
 }
 

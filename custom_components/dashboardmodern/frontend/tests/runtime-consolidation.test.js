@@ -225,7 +225,7 @@ test("one hosted bootstrap delegates to the section runtime, which owns the guar
    * tenerla non aggiunge una domanda, buttarla ne avrebbe chiesta un'altra. */
   assert.match(
     energy,
-    /broker\.valoriPerArchi\(richieste, new Map\(\), alPasso, giorniDeiDispositivi\)/,
+    /broker\.valoriPerArchi\(\s*richieste,\s*new Map\(\),\s*alPasso,\s*giorniDeiDispositivi,\s*ammanchiDeiDispositivi,\s*\)/,
   );
   assert.equal((energy.match(/broker\.valoriPerArchi\(/g) || []).length, 1);
   assert.match(energy, /Incomplete Home Assistant statistics/);

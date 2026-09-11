@@ -9,6 +9,100 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Telecamere: il popup restava su «Connessione WebRTC…» con un fotogramma fermo**
+
+  Nella foto della segnalazione c'era tutto: l'istantanea della telecamera
+  dietro, in mezzo il triangolo di play che disegna il browser, e sotto il velo
+  con la scritta. Il negoziato era andato a buon fine — il flusso era arrivato —
+  e mancava l'ultimo passo.
+
+  Nessun browser di telefono lascia partire da solo un video con l'audio acceso:
+  è la regola dell'autoplay, e vale per tutti. Il popup accende l'audio prima
+  ancora che il flusso arrivi, e poi aspetta l'evento del primo fotogramma per
+  togliere il velo. Chiedendo di partire con l'audio acceso si riceve un
+  rifiuto, quell'evento non arriva mai, e il velo resta lì per sempre.
+
+  Quel rifiuto la plancia lo sapeva gestire — si riprova muti, e compare la
+  pastiglia «Tap per audio» per riaverlo con un dito — ma quella riga stava
+  dentro la vecchia versione del negoziato, e la versione nuova (quella che
+  porta i server di casa, cioè la differenza fra il video e il nero quando si
+  guarda da fuori) nel cambio se l'era persa: il rifiuto veniva ingoiato e
+  basta.
+
+  Adesso l'ordine è quello giusto: prima con l'audio, perché chi apre un popup
+  di solito lo vuole; poi muto, e lo si dice. Le tessere del muro non ci provano
+  nemmeno — una parete di telecamere che parlano tutte insieme non la vuole
+  nessuno.
+
+- **Auto: il rifiuto del target diceva cosa era successo, non cosa farci**
+
+  «Home Assistant ha rifiutato il target: Leapmotor remote control result
+  failed: Token is invalid.» La riga era vera e resta vera — il comando all'auto
+  non è arrivato — ma da fuori non si sa da che parte prenderla, e si finisce
+  per riprovare la tendina all'infinito.
+
+  Un gettone scaduto ha un rimedio preciso, e adesso la plancia lo dice:
+  l'integrazione dell'auto non è più collegata al suo account, e si riconnette
+  da Impostazioni → Dispositivi e servizi. Un permesso che manca è un'altra cosa
+  — lì l'integrazione sta benissimo, e a mancare è il permesso di chi guarda —
+  e ha la sua riga. Stessa cosa per un'auto che non risponde in tempo: le
+  vetture in cloud dormono, e spesso basta riprovare fra un minuto. Quello che
+  ha detto Home Assistant resta in coda fra parentesi — è quello che serve a chi
+  apre una segnalazione, e toglierlo sarebbe nascondere la prova.
+
+- **Wallbox: il totale dell'anno era corto di quasi mille kWh, e non lo diceva**
+
+  «Il sensore restituisce 1440,76 kWh per 2026» — e la plancia ne diceva 546.
+
+  La differenza non è un errore di somma: è un pezzo di storia che nel Recorder
+  non c'è. La `sum` del Recorder non è la lettura del contatore, è un totale
+  **suo**, che parte da zero quando cominciano le **statistiche** di
+  quell'entità — non quando è stato acceso l'apparecchio. Se le statistiche
+  cominciano dopo (un'entità rifatta, un aiutante che filtra i picchi creato
+  mesi dopo la colonnina, un database ripulito), tutto quello che era stato
+  consumato prima non sta in nessun secchiello, e nessuna somma può ritrovarlo.
+
+  Quell'energia non si può nemmeno aggiungere al totale, perché **non si sa
+  quando è stata consumata**. Su una colonnina installata quest'anno è tutta di
+  quest'anno; su un contatore vecchio a cui hanno rifatto l'entità è di anni fa,
+  e scriverla nell'anno lo gonfierebbe di tutta la vita dell'apparecchio. Fra le
+  due la plancia non può scegliere da sola, e sbagliare in quel verso è molto
+  peggio che restare corti.
+
+  Quello che si può fare è **dirlo**, e adesso lo dice: sulla scheda del
+  dispositivo compare quanto manca — «894,9 kWh non contati: il contatore li
+  aveva già fatti prima che ne cominciassero le statistiche» — così un numero
+  corto smette di essere un numero sbagliato e diventa un numero di cui si sa il
+  perché.
+
+- **Wallbox: «49,4 kWh dal fotovoltaico» quando i veri erano 22,8**
+
+  La card del dispositivo scriveva 49,4 kWh da FV e 18,7 dalla rete; i numeri
+  veri erano 22,8 e 45,3. Non un errore di misura: il rovescio esatto della
+  realtà.
+
+  La spartizione non stava misurando niente. Prendeva la quota di rete di
+  **tutta la casa** nel mese e la incollava sui kWh dell'apparecchio: 18,7 su
+  68,1 è 0,2746, cioè esattamente la quota di rete della casa. Per un
+  frigorifero, che tira uguale giorno e notte, quella copia è quasi giusta. Per
+  un'auto è quasi sempre sbagliata, e più è grossa la ricarica più sbaglia: una
+  macchina si attacca la sera e stacca la mattina, cioè nelle ore in cui il sole
+  non c'è. Il mese le dava il 72% di sole perché la **casa**, nelle sue ore, il
+  sole ce l'ha.
+
+  La quota di sole di un consumo si sa solo sapendo **quando** è avvenuto. Ora
+  per ora: in quest'ora l'apparecchio ha preso tanto, e in quest'ora la casa
+  stava prendendo dalla rete questa frazione di quello che consumava. Il resto è
+  una somma.
+
+  Le ore si chiedono solo a scheda del dispositivo aperta, e il mese in corso si
+  rimisura ogni tanto perché continua a riempirsi. Un'ora vale solo se ci sono
+  tutte e tre le misure — l'apparecchio, la casa, la rete — e la spartizione
+  vale solo se le ore spiegano il grosso del periodo: sotto quella soglia una
+  notte di ricarica deciderebbe la proporzione di un anno intero, e allora resta
+  la stima di prima, dichiarata per quello che è, invece di una percentuale
+  inventata scritta come se fosse misurata.
+
 - **Plancia predefinita: «Errore di configurazione» all'apertura dell'app** (#107)
 
   «Quando si imposta la plancia come predefinita e apro l'app HA va in errore;

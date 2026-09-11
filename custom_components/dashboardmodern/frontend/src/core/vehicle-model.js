@@ -511,3 +511,68 @@ export function laVetturaDelleCaselle({
   if (omonima) return { auto: omonima, motivo: "" };
   return inUso ? { auto: inUso, motivo: "" } : { auto: null, motivo: "nessuna-in-uso" };
 }
+
+/* Perche' Home Assistant ha rifiutato un comando all'auto.
+ *
+ * «Continua ad esserci il problema nel cambio percentuale ricarica», con la
+ * pastiglia che diceva: «Home Assistant ha rifiutato il target: Leapmotor
+ * remote control result failed: Token is invalid».
+ *
+ * Quel rifiuto non e' nostro, ed e' giusto che si veda: e' il comando che non
+ * e' arrivato all'auto. Ma scritto cosi' non si sa da che parte prenderlo. Un
+ * gettone scaduto ha un rimedio preciso — si riconnette l'integrazione — e chi
+ * legge ha il diritto di sapere che c'e', invece di riprovare la tendina
+ * all'infinito.
+ *
+ * Il modulo e' puro e non traduce: torna una chiave — chi disegna sa in che
+ * lingua parlare. Le chiavi sono tre, piu' il silenzio:
+ *
+ *   · `autenticazione`: l'integrazione non e' piu' collegata all'account
+ *     dell'auto. Si riconnette dalle Impostazioni di Home Assistant;
+ *   · `permesso`: l'integrazione sta bene, ma Home Assistant non autorizza chi
+ *     guarda a comandare quell'entita'. E' un'altra cosa, e ha un altro
+ *     rimedio: riconnettere l'integrazione non servirebbe a niente;
+ *   · `non-raggiungibile`: l'auto non ha risposto in tempo. Le auto in cloud
+ *     dormono, e spesso basta riprovare;
+ *   · `""`: non si sa, e allora si dice quello che ha detto Home Assistant
+ *     invece di indovinare.
+ *
+ * Le parole su cui si riconosce sono quelle che scrivono le integrazioni e i
+ * server sotto: si guarda il messaggio intero, in qualunque lingua l'abbia
+ * scritto chi l'ha scritto, perche' i codici HTTP e le parole inglesi passano
+ * comunque.
+ */
+const PAROLE_DEL_RIFIUTO = Object.freeze([
+  Object.freeze({
+    /* L'integrazione dell'auto non parla piu' col suo servizio.
+     *
+     * Si riconosce dalle parole che scrive l'integrazione stessa — gettone,
+     * sessione scaduta, credenziali — non da un codice HTTP. Un 401 o un 403
+     * nudi sono un'altra cosa (vedi sotto), e confonderli manderebbe chi legge
+     * a riconnettere un'integrazione che sta benissimo. */
+    chiave: "autenticazione",
+    segni:
+      /\btoken\b|authenticat|autentic|credential|session (has )?expired|expired session|invalid.{0,12}(login|session|key)|re-?auth/i,
+  }),
+  Object.freeze({
+    /* Home Assistant non autorizza CHI GUARDA a comandare quell'entita'.
+     *
+     * «Unauthorized», «Forbidden», un 401 o un 403 senza altro: qui
+     * l'integrazione dell'auto e' sana, e a mancare e' il permesso dell'utente
+     * della plancia — o l'entita' e' esposta in sola lettura. Riconnettere
+     * l'integrazione non servirebbe a niente. */
+    chiave: "permesso",
+    segni: /unauthor|not authorized|forbidden|not allowed|permission|\b401\b|\b403\b/i,
+  }),
+  Object.freeze({
+    chiave: "non-raggiungibile",
+    segni:
+      /time[ -]?out|timed out|unreachable|unavailable|not responding|no response|offline|connection (refused|reset|error)|\b50[234]\b/i,
+  }),
+]);
+
+export function ragioneDelRifiuto(messaggio) {
+  const testo = String(messaggio ?? "").trim();
+  if (!testo) return "";
+  return PAROLE_DEL_RIFIUTO.find((voce) => voce.segni.test(testo))?.chiave || "";
+}

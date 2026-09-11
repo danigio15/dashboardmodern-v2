@@ -2,17 +2,20 @@ import {
   HomeAssistantBroker,
   PERIOD_SOURCES,
   archiDelPeriodo,
+  baselineRange,
   chiaveDellArco,
   giorniPerLaMedia,
   ilGiornoDelPicco,
   periodConsumption,
   periodRange,
   recorderBucketConsumptions,
+  rowTimestamp,
   smistaIPiani,
   sourcePlans,
   isCumulativeEnergyEntity,
   mesiDaiGiorni,
 } from "../core/period-service.js";
+import { quotaSolareDelDispositivo } from "../core/quota-solare-del-dispositivo.js";
 import { reconcileEnergyBundle } from "./energy-calculations-section.js";
 import {
   DEFAULT_EXPORT_RATE,
@@ -86,6 +89,14 @@ Object.assign(state, {
    * chiave del carico: un pacchetto letto sulla configurazione di prima si
    * riconosce a risposta arrivata e si butta via. */
   configurazione: Number(state.configurazione) || 0,
+  /* Le quote di sole misurate, per apparecchio e per periodo. La chiave e'
+   * `entita|anno-mese`; il valore sono le due spartizioni, quella del mese e
+   * quella dell'anno. Una volta misurate non si rimisurano: sono ore di
+   * statistiche, e il numero di un periodo chiuso non cambia piu'. */
+  quote: state.quote instanceof Map ? state.quote : new Map(),
+  /* Le misure in volo, per non chiedere due volte la stessa cosa mentre la
+   * prima sta ancora tornando. */
+  quoteInCorso: state.quoteInCorso instanceof Set ? state.quoteInCorso : new Set(),
 });
 root.__DASHBOARDMODERN_RUNTIME_0150__ = state;
 
@@ -472,6 +483,19 @@ function giorniPerEntita(plans, giorni, prefisso) {
   return perEntita;
 }
 
+/* Gli ammanchi per entita', come `giorniPerEntita` fa con le serie. */
+function ammanchiPerEntita(plans, ammanchi, prefisso) {
+  const perEntita = new Map();
+  if (!(ammanchi instanceof Map) || ammanchi.size === 0) return perEntita;
+  plans.forEach((plan) => {
+    const quanto = ammanchi.get(`${prefisso}${plan.key}`);
+    if (!Number.isFinite(quanto) || quanto <= 0) return;
+    perEntita.set(plan.entity, quanto);
+    perEntita.set(plan.source, quanto);
+  });
+  return perEntita;
+}
+
 function valoriPerEntita(plans, valori) {
   const values = new Map();
   plans.forEach((plan) => {
@@ -650,11 +674,19 @@ export async function loadAtomicEnergyBundle(
     })),
   );
   const giorniDeiDispositivi = new Map();
+  const ammanchiDeiDispositivi = new Map();
   const {
     valori: ricavati,
     caduti,
     giorni: giorniRicavati,
-  } = await broker.valoriPerArchi(richieste, new Map(), alPasso, giorniDeiDispositivi);
+    ammanchi: ammanchiRicavati,
+  } = await broker.valoriPerArchi(
+    richieste,
+    new Map(),
+    alPasso,
+    giorniDeiDispositivi,
+    ammanchiDeiDispositivi,
+  );
   /* Gli archi che non hanno risposto. Serve saperlo per famiglia: l'anno
    * senza il suo mese aperto sarebbe un anno piu' corto — un numero
    * sbagliato, non un numero mancante — e un numero sbagliato non si
@@ -756,6 +788,14 @@ export async function loadAtomicEnergyBundle(
         letture.dispMonth.prefisso,
       ),
       deviceYear: paniere("deviceYear", letture.dispYear, dispositivi.year),
+      /* Quanto manca all'anno di ogni dispositivo perche' le sue statistiche
+       * cominciano dopo il contatore: la card lo scrive, invece di lasciare un
+       * numero corto senza una parola. */
+      deviceYearAmmanco: ammanchiPerEntita(
+        dispositivi.year.plans,
+        ammanchiRicavati,
+        letture.dispYear.prefisso,
+      ),
       energyLoadsDay: letture.carichi.valori,
       rates: Object.freeze(rates()),
     }),
@@ -940,7 +980,7 @@ function applyDeviceRows(bundle) {
     if (eur) eur.textContent = `${formatNumber(value * bundle.rates.importPrice, 2)} €`;
     const fill = row.querySelector(".ed-dev-bar-fill,.ed-dev-bar");
     if (fill) fill.style.width = `${Math.min(100, (value / maximum) * 100)}%`;
-    scriviLaQuota(row, splitFor(bundle.month, value));
+    scriviLaQuota(row, quotaDaScrivere(bundle, entity, "month", value));
     row.querySelectorAll(".ed-dev-live,.ed-dev-total-live,.ed-dev-name small").forEach((node) => {
       node.hidden = true;
     });
@@ -980,11 +1020,279 @@ function valueFrom(values, entity) {
   return Number.isFinite(Number(value)) ? Number(value) : null;
 }
 
+/* La stima di ripiego: la quota di rete della CASA incollata sui kWh
+ * dell'apparecchio.
+ *
+ * E' quello che la card faceva sempre, ed e' il difetto della segnalazione
+ * «wallbox sempre sbagliato»: 18,7 / 68,1 e' esattamente la quota di rete
+ * della casa nel mese, cioe' un numero copiato da un'altra domanda invece che
+ * misurato. Per un frigorifero e' quasi giusto; per un'auto, che si attacca la
+ * sera e stacca la mattina, e' quasi sempre il rovescio del vero.
+ *
+ * Resta qui perche' quando le ore non ci sono — un Recorder senza statistiche
+ * orarie, una domanda caduta — e' l'unica cosa che si puo' ancora dire, e non
+ * scrivere niente sarebbe peggio. Ma non comanda piu': comanda
+ * `quotaSolareDelDispositivo`, che le ore le guarda. */
 export function splitFor(period, value) {
   const house = finite(period?.house);
   const grid = finite(period?.gridImport);
   const gridShare = house > 0 ? Math.max(0, Math.min(1, grid / house)) : 1;
   return { grid: value * gridShare, solar: value * (1 - gridShare) };
+}
+
+/* Chi e' la casa e chi e' la rete, fra i piani delle fonti.
+ *
+ * Per misurare la quota di sole servono tre serie con lo stesso passo: quella
+ * dell'apparecchio, il consumo di casa e il prelievo dalla rete. Le prime due
+ * le sceglie questa riga.
+ *
+ * Si preferisce il contatore di sempre — `direct: false` — a un aiutante del
+ * periodo: le statistiche a ore si misurano per crescita, e un contatore che
+ * non si azzera e' quello su cui la crescita si legge meglio. Se c'e' solo
+ * l'aiutante si usa quello: `recorderBucketConsumptions` gli azzeramenti li
+ * sa vedere. */
+export function entitaDelleFonti(plans = []) {
+  const scegli = (chiave) => {
+    const suoi = (Array.isArray(plans) ? plans : []).filter(
+      (plan) => plan?.key === chiave && clean(plan.entity),
+    );
+    const storico = suoi.find((plan) => plan.direct === false);
+    return clean((storico || suoi[0])?.entity);
+  };
+  return { casa: scegli("house"), rete: scegli("gridImport") };
+}
+
+/* I secchielli di un'entita' dentro un arco, gia' con la loro crescita.
+ *
+ * L'ultima riga PRIMA del confine fa da partenza, ed e' per questo che si
+ * chiede sempre un pezzo di tempo in piu' davanti. Quando quella riga non c'e'
+ * il primo secchiello non si puo' misurare e si butta: a grana oraria
+ * prenderlo per buono vorrebbe dire scrivere il contatore di vita come consumo
+ * di un'ora. */
+export function secchielliNellArco(righe = [], range) {
+  if (!range?.start || !range?.end) return [];
+  const inizio = range.start.getTime();
+  const fine = range.end.getTime();
+  const ordinate = (Array.isArray(righe) ? righe : [])
+    .slice()
+    .sort((sinistra, destra) => rowTimestamp(sinistra) - rowTimestamp(destra));
+  const prima = ordinate.filter((riga) => rowTimestamp(riga) < inizio);
+  const dentro = ordinate.filter(
+    (riga) => rowTimestamp(riga) >= inizio && rowTimestamp(riga) < fine,
+  );
+  const partenza = prima.at(-1) || null;
+  /* Senza una riga davanti, la prima riga di dentro diventa la partenza — e il
+   * suo secchiello esce dal conto, perche' di lui non si sa la crescita. */
+  if (partenza) return recorderBucketConsumptions(dentro, partenza);
+  return dentro.length < 2 ? [] : recorderBucketConsumptions(dentro.slice(1), dentro[0]);
+}
+
+/* La spartizione misurata di un apparecchio su uno o piu' archi.
+ *
+ * Le ore si chiedono una volta per arco e per tutte e tre le entita' insieme:
+ * e' la stessa fetta di database, e chiederla tre volte sarebbe tre giri
+ * regalati al Recorder. */
+async function quotaSuArchi(archi, dispositivo, casa, rete, unita, totale) {
+  const serie = { dispositivo: [], casa: [], rete: [] };
+  for (const range of archi) {
+    if (!range?.start || !range?.end || range.end <= range.start) continue;
+    const baseline = baselineRange(range.kind, range.start);
+    const righe = await broker.statistics(
+      [dispositivo, casa, rete],
+      baseline.start,
+      range.end,
+      "hour",
+      unita,
+    );
+    serie.dispositivo.push(...secchielliNellArco(righe[dispositivo], range));
+    serie.casa.push(...secchielliNellArco(righe[casa], range));
+    serie.rete.push(...secchielliNellArco(righe[rete], range));
+  }
+  return quotaSolareDelDispositivo({ ...serie, totale });
+}
+
+/* La scheda del dispositivo si sta guardando davvero?
+ *
+ * Il Report si aggiorna anche a sezione chiusa — la tessera dell'Energia in
+ * Home legge lo stesso pacchetto — e una domanda a ore per un anno intero
+ * fatta a nessuno e' esattamente il carico sul Recorder che questo modulo si
+ * e' impegnato a non rifare. La si misura quando c'e' qualcuno che la guarda.
+ *
+ * `checkVisibility` e' la domanda giusta e la sanno i browser di oggi; dove non
+ * c'e' basta `offsetParent`, che su una vista nascosta — `display: none`, che
+ * e' come Home Assistant nasconde le viste — e' vuoto. */
+function schedaDelDispositivoAperta(nodo) {
+  if (!nodo) return false;
+  if (typeof nodo.checkVisibility === "function") return Boolean(nodo.checkVisibility());
+  return Boolean(nodo.offsetParent);
+}
+
+/* La chiave con cui una quota misurata si tiene da parte. */
+export function chiaveDellaQuota(entity, period) {
+  return `${entity}|${Number(period?.year) || 0}-${Number(period?.month) || 0}`;
+}
+
+/* Quanto vale una misura del periodo in corso.
+ *
+ * Un mese chiuso non cambia piu': la sua spartizione e' scritta una volta e
+ * resta. Quello in corso continua a riempirsi — ogni notte di ricarica sposta
+ * la proporzione — e una misura di stamattina, tenuta per sempre, racconterebbe
+ * una giornata che non c'e' piu'. La frazione regge il totale che cresce; il
+ * MIX no, e va rifatto ogni tanto. */
+export const SCADENZA_DELLA_QUOTA_MS = 15 * 60_000;
+
+/** Se il periodo guardato è quello che si sta ancora riempiendo. */
+export function periodoInCorso(period, adesso = new Date()) {
+  return (
+    Number(period?.year) === adesso.getFullYear() && Number(period?.month) === adesso.getMonth() + 1
+  );
+}
+
+/** Se una quota già misurata va rimisurata. */
+export function quotaDaRifare(quota, period, adesso = new Date()) {
+  if (!quota) return true;
+  if (!periodoInCorso(period, adesso)) return false;
+  const quando = Number(quota.quando);
+  if (!Number.isFinite(quando)) return true;
+  return adesso.getTime() - quando > SCADENZA_DELLA_QUOTA_MS;
+}
+
+/* Misura la quota di sole dell'apparecchio aperto nella scheda, e ridisegna.
+ *
+ * Si fa solo a scheda aperta e solo per l'apparecchio scelto: sono ore di
+ * statistiche — settecento secchielli per il mese — e chiederle per ogni riga
+ * del Report a ogni giro vorrebbe dire mettere in ginocchio il Recorder per
+ * dei numeri che quasi nessuno sta guardando.
+ *
+ * Il mese si misura per primo e si dipinge subito; l'anno arriva dopo, perche'
+ * e' la domanda grossa. Cosi' il numero che chi guarda sta controllando c'e'
+ * quasi subito, e quello lento non lo fa aspettare. */
+export async function misuraLaQuotaDelDispositivo(bundle = state.bundle, adesso = new Date()) {
+  if (!bundle?.deviceMonth || !doc) return null;
+  const selettore = doc.getElementById("ed-dev-selector");
+  const entity = clean(selettore?.value);
+  if (!entity || !schedaDelDispositivoAperta(selettore)) return null;
+  const device = bundle.deviceMonth.devices.find(
+    (item) => item.entity === entity || item.history === entity,
+  );
+  const dispositivo = clean(device?.history || entity);
+  const chiave = chiaveDellaQuota(dispositivo, bundle.period);
+  if (state.quoteInCorso.has(chiave)) return state.quote.get(chiave);
+  const gia = state.quote.get(chiave);
+  if (gia && !quotaDaRifare(gia, bundle.period, adesso)) return gia;
+
+  const fonti = pianiDelleFonti("month");
+  const { casa, rete } = entitaDelleFonti(fonti);
+  if (!dispositivo || !casa || !rete) return null;
+  const unita = Object.fromEntries(
+    fonti.filter((plan) => plan.entity).map((plan) => [plan.entity, plan.unita || ""]),
+  );
+
+  state.quoteInCorso.add(chiave);
+  const monthDate = selectedDate(bundle.period);
+  const misurate = {};
+  try {
+    const mese = await quotaSuArchi(
+      [periodRange("month", monthDate, adesso)],
+      dispositivo,
+      casa,
+      rete,
+      unita,
+      valueFrom(bundle.deviceMonth.values, dispositivo),
+    );
+    if (mese?.fonte === "secchielli") {
+      misurate.month = mese;
+      state.quote.set(chiave, { ...misurate, quando: adesso.getTime() });
+      applyAtomicEnergyBundle(state.bundle);
+    }
+    const anno = await quotaSuArchi(
+      archiDellAnno(monthDate, adesso),
+      dispositivo,
+      casa,
+      rete,
+      unita,
+      valueFrom(bundle.deviceYear?.values, dispositivo),
+    );
+    if (anno?.fonte === "secchielli") misurate.year = anno;
+  } catch (errore) {
+    /* Le ore non si sono potute leggere: la card resta sulla stima di casa,
+     * che e' quello che faceva prima, e la ragione si dice al registro invece
+     * di sparire. */
+    try {
+      root.console?.warn?.(
+        `[dashboardmodern] quota di sole non misurata: ${errore?.message || errore}`,
+      );
+    } catch (_errore) {}
+  } finally {
+    state.quoteInCorso.delete(chiave);
+  }
+  if (!misurate.month && !misurate.year) return null;
+  misurate.quando = adesso.getTime();
+  state.quote.set(chiave, misurate);
+  applyAtomicEnergyBundle(state.bundle);
+  return misurate;
+}
+
+/* La spartizione da scrivere: misurata se c'e', stimata sulla casa altrimenti.
+ *
+ * Della misura si tiene la FRAZIONE, non i kWh. Il totale di un mese in corso
+ * cresce tutto il giorno, e dei kWh misurati stamattina resterebbero quelli di
+ * stamattina: la riga sotto smetterebbe di sommare al numero grande scritto
+ * sopra — due numeri sulla stessa riga che si contraddicono, che e' esattamente
+ * il difetto che `scriviLaQuota` esiste per non rifare. La frazione invece si
+ * rimoltiplica per il numero che si sta scrivendo, e la somma torna sempre. */
+function quotaDaScrivere(bundle, dispositivo, quale, valore) {
+  const misurata = state.quote.get(chiaveDellaQuota(dispositivo, bundle?.period))?.[quale];
+  if (misurata && Number.isFinite(misurata.quotaRete)) {
+    const rete = Math.max(0, Math.min(1, misurata.quotaRete));
+    return { grid: valore * rete, solar: valore * (1 - rete) };
+  }
+  return splitFor(bundle?.[quale], valore);
+}
+
+/* Il pezzo di storia che al totale manca per forza, scritto sulla card.
+ *
+ * «Il sensore restituisce 1440,76 kWh per 2026» e la plancia ne diceva 546. La
+ * differenza non e' un errore di somma: e' energia che il contatore aveva gia'
+ * fatto prima che Home Assistant cominciasse a tenerne le statistiche — una
+ * entita' rifatta, un aiutante creato mesi dopo l'apparecchio, un database
+ * ripulito. Nessuna somma di secchielli puo' ritrovarla, perche' i secchielli
+ * non ci sono.
+ *
+ * E nemmeno si puo' aggiungerla al totale: non si sa QUANDO e' stata
+ * consumata. Su una colonnina installata quest'anno e' tutta di quest'anno; su
+ * un contatore vecchio a cui hanno rifatto l'entita' e' di anni fa, e scriverla
+ * nell'anno vorrebbe dire gonfiarlo di tutta la sua vita. Fra le due la plancia
+ * non puo' scegliere da sola, e indovinare in quel verso e' molto peggio che
+ * restare corti.
+ *
+ * Quello che si puo' fare e' dirlo: cosi' un numero corto smette di essere un
+ * numero sbagliato e diventa un numero di cui si sa il perche'. */
+function scriviLAmmanco(bundle, source) {
+  const panel = doc?.querySelector(".ed-device-detail,#ed-device-detail");
+  if (!panel) return false;
+  let riga = panel.querySelector(":scope > .dm-ed-ammanco");
+  const quanto = bundle?.deviceYearAmmanco?.get(source);
+  if (!Number.isFinite(quanto) || quanto <= 0) {
+    riga?.remove?.();
+    return false;
+  }
+  if (!riga) {
+    riga = doc.createElement("div");
+    riga.className = "dm-ed-ammanco";
+    panel.append(riga);
+  }
+  /* Il numero sta FUORI dalla frase tradotta: una chiave con dentro un valore
+   * non e' una chiave, e in tredici lingue diventa tredici chiavi che non si
+   * ritrovano piu'. */
+  scriviTestoSeCambia(
+    riga,
+    `⚠️ ${formatNumber(quanto, 1)} kWh ${t(
+      "non contati: il contatore li aveva già fatti prima che ne cominciassero le statistiche",
+      "not counted: the counter had already made them before its statistics began",
+    )}`,
+  );
+  return true;
 }
 
 function applyDeviceDetail(bundle) {
@@ -1020,10 +1328,7 @@ function applyDeviceDetail(bundle) {
       "ed-dkpi-anno-costo-kwh",
     ])
       setText(id, "—");
-    setText(
-      "ed-dkpi-picco-sub",
-      t("Nessun dato per questo periodo", "No data for this period"),
-    );
+    setText("ed-dkpi-picco-sub", t("Nessun dato per questo periodo", "No data for this period"));
     setText("ed-dkpi-year-lbl", String(Number(bundle.period?.year) || new Date().getFullYear()));
     return false;
   }
@@ -1031,8 +1336,8 @@ function applyDeviceDetail(bundle) {
   const selectedYear = Number(bundle.period?.year) || new Date().getFullYear();
   const days = giorniPerLaMedia(selectedYear, selectedMonth);
   const importPrice = finite(bundle.rates?.importPrice);
-  const monthSplit = splitFor(bundle.month, monthValue);
-  const yearSplit = splitFor(bundle.year, yearValue);
+  const monthSplit = quotaDaScrivere(bundle, source, "month", monthValue);
+  const yearSplit = quotaDaScrivere(bundle, source, "year", yearValue);
 
   setText("ed-dkpi-mese", `${formatNumber(monthValue, 1)} kWh`);
   setText("ed-dkpi-mese-eur", `€ ${formatNumber(monthValue * importPrice, 2)}`);
@@ -1075,6 +1380,8 @@ function applyDeviceDetail(bundle) {
     `${formatNumber(yearSplit.grid, 1)} kWh ${t("dalla rete", "from grid")}`,
   );
 
+  scriviLAmmanco(bundle, source);
+
   const panel = doc?.querySelector(".ed-device-detail,#ed-device-detail");
   if (panel)
     panel.dataset.dmCanonicalDevicePeriod = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}|${monthValue}`;
@@ -1106,6 +1413,10 @@ export function applyAtomicEnergyBundle(bundle = state.bundle) {
     return true;
   } finally {
     state.applying = false;
+    /* La quota di sole si misura dopo aver dipinto, e solo se la scheda del
+     * dispositivo e' aperta: e' una domanda a ore, e chi guarda non deve
+     * aspettarla per vedere i kWh. */
+    misuraLaQuotaDelDispositivo(bundle)?.catch?.(() => {});
   }
 }
 
@@ -1698,6 +2009,9 @@ function installStyles() {
       .dm-energy-help-compact{display:grid;gap:4px;margin:0 0 14px;padding:12px 14px;border:1px solid var(--divider-color,rgba(15,23,42,.12));border-radius:14px;background:var(--secondary-background-color,rgba(14,165,233,.08));color:var(--text,#0f172a);font-size:13px;line-height:1.45}
       .dm-energy-help-compact strong{font-size:14px}
       .dm-energy-total-note{display:block;margin-top:6px;color:var(--secondary-text-color,#64748b);font-size:11px;line-height:1.35}
+      /* Il pezzo di storia che al totale manca per forza: si dice, invece di
+         lasciare un numero corto senza una parola. */
+      .dm-ed-ammanco{margin:10px 0 0;padding:9px 13px;border-radius:12px;font-size:12px;font-weight:600;line-height:1.45;color:#92400e;background:#fef3c7;border:1px solid #fcd34d}
       .dm-energy-signed{margin:0 0 14px;padding:12px 14px;border:1px solid var(--divider-color,rgba(15,23,42,.14));border-radius:14px;background:color-mix(in srgb,var(--secondary-background-color,#f1f5f9) 70%,transparent)}
       .dm-energy-signed-head{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
       .dm-energy-signed-head input{margin-top:3px;flex:0 0 auto;width:17px;height:17px}
@@ -1878,6 +2192,9 @@ function subscribeStore() {
     /* La configurazione e' cambiata: un carico partito prima legge quella
      * vecchia, e il suo pacchetto — anche se arriva — non vale piu'. */
     state.configurazione += 1;
+    /* E le quote misurate riguardavano le entita' di prima: quale sia la casa
+     * e quale la rete e' appena cambiato, quindi si rimisurano. */
+    state.quote.clear();
     scheduleEnergyRefresh(true);
   });
 }
