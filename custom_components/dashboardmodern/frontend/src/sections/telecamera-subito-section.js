@@ -50,6 +50,7 @@ import {
   t,
   writeJsonIfChanged,
 } from "./shared.js";
+import { fermaIlNegoziatoDelPopup } from "./telecamera-webrtc-section.js";
 
 const KEY = "__DASHBOARDMODERN_TELECAMERA_SUBITO__";
 const STYLE_ID = "dm-cam-subito-style";
@@ -231,6 +232,15 @@ function corsaDelGuscio(strada, cam, content) {
 
 function ripulisci() {
   try {
+    /* Prima il negoziato ancora in volo, poi quello che il guscio sa chiudere.
+     *
+     * La pulizia del guscio chiude la connessione che trova nella sua
+     * variabile, e li' dentro ci arriva solo una connessione RIUSCITA. La
+     * scorciatoia invece fallisce quasi sempre per tempo scaduto, cioe' mentre
+     * la trattativa e' ancora aperta: quella il guscio non la vede, e restava
+     * a trattare con la telecamera mentre la fila intera ne apriva una seconda.
+     * E' la doppia connessione che si vedeva nel popup. */
+    fermaIlNegoziatoDelPopup();
     root.dmCleanupWebRTC?.();
     root.dmCleanupHLS?.();
   } catch (_error) {}

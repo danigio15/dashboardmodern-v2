@@ -9,6 +9,32 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Telecamere: sulla stessa telecamera partivano due connessioni insieme**
+
+  «Vedi che parte doppia connessione insieme», con la foto del popup che mostra
+  due cose sovrapposte: un fotogramma sotto, il segnaposto di un video fermo
+  sopra, e in fondo il velo «Connessione WebRTC…» che non se ne va più.
+
+  Il popup può chiedere di aprire due volte la stessa telecamera senza che
+  nessuno abbia sbagliato: la strada ricordata dall'ultima volta ha un permesso
+  di tempo corto, e quando scade la plancia riparte con la fila intera, che rifà
+  lo stesso negoziato. Il primo però non si fermava — perché finché non riesce
+  non c'è niente da chiudere in mano a nessuno: la pulizia chiude la connessione
+  che trova nella sua variabile, e lì dentro ci arriva solo una connessione
+  **riuscita**.
+
+  Risultato: due trattative aperte sulla stessa telecamera, due video di cui uno
+  già staccato dalla pagina, e il velo agganciato a quello staccato, che nessuno
+  toglierà mai più.
+
+  Adesso un negoziato si può chiudere da subito, non solo quando riesce. Una
+  apertura nuova chiude quella di prima prima di cominciare; chiudere il popup
+  ferma anche la trattativa ancora in volo; e la scorciatoia che scade ferma la
+  sua prima di lasciare il posto alla fila intera. In più, aprendo il popup si
+  spegne la tessera della stessa telecamera: il popup le sta sopra, nessuno la
+  sta guardando, e per una telecamera che regge un flusso solo due sono uno di
+  troppo.
+
 - **Irrigazione: i tre tasti del programma non erano della stessa misura** (#479)
 
   «Problema sempre presente sia su schermo 27 pollici che da iphone», dopo che la
