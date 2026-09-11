@@ -1452,6 +1452,31 @@ function lettureDellImpianto(states, impianto, primo) {
     states,
     clean(impianto?.battery?.soc) || (primo ? "dm.energy_stato_carica_batteria" : ""),
   );
+  /* La batteria entra qui gia' nella convenzione di casa: positivo = scarica.
+   *
+   * Meta' dei sensori scrive positivo quando la batteria si CARICA, e il verso
+   * lo dichiara chi abita la casa una volta sola (#434). Quel verso lo girava
+   * solo la mappa dei flussi; queste righe portavano il numero grezzo, e ci
+   * leggevano sopra tre cose diverse:
+   *
+   *   · la frase della tessera, che con un sensore girato scriveva «La
+   *     batteria copre 3,12 kW» mentre la mappa, accanto, disegnava la stessa
+   *     batteria che si caricava. Dal campo: «segna che la batteria copre la
+   *     casa a 3.12 kW» con il sole a 3,94 kW, la casa a 727 W e la rete a
+   *     zero — cioe' un bilancio in cui quei 3,12 kW non possono che ENTRARE
+   *     nella batteria;
+   *   · il soggetto del racconto, che diventa «quando sara' piena» solo sotto
+   *     i -10 W e quindi non ci arrivava mai;
+   *   · la casella del popup, che stampava il numero grezzo.
+   *
+   * Girarlo in tre posti sarebbe stato lo stesso errore tre volte. Si gira
+   * qui, dove la riga nasce, e da qui in poi c'e' una convenzione sola. */
+  const battuta = readings.find((row) => row.group === "battery");
+  if (battuta)
+    battuta.watts = potenzaDellaBatteria(
+      battuta.watts,
+      batteriaGirata(readJson(CHIAVE_VERSO_BATTERIA, {})),
+    );
   const rows = readings.filter((row) => row.watts != null);
   if (soc != null) {
     const batteria = rows.find((row) => row.group === "battery");
@@ -1493,13 +1518,10 @@ export function lettureDiCasa(states = allStates()) {
   return {
     solare: di("solar")?.watts ?? null,
     rete: di("grid")?.watts ?? null,
-    /* La batteria nella convenzione di casa: positivo = scarica. Meta' dei
-     * sensori scrive positivo quando si CARICA, e il verso lo dice la casa una
-     * volta sola — sennò la mappa disegna le frecce all'incontrario (#434). */
-    batteria: potenzaDellaBatteria(
-      di("battery")?.watts ?? null,
-      batteriaGirata(readJson(CHIAVE_VERSO_BATTERIA, {})),
-    ),
+    /* La batteria e' gia' nella convenzione di casa — positivo = scarica —
+     * perche' il verso lo gira `lettureDellImpianto`, dove la riga nasce.
+     * Girarlo di nuovo qui lo rimetterebbe com'era: una doppia negazione. */
+    batteria: di("battery")?.watts ?? null,
     casa: sommaNumeri(letture.map((lettura) => lettura.house)),
     soc: di("battery")?.soc ?? null,
   };

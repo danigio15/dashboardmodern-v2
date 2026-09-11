@@ -191,6 +191,30 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Energia: la batteria che si carica non «copre la casa»**
+
+  Dal campo, due foto dello stesso istante: la tessera scrive «La batteria
+  copre 3,12 kW», e la mappa dei flussi accanto disegna quella stessa batteria
+  che **si carica** a 3212 W.
+
+  Quale delle due mentiva si sa senza aprire il codice: il sole faceva 3,94 kW,
+  la casa ne usava 727 W e la rete era a zero. Se la batteria stesse scaricando
+  3,12 kW, in casa entrerebbero sette kilowatt per alimentarne 727 senza
+  mandarne fuori nessuno. La batteria si stava caricando, ed erano esattamente
+  i watt che avanzavano: 3939 − 727 = 3212.
+
+  La causa è del 2024 e stava nascosta: **metà dei sensori scrive positivo
+  quando la batteria si carica**, e il verso lo dichiara chi abita la casa una
+  volta sola (#434). Quel verso però lo girava **solo la mappa**. Le righe della
+  tessera portavano il numero grezzo, e ci leggevano sopra tre cose diverse: la
+  frase, il soggetto del racconto — che diventa «quando sarà piena» solo sotto i
+  −10 W, e quindi non ci arrivava mai — e la casella del popup.
+
+  Adesso il verso si gira **dove la riga nasce**, una volta, e da lì in poi c'è
+  una convenzione sola. Girarlo in tre posti sarebbe stato lo stesso errore tre
+  volte; girarlo due volte riporterebbe il numero com'era, ed è una prova che
+  adesso lo dice.
+
 - **Persone: il luogo apre la mappa di Home Assistant, non Google** (#438)
 
   «Intendevo la mappa interna di HA... adesso punta su googlemap.»
