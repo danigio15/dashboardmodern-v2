@@ -2499,6 +2499,8 @@ export default Object.freeze({
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.": "कैमरे का स्ट्रीम पता, अगर आपके पास है। यह यहाँ इसलिए है कि सँभला रहे और ऊपर वाला खाना भरा जा सके।",
   "The cameras": "कैमरे",
   "The car": "कार",
+  "The car did not answer in time: cloud vehicles sleep, trying again in a minute usually works.": "गाड़ी ने समय पर जवाब नहीं दिया: क्लाउड वाली गाड़ियाँ सो जाती हैं, आमतौर पर एक मिनट बाद दोबारा कोशिश करना काफ़ी होता है।",
+  "The car integration is no longer connected to its account: reconnect it in Settings → Devices & services.": "गाड़ी का इंटीग्रेशन अब उसके खाते से जुड़ा नहीं है: उसे सेटिंग्स → डिवाइसेस और सर्विसेज़ में दोबारा जोड़ें।",
   "The car photo": "गाड़ी की तस्वीर",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "कार्ड और पॉपअप हमेशा हर प्रतिशत वाली ड्रॉपडाउन सूची दिखाते हैं: 0 = बंद, 100 = खुला। यहाँ अपना सामान्य मान चुनें — 5 लगभग पूरा बंद करता है और थोड़ी हवा आने देता है — और वह सूची में तारे के साथ दिखता है। खाली = कोई पसंदीदा नहीं।",
   "The card beside the people with solar, the grid, the battery, the house and the car: the same arrows as the Energy section. It shows up by itself when there is enough to tell, and it moves along with the people.": "लोगों के बगल वाला कार्ड, जिसमें सोलर, ग्रिड, बैटरी, घर और कार हैं: ऊर्जा सेक्शन वाले ही तीर। जब बताने को काफ़ी हो तो यह अपने आप आ जाता है, और लोगों के साथ ही खिसकता है।",

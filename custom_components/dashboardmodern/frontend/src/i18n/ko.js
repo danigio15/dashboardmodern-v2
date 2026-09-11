@@ -2499,6 +2499,8 @@ export default Object.freeze({
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.": "카메라의 스트림 주소입니다. 있다면 여기에 두어 잃지 않고 위 칸을 채우는 데 씁니다.",
   "The cameras": "카메라",
   "The car": "차량",
+  "The car did not answer in time: cloud vehicles sleep, trying again in a minute usually works.": "차량이 제떄 응답하지 않았습니다. 클라우드 차량은 절전 상태에 들어가므로 보통 1분 뒤에 다시 시도하면 됩니다.",
+  "The car integration is no longer connected to its account: reconnect it in Settings → Devices & services.": "차량 통합이 계정에 더 이상 연결되어 있지 않습니다. 설정 → 기기 및 서비스에서 다시 연결하세요.",
   "The car photo": "자동차 사진",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "카드와 팝업에는 언제나 모든 퍼센트가 담긴 드롭다운이 있습니다(0 = 닫힘, 100 = 열림). 여기서 평소에 쓰는 값을 고르세요. 5는 바람만 조금 통하게 거의 다 닫습니다. 고른 값은 드롭다운에 별표로 표시됩니다. 비워 두면 즐겨 쓰는 값이 없습니다.",
   "The card beside the people with solar, the grid, the battery, the house and the car: the same arrows as the Energy section. It shows up by itself when there is enough to tell, and it moves along with the people.": "사람 카드 옆에 놓이는 카드입니다. 태양광, 계통, 배터리, 집, 자동차로 에너지 섹션과 같은 화살표입니다. 이야기할 것이 충분할 때 스스로 나타나고, 사람과 함께 움직입니다.",

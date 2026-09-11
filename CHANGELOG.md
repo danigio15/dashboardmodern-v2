@@ -9,6 +9,46 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Telecamere: il popup restava su «Connessione WebRTC…» con un fotogramma fermo**
+
+  Nella foto della segnalazione c'era tutto: l'istantanea della telecamera
+  dietro, in mezzo il triangolo di play che disegna il browser, e sotto il velo
+  con la scritta. Il negoziato era andato a buon fine — il flusso era arrivato —
+  e mancava l'ultimo passo.
+
+  Nessun browser di telefono lascia partire da solo un video con l'audio acceso:
+  è la regola dell'autoplay, e vale per tutti. Il popup accende l'audio prima
+  ancora che il flusso arrivi, e poi aspetta l'evento del primo fotogramma per
+  togliere il velo. Chiedendo di partire con l'audio acceso si riceve un
+  rifiuto, quell'evento non arriva mai, e il velo resta lì per sempre.
+
+  Quel rifiuto la plancia lo sapeva gestire — si riprova muti, e compare la
+  pastiglia «Tap per audio» per riaverlo con un dito — ma quella riga stava
+  dentro la vecchia versione del negoziato, e la versione nuova (quella che
+  porta i server di casa, cioè la differenza fra il video e il nero quando si
+  guarda da fuori) nel cambio se l'era persa: il rifiuto veniva ingoiato e
+  basta.
+
+  Adesso l'ordine è quello giusto: prima con l'audio, perché chi apre un popup
+  di solito lo vuole; poi muto, e lo si dice. Le tessere del muro non ci provano
+  nemmeno — una parete di telecamere che parlano tutte insieme non la vuole
+  nessuno.
+
+- **Auto: il rifiuto del target diceva cosa era successo, non cosa farci**
+
+  «Home Assistant ha rifiutato il target: Leapmotor remote control result
+  failed: Token is invalid.» La riga era vera e resta vera — il comando all'auto
+  non è arrivato — ma da fuori non si sa da che parte prenderla, e si finisce
+  per riprovare la tendina all'infinito.
+
+  Un gettone scaduto ha un rimedio preciso, e adesso la plancia lo dice:
+  l'integrazione dell'auto non è più collegata al suo account, e si riconnette
+  da Impostazioni → Dispositivi e servizi. Stessa cosa per un'auto che non
+  risponde in tempo: le vetture in cloud dormono, e spesso basta riprovare fra
+  un minuto. Quello che ha detto Home Assistant resta in coda fra parentesi —
+  è quello che serve a chi apre una segnalazione, e toglierlo sarebbe
+  nascondere la prova.
+
 - **Wallbox: il totale dell'anno perdeva quasi mille kWh**
 
   «Il sensore restituisce 1440,76 kWh per 2026» — e la plancia ne diceva 546,

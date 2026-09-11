@@ -2499,6 +2499,8 @@ export default Object.freeze({
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.": "Het streamadres van de camera, als je het hebt. Het staat hier om het te bewaren en het veld hierboven in te vullen.",
   "The cameras": "De camera's",
   "The car": "De auto",
+  "The car did not answer in time: cloud vehicles sleep, trying again in a minute usually works.": "De auto heeft niet op tijd geantwoord: voertuigen in de cloud slapen, meestal helpt het om het over een minuut opnieuw te proberen.",
+  "The car integration is no longer connected to its account: reconnect it in Settings → Devices & services.": "De auto-integratie is niet meer verbonden met het bijbehorende account: verbind die opnieuw via Instellingen → Apparaten en diensten.",
   "The car photo": "De foto van de auto",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "De kaart en de pop-up tonen altijd de keuzelijst met alle percentages: 0 = dicht, 100 = open. Kies hier je gebruikelijke stand — 5 sluit bijna helemaal en laat wat lucht door — en die krijgt een ster in de lijst. Leeg = geen voorkeur.",
   "The card beside the people with solar, the grid, the battery, the house and the car: the same arrows as the Energy section. It shows up by itself when there is enough to tell, and it moves along with the people.": "De kaart naast de personen met zon, het net, de batterij, het huis en de auto: dezelfde pijlen als in de sectie Energie. Hij verschijnt vanzelf als er genoeg te vertellen is, en verhuist mee met de personen.",

@@ -511,3 +511,49 @@ export function laVetturaDelleCaselle({
   if (omonima) return { auto: omonima, motivo: "" };
   return inUso ? { auto: inUso, motivo: "" } : { auto: null, motivo: "nessuna-in-uso" };
 }
+
+/* Perche' Home Assistant ha rifiutato un comando all'auto.
+ *
+ * «Continua ad esserci il problema nel cambio percentuale ricarica», con la
+ * pastiglia che diceva: «Home Assistant ha rifiutato il target: Leapmotor
+ * remote control result failed: Token is invalid».
+ *
+ * Quel rifiuto non e' nostro, ed e' giusto che si veda: e' il comando che non
+ * e' arrivato all'auto. Ma scritto cosi' non si sa da che parte prenderlo. Un
+ * gettone scaduto ha un rimedio preciso — si riconnette l'integrazione — e chi
+ * legge ha il diritto di sapere che c'e', invece di riprovare la tendina
+ * all'infinito.
+ *
+ * Il modulo e' puro e non traduce: torna una chiave — chi disegna sa in che
+ * lingua parlare. Le chiavi sono due, piu' il silenzio:
+ *
+ *   · `autenticazione`: l'integrazione non e' piu' collegata all'account
+ *     dell'auto. Si riconnette dalle Impostazioni di Home Assistant;
+ *   · `non-raggiungibile`: l'auto non ha risposto in tempo. Le auto in cloud
+ *     dormono, e spesso basta riprovare;
+ *   · `""`: non si sa, e allora si dice quello che ha detto Home Assistant
+ *     invece di indovinare.
+ *
+ * Le parole su cui si riconosce sono quelle che scrivono le integrazioni e i
+ * server sotto: si guarda il messaggio intero, in qualunque lingua l'abbia
+ * scritto chi l'ha scritto, perche' i codici HTTP e le parole inglesi passano
+ * comunque.
+ */
+const PAROLE_DEL_RIFIUTO = Object.freeze([
+  Object.freeze({
+    chiave: "autenticazione",
+    segni:
+      /\btoken\b|unauthor|not authorized|authenticat|autentic|credential|session (has )?expired|invalid.{0,12}(login|session|key)|\b401\b|\b403\b/i,
+  }),
+  Object.freeze({
+    chiave: "non-raggiungibile",
+    segni:
+      /time[ -]?out|timed out|unreachable|unavailable|not responding|no response|offline|connection (refused|reset|error)|\b50[234]\b/i,
+  }),
+]);
+
+export function ragioneDelRifiuto(messaggio) {
+  const testo = String(messaggio ?? "").trim();
+  if (!testo) return "";
+  return PAROLE_DEL_RIFIUTO.find((voce) => voce.segni.test(testo))?.chiave || "";
+}

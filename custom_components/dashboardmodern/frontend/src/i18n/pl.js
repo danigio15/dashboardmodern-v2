@@ -2499,6 +2499,8 @@ export default Object.freeze({
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.": "Adres strumienia kamery, jeśli go masz. Jest tutaj, żeby go zachować i wypełnić pole powyżej.",
   "The cameras": "Kamery",
   "The car": "Samochód",
+  "The car did not answer in time: cloud vehicles sleep, trying again in a minute usually works.": "Samochód nie odpowiedział na czas: pojazdy w chmurze śpią, zwykle wystarczy spróbować ponownie za minutę.",
+  "The car integration is no longer connected to its account: reconnect it in Settings → Devices & services.": "Integracja samochodu nie jest już połączona ze swoim kontem: połącz ją ponownie w Ustawienia → Urządzenia i usługi.",
   "The car photo": "Zdjęcie samochodu",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "Karta i okienko zawsze pokazują listę ze wszystkimi procentami: 0 = zamknięta, 100 = otwarta. Tutaj wybierasz swoją zwykłą wartość — 5 zamyka prawie do końca, przepuszczając trochę powietrza — i pojawia się ona na liście z gwiazdką. Puste = brak ulubionej.",
   "The card beside the people with solar, the grid, the battery, the house and the car: the same arrows as the Energy section. It shows up by itself when there is enough to tell, and it moves along with the people.": "Karta obok osób, z fotowoltaiką, siecią, magazynem, domem i samochodem: te same strzałki co w sekcji Energia. Pojawia się sama, gdy jest o czym opowiadać, i przesuwa się razem z osobami.",

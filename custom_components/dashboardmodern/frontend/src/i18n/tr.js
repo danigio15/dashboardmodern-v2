@@ -2499,6 +2499,8 @@ export default Object.freeze({
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.": "Kameranın akış adresi, elinizde varsa. Burada durur ki kaybolmasın ve yukarıdaki alanı doldurabilesiniz.",
   "The cameras": "Kameralar",
   "The car": "Araç",
+  "The car did not answer in time: cloud vehicles sleep, trying again in a minute usually works.": "Araç zamanında yanıt vermedi: buluttaki araçlar uyur, genellikle bir dakika sonra yeniden denemek yeterlidir.",
+  "The car integration is no longer connected to its account: reconnect it in Settings → Devices & services.": "Aracın entegrasyonu artık hesabına bağlı değil: Ayarlar → Cihazlar ve servisler bölümünden yeniden bağla.",
   "The car photo": "Aracın fotoğrafı",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "Kart ve açılır pencere her zaman tüm yüzdeleri içeren listeyi sunar: 0 = kapalı, 100 = açık. Burada her zamanki değerini seçersin — 5 biraz hava geçirecek kadar bırakıp neredeyse tamamen kapatır — ve listede yıldızlı görünür. Boş = favori yok.",
   "The card beside the people with solar, the grid, the battery, the house and the car: the same arrows as the Energy section. It shows up by itself when there is enough to tell, and it moves along with the people.": "Kişilerin yanındaki kart: güneş, şebeke, batarya, ev ve araba — Enerji bölümündeki oklarla aynı. Anlatacak yeterince şey olduğunda kendiliğinden çıkar ve kişilerle birlikte yer değiştirir.",

@@ -2499,6 +2499,8 @@ export default Object.freeze({
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.": "摄像头的视频流地址，有就填。放在这里是为了留个底，也为了填上面那一栏。",
   "The cameras": "摄像头",
   "The car": "汽车",
+  "The car did not answer in time: cloud vehicles sleep, trying again in a minute usually works.": "车辆没有及时响应：云端车辆会休眠，通常过一分钟再试一次就可以了。",
+  "The car integration is no longer connected to its account: reconnect it in Settings → Devices & services.": "车辆集成已不再连接到它的账号：请在「设置 → 设备与服务」中重新连接。",
   "The car photo": "汽车照片",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "卡片和弹窗始终提供包含所有百分比的下拉菜单：0 = 关闭，100 = 打开。在这里选择你常用的那一档——5 几乎完全关闭，只留一点通风——它会在下拉菜单中带星号显示。留空则没有常用档位。",
   "The card beside the people with solar, the grid, the battery, the house and the car: the same arrows as the Energy section. It shows up by itself when there is enough to tell, and it moves along with the people.": "人员卡片旁边的这张卡片，画的是光伏、电网、电池、房子和车：和能源区块里同样的箭头。有足够可讲的时候它会自己出现，并且跟着人员一起移动。",

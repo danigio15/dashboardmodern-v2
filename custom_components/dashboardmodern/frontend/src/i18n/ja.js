@@ -2499,6 +2499,8 @@ export default Object.freeze({
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.": "カメラのストリームアドレスです（あれば）。控えとして残し、上の欄を埋めるためにここにあります。",
   "The cameras": "カメラ",
   "The car": "車",
+  "The car did not answer in time: cloud vehicles sleep, trying again in a minute usually works.": "クルマが時間内に応答しませんでした。クラウド接続の車両は休止するため、1分ほど待って再試行すればたいてい通ります。",
+  "The car integration is no longer connected to its account: reconnect it in Settings → Devices & services.": "クルマの統合がアカウントに接続されていません。設定 → デバイスとサービス で接続し直してください。",
   "The car photo": "車の写真",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "カードとポップアップには常にすべてのパーセントを並べたドロップダウンがあります（0 = 閉、100 = 開）。ここではいつも使う値を選びます。5 ならほぼ閉じたまま少しだけ風を通せます。選んだ値はドロップダウンに星付きで表示されます。空欄ならお気に入りなし。",
   "The card beside the people with solar, the grid, the battery, the house and the car: the same arrows as the Energy section. It shows up by itself when there is enough to tell, and it moves along with the people.": "人のカードの隣に並ぶカードです。太陽光、系統、蓄電池、家、車で、エネルギーのセクションと同じ矢印です。語ることが十分にあるときに自分から出てきて、人と一緒に動きます。",

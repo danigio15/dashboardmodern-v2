@@ -2499,6 +2499,8 @@ export default Object.freeze({
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.": "عنوان بثّ الكاميرا، إن كان لديك. يبقى هنا كي لا يضيع وكي تملأ به الخانة أعلاه.",
   "The cameras": "الكاميرات",
   "The car": "السيارة",
+  "The car did not answer in time: cloud vehicles sleep, trying again in a minute usually works.": "لم تستجب السيارة في الوقت المناسب: المركبات السحابية تنام، وعادةً تكفي إعادة المحاولة بعد دقيقة.",
+  "The car integration is no longer connected to its account: reconnect it in Settings → Devices & services.": "لم يعد تكامل السيارة متصلاً بحسابه: أعد ربطه من الإعدادات ← الأجهزة والخدمات.",
   "The car photo": "صورة السيارة",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "تعرض البطاقة والنافذة المنبثقة دائمًا القائمة المنسدلة بكل النسب: 0 = مغلقة، 100 = مفتوحة. اختر هنا النسبة المعتادة لديك — 5 تغلق تقريبًا بالكامل مع ترك مجال لمرور بعض الهواء — وتظهر في القائمة وعليها نجمة. فارغ = لا توجد نسبة مفضلة.",
   "The card beside the people with solar, the grid, the battery, the house and the car: the same arrows as the Energy section. It shows up by itself when there is enough to tell, and it moves along with the people.": "البطاقة المجاورة للأشخاص، وفيها الطاقة الشمسية والشبكة والبطارية والمنزل والسيارة: نفس أسهم قسم الطاقة. تظهر من تلقاء نفسها عندما يكون هناك ما يُروى، وتتحرك مع الأشخاص.",

@@ -2499,6 +2499,8 @@ export default Object.freeze({
   "The camera's stream address, if you have one. It is here to keep it and to fill in the field above.": "Адрес потока камеры, если он у вас есть. Он здесь, чтобы не потерялся и чтобы заполнить поле выше.",
   "The cameras": "Камеры",
   "The car": "Автомобиль",
+  "The car did not answer in time: cloud vehicles sleep, trying again in a minute usually works.": "Машина не ответила вовремя: облачные автомобили спят, обычно достаточно повторить попытку через минуту.",
+  "The car integration is no longer connected to its account: reconnect it in Settings → Devices & services.": "Интеграция автомобиля больше не связана со своей учётной записью: подключите её заново в «Настройки → Устройства и службы».",
   "The car photo": "Фотография машины",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "Карточка и всплывающее окно всегда показывают список со всеми процентами: 0 — закрыто, 100 — открыто. Здесь выбирается привычное значение: 5 закрывает почти полностью, оставляя щель для воздуха, — и в списке оно отмечено звёздочкой. Пусто — избранного нет.",
   "The card beside the people with solar, the grid, the battery, the house and the car: the same arrows as the Energy section. It shows up by itself when there is enough to tell, and it moves along with the people.": "Карточка рядом с людьми: солнечные панели, сеть, аккумулятор, дом и автомобиль — те же стрелки, что и в разделе «Энергия». Появляется сама, когда есть о чём рассказать, и переезжает вместе с людьми.",

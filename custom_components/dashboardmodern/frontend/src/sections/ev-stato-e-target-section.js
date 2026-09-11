@@ -23,6 +23,7 @@
  * legge i valori, e lo fa dalle stesse caselle che legge la foto.
  */
 import { cavoDalloStato, codiceDellaRicarica } from "../core/stato-della-ricarica.js";
+import { ragioneDelRifiuto } from "../core/vehicle-model.js";
 import { liveState } from "./ev-section.js";
 import { clean, doc, root, t, wrapFunction } from "./shared.js";
 
@@ -68,9 +69,12 @@ function potenzaDellaColonnina() {
  * di configurazione, non di attesa: distingue «non me l'hai detto» da «non ho
  * ancora letto». */
 function sorgenteDellaRicarica() {
-  return ["dm.ev_stato_ricarica", "dm.ev_cavo_collegato", "dm.ev_potenza_wallbox", "dm.ev_charge_power"].some(
-    (ref) => Boolean(entitaDi(ref)),
-  );
+  return [
+    "dm.ev_stato_ricarica",
+    "dm.ev_cavo_collegato",
+    "dm.ev_potenza_wallbox",
+    "dm.ev_charge_power",
+  ].some((ref) => Boolean(entitaDi(ref)));
 }
 
 export function paintStatoRicarica(scope = doc) {
@@ -195,6 +199,36 @@ export function paintTarget() {
   return solaLettura;
 }
 
+/* Il rifiuto, detto in modo che si sappia cosa farci.
+ *
+ * «Home Assistant ha rifiutato il target: Leapmotor remote control result
+ * failed: Token is invalid.» La riga era vera e restava vera — il comando
+ * all'auto non e' arrivato — ma da fuori non si sa da che parte prenderla, e si
+ * finisce per riprovare la tendina all'infinito.
+ *
+ * Un gettone scaduto ha un rimedio preciso, e va detto. Quello che ha detto
+ * Home Assistant resta comunque in coda, fra parentesi: e' quello che serve a
+ * chi apre una segnalazione, e toglierlo sarebbe nascondere la prova.
+ */
+function parolePerIlRifiuto(dettaglio) {
+  const testa = t("Home Assistant ha rifiutato il target", "Home Assistant refused the target");
+  const ragione = ragioneDelRifiuto(dettaglio);
+  const consiglio =
+    ragione === "autenticazione"
+      ? t(
+          "L'integrazione dell'auto non è più collegata al suo account: riconnettila in Impostazioni → Dispositivi e servizi.",
+          "The car integration is no longer connected to its account: reconnect it in Settings → Devices & services.",
+        )
+      : ragione === "non-raggiungibile"
+        ? t(
+            "L'auto non ha risposto in tempo: le vetture in cloud dormono, spesso basta riprovare fra un minuto.",
+            "The car did not answer in time: cloud vehicles sleep, trying again in a minute usually works.",
+          )
+        : "";
+  if (!consiglio) return dettaglio ? `${testa}: ${dettaglio}` : testa;
+  return dettaglio ? `${consiglio} (${dettaglio})` : consiglio;
+}
+
 /* Il comando della tendina passa di qui prima del guscio: a un sensore non si
  * manda niente, e lo si dice. */
 function installaIlComando() {
@@ -238,11 +272,7 @@ function installaIlComando() {
     } catch (_error) {}
     Promise.resolve(chiamata).catch((errore) => {
       try {
-        root.edToast?.(
-          `${t("Home Assistant ha rifiutato il target", "Home Assistant refused the target")}: ${clean(
-            errore?.message || errore,
-          )}`,
-        );
+        root.edToast?.(parolePerIlRifiuto(clean(errore?.message || errore)));
       } catch (_error) {}
       schedule();
     });
