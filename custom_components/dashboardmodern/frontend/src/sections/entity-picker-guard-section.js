@@ -1,5 +1,5 @@
 import { decorateEntityFields } from "./editor-slots-section.js";
-import { LENTE_SELECTOR, clean, doc, installStyle, root, wrapFunction } from "./shared.js";
+import { LENTE_SELECTOR, attributoSeCambia, classeSeCambia, clean, doc, installStyle, root, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ENTITY_PICKER_GUARD__";
 const state = (root[KEY] ||= { installed: false, frame: 0, subscribed: false });
@@ -58,7 +58,7 @@ function cleanupFalsePicker(input) {
   generated?.remove();
   delete input.dataset.entityInput;
   if (parent?.classList.contains("dm-entity-picker-row") && !parent.querySelector("input[data-entity-input='true']")) {
-    parent.classList.remove("dm-entity-picker-row");
+    classeSeCambia(parent, "dm-entity-picker-row", false);
   }
   return Boolean(generated);
 }
@@ -123,14 +123,27 @@ function markPickerRow(parent) {
   if (parent.matches?.(NEVER_A_PICKER_ROW)) return;
   // A wrapper that holds more than the one field is a container, not a row.
   if (parent.querySelectorAll("input,select,textarea").length > 1) return;
-  parent.classList.add("dm-entity-picker-row");
+  classeSeCambia(parent, "dm-entity-picker-row", true);
 }
 
 function mountOne(input) {
   cleanupFalsePicker(input);
   if (!isEntityInput(input)) return false;
   const id = ensureId(input);
-  input.dataset.entityInput = "true";
+  /* Da qui in giu' si scrive solo quello che cambia davvero.
+   *
+   * Questa funzione ripassa su ogni campo a ogni giro, ed e' il suo mestiere.
+   * Ma finche' riscriveva gli stessi attributi col valore che avevano gia',
+   * ogni passata lasciava dietro di se' una scia di modifiche al documento — e
+   * chi guarda il documento per sapere quando la scheda cambia si risvegliava,
+   * chiamando la passata seguente. Da fermi, con la scheda aperta e nessuno
+   * che tocca niente, il giro non si fermava piu'.
+   *
+   * Chi ci rimetteva erano le caselle: un campo che cambia attributi dodici
+   * volte al secondo non sta mai fermo, e scriverci dentro diventa una lotta.
+   * «Non riesco ad aggiungere il secondo tasto ... continuamente resettato»
+   * (#494) e' questo, visto da chi ha la casa. */
+  attributoSeCambia(input, "data-entity-input", "true");
   let button = input.nextElementSibling?.matches?.(LENTE_SELECTOR) ? input.nextElementSibling : null;
   if (!button) button = input.parentElement?.querySelector?.(`.dm-entity-picker[data-entity-target="${CSS.escape(id)}"]`) || null;
 
@@ -152,10 +165,10 @@ function mountOne(input) {
     input.insertAdjacentElement("afterend", button);
   }
 
-  button.classList.add("dm-entity-picker");
-  button.type = "button";
-  button.dataset.entityTarget = id;
-  button.setAttribute("aria-label", button.getAttribute("aria-label") || `Seleziona entità per ${input.getAttribute("aria-label") || input.name || id}`);
+  classeSeCambia(button, "dm-entity-picker", true);
+  attributoSeCambia(button, "type", "button");
+  attributoSeCambia(button, "data-entity-target", id);
+  attributoSeCambia(button, "aria-label", button.getAttribute("aria-label") || `Seleziona entità per ${input.getAttribute("aria-label") || input.name || id}`);
   markPickerRow(input.parentElement);
   return true;
 }
@@ -165,8 +178,11 @@ export function reconcileEntityPickers(scope = doc) {
   // Let the canonical renderer mount first. The guard only fills genuine gaps.
   try { root.DashboardModernModules?.render?.mountEntityPickers?.(scope); } catch (_error) {}
   // Take the flex row back off any container an earlier release flexed.
+  /* Togliere una classe che non c'e' riscrive comunque l'attributo `class`,
+   * se l'elemento ne ha uno — e questi ce l'hanno tutti. Su un elenco di righe
+   * erano altre modifiche a vuoto a ogni passata. */
   for (const node of [scope, ...scope.querySelectorAll(NEVER_A_PICKER_ROW)]) {
-    node?.classList?.remove?.("dm-entity-picker-row");
+    classeSeCambia(node, "dm-entity-picker-row", false);
   }
   let count = 0;
   scope.querySelectorAll("input").forEach((input) => { if (mountOne(input)) count += 1; });

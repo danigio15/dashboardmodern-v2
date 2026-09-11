@@ -28,8 +28,8 @@ const SEME = {
   visibility: { home: true, security: true },
 };
 
-test("il «＋» si può premere più di una volta", async ({ page }, testInfo) => {
-  test.setTimeout(150_000);
+/* Il rito d'apertura, uguale per tutte le prove qui dentro. */
+async function avvia(page, testInfo) {
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
   await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
@@ -39,6 +39,16 @@ test("il «＋» si può premere più di una volta", async ({ page }, testInfo) 
         entity_id: id,
         state: "disarmed",
         attributes: { friendly_name: "Casa", supported_features: 63 },
+      },
+      "script.inserisci_totale": {
+        entity_id: "script.inserisci_totale",
+        state: "off",
+        attributes: { friendly_name: "Inserisci totale" },
+      },
+      "script.inserisci_notte": {
+        entity_id: "script.inserisci_notte",
+        state: "off",
+        attributes: { friendly_name: "Inserisci notte" },
       },
     };
     window.__HASS__ = { states: { ...(window.__HASS__?.states || {}), ...stati } };
@@ -53,6 +63,11 @@ test("il «＋» si può premere più di una volta", async ({ page }, testInfo) 
    * chi tocca. Chiamando `editorSwitch` a mano si prova una plancia che
    * nessuno usa. */
   await page.locator('.ed-tab[data-tab="sez4"]').first().click();
+}
+
+test("il «＋» si può premere più di una volta", async ({ page }, testInfo) => {
+  test.setTimeout(150_000);
+  await avvia(page, testInfo);
 
   /* Il blocco compare da sé: si aggancia alla casella della centrale. */
   const piu = page.locator("#dm-antifurto-su-misura [data-suo-add]");
@@ -76,4 +91,81 @@ test("il «＋» si può premere più di una volta", async ({ page }, testInfo) 
     }
   });
   expect(salvati).toBe(3);
+});
+
+/* «Continua a far creare solo il primo tasto, il secondo non viene salvato e
+ * continuamente resettato» (#494, dopo #431).
+ *
+ * La prova qui sopra preme «＋» e guarda che le righe compaiano: e' quello che
+ * chiedeva #431, e passava. Ma nessuno aveva mai provato il gesto per cui i
+ * tasti esistono — scriverci dentro e salvare — e li' il difetto c'era eccome:
+ * la casella non stava ferma abbastanza da poterla compilare.
+ *
+ * Non si ridisegnava niente: erano gli ATTRIBUTI. Chi fa la guardia ai campi
+ * dell'entita' ripassava su ogni campo riscrivendo `data-entity-input`,
+ * `data-entity-target` e `aria-label` col valore che avevano gia'. Il documento
+ * non confronta: registra la scrittura e sveglia chi guarda; chi si sveglia
+ * richiama la guardia. Da fermi, col dito lontano, trentotto modifiche in tre
+ * secondi — e un campo che trema dodici volte al secondo non si lascia
+ * scrivere.
+ *
+ * Qui si pretende il gesto intero, due volte di fila. */
+test("due tasti si compilano e si salvano, e restano tutti e due", async ({ page }, testInfo) => {
+  test.setTimeout(150_000);
+  await avvia(page, testInfo);
+
+  const piu = page.locator("#dm-antifurto-su-misura [data-suo-add]");
+  await expect(piu).toHaveCount(1, { timeout: 20_000 });
+
+  const compila = async (indice, nome, entita) => {
+    await piu.first().click();
+    const riga = page.locator(`#dm-antifurto-su-misura [data-suo-index="${indice}"]`);
+    await expect(riga).toHaveCount(1, { timeout: 10_000 });
+    await riga.locator('[data-suo-field="nome"]').fill(nome);
+    await riga.locator('[data-suo-field="entita"]').fill(entita);
+    await riga.locator("[data-suo-save]").click();
+  };
+
+  await compila(0, "Totale", "script.inserisci_totale");
+  await compila(1, "Notte", "script.inserisci_notte");
+
+  const salvati = await page.evaluate(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem("cd_antifurto_su_misura") || "[]");
+    } catch (_errore) {
+      return [];
+    }
+  });
+  expect(salvati.map((voce) => voce.nome)).toEqual(["Totale", "Notte"]);
+  expect(salvati.map((voce) => voce.entita)).toEqual([
+    "script.inserisci_totale",
+    "script.inserisci_notte",
+  ]);
+});
+
+/* E la ragione per cui si poteva scrivere: da fermi non si scrive niente.
+ *
+ * Questa prova non guarda un tasto: guarda il documento. Una scheda aperta e
+ * lasciata stare non deve produrre modifiche, perche' ogni modifica a vuoto
+ * sveglia qualcuno che ne fa altre. E' anche la ragione per cui il mini PC si
+ * scaldava (#223): lo stesso difetto, in un altro punto.
+ */
+test("da fermi la scheda non scrive niente", async ({ page }, testInfo) => {
+  test.setTimeout(150_000);
+  await avvia(page, testInfo);
+  await page.locator("#dm-antifurto-su-misura [data-suo-add]").click();
+  await expect(page.locator('#dm-antifurto-su-misura [data-suo-index="0"]')).toHaveCount(1);
+
+  const quante = await page.evaluate(async () => {
+    const blocco = document.getElementById("dm-antifurto-su-misura");
+    let mutazioni = 0;
+    const spia = new MutationObserver((voci) => {
+      mutazioni += voci.length;
+    });
+    spia.observe(blocco, { childList: true, subtree: true, attributes: true });
+    await new Promise((esci) => setTimeout(esci, 2000));
+    spia.disconnect();
+    return mutazioni;
+  });
+  expect(quante, "la scheda ferma continua a riscriversi addosso").toBe(0);
 });

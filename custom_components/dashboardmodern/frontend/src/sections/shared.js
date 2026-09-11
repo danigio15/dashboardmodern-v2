@@ -1067,6 +1067,12 @@ export function scriviSeCambia(nodo, markup) {
   return true;
 }
 
+/* Gli stessi due, per un attributo e per una classe, stanno nel nucleo: li
+ * usano anche i moduli comuni che il guscio chiama, e una regola sola non si
+ * scrive in due posti. Si riesportano da qui perche' le sezioni pescano tutto
+ * da questo file. */
+export { attributoSeCambia, classeSeCambia } from "../core/scrivere-se-cambia.js";
+
 /* Lo stesso, per un testo semplice. */
 export function scriviTestoSeCambia(nodo, testo) {
   if (!nodo) return false;
