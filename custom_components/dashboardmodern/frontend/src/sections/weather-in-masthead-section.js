@@ -14,7 +14,8 @@
  */
 import { onLocaleChange } from "../core/i18n.js";
 import { translateSource } from "../core/i18n-dom.js";
-import { clean, doc, installStyle, root, t } from "./shared.js";
+import { CHIAVE_ORDINE_BLOCCHI, ilMeteoStaInTestata } from "../core/ordine-dei-blocchi.js";
+import { clean, doc, installStyle, readJson, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_WEATHER_MASTHEAD__";
 const STYLE_ID = "dm-weather-masthead-style";
@@ -38,26 +39,42 @@ header.dm-testata-col-meteo .header-left-wrap{flex:0 0 auto;min-width:0}
 header.dm-testata-col-meteo{flex-wrap:wrap;row-gap:8px}
 header.dm-testata-col-meteo .header-left-wrap{flex:1 1 auto;min-width:0}
 header.dm-testata-col-meteo .brand-text{flex:1 1 auto;min-width:0;text-align:center}
-header.dm-testata-col-meteo .dm-testata-riga{
+/* Da qui in giu' si parla del riquadro, non dell'intestazione.
+ *
+ * Queste regole erano legate all'intestazione, cioe' alla casa che ospitava il
+ * riquadro: davanti a ognuna c'era la classe della testata. Da quando il
+ * riquadro puo'
+ * scendere in pagina (#492) quella casa non e' piu' l'unica: legate cosi', il
+ * riquadro spostato si ritrovava il meteo alla taglia da card intera — icona a
+ * settanta, temperatura a cinquantadue — cioe' esattamente quello che si era
+ * tolto di mezzo. Adesso dicono quello che intendevano da sempre: dentro il
+ * riquadro si sta cosi', ovunque il riquadro sia.
+ *
+ * Il «body» davanti non e' decorazione: senza, «.dm-testata-riga
+ * .weather-widget» pesa due classi, e il fondo scuro del guscio —
+ * «html[data-theme=dark] .weather-widget» — ne pesa due piu' un elemento e
+ * vincerebbe, rimettendo il gradiente dentro il riquadro. Con «body» davanti
+ * il peso torna quello di prima. */
+body .dm-testata-riga{
   flex:1 1 100%;order:9;display:flex;align-items:center;gap:10px;min-width:0;
   padding:6px 12px;border-radius:16px;
   background:var(--surface-2,#f8fafc);border:1px solid var(--card-border,#e8edf3);
   transition:border-color .2s ease,background .2s ease}
-header.dm-testata-col-meteo .dm-testata-riga:hover{
+body .dm-testata-riga:hover{
   border-color:color-mix(in srgb,var(--accent,#0ea5e9) 38%,var(--card-border,#e8edf3));
   background:color-mix(in srgb,var(--accent,#0ea5e9) 6%,var(--surface-2,#f8fafc))}
 /* Dentro il riquadro non ci sono altri riquadri: il bordo e il fondo sono del
    riquadro, e il meteo ci sta dentro nudo. */
-header.dm-testata-col-meteo .weather-widget{
+body .dm-testata-riga .weather-widget{
   flex:1 1 auto;min-width:0;order:0;
   margin:0;padding:0;border:0;border-radius:0;background:none;gap:10px;
   box-shadow:none}
-header.dm-testata-col-meteo .weather-widget:hover{
+body .dm-testata-riga .weather-widget:hover{
   transform:none;box-shadow:none;background:none}
 /* Il cerchio che ruotava dietro la card aveva trecento pixel di diametro:
    dentro una fascia alta sessanta e' solo una macchia. */
-header.dm-testata-col-meteo .weather-widget::before{display:none}
-header.dm-testata-col-meteo .w-left{gap:11px;flex:0 1 auto;min-width:0}
+body .dm-testata-riga .weather-widget::before{display:none}
+body .dm-testata-riga .w-left{gap:11px;flex:0 1 auto;min-width:0}
 /* Il simbolo del meteo sta in una casella di misura fissa.
  *
  * Le condizioni non sono tutte emoji della stessa larghezza — «☀️» e «⛅» sono
@@ -66,29 +83,29 @@ header.dm-testata-col-meteo .w-left{gap:11px;flex:0 1 auto;min-width:0}
  * alta quaranta si prendeva lo spazio di una card. Con la casella fissa il
  * riquadro non cambia forma al cambiare del tempo, che è l'unica cosa che
  * conta qui: la testata non deve saltare perché è arrivata la pioggia. */
-header.dm-testata-col-meteo .w-icon{
+body .dm-testata-riga .w-icon{
   flex:0 0 auto;width:26px;height:26px;display:grid;place-items:center;overflow:hidden;
   font-size:22px;line-height:1;animation:none;filter:none}
 /* La nebbia e la grandine, in scala: sono cinque righe disegnate, e dentro la
    casella ci stanno rimpicciolite invece che tagliate. */
-header.dm-testata-col-meteo .w-icon .w-fog-anim{
+body .dm-testata-riga .w-icon .w-fog-anim{
   width:22px;height:16px;gap:2px;transform:none}
-header.dm-testata-col-meteo .w-icon .fog-line{height:2px;border-radius:2px}
+body .dm-testata-riga .w-icon .fog-line{height:2px;border-radius:2px}
 /* Temperatura e cielo su una riga sola: in colonna la fascia cresceva in
    altezza, che e' esattamente quello che si voleva togliere. */
-header.dm-testata-col-meteo .w-temp-wrap{
+body .dm-testata-riga .w-temp-wrap{
   flex-direction:row;align-items:baseline;gap:9px;min-width:0}
-header.dm-testata-col-meteo .w-temp{font-size:19px}
-header.dm-testata-col-meteo .w-state{
+body .dm-testata-riga .w-temp{font-size:19px}
+body .dm-testata-riga .w-state{
   margin-top:0;font-size:10.5px;letter-spacing:1px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Umidita' e vento erano incolonnate all'estremita' opposta della card, a due
    spanne di distanza dal numero che commentano: adesso sono una accanto
    all'altra, subito dopo. */
-header.dm-testata-col-meteo .w-right{
+body .dm-testata-riga .w-right{
   flex-direction:row;align-items:center;gap:6px;flex-wrap:wrap;
   justify-content:flex-start}
-header.dm-testata-col-meteo .w-detail{
+body .dm-testata-riga .w-detail{
   padding:3px 8px;font-size:10.5px;gap:4px;box-shadow:none;
   background:var(--card-bg,#fff);border-color:var(--card-border,#e8edf3)}
 /* La percepita non si nasconde mai.
@@ -125,8 +142,8 @@ header.dm-testata-col-meteo .w-detail{
      lo si lascia decidere, si misura come se le sue righe stessero tutte su
      una — e si prendeva duecento pixel per starne su due da centotrenta,
      lasciando al nome della casa lo spazio per «SM…». */
-  header.dm-testata-col-meteo .dm-testata-riga{padding:5px 10px;gap:8px}
-  header.dm-testata-col-meteo .weather-widget{
+  body .dm-testata-riga{padding:5px 10px;gap:8px}
+  body .dm-testata-riga .weather-widget{
     flex:1 1 auto;min-width:0;flex-wrap:nowrap;row-gap:0;column-gap:8px;
     margin:0;padding:0;border:0}
   /* Tutto su una riga sola, anche sul telefono.
@@ -135,21 +152,21 @@ header.dm-testata-col-meteo .w-detail{
      sotto, e il riquadro veniva alto il doppio — aveva senso quando il meteo
      divideva la riga col nome della casa e aveva centotrenta pixel; adesso il
      riquadro ha tutta la larghezza, e i numeri ci stanno accanto. */
-  header.dm-testata-col-meteo .w-left{flex:0 0 auto;gap:6px}
-  header.dm-testata-col-meteo .w-icon{width:20px;height:20px;font-size:17px}
-  header.dm-testata-col-meteo .w-icon .w-fog-anim{width:17px;height:12px;gap:1.5px}
-  header.dm-testata-col-meteo .w-temp{font-size:15px}
-  header.dm-testata-col-meteo .w-state{display:none}
+  body .dm-testata-riga .w-left{flex:0 0 auto;gap:6px}
+  body .dm-testata-riga .w-icon{width:20px;height:20px;font-size:17px}
+  body .dm-testata-riga .w-icon .w-fog-anim{width:17px;height:12px;gap:1.5px}
+  body .dm-testata-riga .w-temp{font-size:15px}
+  body .dm-testata-riga .w-state{display:none}
   /* I numeri non si stringono: o ci stanno interi o non ci stanno. Tagliarli
      a metà — «💧 41%» e mezzo soffio di vento — è peggio che non averli. */
-  header.dm-testata-col-meteo .w-right{
+  body .dm-testata-riga .w-right{
     flex:0 0 auto;flex-direction:row;align-items:center;
     column-gap:8px;row-gap:0;flex-wrap:nowrap}
-  header.dm-testata-col-meteo .w-detail{
+  body .dm-testata-riga .w-detail{
     flex:0 0 auto;padding:0;font-size:10px;gap:3px;background:none;border:0;line-height:1.3;
     white-space:nowrap}
   /* «Umidita'» e «Vento» le dicono gia' la goccia e il soffio. */
-  header.dm-testata-col-meteo .dm-meteo-parola{display:none}
+  body .dm-testata-riga .dm-meteo-parola{display:none}
 }
 /* Sul telefono stretto il nome della casa torna intero.
  *
@@ -172,7 +189,7 @@ header.dm-testata-col-meteo .w-detail{
  * pixel il vento finiva fuori dal riquadro e veniva tagliato via, che e' la
  * riga che non si legge affatto di cui parla il commento qui sopra. */
 @media(max-width:560px){
-  header.dm-testata-col-meteo .weather-widget{max-width:none;padding:0}
+  body .dm-testata-riga .weather-widget{max-width:none;padding:0}
 }
 /* Lo stato della connessione e' un puntino, non una frase.
  *
@@ -186,6 +203,14 @@ header.dm-testata-col-meteo>.status-pill>#conn-text{
   position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
   clip-path:inset(50%);white-space:nowrap}
 header.dm-testata-col-meteo>.status-pill .live-dot{width:13px;height:13px}
+/* E quando il riquadro scende in pagina (#492).
+ *
+ * Nell'intestazione la riga sotto il nome se la prendeva col «flex:1 1 100%»,
+ * e lo stacco dal nome lo dava il «row-gap» della testata. In pagina non c'e'
+ * ne' l'una ne' l'altro: un contenitore a blocco gli da' gia' tutta la
+ * larghezza, ma lo stacco da quello che viene dopo se lo deve mettere lui,
+ * come fanno tutti i blocchi della Home. */
+#page-home>.dm-testata-riga{margin:0 0 18px}
 `;
 
 /* L'intestazione della plancia, non quella di una pagina: ogni sezione ne ha
@@ -252,8 +277,23 @@ function avvolgiLeParole(meteo) {
   }
 }
 
-/** Porta la striscia del meteo dentro l'intestazione, dopo il nome della casa. */
-/* Il riquadro sotto il titolo.
+/* Dove deve stare il riquadro (#492).
+ *
+ * «Sarebbe bello poter cambiare anche la posizione dell'header contenente il
+ * meteo.» Il riquadro e' un blocco della Home come gli altri, e il suo posto
+ * di serie — primo nella fila — vuol dire «sopra tutto», cioe' dentro
+ * l'intestazione. Da qualunque altro posto scende in pagina, e li' lo mette in
+ * fila chi mette in fila i blocchi.
+ *
+ * Se la pagina non c'e' ancora, l'intestazione va bene lo stesso: il riquadro
+ * esiste comunque, e al primo giro utile scende. */
+function casaDellaRiga() {
+  const header = testata();
+  if (ilMeteoStaInTestata(readJson(CHIAVE_ORDINE_BLOCCHI, null))) return header;
+  return doc?.getElementById?.("page-home") || header;
+}
+
+/* Il riquadro col meteo e l'ora: uno solo, e sempre lo stesso nodo.
  *
  * «Passa il titolo dashboard e sotto fai la riga con meteo e orologio, ma
  * devono stare nello stesso quadrato e non deve essere grande.»
@@ -263,20 +303,31 @@ function avvolgiLeParole(meteo) {
  * sulla sua riga e sotto c'è UN riquadro, che è questo — il bordo e il fondo
  * sono suoi, e quello che ci sta dentro non ne ha più. Chi ci si mette dentro
  * lo chiede qui: averne due che se lo disegnano vorrebbe dire due riquadri
- * sovrapposti al primo giro storto. */
+ * sovrapposti al primo giro storto.
+ *
+ * Torna il riquadro, gia' portato dove gli tocca stare. */
 export function rigaDellaTestata() {
-  const header = testata();
-  if (!header) return null;
-  let riga = header.querySelector(":scope > .dm-testata-riga");
-  if (riga) return riga;
-  riga = doc.createElement("div");
-  riga.className = "dm-testata-riga";
-  const nome = header.querySelector(".header-left-wrap");
+  const casa = casaDellaRiga();
+  if (!casa) return null;
+  /* Il riquadro si cerca dovunque sia, non solo dentro l'intestazione: da
+   * quando puo' stare in pagina, cercarlo solo li' vorrebbe dire fabbricarne
+   * un secondo — due riquadri col meteo, e l'orologio in quello sbagliato. */
+  let riga = doc.querySelector(".dm-testata-riga");
+  if (!riga) {
+    riga = doc.createElement("div");
+    riga.className = "dm-testata-riga";
+  }
+  /* Gia' a casa: non si tocca. In pagina il posto preciso lo decide l'ordine
+   * dei blocchi, e rimetterlo in fondo a ogni giro vorrebbe dire litigare con
+   * chi lo mette in fila. */
+  if (riga.parentElement === casa) return riga;
+  const nome = casa.querySelector?.(":scope > .header-left-wrap");
   if (nome) nome.after(riga);
-  else header.append(riga);
+  else casa.append(riga);
   return riga;
 }
 
+/** Porta la striscia del meteo dentro il riquadro, e il riquadro dove gli tocca. */
 function sposta() {
   const header = testata();
   const meteo = doc?.querySelector?.(".weather-widget");

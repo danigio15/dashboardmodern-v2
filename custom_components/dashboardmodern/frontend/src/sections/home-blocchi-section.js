@@ -17,7 +17,12 @@
  * impaginazione.
  */
 import { spostaNellElenco } from "../core/ordine-a-mano.js";
-import { BLOCCHI_DELLA_HOME, ordineDeiBlocchi } from "../core/ordine-dei-blocchi.js";
+import {
+  BLOCCHI_DELLA_HOME,
+  BLOCCO_DEL_METEO,
+  CHIAVE_ORDINE_BLOCCHI,
+  ordineDeiBlocchi,
+} from "../core/ordine-dei-blocchi.js";
 import { CHIAVE_PASTIGLIE, lePastiglieSiVedono } from "../core/pastiglie-di-stato.js";
 import {
   CHIAVE_STANZE_IN_PLANCIA,
@@ -43,11 +48,14 @@ import {
   t,
   writeJsonIfChanged,
 } from "./shared.js";
+import { rigaDellaTestata } from "./weather-in-masthead-section.js";
 
 const KEY = "__DASHBOARDMODERN_HOME_BLOCCHI__";
 const state = (root[KEY] ||= { installed: false, inCoda: false });
 
-export const CHIAVE_ORDINE_BLOCCHI = "cd_home_blocchi";
+/* La chiave sta nel modello, che la legge anche chi non disegna le frecce: si
+ * riespone da qui perche' e' da questa sezione che la conoscono tutti. */
+export { CHIAVE_ORDINE_BLOCCHI };
 
 /** L'ordine salvato, ripulito. */
 export function ordineSalvato() {
@@ -63,6 +71,11 @@ export function ordineSalvato() {
  * annunciano, quindi un blocco e' sempre TUTTI i suoi pezzi. */
 function pezziDelBlocco(nome, pagina) {
   const dentro = (nodo) => (nodo && nodo.parentElement === pagina ? nodo : null);
+  /* Il riquadro col meteo e l'ora (#492) e' un blocco solo quando e' sceso in
+   * pagina. Finche' sta nell'intestazione non e' figlio della Home, quindi qui
+   * non c'e' niente da mettere in fila — ed e' giusto: li' sta sopra tutto. */
+  if (nome === BLOCCO_DEL_METEO)
+    return [dentro(doc.querySelector(".dm-testata-riga"))].filter(Boolean);
   if (nome === "persone") return [dentro(doc.getElementById("dm-people"))].filter(Boolean);
   if (nome === "widget") return [dentro(doc.getElementById("dm-widgets"))].filter(Boolean);
   /* Le stanze (#493) sono un nodo solo: il titolo se lo porta dentro, come le
@@ -139,6 +152,12 @@ function inCoda() {
     state.inCoda = false;
     try {
       vestiLePastiglie();
+      /* Prima di mettere in fila: il riquadro col meteo (#492) va portato dove
+       * l'ordine dice che stia. Chi lo porta e' la sezione che lo possiede, e
+       * lo fa da sola a ogni giro di stati — ma non a ogni evento che arriva
+       * qui, e un ordine applicato su un riquadro ancora nell'intestazione
+       * sarebbe un ordine con un blocco in meno. */
+      rigaDellaTestata();
       applicaLOrdineDeiBlocchi();
     } catch (_error) {}
   });
@@ -160,6 +179,7 @@ const SCHEDA_HOME = "sez0";
  * scelgono e si ordinano fra loro; le persone e le azioni rapide pure. Qui si
  * mettono in fila i blocchi. */
 const NOMI_DEI_BLOCCHI = () => ({
+  meteo: ["🌤️", t("Intestazione col meteo", "Weather header")],
   persone: ["👥", t("Persone", "People")],
   widget: ["🧩", t("Widget", "Widgets")],
   azioni: ["⚡", t("Azioni rapide", "Quick actions")],
@@ -192,8 +212,8 @@ function pannelloMarkup() {
   return `<div class="ed-sec-title">🏠 ${esc(t("Ordine dei blocchi della Home", "Order of the Home blocks"))}</div>
     <div class="ed-intro">${esc(
       t(
-        "In che ordine si vedono in Home: persone, widget, azioni rapide, dispositivi. Dentro ogni blocco l'ordine si fa dove si configura quel blocco: le persone nella loro scheda, le tessere in Widget, le azioni rapide nella loro.",
-        "The order they appear in on Home: people, widgets, quick actions, devices. Inside each block the order is set where that block is configured: people in their own tab, tiles in Widgets, quick actions in theirs.",
+        "In che ordine si vedono in Home. L'intestazione col meteo e l'ora, finché sta per prima, resta in alto attaccata al nome della casa: spostandola più in basso scende in pagina insieme agli altri blocchi. Dentro ogni blocco l'ordine si fa dove si configura quel blocco: le persone nella loro scheda, le tessere in Widget, le azioni rapide nella loro.",
+        "The order they appear in on Home. The header with the weather and the clock, as long as it stays first, remains up top next to the house name: move it further down and it comes down into the page with the other blocks. Inside each block the order is set where that block is configured: people in their own tab, tiles in Widgets, quick actions in theirs.",
       ),
     )}</div>
     <div class="dm-blocco-list">${righe}</div>
@@ -345,6 +365,11 @@ function onClickFreccia(event) {
   if (!prossima) return;
   writeJsonIfChanged(CHIAVE_ORDINE_BLOCCHI, prossima);
   try {
+    /* Il riquadro col meteo (#492) cambia casa prima che si metta in fila:
+     * scavalcato, deve prima staccarsi dall'intestazione e scendere in pagina,
+     * altrimenti qui non c'e' niente da spostare e lo si vedrebbe muoversi
+     * solo al prossimo giro di stati. */
+    rigaDellaTestata();
     applicaLOrdineDeiBlocchi();
   } catch (_error) {}
   ensurePannelloDeiBlocchi();
