@@ -25,6 +25,8 @@ import { lightCommand, lightView, lightsSignature } from "../core/light-model.js
 import { canonicalClimateType } from "../core/device-model.js";
 import { applianceGlyph } from "../core/appliance-artwork.js";
 import { CHIAVE_MEDIA, letturaDelLettore, lettoriConfigurati } from "../core/media-player.js";
+import { comandoDelDispositivo, genereDelComando } from "../core/comandi-accanto.js";
+import { CHIAVE_ENTITA_MIE, entitaMie } from "../core/entita-mie.js";
 import { roomGlyph } from "../core/personalization-catalog.js";
 import {
   ROOM_ASSIGN_KEY,
@@ -106,22 +108,42 @@ export function roomPages() {
  * Qui si trasforma in voci con un nome leggibile: quello di Home Assistant se
  * c'e', altrimenti l'entity_id — brutto da leggere ma mai una bugia. */
 export function assignedItems(mappa = readJson(ROOM_ASSIGN_KEY, {}), states = allStates()) {
-  if (!mappa || typeof mappa !== "object") return [];
-  return Object.entries(mappa)
-    .map(([entity, room]) => {
-      const id = clean(entity);
-      const stanza = clean(room);
-      if (!id || !stanza) return null;
-      return {
-        entity: id,
-        name: clean(states?.[id]?.attributes?.friendly_name) || id,
-        /* La classe che Home Assistant scrive sull'entita': e' quello che la
-         * riga sa dire di se' quando nessuna scheda la descrive. */
-        device_class: clean(states?.[id]?.attributes?.device_class),
-        room_id: stanza,
-      };
-    })
-    .filter(Boolean);
+  const voci = new Map();
+  const metti = (entity, stanza, nome, icona) => {
+    const id = clean(entity);
+    const room_id = clean(stanza);
+    if (!id || !room_id || voci.has(id)) return;
+    voci.set(id, {
+      entity: id,
+      name: clean(nome) || clean(states?.[id]?.attributes?.friendly_name) || id,
+      /* L'icona si scrive dove la riga la cerca gia': `emojiScelta` guarda
+       * `icon`, e accetta solo quello che un glifo lo e' davvero. */
+      icon: clean(icona),
+      /* La classe che Home Assistant scrive sull'entita': e' quello che la
+       * riga sa dire di se' quando nessuna scheda la descrive. */
+      device_class: clean(states?.[id]?.attributes?.device_class),
+      room_id,
+    });
+  };
+  if (mappa && typeof mappa === "object")
+    for (const [entity, room] of Object.entries(mappa)) metti(entity, room);
+  /* Le entita' che uno si aggiunge a mano (#504).
+   *
+   * «Si potrebbero inserire le entità personalizzate nelle stanze tipo
+   * Automazioni?» La scheda «Entità mie» la stanza la chiedeva gia' — c'e' la
+   * sua tendina accanto all'entita' — ma quella scelta non arrivava fin qui:
+   * la pagina Stanze leggeva solo le assegnazioni a mano, e un'automazione
+   * messa in cucina restava scritta in configurazione senza comparire in
+   * nessuna stanza. Adesso arriva, col nome e l'icona che le ha dato chi l'ha
+   * aggiunta — che sono suoi, e valgono piu' di quelli di Home Assistant.
+   *
+   * L'assegnazione a mano viene prima: se la stessa entita' e' in tutt'e due,
+   * comanda quella scritta dalla tendina della sua riga — e' la piu' esplicita
+   * delle due, e comunque una riga sola non diventa due. */
+  for (const voce of entitaMie(readJson(CHIAVE_ENTITA_MIE, []))) {
+    metti(voce.entity, voce.room_id, voce.nome, voce.icona);
+  }
+  return [...voci.values()];
 }
 
 /* Come si chiama ogni blocco, e con che faccia. Le parole stanno qui e non nel
@@ -592,6 +614,23 @@ function accesa(entity, states) {
   return clean(states?.[entity]?.state).toLowerCase() === "on";
 }
 
+/* Quello che non si accende: si fa partire (#504).
+ *
+ * «Si potrebbero inserire le entità personalizzate nelle stanze tipo
+ * Automazioni?» Inserirle si poteva già — la tendina della stanza sta su ogni
+ * riga in cui l'entità è scritta — ma nella stanza l'automazione diventava una
+ * riga che diceva «on» e portava in Home, cioè da nessuna parte utile.
+ * Un'automazione, uno script, una scena, un tasto: quello che si vuole fare è
+ * FARLI PARTIRE, e adesso hanno il loro tasto qui, accanto al nome.
+ *
+ * Il verbo non si scrive qui: lo sa `core/comandi-accanto.js`, che lo usa già
+ * per i comandi accanto a un dispositivo. In particolare un'automazione si fa
+ * partire con «trigger» — «turn_on» la riabilita e basta, e sarebbe un tasto
+ * che spegne di nascosto un'automazione di casa invece di eseguirla. */
+function siPuoAvviare(entity) {
+  return genereDelComando(entity) === "tasto" && siComanda(entity);
+}
+
 /* La riga di una stanza si comanda da qui, non solo da un'altra pagina.
  *
  * «Le cose che compaiono nella sezione Stanze non sono comandabili: se clicco
@@ -644,7 +683,14 @@ function rowMarkup(item, blocco, states, aperture = aperturePerEntita(), sotto =
   }
   const tocco = siPuoAccendere(entity)
     ? `<button type="button" class="dm-stanze-tocca" data-dm-stanza-tocca="${esc(entity)}" role="switch" aria-checked="${accesa(entity, states) ? "true" : "false"}" aria-label="${esc(nomeVoce(item, states))}"><span class="dm-stanze-tocca-pallino"></span></button>`
-    : `<span class="dm-stanze-vai" aria-hidden="true">›</span>`;
+    : siPuoAvviare(entity)
+      ? /* Il segno è quello che i comandi di un dispositivo portano già altrove:
+         * una stella a quattro punte vuol dire «questo si fa partire», e nella
+         * plancia vuol dire la stessa cosa dappertutto. */
+        `<button type="button" class="dm-stanze-avvia" data-dm-stanza-avvia="${esc(entity)}" aria-label="${esc(
+          t("Avvia", "Run"),
+        )} ${esc(nomeVoce(item, states))}"><span aria-hidden="true">✦</span></button>`
+      : `<span class="dm-stanze-vai" aria-hidden="true">›</span>`;
   return `<article class="dm-stanze-card dm-stanze-voce" data-dm-stanza-vai="${esc(blocco.tab)}" data-dm-stanza-entita="${esc(entity)}" role="button" tabindex="0">
     <div class="dm-stanze-card-row">
       <span class="dm-stanze-orb">${esc(iconaVoce(item, blocco))}</span>
@@ -1002,6 +1048,20 @@ function handleClick(event) {
     tocca.setAttribute("aria-checked", acceso ? "false" : "true");
     return;
   }
+  /* Il tasto che fa partire un'automazione, uno script, una scena (#504). Come
+   * l'interruttore qui sopra: il tocco e' suo, non della riga — senza, far
+   * partire un'automazione cambierebbe pagina. */
+  const avvia = event.target?.closest?.("[data-dm-stanza-avvia]");
+  if (avvia) {
+    event.preventDefault();
+    event.stopPropagation();
+    const entity = clean(avvia.getAttribute("data-dm-stanza-avvia"));
+    const comando = entity && siComanda(entity) ? comandoDelDispositivo({ entity }) : null;
+    if (!comando) return;
+    root.navigator?.vibrate?.(8);
+    chiamaServizio(comando);
+    return;
+  }
   /* Un tocco su un comando non e' un tocco sulla card (#467): i tasti del
    * lettore e il pannello del clima stanno DENTRO la riga, e la riga porta
    * altrove. Senza questo, mettere in pausa cambiava pagina. Chi esegue quei
@@ -1101,6 +1161,24 @@ function installStyles() {
       #page-stanze .dm-stanze-tocca:focus-visible{outline:2px solid var(--primary-color,#0ea5e9);outline-offset:2px}
       @media (prefers-reduced-motion:reduce){
         #page-stanze .dm-stanze-tocca,#page-stanze .dm-stanze-tocca-pallino{transition:none}
+      }
+      /* Il tasto che fa partire (#504): un'automazione, uno script, una scena.
+         Tondo come l'interruttore accanto e della stessa altezza, cosi' le
+         righe di una stanza restano tutte alte uguale — una che si accende e
+         una che si fa partire sono due gesti diversi, non due righe diverse. */
+      #page-stanze .dm-stanze-avvia{
+        flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+        width:30px;height:30px;padding:0;border:1px solid var(--card-border,#e8edf3);
+        border-radius:50%;background:var(--surface-2,#f8fafc);color:var(--primary-color,#0ea5e9);
+        font-size:14px;line-height:1;cursor:pointer;transition:background .18s ease,border-color .18s ease}
+      #page-stanze .dm-stanze-avvia:hover{
+        border-color:var(--primary-color,#0ea5e9);
+        background:color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,var(--surface-2,#f8fafc))}
+      #page-stanze .dm-stanze-avvia:active{transform:scale(.94)}
+      #page-stanze .dm-stanze-avvia:focus-visible{outline:2px solid var(--primary-color,#0ea5e9);outline-offset:2px}
+      @media (prefers-reduced-motion:reduce){
+        #page-stanze .dm-stanze-avvia{transition:none}
+        #page-stanze .dm-stanze-avvia:active{transform:none}
       }
       /* I comandi veri dentro la card (#467): il pannello del clima e la
          pulsantiera del lettore arrivano gia' vestiti da chi li disegna — sono
