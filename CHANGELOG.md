@@ -57,6 +57,27 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Persone: il luogo apre la mappa di Home Assistant, non Google** (#438)
+
+  «Intendevo la mappa interna di HA... adesso punta su googlemap.»
+
+  Giusto. Il collegamento portava l'indirizzo **scritto** a Google Maps: un altro
+  sito, che di questa casa non sa niente — né le zone, né dove stanno i
+  dispositivi. La mappa che serve ce l'ha Home Assistant, e la mostra in due
+  posti: la **scheda dell'entità**, col segnaposto di quella persona, e il
+  **pannello Mappa**, che le fa vedere tutte.
+
+  Adesso il tocco chiede la prima. La plancia gira dentro una cornice, la cornice
+  sta nell'ombra del pannello, e da lì un annuncio attraversa il confine e arriva
+  a chi apre le schede: è la stessa strada che usa qualunque card di Home
+  Assistant, e la finestra si apre sopra la plancia senza portare via nessuno.
+
+  Quando intorno non c'è nessuna Home Assistant — la plancia aperta per conto suo,
+  come app a sé — non si annuncia a nessuno: un tocco che non fa niente sarebbe
+  peggio di un ripiego. Lì resta il collegamento scritto nel link, che è il
+  pannello **Mappa** della stessa casa. È anche dove finiscono il tasto centrale
+  del mouse e «apri in una scheda nuova».
+
 - **Auto: «Ferma» non era una cosa che la tessera sapesse** (#326)
 
   «L'indicazione "Ferma" presente dopo l'indicazione "È al xx%" sta ad indicare
