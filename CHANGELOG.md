@@ -45,6 +45,18 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   riga da cui non esce niente, prima di rassegnarsi al trattino, chiede al
   sensore se per caso porta un elenco.
 
+- **Finestre: con l'allerta della finestra aperta le altre schede restavano a scaletta** (#424)
+
+  La colonna era sparita — quella era la segnalazione di partenza, risolta nella
+  1.4.17 — ma sotto ne è rimasta un'altra: una finestra aperta si porta dietro la
+  sua fascia d'allerta, quindi quella scheda è più alta delle altre. Ogni scheda
+  teneva la sua altezza naturale e si appoggiava in cima alla riga: bordi di
+  sopra allineati, bordi di sotto a scaletta.
+
+  Adesso le schede di una riga prendono tutte l'altezza della più alta, e dentro
+  ognuna il contenuto resta in cima: il vuoto in più va in fondo, dove non lo
+  nota nessuno.
+
 - **Wallbox: l'anno leggeva l'aiutante invece del sensore da cui è fatto**
 
   «Ma non è assolutamente vero, nel database i dati ci sono.» E infatti ci sono.

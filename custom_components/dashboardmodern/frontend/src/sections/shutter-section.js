@@ -12,7 +12,9 @@ const state = (root[KEY] ||= { installed: false });
  * di troppo: questa e' stata chiusa, non lasciata socchiusa. */
 
 function installStyles() {
-  installStyle("dm-shutter-section-style", `
+  installStyle(
+    "dm-shutter-section-style",
+    `
 
     /* ── Tapparelle page ─────────────────────────────────────────────────
        First paint is already the final Beta9 geometry. This section no longer
@@ -112,7 +114,20 @@ function installStyles() {
      * arrivano appena lo schermo le regge, e su un monitor largo sono quattro
      * o cinque — con auto-fit, e non auto-fill, perche' due finestre sole
      * non devono restare due tessere strette in un angolo. */
-    html body #page-tapparelle#page-tapparelle #tapp-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(288px,1fr))!important;justify-content:stretch!important;align-items:start!important;gap:14px!important;padding:12px 4px 26px!important}
+    /* Le schede di una riga finiscono alla stessa altezza (#424).
+     *
+     * «Per qualche motivo quando c'e' anche l'allerta della finestra aperta le
+     * altre schede non sono allineate.» E infatti: una finestra aperta si porta
+     * dietro la sua fascia, quindi quella scheda e' piu' alta delle altre. Con
+     * align-items:start ogni scheda teneva la sua altezza naturale e si
+     * appoggiava in cima alla riga: i bordi di sopra allineati, quelli di sotto
+     * a scaletta.
+     *
+     * Adesso le schede di una riga prendono tutte l'altezza della piu' alta, e
+     * dentro ognuna il contenuto resta in cima (align-content sulla scheda):
+     * il vuoto in piu' va in fondo, dove non lo nota nessuno, invece di
+     * accorciare la scheda dove si vede. */
+    html body #page-tapparelle#page-tapparelle #tapp-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(288px,1fr))!important;justify-content:stretch!important;align-items:stretch!important;gap:14px!important;padding:12px 4px 26px!important}
 
     /* Legacy renderTapparelle emits two inline-styled full-width rows into the
        grid: the "open/close everything" bar, recognised by its buttons, and one
@@ -123,7 +138,7 @@ function installStyles() {
     html body #page-tapparelle#page-tapparelle #tapp-grid>div[style*="grid-column"]:not(.ed-empty):not(:has(.tapp-btn))::after{content:""!important;flex:1 1 auto!important;height:1px!important;background:linear-gradient(90deg,var(--tapp-border),transparent)!important}
     html body #page-tapparelle#page-tapparelle #tapp-grid>.ed-empty{padding:34px 18px!important;border:1px dashed var(--tapp-border)!important;border-radius:20px!important;color:var(--tapp-dim)!important;font-weight:800!important;text-align:center!important}
 
-    html body #page-tapparelle#page-tapparelle .tapp-card{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-height:0!important;padding:14px!important;gap:10px!important;border-radius:20px!important;animation:none!important;transform:none!important;position:relative!important;overflow:hidden!important;border:1px solid var(--tapp-border)!important;background:var(--tapp-surface)!important;box-shadow:var(--tapp-shadow)!important;transition:box-shadow .24s ease,border-color .24s ease!important}
+    html body #page-tapparelle#page-tapparelle .tapp-card{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-height:0!important;height:100%!important;align-content:start!important;padding:14px!important;gap:10px!important;border-radius:20px!important;animation:none!important;transform:none!important;position:relative!important;overflow:hidden!important;border:1px solid var(--tapp-border)!important;background:var(--tapp-surface)!important;box-shadow:var(--tapp-shadow)!important;transition:box-shadow .24s ease,border-color .24s ease!important}
     html body #page-tapparelle#page-tapparelle .tapp-card::before{content:""!important;position:absolute!important;inset:0 0 auto!important;height:3px!important;background:linear-gradient(90deg,transparent,var(--tapp-accent),transparent);background-size:55% 100%;background-repeat:no-repeat;background-position:50% 0;opacity:.5!important}
     html body #page-tapparelle#page-tapparelle .tapp-card:hover{border-color:color-mix(in srgb,var(--tapp-accent) 42%,transparent)!important;box-shadow:var(--tapp-shadow-hover)!important}
     html body #page-tapparelle#page-tapparelle .tapp-card:has(.tapp-st-open)::before{background:linear-gradient(90deg,transparent,var(--tapp-ok-fg),transparent);background-size:55% 100%;background-repeat:no-repeat;background-position:50% 0;opacity:.62!important}
@@ -283,7 +298,8 @@ function installStyles() {
      * telo che scende o la pastiglia che dice "in movimento": quelli sono lo
      * stato della finestra, disegnato. */
     @media(prefers-reduced-motion:reduce){html body #page-tapparelle#page-tapparelle .tapp-card,html body #page-tapparelle#page-tapparelle .tapp-btn{transition:none!important}}
-  `);
+  `,
+  );
 }
 
 export function installShutterSection() {
