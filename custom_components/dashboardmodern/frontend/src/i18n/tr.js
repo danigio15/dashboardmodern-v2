@@ -283,7 +283,7 @@ export default Object.freeze({
   "Added ${trovate.length} lists": "${trovate.length} liste eklendi",
   "Added ${trovati.length} calendars": "${trovati.length} takvim eklendi",
   "Administrator tools ·": "Yönetici araçları ·",
-  "Advanced card — image, cycle, temperature, costs": "Gelişmiş kart — görsel, program, sıcaklık, maliyet",
+  "Advanced card — image, duration, temperature, costs": "Gelişmiş kart — görsel, süre, sıcaklık, maliyet",
   "Advice": "Öneri",
   "Agenda": "Ajanda",
   "Air": "Hava",

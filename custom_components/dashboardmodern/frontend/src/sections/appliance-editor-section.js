@@ -261,12 +261,36 @@ function textField(name, label, value, help = "", placeholder = "") {
   return `<label class="ed-slot"><span class="ed-slot-lbl">${label}</span><input class="ed-input" name="${name}" value="${esc(value ?? "")}" placeholder="${esc(placeholder)}" autocomplete="off">${help ? `<small>${help}</small>` : ""}</label>`;
 }
 
+/* Le tre misure che decidono se l'apparecchio sta lavorando.
+ *
+ * «Scusami ma non riesco a trovare questa sezione, c'e' scritto solo quella
+ * della soglia attiva» — e un secondo: «anch'io ho lo stesso problema, e non
+ * vedo questa sezione "ritardo fine ciclo"». Il campo c'era: stava nella
+ * fisarmonica «Card avanzata — immagine, ciclo, temperatura, costi», chiusa,
+ * insieme alle foto e ai costi.
+ *
+ * Chi cerca «quanto deve stare sotto soglia prima che il ciclo sia finito» lo
+ * cerca accanto alla soglia, perche' e' la stessa domanda: sopra questa potenza
+ * sta lavorando, sotto quest'altra e' in standby, e dopo questi minuti ha
+ * finito. Tre numeri di una regola sola, spezzati in due posti, di cui uno
+ * chiuso e intitolato a un'altra cosa. Adesso stanno insieme.
+ */
+function soglieMarkup(device = {}) {
+  const standby =
+    device.threshold_standby == null || device.threshold_standby === ""
+      ? (device.metadata?.threshold_standby ?? "")
+      : device.threshold_standby;
+  return `
+        <label class="ed-slot"><span class="ed-slot-lbl">${t("Soglia in funzione", "Running threshold")}</span><input class="ed-input" type="number" step="0.1" min="0" name="threshold_run" value="${esc(device.threshold_run ?? device.metadata?.threshold_run ?? 5)}"><small>${t("Potenza in watt oltre la quale la card risulta accesa.", "Power in watts above which the card is shown as running.")}</small></label>
+        ${numberField("threshold_standby", t("Soglia standby (W)", "Standby threshold (W)"), standby, t("Sotto la soglia In funzione e sopra questa = Standby.", "Below the running threshold and above this = Standby."), { step: "0.1", placeholder: "1" })}
+        ${numberField("off_delay_minutes", t("Ritardo fine ciclo (minuti)", "End-of-cycle delay (minutes)"), device.off_delay_minutes ?? "", t("La card resta In funzione per questi minuti dopo l'ultima potenza sopra soglia: copre l'asciugatura a 0 W della lavastoviglie e le pause del ciclo.", "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses."), { step: "1", placeholder: "es. 30" })}`;
+}
+
 const CARD_FIELD_KEYS = [
   "state_entity",
   "remaining_entity",
   "cycle_duration_entity",
   "cycle_minutes",
-  "off_delay_minutes",
   "temperature_entity",
   "temperature_entity_2",
   "temp_min",
@@ -287,7 +311,7 @@ function cardFieldsMarkup(device = {}) {
     clean(device.image || device.image_url) ||
     CARD_FIELD_KEYS.some((key) => clean(device[key]) !== "");
   return `<details class="dm-appliance-card-fields"${configured ? " open" : ""}>
-    <summary>🧩 ${t("Card avanzata — immagine, ciclo, temperatura, costi", "Advanced card — image, cycle, temperature, costs")}</summary>
+    <summary>🧩 ${t("Card avanzata — immagine, durata, temperatura, costi", "Advanced card — image, duration, temperature, costs")}</summary>
     <div class="dm-appliance-card-fields-intro">${t(
       "Tutti i campi sono facoltativi: la card mostra automaticamente ciò che è disponibile. Avvio, durata, consumo e costo dell'ultimo ciclo vengono calcolati da soli dalle transizioni di potenza se non indichi entità dedicate.",
       "Every field is optional: the card automatically shows what is available. Start, duration, energy and cost of the last cycle are computed automatically from power transitions unless you provide dedicated entities.",
@@ -304,8 +328,6 @@ function cardFieldsMarkup(device = {}) {
       ${numberField("temp_max", t("Temperatura max (barra)", "Max temperature (bar)"), value("temp_max"), "", { step: "0.5", placeholder: "10" })}
       ${numberField("max_power", t("Potenza massima (W)", "Maximum power (W)"), value("max_power"), t("Scala della barra Potenza attuale. Vuoto = valore tipico per il tipo.", "Scale of the current power bar. Empty = typical value for the type."), { step: "50", placeholder: "es. 2200" })}
       ${numberField("price_kwh", t("Costo energia (€/kWh)", "Energy cost (€/kWh)"), value("price_kwh"), t("Vuoto = tariffa della sezione Energia.", "Empty = tariff from the Energy section."), { step: "0.001", placeholder: "es. 0.25" })}
-      ${numberField("threshold_standby", t("Soglia standby (W)", "Standby threshold (W)"), value("threshold_standby") === "" ? (device.metadata?.threshold_standby ?? "") : value("threshold_standby"), t("Sotto la soglia In funzione e sopra questa = Standby.", "Below the running threshold and above this = Standby."), { step: "0.1", placeholder: "1" })}
-      ${numberField("off_delay_minutes", t("Ritardo fine ciclo (minuti)", "End-of-cycle delay (minutes)"), value("off_delay_minutes"), t("La card resta In funzione per questi minuti dopo l'ultima potenza sopra soglia: copre l'asciugatura a 0 W della lavastoviglie e le pause del ciclo.", "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses."), { step: "1", placeholder: "es. 30" })}
       ${entityField("door_entity", t("Entità porta", "Door entity"), device.door_entity, t("Il classico sensore porta: la card dice «Porta aperta» quando resta aperta. Su un frigorifero è l'unica cosa che vale la pena sapere di sfuggita.", "The usual door contact: the card says “Door open” while it stays open. On a fridge that is the one thing worth knowing at a glance."))}
       ${entityField("alert_entity", t("Entità allarme/anomalia", "Alarm/problem entity"), device.alert_entity, t("binary_sensor di problema: accende il contatore Allarme.", "Problem binary_sensor: feeds the Alarm counter."))}
       ${entityField("last_start_entity", t("Ultimo ciclo · avvio", "Last cycle · start"), device.last_start_entity, t("Timestamp di avvio fornito dall'integrazione (es. Home Connect).", "Start timestamp provided by the integration (e.g. Home Connect)."))}
@@ -703,7 +725,7 @@ export function openApplianceEditor(index) {
         <label class="ed-slot dm-appliance-icon-field"><span class="ed-slot-lbl">${t("Tipo / immagine", "Type / artwork")}</span><input type="hidden" name="icon" value="${esc(visual)}"><span class="dm-appliance-icon-row"><span class="dm-appliance-icon-preview" data-icon-preview data-dm-preview-source="canonical-picker" aria-hidden="false"></span><button type="button" class="ed-input dm-appliance-type-trigger" data-type-trigger aria-haspopup="listbox"></button></span><small>${t("Usa lo stesso catalogo e la stessa icona azzurra della prima configurazione.", "Uses the same catalog and blue icon as the first configuration.")}</small></label>
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room_id">${roomOptions(device.room_id || device.room)}</select></label>
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Carico energia", "Energy load")}</span><select class="ed-input" name="flow_group" data-dm-appliance-flow-group>${flowLoadOptions(device.metadata?.beta27_subload_group)}</select><small class="dm-appliance-flow-suggestion" data-dm-flow-suggestion${flowGroupSuggested(device) ? "" : " hidden"}>✨ ${t("Suggerito: ha una potenza mappata", "Suggested: it has a mapped power sensor")}</small><small>${t("Il cerchio del flusso in cui rientra. Il suo valore diventa la somma dei dispositivi assegnati, e il popup del cerchio lo elenca: non serve riconfigurarlo nei Carichi.", "The flow circle it belongs to. That circle becomes the total of the appliances assigned to it and its popup lists them, with nothing to configure again under Loads.")}</small></label>
-        <label class="ed-slot"><span class="ed-slot-lbl">${t("Soglia in funzione", "Running threshold")}</span><input class="ed-input" type="number" step="0.1" min="0" name="threshold_run" value="${esc(device.threshold_run ?? device.metadata?.threshold_run ?? 5)}"><small>${t("Potenza in watt oltre la quale la card risulta accesa.", "Power in watts above which the card is shown as running.")}</small></label>
+        ${soglieMarkup(device)}
       </div>
       <section class="dm-appliance-entity-grid">
         ${entityField("control_entity", t("Entità comando", "Control entity"), controlInitial, t("Switch, light, fan o input_boolean usato dal pulsante Accendi/Spegni.", "Switch, light, fan or input_boolean used by the On/Off button."))}

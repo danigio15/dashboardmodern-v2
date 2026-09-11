@@ -575,6 +575,32 @@ async def _magazzino_della_compagna(plance: Any, url_path: str) -> Any:
     return None
 
 
+async def _la_compagna_e_gia_cosi(magazzino: Any, vista: dict[str, Any]) -> bool:
+    """Se quello che c'e' scritto e' gia' quello che ci si vuole scrivere.
+
+    Serve a due cose. La prima e' non riscrivere Lovelace per niente: questo
+    controllo si fa a ogni avvio e, da quando c'e' la riparazione, anche ogni
+    volta che qualcuno apre la plancia. La seconda e' saperlo: quando la vista
+    salvata NON e' quella giusta, la riga di registro che si scrive qui sopra
+    dice che una riparazione e' servita davvero, ed e' l'unico modo di
+    distinguere «la dashboard era a posto» da «l'abbiamo appena rimessa a
+    posto» senza chiederlo a chi guarda.
+
+    Non si riesce a rileggere? Allora non si sa, e nel dubbio si riscrive: una
+    scrittura di troppo non fa male a nessuno, una vista rotta lasciata li' si'.
+    """
+    leggi = getattr(magazzino, "async_load", None)
+    if leggi is None:
+        return False
+    try:
+        letta = await leggi(False)
+    except Exception:  # noqa: BLE001 - non si sa, quindi si riscrive
+        return False
+    if not isinstance(letta, dict):
+        return False
+    return letta.get("views") == [vista]
+
+
 async def _la_compagna_e_piena(magazzino: Any) -> bool:
     """Se quello che si e' appena scritto si rilegge davvero.
 
@@ -697,6 +723,11 @@ async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> boo
         vista = _companion_view(
             entry, _config_profile(hass, entry), _entry_is_primary(hass, entry)
         )
+        if await _la_compagna_e_gia_cosi(magazzino, vista):
+            return True
+        _LOGGER.info(
+            "Rimetto a posto la vista della dashboard di appoggio %s", url_path
+        )
         await magazzino.async_save({"views": [vista]})
         if not await _la_compagna_e_piena(magazzino):
             _LOGGER.error(
@@ -765,6 +796,42 @@ async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
         await _ensure_companion_dashboard(hass, entry_id)
 
     async_when_setup(hass, "lovelace", _quando_lovelace)
+
+
+async def async_ripara_dashboard_compagna(hass: HomeAssistant, entry_id: str) -> bool:
+    """Rimetti a posto la dashboard di appoggio adesso, senza aspettare un riavvio.
+
+    «Plancia preferita da sempre errore quando si apre app.»
+
+    La vista della dashboard di appoggio la scrive l'integrazione, e finora la
+    scriveva in un momento solo: quando Home Assistant si avvia. Va bene finche'
+    quello che c'e' scritto e' giusto — ma quando non lo e' (una versione vecchia
+    che ci aveva messo un filtro, una scrittura andata male, una dashboard nata
+    vuota), chi la tiene come predefinita resta davanti alla schermata rossa fino
+    al riavvio successivo. E un aggiornamento della plancia che non riavvia Home
+    Assistant — il caso normale, se si dice di no alla richiesta di riavvio —
+    lascia in piedi la vista sbagliata insieme al codice nuovo che la
+    correggerebbe.
+
+    C'e' pero' un momento in cui si sa di sicuro che qualcuno sta guardando
+    questa plancia, e per giunta e' la strada che ha sempre funzionato: quando
+    la si apre dalla barra laterale e chiede la sua configurazione. Da li' si
+    ripara. Chi ha la dashboard rotta la aggiusta facendo la cosa che gia'
+    faceva per aggirarla — aprirla dal menu — e non deve sapere niente di
+    niente.
+
+    Costa una rilettura di un magazzino piccolo, che Home Assistant si tiene in
+    memoria: se quello che c'e' scritto e' gia' giusto non si tocca niente.
+    """
+    try:
+        return await _ensure_companion_dashboard(hass, entry_id)
+    except Exception:  # noqa: BLE001 - una riparazione mancata non ferma la plancia
+        _LOGGER.debug(
+            "Riparazione della dashboard di appoggio non riuscita per %s",
+            entry_id,
+            exc_info=True,
+        )
+        return False
 
 
 async def async_unregister_frontend_entry(hass: HomeAssistant, entry_id: str) -> None:

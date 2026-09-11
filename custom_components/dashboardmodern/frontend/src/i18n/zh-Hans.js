@@ -283,7 +283,7 @@ export default Object.freeze({
   "Added ${trovate.length} lists": "已添加${trovate.length}个列表",
   "Added ${trovati.length} calendars": "已添加 ${trovati.length} 个日历",
   "Administrator tools ·": "管理员工具 ·",
-  "Advanced card — image, cycle, temperature, costs": "高级卡片 — 图片、程序、温度、费用",
+  "Advanced card — image, duration, temperature, costs": "高级卡片 — 图片、时长、温度、费用",
   "Advice": "建议",
   "Agenda": "日程",
   "Air": "空气",

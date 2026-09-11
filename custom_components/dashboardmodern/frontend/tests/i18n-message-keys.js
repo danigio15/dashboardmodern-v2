@@ -557,7 +557,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "added by hand",
   "added from",
   "Administrator tools ·",
-  "Advanced card — image, cycle, temperature, costs",
+  "Advanced card — image, duration, temperature, costs",
   "Advice",
   "Agenda",
   "Air",

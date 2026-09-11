@@ -843,7 +843,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Carburante": "Fuel",
   "Carburante · Autonomia · Portiere": "Fuel · Range · Doors",
   "Carburante consumato in totale (L)": "Total fuel used (L)",
-  "Card avanzata — immagine, ciclo, temperatura, costi": "Advanced card — image, cycle, temperature, costs",
+  "Card avanzata — immagine, durata, temperatura, costi": "Advanced card — image, duration, temperature, costs",
   "Carica": "Charge",
   "Carica · Autonomia · Wallbox": "Charge · Range · Wallbox",
   "Carica · Carburante · Autonomia": "Charge · Fuel · Range",

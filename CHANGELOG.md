@@ -5,6 +5,43 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## Non ancora rilasciato
+
+### Corretto
+
+- **Plancia predefinita: la dashboard rotta si aggiusta aprendo la plancia, senza riavviare**
+
+  La 1.4.19 ha smesso di scrivere il filtro che svuotava quella dashboard. Ma
+  quello che era **già** scritto è rimasto scritto: la vista la mette a posto
+  l'integrazione, e finora lo faceva in un momento solo — all'avvio di Home
+  Assistant. Chi aggiorna la plancia e risponde «riavvio dopo» si ritrova il
+  codice nuovo insieme alla vista vecchia, e la schermata rossa continua.
+
+  Adesso c'è un secondo momento, ed è quello che ha sempre funzionato: **quando
+  si apre la plancia dalla barra laterale**. Lì la plancia chiede la sua
+  configurazione, e da lì rimette a posto la propria dashboard di appoggio se
+  serve. Chi ha la schermata rossa la aggiusta facendo la cosa che già faceva
+  per aggirarla, senza sapere niente di niente.
+
+  Se quello che c'è scritto è già giusto non si tocca niente: si rilegge, si
+  confronta, e si riscrive solo quando le due cose non coincidono — così il
+  controllo può stare su ogni apertura senza pesare.
+
+- **Elettrodomestici: «Ritardo fine ciclo» era dove nessuno lo cercava** (#392)
+
+  «Scusami ma non riesco a trovare questa sezione, c'è scritto solo quella della
+  soglia attiva», e subito dopo un secondo: «anch'io ho lo stesso problema».
+
+  Il campo c'era. Stava nella fisarmonica «Card avanzata — immagine, ciclo,
+  temperatura, costi», chiusa di suo, in mezzo alle foto e ai costi. Chi cerca
+  «quanto deve stare sotto soglia prima che il ciclo sia finito» lo cerca
+  accanto alla soglia, perché è la stessa domanda: sopra questa potenza sta
+  lavorando, sotto quest'altra è in standby, dopo questi minuti ha finito.
+
+  Tre numeri di una regola sola, spezzati in due posti di cui uno chiuso e
+  intitolato a un'altra cosa. Adesso stanno insieme, nella parte che si vede
+  subito aprendo l'apparecchio.
+
 ## 1.4.19
 
 ### Corretto

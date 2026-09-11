@@ -283,7 +283,7 @@ export default Object.freeze({
   "Added ${trovate.length} lists": "${trovate.length} listas adicionadas",
   "Added ${trovati.length} calendars": "Adicionados ${trovati.length} calendários",
   "Administrator tools ·": "Ferramentas de administrador ·",
-  "Advanced card — image, cycle, temperature, costs": "Cartão avançado — imagem, ciclo, temperatura, custos",
+  "Advanced card — image, duration, temperature, costs": "Cartão avançado — imagem, duração, temperatura, custos",
   "Advice": "Conselho",
   "Agenda": "Agenda do dia",
   "Air": "Ar",

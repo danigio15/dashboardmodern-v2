@@ -283,7 +283,7 @@ export default Object.freeze({
   "Added ${trovate.length} lists": "${trovate.length} सूचियाँ जोड़ी गईं",
   "Added ${trovati.length} calendars": "${trovati.length} कैलेंडर जोड़े गए",
   "Administrator tools ·": "प्रशासक उपकरण ·",
-  "Advanced card — image, cycle, temperature, costs": "उन्नत कार्ड — छवि, चक्र, तापमान, लागत",
+  "Advanced card — image, duration, temperature, costs": "उन्नत कार्ड — छवि, अवधि, तापमान, लागत",
   "Advice": "सलाह",
   "Agenda": "एजेंडा",
   "Air": "हवा",

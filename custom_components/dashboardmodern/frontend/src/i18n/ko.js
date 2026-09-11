@@ -283,7 +283,7 @@ export default Object.freeze({
   "Added ${trovate.length} lists": "목록 ${trovate.length}개 추가됨",
   "Added ${trovati.length} calendars": "캘린더 ${trovati.length}개 추가됨",
   "Administrator tools ·": "관리자 도구 ·",
-  "Advanced card — image, cycle, temperature, costs": "고급 카드 — 이미지, 코스, 온도, 비용",
+  "Advanced card — image, duration, temperature, costs": "고급 카드 — 이미지, 소요 시간, 온도, 비용",
   "Advice": "조언",
   "Agenda": "일정표",
   "Air": "공기",
