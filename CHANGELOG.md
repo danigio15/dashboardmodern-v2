@@ -9,6 +9,30 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Una VMC spenta fra gli Avvisi non sparisce più dal Clima** (#371)
+
+  «Quando si imposta una VMC questa compare in moltissime sezioni nella
+  configurazione delle entità. E se la tolgo da una sezione per esempio allerte,
+  sparisce anche da climate!»
+
+  Il rilevamento degli Avvisi mette da solo ogni entità `climate.` nella sua
+  lista sorvegliata del Clima: la macchina della ventilazione compare lì senza
+  che nessuno ce l'abbia messa, ed è il motivo per cui la si ritrova in posti
+  dove non la si era scritta. Accanto le sta l'interruttore «nel widget» — e la
+  scheda degli Avvisi non è una sezione sola: sono sei liste sulla stessa
+  pagina. L'interruttore quindi non sapeva di quale tessera parlasse, e nel
+  dubbio scriveva una scelta valida per **tutte**: spenta fra gli Avvisi, la
+  macchina spariva anche dal Clima, che è la stessa entità guardata da un'altra
+  parte e nessuno l'aveva chiesto.
+
+  Adesso le liste che una tessera ce l'hanno la dicono — le batterie, gli
+  allagamenti, il fumo, e ogni avviso personalizzato con il proprio posto — e la
+  scelta vale solo lì. Le altre — aperture, luci, clima, riscaldamento — in Home
+  una tessera non ce l'hanno più: lì l'interruttore prometteva di togliere da
+  qualcosa che non esiste, e non c'è più. Chi vuole togliere una di quelle
+  entità da una tessera lo fa nella scheda di quella tessera, dove la scelta ha
+  un nome.
+
 - **Telecamere: sulla stessa telecamera partivano due connessioni insieme**
 
   «Vedi che parte doppia connessione insieme», con la foto del popup che mostra
