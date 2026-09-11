@@ -996,7 +996,7 @@ function installStyles() {
       #page-stanze .dm-stanze-h::after{content:"";flex:1 1 auto;height:1px;background:linear-gradient(90deg,var(--divider-color,#dbe4ee),transparent)}
       #page-stanze .dm-stanze-n{flex:0 0 auto;order:0;padding:2px 9px;border:1px solid var(--divider-color,#dbe4ee);border-radius:999px;font-size:10px;letter-spacing:.6px}
 
-      #page-stanze .dm-stanze-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(258px,1fr))}
+      #page-stanze .dm-stanze-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(258px,100%),1fr))}
       #page-stanze .dm-stanze-card{position:relative;display:grid;align-content:start;overflow:hidden;border:1px solid var(--divider-color,#dbe4ee);border-radius:22px;background:linear-gradient(180deg,var(--card-bg,#fff) 0%,color-mix(in srgb,#94a3b8 4%,var(--card-bg,#fff)) 100%);box-shadow:0 16px 32px -24px rgba(15,23,42,.45)}
       #page-stanze .dm-stanze-card-row{display:flex;align-items:center;gap:12px;padding:14px}
       #page-stanze .dm-stanze-orb{display:grid;place-items:center;flex:0 0 auto;width:50px;height:50px;border-radius:17px;background:linear-gradient(160deg,var(--secondary-background-color,#eef3f8),color-mix(in srgb,#94a3b8 14%,var(--secondary-background-color,#eef3f8)));font-size:24px;line-height:1}

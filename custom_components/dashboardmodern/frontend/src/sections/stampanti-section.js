@@ -312,7 +312,7 @@ function installStyles() {
     ${P} .dm-stampanti-testa[data-verdetto="pronta"] strong{color:#15803d}
     ${P} .dm-stampanti-sotto{font-size:12px;font-weight:700;color:var(--text-dim,#64748b)}
 
-    ${P} .dm-stampanti-elenco{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+    ${P} .dm-stampanti-elenco{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:12px}
     ${P} .dm-stampante{
       display:grid;gap:12px;padding:16px 18px;border-radius:20px;
       border:1px solid color-mix(in srgb,var(--dm-st,#94a3b8) 42%,transparent);

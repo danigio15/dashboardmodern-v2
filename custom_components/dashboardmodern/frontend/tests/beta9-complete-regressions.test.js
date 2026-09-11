@@ -139,7 +139,12 @@ test("shutters use one stable first-paint geometry without wrapping the legacy r
   assert.match(source, /First paint is already the final Beta9 geometry/);
   /* La geometria e' una sola e sta qui, ma le colonne non hanno piu' un tetto
    * in pixel (#349): si dividono la larghezza, e la card riempie la sua. */
-  assert.match(source, /#tapp-grid\{display:grid!important;grid-template-columns:repeat\(auto-fit,minmax\(288px,1fr\)\)!important/);
+  /* Il minimo ha un tetto: su uno schermo dove una colonna da 288 non ci
+   * sta, `auto-fit` la faceva lo stesso e la card sbordava a destra, con
+   * l'interruttore fuori dallo schermo (#483). `min(288px,100%)` tiene il
+   * minimo dov'era e gli impedisce di superare il posto che c'è: sopra la
+   * soglia non cambia un pixel. */
+  assert.match(source, /#tapp-grid\{display:grid!important;grid-template-columns:repeat\(auto-fit,minmax\(min\(288px,100%\),1fr\)\)!important/);
   assert.match(source, /\.tapp-card\{box-sizing:border-box!important;width:100%!important;max-width:none!important/);
   assert.match(source, /\.tapp-win\{box-sizing:border-box!important;height:132px!important;min-height:132px!important;max-height:132px!important/);
   assert.match(source, /\.tapp-shutter\{animation:none!important;filter:none!important;transition:height \.55s/);

@@ -267,7 +267,7 @@ export function sincronizzaLeVmc(host, letture) {
 export const STILE_VMC = `
 .dm-vmc{display:grid;gap:10px;margin-top:6px}
 .dm-vmc-titolo-fascia{margin:0;font-size:11px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;color:var(--secondary-text-color,#64748b)}
-.dm-vmc-griglia{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.dm-vmc-griglia{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr))}
 .dm-vmc-card{display:grid;gap:10px;padding:14px;border:1px solid var(--divider-color,#dbe4ee);border-radius:20px;background:var(--card-bg,#fff);box-shadow:0 18px 34px -28px rgba(15,23,42,.55)}
 .dm-vmc-card[data-avvisa="true"]{border-color:color-mix(in srgb,#f59e0b 55%,transparent)}
 .dm-vmc-head{display:flex;align-items:center;gap:10px;min-width:0}

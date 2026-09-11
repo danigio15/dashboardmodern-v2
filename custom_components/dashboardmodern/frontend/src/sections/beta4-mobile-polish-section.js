@@ -841,7 +841,7 @@ function installStyles() {
     #ed-body[data-dm-beta5-alerts="true"] .dm-beta5-alert-icon-row>#ed-avv-icon{width:100%!important;min-width:0!important;margin:0!important}
     #ed-body[data-dm-beta5-alerts="true"] .dm-beta5-alert-icon-trigger{display:grid!important;place-items:center!important;width:54px!important;height:50px!important;min-width:54px!important;padding:0!important;border-radius:14px!important;box-shadow:none!important}
 
-    #page-clima[data-dm-beta5-climate="canonical"] .clima-premium-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))!important;gap:16px!important;align-items:start!important}
+    #page-clima[data-dm-beta5-climate="canonical"] .clima-premium-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))!important;gap:16px!important;align-items:start!important}
     #page-clima[data-dm-beta5-climate="canonical"] .cp-card{box-sizing:border-box!important;aspect-ratio:auto!important;min-height:0!important;height:auto!important;max-height:none!important;justify-content:flex-start!important;padding:16px!important;gap:14px!important;overflow:hidden!important}
     #page-clima[data-dm-beta5-climate="canonical"] .cp-header{flex:0 0 auto!important}
     #page-clima[data-dm-beta5-climate="canonical"] .cp-body{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;align-items:end!important;gap:18px!important;flex:0 0 auto!important;min-height:0!important;padding:8px 4px!important;margin:0!important}

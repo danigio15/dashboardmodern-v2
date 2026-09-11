@@ -330,7 +330,7 @@ function installStyles() {
     ${P} .dm-batt-sotto,${P} .dm-batt-soglia{font-size:11.5px;font-weight:750;
       color:var(--text-dim,#64748b)}
     ${P} .dm-batt-soglia{opacity:.75}
-    ${P} .dm-batt-elenco{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+    ${P} .dm-batt-elenco{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr))}
     /* Le due soglie di chi si ricarica: sotto la riga, tutta larga. La riga
        resta la riga di sempre — tre colonne — e questa e' una quarta cella che
        le attraversa, cosi' una batteria normale non cambia di un pixel. */

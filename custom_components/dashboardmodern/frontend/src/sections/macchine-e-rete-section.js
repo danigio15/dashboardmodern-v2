@@ -310,7 +310,7 @@ function installStyles() {
       text-transform:uppercase;color:var(--text,#0f172a)}
     ${P} .dm-macchine-testa span{font-size:12px;font-weight:700;color:var(--text-dim,#64748b)}
     ${P} .dm-macchine-fascia[data-giu="true"] .dm-macchine-testa span{color:#dc2626}
-    ${P} .dm-macchine-elenco{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+    ${P} .dm-macchine-elenco{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));gap:10px}
 
     ${P} .dm-macchina{
       display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:10px;

@@ -102,7 +102,7 @@ function installStyles() {
      * responsive: sarebbe bello si allineassero per sfruttare tutta la
      * larghezza, es. 2 card o piu' in base alla risoluzione.»
      *
-     * La colonna aveva un tetto in pixel — minmax(280px,360px) — e con un
+     * La colonna aveva un tetto in pixel — minmax(min(280px,100%),360px) — e con un
      * massimo definito il browser conta quante colonne ci stanno usando QUEL
      * massimo, non il minimo: servivano 374 px (360 piu' il vuoto) per ogni
      * colonna. Su un tablet da 800 px, dove di posto ne sarebbero bastati per
@@ -127,7 +127,7 @@ function installStyles() {
      * dentro ognuna il contenuto resta in cima (align-content sulla scheda):
      * il vuoto in piu' va in fondo, dove non lo nota nessuno, invece di
      * accorciare la scheda dove si vede. */
-    html body #page-tapparelle#page-tapparelle #tapp-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(288px,1fr))!important;justify-content:stretch!important;align-items:stretch!important;gap:14px!important;padding:12px 4px 26px!important}
+    html body #page-tapparelle#page-tapparelle #tapp-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(288px,100%),1fr))!important;justify-content:stretch!important;align-items:stretch!important;gap:14px!important;padding:12px 4px 26px!important}
 
     /* Legacy renderTapparelle emits two inline-styled full-width rows into the
        grid: the "open/close everything" bar, recognised by its buttons, and one

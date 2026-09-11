@@ -40,5 +40,10 @@ test("la griglia che toglie la colonna resta quella", () => {
   /* La correzione della 1.4.17 non era sbagliata: risolveva un'altra cosa, e
    * si tiene. */
   const griglia = REGOLA("#tapp-grid{display:grid");
-  assert.match(griglia, /repeat\(auto-fit,minmax\(288px,1fr\)\)/);
+  /* Il minimo ha un tetto: su uno schermo dove una colonna da 288 non ci
+   * sta, `auto-fit` la faceva lo stesso e la card sbordava a destra, con
+   * l'interruttore fuori dallo schermo (#483). `min(288px,100%)` tiene il
+   * minimo dov'era e gli impedisce di superare il posto che c'è: sopra la
+   * soglia non cambia un pixel. */
+  assert.match(griglia, /repeat\(auto-fit,minmax\(min\(288px,100%\),1fr\)\)/);
 });

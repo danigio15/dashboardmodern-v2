@@ -358,7 +358,7 @@ function installStyles() {
     ${P} .dm-citofono-fascia>header>strong{
       font-family:'Oswald',system-ui,sans-serif;font-size:15px;letter-spacing:1.3px;
       text-transform:uppercase;color:var(--text,#0f172a)}
-    ${P} .dm-citofono-elenco{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+    ${P} .dm-citofono-elenco{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:10px}
 
     ${P} .dm-citofono,${P} .dm-cassetta{
       display:grid;align-items:center;gap:12px;padding:14px 16px;border-radius:18px;

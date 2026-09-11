@@ -1283,7 +1283,7 @@ function showcaseCss() {
 .dm-appl-chips button.active .dm-chip-dot{box-shadow:0 0 0 3px rgba(255,255,255,.25)}
 .dm-appl-sort select{appearance:none;-webkit-appearance:none;padding:10px 34px 10px 15px;border:1px solid var(--dm-border);border-radius:13px;background:var(--dm-card) url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' d='m1.5 1.8 4.5 4.4 4.5-4.4'/%3E%3C/svg%3E") no-repeat right 13px center;color:var(--dm-shell-text);font-size:12.5px;font-weight:750;cursor:pointer}
 /* grid — the id selector outranks the legacy ".appl-main-view.active{display:block}" */
-#appl-grid-overview.dm-appl-grid,.dm-appl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:16px}
+#appl-grid-overview.dm-appl-grid,.dm-appl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(285px,100%),1fr));gap:16px}
 .dm-appl-empty{grid-column:1/-1;padding:44px 20px;border:1px dashed var(--dm-border);border-radius:22px;text-align:center;color:var(--dm-dim);font-weight:750;background:var(--dm-soft)}
 /* card */
 .dm-appl-shell .appl-wide-card.dm-ap-card{display:flex;flex-direction:column;gap:0;margin:0;padding:0;border:1px solid var(--dm-border);border-radius:22px;background:var(--dm-card);box-shadow:0 12px 30px rgba(15,23,42,.06);overflow:hidden;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
