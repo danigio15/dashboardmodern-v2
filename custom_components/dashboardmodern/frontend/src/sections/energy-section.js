@@ -1507,7 +1507,53 @@ function setEnergyLoading(active) {
 /* La ragione, in parole. Il messaggio tecnico dice
  * «Incomplete Home Assistant statistics: day:house.total_energy:sensor.x»;
  * chi guarda vuole sapere QUALE sensore e cosa fare. */
-export function spiegazioneDellErrore(testo) {
+/* Cosa si vede DAVVERO di quel sensore, in una riga.
+ *
+ * «Ho controllato che l'entità abbia lo state class su total, ma la sezione mi
+ * scrive in giallo che devo verificare l'entità che deve avere il total»
+ * (#485). Il messaggio elencava le due condizioni — state_class e unità — e
+ * lasciava a chi legge il compito di indovinare QUALE delle due mancasse. Chi
+ * ne controlla una, la trova giusta, e conclude che il messaggio ha torto: e
+ * quasi sempre a mancare era l'altra.
+ *
+ * La plancia quel sensore ce l'ha in mano: la sua `state_class` e la sua unità
+ * le legge dagli stati. Dirle invece di ripetere la regola costa una riga e
+ * chiude la domanda da sola. Quando invece tornano tutt'e due, la regola non
+ * c'entra: le statistiche di quel sensore non coprono ancora il periodo — un
+ * sensore nato ieri non ha un mese — e va detto quello, non «controlla la
+ * state_class» a chi l'ha appena controllata. */
+function comEMessoIlSensore(entity, states) {
+  /* Le parole si traducono intere, e i pezzi che cambiano si attaccano fuori:
+   * una frase con dentro il nome di un'entita' non e' una frase che si possa
+   * mettere in un catalogo di traduzioni. */
+  if (!states?.[entity])
+    return `${entity} (${t("Home Assistant non ha questa entità", "Home Assistant does not have this entity")})`;
+  const attributi = states[entity]?.attributes || {};
+  const classe = clean(attributi.state_class).toLowerCase();
+  const unita = clean(attributi.unit_of_measurement);
+  const classeOk = classe === "total" || classe === "total_increasing";
+  const unitaOk = /^(k|m)?wh$/i.test(unita);
+  if (classeOk && unitaOk)
+    return `${entity} (state_class ${classe}, ${unita} — ${t(
+      "vanno bene: le statistiche non coprono ancora il periodo chiesto",
+      "both fine: statistics do not cover the requested period yet",
+    )})`;
+  const vuota = t("vuota", "empty");
+  const detto = [
+    classeOk
+      ? ""
+      : `${t("state_class è", "state_class is")} «${classe || vuota}», ${t(
+          "serve total o total_increasing",
+          "it needs total or total_increasing",
+        )}`,
+    unitaOk
+      ? ""
+      : `${t("l'unità è", "the unit is")} «${unita || vuota}», ${t("serve kWh", "it needs kWh")}`,
+  ].filter(Boolean);
+  return `${entity} (${detto.join("; ")})`;
+}
+
+export function spiegazioneDellErrore(testo, states = allStates()) {
   const grezzo = clean(testo);
   if (!grezzo) return "";
   const incompleto = /Incomplete Home Assistant statistics:\s*(.+)$/i.exec(grezzo);
@@ -1520,10 +1566,11 @@ export function spiegazioneDellErrore(testo) {
           .filter(Boolean),
       ),
     ];
-    return t(
-      `Statistiche a lungo termine mancanti per ${entita.join(", ")}: il sensore deve avere state_class total_increasing (o total) e unità kWh. Nel frattempo si mostrano i valori istantanei.`,
-      `Long-term statistics missing for ${entita.join(", ")}: the sensor needs state_class total_increasing (or total) and a kWh unit. Instant values are shown meanwhile.`,
-    );
+    const dettagli = entita.map((entity) => comEMessoIlSensore(entity, states)).join(" · ");
+    return `${t("Statistiche a lungo termine mancanti.", "Long-term statistics missing.")} ${dettagli}. ${t(
+      "Nel frattempo si mostrano i valori istantanei.",
+      "Instant values are shown meanwhile.",
+    )}`;
   }
   /* «La connessione è occupata» non voleva dire niente: era una parola messa
    * li' per non lasciare la frase a meta'. Chi legge vuole sapere cosa fare, e
