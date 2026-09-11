@@ -169,6 +169,10 @@ import { azioniDellaPorta } from "../core/security-door-model.js";
 import { humidityEntry } from "../core/room-overview.js";
 import { CHIAVE_VARCHI, contoDeiVarchi, varchiDiCasa } from "../core/varchi-di-casa.js";
 import {
+  CHIAVE_RILEVAMENTI,
+  rilevamentiAccesi,
+} from "../core/rilevamenti-telecamera.js";
+import {
   CHIAVE_VERSO_BATTERIA,
   batteriaGirata,
   potenzaDellaBatteria,
@@ -1328,7 +1332,7 @@ function formatWatts(value) {
   return `${formatNumber(value, 0)} W`;
 }
 
-function camerasModel() {
+function camerasModel(states = allStates()) {
   const fuori = widgetExcludedEntities("telecamere");
   let cameras = [];
   try {
@@ -1341,16 +1345,51 @@ function camerasModel() {
     }))
     .filter((row) => row.entity && widgetIncludes(row.entity, fuori));
   if (!rows.length) return null;
+  /* Cosa stanno vedendo adesso (#394).
+   *
+   * «Che la Dashboard metta l'avviso con il fotogramma.» La tessera delle
+   * telecamere e' il posto: e' quella che i fotogrammi li carica gia', ed e'
+   * quella che uno guarda per sapere se fuori c'e' qualcuno. Un avviso a parte
+   * sarebbe una seconda tessera che dice di una cosa sola, accesa quasi mai.
+   *
+   * Quando qualcosa si vede, il numero grande smette di contare le telecamere
+   * e dice cosa e' stato visto: «quante telecamere ho» e' una domanda che non
+   * si fa mentre c'e' una persona in giardino. */
+  const visti = rilevamentiAccesi(
+    readJson(CHIAVE_RILEVAMENTI, {}),
+    states,
+    rows,
+    activeLocale(),
+  );
+  const primo = visti[0] || null;
   return {
     key: "telecamere",
-    accent: "#0284c7",
-    icon: "📹",
+    accent: primo ? "#dc2626" : "#0284c7",
+    icon: primo ? primo.segno : "📹",
     label: t("Telecamere", "Cameras"),
-    value: String(rows.length),
-    caption: rows[0].name,
+    value: primo ? primo.parola : String(rows.length),
+    caption: primo ? `${primo.nome} · ${oraDelRilevamento(primo.quando)}` : rows[0].name,
     ring: null,
+    /* Acceso solo quando c'e' davvero qualcosa: una tessera che si accende
+     * sempre non e' piu' un avviso. E' la stessa regola dei Varchi. */
+    alert: Boolean(primo),
+    visti,
     rows,
   };
+}
+
+/* L'ora di un rilevamento, come la si legge passando. Solo l'ora e i minuti:
+ * il giorno lo si sa, ed e' successo adesso o non sarebbe acceso. */
+function oraDelRilevamento(quando) {
+  if (!Number.isFinite(quando)) return "";
+  try {
+    return new Date(quando).toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (_errore) {
+    return "";
+  }
 }
 
 const ENERGY_SLOTS = Object.freeze([

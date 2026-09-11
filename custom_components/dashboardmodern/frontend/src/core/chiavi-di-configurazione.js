@@ -215,7 +215,12 @@
  * inoltre volevo chiedere una sezione per la cassetta della posta». Chi apre,
  * chi suona, e i due sensori della cassetta: sono cose del cancello di casa,
  * uguali su ogni dispositivo che le guarda. */
-export const CONFIG_KEYS_REVISION = 45;
+/* La revisione 46 aggiunge i rilevamenti delle telecamere (`cd_rilevamenti`,
+ * #394): «una volta che io imposto persona, animale, veicolo e movimento —
+ * perche' reolink ti sgancia questi sensori — che la Dashboard metta l'avviso
+ * con il fotogramma». Quali sensori guarda ogni telecamera e' una proprieta'
+ * della casa, non del telefono da cui la si guarda: viaggia con le altre. */
+export const CONFIG_KEYS_REVISION = 46;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -233,6 +238,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_floors",
   "cd_floor_icons",
   "cd_cameras",
+  "cd_rilevamenti",
   "cd_appliances",
   "cd_loads",
   "cd_devices",

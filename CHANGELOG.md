@@ -26,6 +26,68 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Il radar meteo cammina** (#393)
+
+  «Sarebbe bello un package del meteo possibilmente dinamico da poter inserire
+  in home, dove implementarlo con un radar.»
+
+  Il radar c'era già — dentro le previsioni, sopra i sette giorni — ma era una
+  fotografia: **un fotogramma solo**, l'ultimo misurato. Una fotografia dice
+  dove piove; la domanda per cui si apre un radar è **dove va**, e a quella
+  risponde solo il movimento.
+
+  Adesso mostra l'ultima ora in movimento — sei fotogrammi, uno ogni dieci
+  minuti — con l'ora di quello che si sta guardando scritta nell'angolo: senza,
+  «un'ora fa» e «adesso» si somigliano troppo. Sull'ultimo si ferma un attimo di
+  più, altrimenti il ritorno indietro sembra un difetto invece che un giro
+  finito.
+
+  Sono i fotogrammi **misurati**, non le previsioni: RainViewer pubblica anche i
+  «nowcast», e un radar che li mostra insieme al presente senza dirlo racconta
+  come successa una cosa che non è successa.
+
+  Costa sei giri di quadratini invece di uno, e per questo c'è l'interruttore
+  **Radar animato** nella sua scheda: spento, si torna esattamente al fotogramma
+  di prima. Chi ha chiesto meno movimento al proprio sistema non lo riceve — e
+  a finestra chiusa non gira niente. La fila si chiede con la stessa richiesta
+  da cui si legge l'ultimo fotogramma: una sola, non due.
+
+- **Le telecamere dicono cosa hanno visto** (#394)
+
+  «Io utilizzo reolink, mi piacerebbe appunto una volta che io imposto persona,
+  animale, veicolo e movimento — perché reolink ti sgancia questi sensori — che
+  la Dashboard metta l'avviso con il fotogramma e in contemporanea arriva una
+  notifica da home assistant.»
+
+  Dentro ci sono due richieste, e una delle due la plancia non deve farla.
+
+  **L'avviso in plancia** è cosa nostra, ed è fatto. Quando uno di quei sensori
+  scatta, la tessera **Telecamere** in Home smette di contare le telecamere e
+  dice cosa è stato visto: «👤 Persona · Ingresso · 14:32», rossa, col fotogramma
+  lì dentro. È la tessera giusta perché è quella che i fotogrammi li carica già,
+  ed è quella che si guarda per sapere se fuori c'è qualcuno: un avviso a parte
+  sarebbe stata una seconda tessera accesa quasi mai. Si accende **solo** quando
+  c'è qualcosa — è la stessa regola dei Varchi.
+
+  Quando due scattano insieme — e scattano quasi sempre insieme, perché una
+  persona che cammina è anche movimento — ne dice **uno**, il più importante:
+  «Movimento in giardino» sotto una persona vera è la notizia detta peggio.
+
+  **Le caselle si riempiono da sole.** Chi ha una Reolink ha
+  `binary_sensor.ingresso_person` accanto a `camera.ingresso`: il riconoscimento
+  guarda il nome, perché la classe non basta — Reolink pubblica persona, veicolo
+  e animale tutti come `motion`. Quello che propone si corregge, ed è la ragione
+  per cui sono caselle e non una spunta. La scheda sta in **Config → Sicurezza**,
+  sotto le telecamere, perché parla di quelle.
+
+  **Il push sul telefono lo manda Home Assistant, non la plancia.** Rifarne uno
+  qui vorrebbe dire un secondo motore di automazioni da tenere allineato al
+  primo — e per spedirlo peggio, perché quello di Home Assistant gira sul server
+  e la plancia gira in un browser che di notte è chiuso. Quello che si può fare
+  bene è consegnare l'automazione **già scritta**, con dentro le entità scelte e
+  il fotogramma allegato per entità (l'unico modo perché arrivi anche da fuori
+  casa): è in fondo alla stessa scheda, con il tasto che la copia.
+
 - **Antifurto su misura: il tasto può chiedere il suo PIN** (#336)
 
   «Sarebbe comodo che nella sezione allarme, oltre a scegliere l'entità, si

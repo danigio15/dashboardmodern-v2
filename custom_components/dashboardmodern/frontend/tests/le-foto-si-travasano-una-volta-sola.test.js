@@ -175,12 +175,21 @@ test("togliere una chiave non alza la revisione", async () => {
    * «avendo un intercom ho un button.cancello per aprire, inoltre volevo
    * chiedere una sezione per la cassetta della posta». Il cancello è uno solo,
    * e chi lo configura dal telefono lo ritrova dal computer. */
-  assert.equal(CONFIG_KEYS_REVISION, 45);
+  /* E la 46 con i rilevamenti delle telecamere (#394, `cd_rilevamenti`): «una
+   * volta che io imposto persona, animale, veicolo e movimento — perché
+   * reolink ti sgancia questi sensori — che la Dashboard metta l'avviso con il
+   * fotogramma». Quali sensori guarda ogni telecamera è una proprietà della
+   * casa: chi li sceglie dal computer li ritrova sul tablet appeso al muro. */
+  assert.equal(CONFIG_KEYS_REVISION, 46);
   assert.ok(
     CONFIG_KEYS.includes("cd_stampanti"),
     "le stampanti si configurano per la casa, non per lo schermo",
   );
   assert.ok(CONFIG_KEYS.includes("cd_nodi"), "un cluster è della casa, non dello schermo");
+  assert.ok(
+    CONFIG_KEYS.includes("cd_rilevamenti"),
+    "quali sensori guarda una telecamera è della casa, non dello schermo",
+  );
   assert.ok(
     CONFIG_KEYS.includes("cd_citofono"),
     "il cancello è uno solo, e la cassetta della posta pure",

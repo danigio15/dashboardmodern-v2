@@ -1188,8 +1188,18 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // vorrei disattivarla per tutte le plance, sarebbe possibile avere una
   // funzione tipo kiosk mode?». Il chiosco c'era gia'; qui c'e' solo la sua
   // riga nella configurazione, che non sa niente di suo e chiede tutto a lui.
+  // 337 con il codice del tastierino tirato fuori in un posto solo (#336): la
+  // regola del PIN — quattro-otto cifre — stava scritta due volte, nelle
+  // aperture e nei tasti d'inserimento su misura, e tre porte sullo stesso
+  // gesto che accettano codici diversi sono tre porte che un giorno non si
+  // somigliano piu'.
+  // 339 con i rilevamenti delle telecamere (#394): il motore — che tipo di
+  // sensore e', cosa si vede adesso, e l'automazione del telefono gia' scritta
+  // — e la sua scheda sotto le telecamere. Il push lo manda Home Assistant,
+  // quindi qui non c'e' nessun secondo motore di automazioni: c'e' il
+  // documento da incollare.
   assert.ok(
-    relative.length <= 336,
+    relative.length <= 339,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
