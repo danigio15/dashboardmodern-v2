@@ -102,6 +102,20 @@ export function cumulativeValue(row) {
   return finite(row?.sum);
 }
 
+/* Quanto segna il contatore alla fine di un secchiello — il suo `state`.
+ *
+ * E' un numero diverso dalla `sum`, e le due non vanno confuse. La `sum` e' un
+ * totale DEL RECORDER: parte da zero quando cominciano le statistiche di
+ * quell'entita' e da li' accumula. Lo `state` e' la lettura del contatore
+ * fisico: e' cominciato quando e' stato acceso l'apparecchio, che di solito e'
+ * molto prima.
+ *
+ * Serve in un caso solo, ed e' quello raccontato in `crescitaNellArco`: un
+ * contatore di vita le cui statistiche cominciano a meta' strada. */
+export function letturaDelContatore(row) {
+  return finite(row?.state);
+}
+
 /* Le righe della domanda di ripiego, portate in kilowattora.
  *
  * Alla domanda normale si chiede `units: { energy: "kWh" }` e converte Home
@@ -114,7 +128,15 @@ export function righeInKilowattora(righe, unita) {
   if (inKilowattora(1, unita) === 1) return elenco;
   return elenco.map((riga) => {
     const somma = inKilowattora(riga?.sum, unita);
-    return somma == null ? riga : { ...riga, sum: somma };
+    /* Anche la lettura del contatore, non solo la somma del Recorder: le due
+     * si usano insieme, e una convertita accanto a una no darebbe un numero
+     * che non vuol dire niente. */
+    const lettura = inKilowattora(riga?.state, unita);
+    if (somma == null && lettura == null) return riga;
+    const copia = { ...riga };
+    if (somma != null) copia.sum = somma;
+    if (lettura != null) copia.state = lettura;
+    return copia;
   });
 }
 
@@ -700,8 +722,8 @@ export function crescitaNellArco(righe = [], range, { continuazione = false } = 
   const dentro = ordinate.filter(
     (riga) => rowTimestamp(riga) >= inizio && rowTimestamp(riga) < fine,
   );
-  const partenza =
-    prima.at(-1) || (continuazione ? null : contatoreNatoDentro(prima, dentro, inizio));
+  const nato = continuazione ? null : contatoreNatoDentro(prima, dentro, inizio);
+  const partenza = prima.at(-1) || nato;
   if (!dentro.length) return null;
   /* Senza un predecessore, la prima riga di dentro E' il punto di partenza:
    * vale zero, non se stessa.
@@ -731,10 +753,41 @@ export function crescitaNellArco(righe = [], range, { continuazione = false } = 
    * (`recorderBucketConsumptions`): erano due modi di misurare la stessa cosa,
    * uno giusto sempre e uno giusto quasi sempre, e a comandare qui era il
    * secondo. Adesso ce n'e' uno. */
-  return recorderBucketConsumptions(secchielli, base).reduce(
-    (somma, riga) => somma + Math.max(0, Number(riga.change) || 0),
+  const somma = recorderBucketConsumptions(secchielli, base).reduce(
+    (totale, riga) => totale + Math.max(0, Number(riga.change) || 0),
     0,
   );
+  if (!nato) return somma;
+  /* Il contatore e' nato dentro questo arco: la sua lettura e' un pavimento.
+   *
+   * «Il sensore restituisce 1440,76 kWh per 2026» — e la plancia continuava a
+   * dirne 546, anche dopo aver imparato a sommare i secchielli invece di
+   * sottrarre i contatori dei mesi. Sommare i secchielli era giusto; il guaio
+   * era piu' in basso, in COSA si sommava.
+   *
+   * La `sum` del Recorder non e' la lettura del contatore: e' un totale suo,
+   * che parte da zero quando cominciano le STATISTICHE di quell'entita'. Se le
+   * statistiche cominciano dopo l'apparecchio — un'entita' rifatta, un
+   * aiutante che filtra i picchi creato mesi dopo la colonnina, una purga del
+   * database — allora tutto quello che era stato consumato prima non sta in
+   * nessun secchiello, e nessuna somma di secchielli puo' ritrovarlo. Erano gli
+   * 894 kWh che mancavano.
+   *
+   * Quando pero' l'arco contiene tutta la vita registrata del contatore — e'
+   * esattamente cio' che dice `contatoreNatoDentro`: niente righe prima, e la
+   * prima riga che arriva dopo il confine — allora anche l'ultimo azzeramento
+   * del contatore fisico e' caduto dentro l'arco. Quindi quello che il
+   * contatore segna adesso l'ha consumato dentro l'arco: e' un numero che
+   * l'arco contiene di sicuro, cioe' un pavimento.
+   *
+   * Si prende il piu' grande dei due, e non e' un ripiego: nel caso normale —
+   * statistiche che coprono tutta la vita — la somma dei secchielli e' gia'
+   * maggiore o uguale alla lettura (su un contatore che si azzera li conta
+   * tutti, su uno di vita coincide), quindi il massimo non cambia niente.
+   * Cambia solo li' dove la somma e' corta, ed e' proprio il caso in cui era
+   * corta per forza. */
+  const lettura = letturaDelContatore(dentro.at(-1));
+  return lettura == null ? somma : Math.max(somma, lettura);
 }
 
 /* Un contatore che a inizio periodo non c'era ancora parte da zero.
@@ -1273,7 +1326,11 @@ export class HomeAssistantBroker {
       end_time: endIso,
       statistic_ids: statisticIds,
       period,
-      types: ["sum"],
+      /* Anche `state`, che costa una colonna in piu' sulle stesse righe.
+       *
+       * E' la lettura del contatore, e serve quando la `sum` del Recorder e'
+       * piu' corta della vita dell'apparecchio (vedi `crescitaNellArco`). */
+      types: ["sum", "state"],
       units: { energy: "kWh" },
     };
     const eta = this.cacheHistoricalMs;

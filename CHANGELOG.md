@@ -9,6 +9,60 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Wallbox: il totale dell'anno perdeva quasi mille kWh**
+
+  «Il sensore restituisce 1440,76 kWh per 2026» — e la plancia ne diceva 546,
+  per quattro rilasci di fila.
+
+  Il conto dell'anno somma i secchielli del Recorder, e sommare i secchielli è
+  giusto: è l'unico modo che non sbaglia anche sui contatori che si azzerano
+  ogni mese. Il guaio era più in basso, in **cosa** si sommava.
+
+  La `sum` del Recorder non è la lettura del contatore. È un totale suo, che
+  parte da zero quando cominciano le **statistiche** di quell'entità — non
+  quando è stato acceso l'apparecchio. Se le statistiche cominciano dopo (un'
+  entità rifatta, un aiutante che filtra i picchi creato mesi dopo la colonnina,
+  una purga del database), tutto quello che era stato consumato prima non sta in
+  nessun secchiello, e nessuna somma può ritrovarlo. Erano gli 894 kWh che
+  mancavano.
+
+  Adesso, quando l'arco contiene **tutta la vita registrata** del contatore —
+  nessuna riga prima, e la prima riga che arriva dopo il confine — si guarda
+  anche quello che il contatore segna addosso: se il suo ultimo azzeramento è
+  caduto dentro l'arco, allora quel numero l'arco lo contiene di sicuro, ed è un
+  pavimento. Su una colonnina installata a marzo il totale del 2026 torna a
+  essere 1440,76.
+
+  Nel caso normale — statistiche che coprono tutta la vita dell'apparecchio — la
+  somma dei secchielli è già maggiore o uguale alla lettura, quindi non cambia
+  nessun numero.
+
+- **Wallbox: «49,4 kWh dal fotovoltaico» quando i veri erano 22,8**
+
+  La card del dispositivo scriveva 49,4 kWh da FV e 18,7 dalla rete; i numeri
+  veri erano 22,8 e 45,3. Non un errore di misura: il rovescio esatto della
+  realtà.
+
+  La spartizione non stava misurando niente. Prendeva la quota di rete di
+  **tutta la casa** nel mese e la incollava sui kWh dell'apparecchio: 18,7 su
+  68,1 è 0,2746, cioè esattamente la quota di rete della casa. Per un
+  frigorifero, che tira uguale giorno e notte, quella copia è quasi giusta. Per
+  un'auto è quasi sempre sbagliata, e più è grossa la ricarica più sbaglia: una
+  macchina si attacca la sera e stacca la mattina, cioè nelle ore in cui il sole
+  non c'è. Il mese le dava il 72% di sole perché la **casa**, nelle sue ore, il
+  sole ce l'ha.
+
+  La quota di sole di un consumo si sa solo sapendo **quando** è avvenuto. Ora
+  per ora: in quest'ora l'apparecchio ha preso tanto, e in quest'ora la casa
+  stava prendendo dalla rete questa frazione di quello che consumava. Il resto è
+  una somma.
+
+  Le ore si chiedono solo a scheda del dispositivo aperta, e una volta sola per
+  periodo: il mese arriva subito, l'anno dopo. Se le ore non ci sono — un
+  Recorder che non le tiene, una domanda caduta — resta la stima di prima, che è
+  meglio di niente, invece di una percentuale inventata scritta come se fosse
+  misurata.
+
 - **Plancia predefinita: «Errore di configurazione» all'apertura dell'app** (#107)
 
   «Quando si imposta la plancia come predefinita e apro l'app HA va in errore;

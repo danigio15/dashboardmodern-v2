@@ -1185,8 +1185,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // le regole in `core/citofono-e-posta.js` — quale verbo apre quale dominio,
   // e come si legge una cassetta da due sensori — e le due sezioni che le
   // vestono, la pagina e la scheda della configurazione.
+  // 335 con la quota di sole di un apparecchio: «wallbox sempre sbagliato»,
+  // 49,4 kWh dal fotovoltaico contro i 22,8 veri. Un modulo solo, e puro: la
+  // quota di sole di un consumo si sa solo sapendo QUANDO e' avvenuto, e il
+  // conto ora per ora non e' roba da mettere dentro chi disegna la card. La
+  // sezione gli passa tre serie di secchielli — l'apparecchio, la casa, la
+  // rete — e lui torna la spartizione e da dove l'ha presa.
   assert.ok(
-    relative.length <= 334,
+    relative.length <= 335,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
