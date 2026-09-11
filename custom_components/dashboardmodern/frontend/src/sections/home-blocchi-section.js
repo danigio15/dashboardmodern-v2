@@ -18,7 +18,9 @@
  */
 import { spostaNellElenco } from "../core/ordine-a-mano.js";
 import { BLOCCHI_DELLA_HOME, ordineDeiBlocchi } from "../core/ordine-dei-blocchi.js";
+import { CHIAVE_PASTIGLIE, lePastiglieSiVedono } from "../core/pastiglie-di-stato.js";
 import {
+  attributoSeCambia,
   clean,
   doc,
   esc,
@@ -121,6 +123,7 @@ function inCoda() {
   root.queueMicrotask?.(() => {
     state.inCoda = false;
     try {
+      vestiLePastiglie();
       applicaLOrdineDeiBlocchi();
     } catch (_error) {}
   });
@@ -177,7 +180,40 @@ function pannelloMarkup() {
         "The order they appear in on Home: people, widgets, quick actions, devices. Inside each block the order is set where that block is configured: people in their own tab, tiles in Widgets, quick actions in theirs.",
       ),
     )}</div>
-    <div class="dm-blocco-list">${righe}</div>`;
+    <div class="dm-blocco-list">${righe}</div>
+    ${pastiglieMarkup()}`;
+}
+
+/* L'interruttore delle pastiglie di stato (#491).
+ *
+ * Sta qui sotto l'ordine dei blocchi e non in mezzo a loro, perche' non e' un
+ * blocco: e' una riga che si accende quando la caldaia e' accesa o l'antifurto
+ * inserito, e sta in cima perche' e' un avviso. Riordinarla vorrebbe dire
+ * poterla mandare in fondo, cioe' non vederla mai; spegnerla invece e' una
+ * scelta che si fa sapendo cosa si spegne. */
+function pastiglieMarkup() {
+  const accese = lePastiglieSiVedono(readJson(CHIAVE_PASTIGLIE, null));
+  return `<div class="ed-row dm-blocco-pastiglie">
+    <span class="ed-row-main"><strong class="ed-row-new">${esc(
+      t("Pastiglie di stato", "Status pills"),
+    )}</strong><small class="ed-row-old">${esc(
+      t(
+        "La riga in cima alla Home: caldaia accesa e antifurto inserito. Compare da sola solo quando ha qualcosa da dire.",
+        "The row at the top of Home: boiler on and alarm armed. It only shows up when it has something to say.",
+      ),
+    )}</small></span>
+    <label class="dm-blocco-switch"><input type="checkbox" data-dm-pastiglie${
+      accese ? " checked" : ""
+    }><span></span></label>
+  </div>`;
+}
+
+/** Scrive addosso al documento se le pastiglie si vedono. */
+export function vestiLePastiglie() {
+  const radice = doc?.documentElement;
+  if (!radice) return;
+  const accese = lePastiglieSiVedono(readJson(CHIAVE_PASTIGLIE, null));
+  attributoSeCambia(radice, "data-dm-pastiglie", accese ? "si" : "no");
 }
 
 /** Il pannello in cima alla scheda Home dell'editor, quando e' quella aperta. */
@@ -204,6 +240,15 @@ export function ensurePannelloDeiBlocchi(body = doc?.getElementById?.("ed-body")
 /* Le frecce: si sposta la voce, la Home si rimette in fila subito, e il
  * pannello si ridisegna con la fila nuova. */
 function onClickFreccia(event) {
+  /* La casella delle pastiglie: si scrive il «no», e il «si'» si scrive
+   * vuoto. Cosi' chi non l'ha mai toccata non ha niente in memoria, e la
+   * casella che non c'e' vale «come e' sempre stato». */
+  const casella = event.target?.closest?.("[data-dm-home-blocchi] [data-dm-pastiglie]");
+  if (casella) {
+    writeJsonIfChanged(CHIAVE_PASTIGLIE, casella.checked ? null : "no");
+    vestiLePastiglie();
+    return;
+  }
   const freccia = event.target?.closest?.(
     "[data-dm-home-blocchi] [data-blocco-su],[data-dm-home-blocchi] [data-blocco-giu]",
   );
@@ -228,6 +273,22 @@ function stile() {
     #ed-body .dm-blocco-row{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important}
     #ed-body .dm-blocco-icona{font-size:17px;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px}
     #ed-body .dm-blocco-move[disabled]{opacity:.3;pointer-events:none}
+    #ed-body .dm-blocco-pastiglie{display:flex!important;align-items:center;gap:12px;padding:10px 12px!important}
+    #ed-body .dm-blocco-pastiglie .ed-row-old{display:block;margin-top:2px;line-height:1.35}
+    #ed-body .dm-blocco-switch{flex:0 0 auto;display:inline-flex;cursor:pointer}
+    #ed-body .dm-blocco-switch input{position:absolute;opacity:0;width:0;height:0}
+    #ed-body .dm-blocco-switch span{
+      display:inline-flex;align-items:center;width:46px;height:28px;padding:3px;
+      border-radius:999px;background:var(--divider-color,#cbd5e1);transition:background .18s ease}
+    #ed-body .dm-blocco-switch span::after{
+      content:"";width:22px;height:22px;border-radius:50%;background:#fff;
+      box-shadow:0 1px 3px rgba(15,23,42,.3);transition:translate .18s ease}
+    #ed-body .dm-blocco-switch input:checked+span{background:var(--accent,#0ea5e9)}
+    #ed-body .dm-blocco-switch input:checked+span::after{translate:18px 0}
+    #ed-body .dm-blocco-switch input:focus-visible+span{outline:2px solid var(--accent,#0ea5e9);outline-offset:2px}
+    /* Spente: la riga non c'e'. Non si toglie dal documento — la riscrive il
+       guscio a ogni cambio di stato, e toglierla vorrebbe dire rincorrerlo. */
+    html[data-dm-pastiglie="no"] #dashboard-pills-row{display:none!important}
   `;
 }
 
@@ -237,6 +298,7 @@ export function installHomeBlocchiSection() {
   installStyle("dm-home-blocchi", stile());
   onEditorRedraw("__dmHomeBlocchiEditor", () => ensurePannelloDeiBlocchi());
   doc.addEventListener("click", onClickFreccia);
+  doc.addEventListener("change", onClickFreccia);
   for (const evento of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",

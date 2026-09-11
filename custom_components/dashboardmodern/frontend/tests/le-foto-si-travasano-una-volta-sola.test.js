@@ -180,7 +180,18 @@ test("togliere una chiave non alza la revisione", async () => {
    * reolink ti sgancia questi sensori — che la Dashboard metta l'avviso con il
    * fotogramma». Quali sensori guarda ogni telecamera è una proprietà della
    * casa: chi li sceglie dal computer li ritrova sul tablet appeso al muro. */
-  assert.equal(CONFIG_KEYS_REVISION, 46);
+  /* E la 47 con le pastiglie di stato (#491, `cd_home_pastiglie`): «enable /
+   * disable container for status pills (boiler + burglar alarm)». La riga in
+   * cima alla Home che dice la caldaia accesa e l'antifurto inserito si puo'
+   * spegnere, e chi la spegne la vuole spenta dovunque: accesa sul tablet
+   * appeso al muro e spenta sul telefono sarebbe la stessa casa che dice due
+   * cose. Spegnerla non e' come riordinarla — riordinarla vorrebbe dire
+   * poterla mandare in fondo, cioe' non vederla mai senza averlo chiesto. */
+  assert.equal(CONFIG_KEYS_REVISION, 47);
+  assert.ok(
+    CONFIG_KEYS.includes("cd_home_pastiglie"),
+    "le pastiglie si spengono per la casa, non per il vetro da cui le si guarda",
+  );
   assert.ok(
     CONFIG_KEYS.includes("cd_stampanti"),
     "le stampanti si configurano per la casa, non per lo schermo",

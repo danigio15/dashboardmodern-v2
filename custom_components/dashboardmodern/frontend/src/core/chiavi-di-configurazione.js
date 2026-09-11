@@ -220,7 +220,7 @@
  * perche' reolink ti sgancia questi sensori — che la Dashboard metta l'avviso
  * con il fotogramma». Quali sensori guarda ogni telecamera e' una proprieta'
  * della casa, non del telefono da cui la si guarda: viaggia con le altre. */
-export const CONFIG_KEYS_REVISION = 46;
+export const CONFIG_KEYS_REVISION = 47;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -253,6 +253,10 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_widgets",
   // In che ordine stanno i blocchi della Home: persone, widget, azioni, dispositivi.
   "cd_home_blocchi",
+  // Le pastiglie di stato in cima alla Home si possono spegnere (#491): e'
+  // una preferenza della casa, non del dispositivo — chi le spegne le vuole
+  // spente sul telefono come sul tablet appeso al muro.
+  "cd_home_pastiglie",
   // La riga sotto il meteo (#356): quali pastiglie si vedono, e da quale
   // contatto arriva la posta (#357).
   "cd_barra_casa",
