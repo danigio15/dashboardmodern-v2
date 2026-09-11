@@ -191,6 +191,35 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Una plancia, un dispositivo solo**
+
+  «In fase di inserimento dell'integrazione ne crea già 2.» La finestra «Nomina
+  e assegna», quella che Home Assistant apre appena finito di aggiungere
+  l'integrazione, mostrava **due schede** — il nome scelto per la plancia e
+  «DashboardModern v2» — con un'entità per una. Le stesse due restavano poi in
+  **Impostazioni › Dispositivi e servizi**, sotto un'unica voce: «2 dispositivi,
+  2 entità».
+
+  Non erano due integrazioni e non erano due plance: era una voce sola con due
+  dispositivi. L'interruttore della presenza simulata si è sempre presentato
+  come `(dashboardmodern, identificativo della voce)`; l'avviso di aggiornamento
+  si presentava con una **stringa fissa**, uguale per tutte le case. Per Home
+  Assistant un identificativo diverso è un dispositivo diverso: stessa voce,
+  stessa integrazione, due schede.
+
+  La stringa fissa non era un capriccio — senza un dispositivo la pagina
+  Aggiornamenti ripiegava sull'`entity_id` e titolava
+  «update.dashboardmodern_…» — ma quel dispositivo c'era già, ed è quello della
+  plancia. Adesso l'avviso sta lì sopra insieme all'interruttore, e la scheda
+  porta il nome che si è dato alla plancia. La pagina Aggiornamenti non ci
+  rimette il nome: quello lo dice il titolo dell'entità, e resta
+  «DashboardModern v2» comunque si chiami la plancia.
+
+  A chi aggiorna la scheda di troppo **se ne va da sola** al primo avvio, con
+  la riga che si era lasciata dietro nel registro delle entità: senza, resterebbe
+  nell'elenco vuota, col nome dell'integrazione accanto come se ci fosse ancora
+  qualcosa dentro.
+
 - **Energia: la batteria che si carica non «copre la casa»**
 
   Dal campo, due foto dello stesso istante: la tessera scrive «La batteria

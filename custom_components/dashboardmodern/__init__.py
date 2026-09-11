@@ -69,6 +69,37 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
+# L'identificativo con cui l'avviso di aggiornamento si presentava fino alla
+# 1.4.19: una stringa fissa, uguale per tutti e per sempre.
+DISPOSITIVO_VECCHIO = "dashboardmodern"
+
+
+def _togli_il_dispositivo_di_troppo(hass: HomeAssistant) -> None:
+    """Remove the second device the update entity used to sit on.
+
+    «In fase di inserimento dell'integrazione ne crea gia' 2»: una voce sola,
+    due schede in «Nomina e assegna», un'entita' per una. L'interruttore della
+    presenza simulata si e' sempre attaccato al dispositivo della voce; l'avviso
+    di aggiornamento si attaccava a una stringa fissa, e per Home Assistant un
+    identificativo diverso e' un dispositivo diverso.
+
+    Adesso l'avviso sta sul dispositivo della voce come tutto il resto, e a chi
+    aggiorna resta la scheda di prima: vuota, ma nell'elenco, con il nome
+    dell'integrazione accanto. La si toglie qui una volta — se c'e'.
+
+    Se ne va anche l'eventuale riga rimasta nel registro delle entita': chi ha
+    l'avviso di aggiornamento spento non ha un'entita' che si sposta, e senza
+    questo la riga vecchia terrebbe in piedi la scheda vuota.
+    """
+    from homeassistant.helpers import device_registry as dr
+
+    registro = dr.async_get(hass)
+    vecchio = registro.async_get_device(identifiers={(DOMAIN, DISPOSITIVO_VECCHIO)})
+    if vecchio is None:
+        return
+    registro.async_remove_device(vecchio.id)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Register the frontend that serves the HTML dashboard."""
     from .config_store import async_get_config_store
@@ -100,6 +131,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_setup_chat(hass, entry)
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         hass.data.setdefault(DOMAIN, {})[DATA_UPDATE_ENTRY] = entry.entry_id
+        # Le piattaforme si sono montate: l'avviso di aggiornamento e'
+        # riattaccato al dispositivo della plancia, e quello vecchio e' rimasto
+        # vuoto. Si toglie adesso e non prima, perche' prima l'entita' sta
+        # ancora la' sopra.
+        _togli_il_dispositivo_di_troppo(hass)
     return True
 
 
