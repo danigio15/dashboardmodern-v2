@@ -1016,6 +1016,13 @@ function installStyles() {
       @media (prefers-reduced-motion:reduce){
         #page-stanze .dm-stanze-tocca,#page-stanze .dm-stanze-tocca-pallino{transition:none}
       }
+      /* I comandi veri dentro la card (#467): il pannello del clima e la
+         pulsantiera del lettore arrivano gia' vestiti da chi li disegna — sono
+         gli stessi della Home e della finestra del Clima — e qui si dice solo
+         dove stanno. Stessa rientranza delle letture qui sotto, cosi' i tasti
+         si incolonnano col nome della voce invece di attaccarsi al bordo. */
+      #page-stanze .dm-stanze-card > .dm-w-panel,
+      #page-stanze .dm-stanze-card > .dm-mp-comandi{padding:0 14px 14px}
       #page-stanze .dm-stanze-readings{display:flex;gap:20px;padding:0 14px 14px}
       #page-stanze .dm-stanze-readings div{display:grid;gap:2px}
       #page-stanze .dm-stanze-readings span{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--secondary-text-color,#64748b)}

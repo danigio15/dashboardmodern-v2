@@ -8551,68 +8551,83 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 14%,transparent);
   border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent);
   transform:rotate(60deg)}
-/* Il pannello si accoda alla riga: margine negativo per chiudere lo spazio
- * fra le righe, angoli alti squadrati e nessun bordo in cima. Le due cose
- * diventano una card sola. */
+/* Cosa c'e' DENTRO il pannello: le righe, le etichette, le pastiglie, il passo
+ * della temperatura. Vale dovunque il pannello si trovi, e non chiede di chi
+ * sia figlio.
+ *
+ * Prima ognuna di queste righe cominciava con l'elenco delle due finestre che
+ * allora lo ospitavano. Poi lo stesso pannello e' finito anche dentro le card
+ * della pagina Stanze (#467) — stesso markup, stessi tasti, stesso giro che li
+ * ascolta — e li' nessuno dei due antenati c'e': i comandi del clima uscivano
+ * nudi, bottoni di sistema incolonnati che sbordavano dalla card.
+ *
+ * Un elenco di ospiti non si tiene aggiornato da solo, e il terzo che arriva
+ * non sa di doverci entrare. Il pannello si veste da se'. */
+.dm-w-panel{display:grid;gap:10px}
+.dm-w-panel[hidden]{display:none}
+.dm-w-panel-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dm-w-panel-lbl{
+  flex:0 0 82px;font-size:10px;font-weight:800;letter-spacing:.9px;
+  text-transform:uppercase;color:var(--text-dim,#94a3b8)}
+.dm-w-chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
+.dm-w-chip{
+  padding:6px 11px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--card-border,#e8edf3);background:var(--card-bg,#fff);
+  font:inherit;font-size:11.5px;font-weight:800;color:var(--text-dim,#64748b);
+  transition:background .18s ease,border-color .18s ease,color .18s ease}
+.dm-w-chip:hover{
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 45%,transparent)}
+.dm-w-chip[data-on="true"]{
+  background:var(--dm-widget-accent,#0ea5e9);border-color:transparent;color:#fff;
+  box-shadow:0 6px 14px -9px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent)}
+/* Il passo della temperatura: meno, il numero, piu'. */
+.dm-w-stepper{
+  display:inline-flex;align-items:center;gap:2px;padding:2px;border-radius:12px;
+  background:var(--card-bg,#fff);box-shadow:inset 0 0 0 1px var(--card-border,#e8edf3)}
+.dm-w-stepper button{
+  width:30px;height:28px;display:grid;place-items:center;border:0;border-radius:10px;
+  background:transparent;color:var(--text,#0f172a);
+  font:inherit;font-size:16px;font-weight:800;line-height:1;cursor:pointer;
+  transition:background .15s ease}
+.dm-w-stepper button:hover{
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 14%,transparent)}
+.dm-w-stepper b{
+  min-width:52px;text-align:center;
+  font-family:'Oswald',system-ui,sans-serif;font-size:17px;font-weight:600;
+  font-variant-numeric:tabular-nums}
+.dm-w-panel-note{
+  margin:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8)}
+/* Sul telefono l'etichetta va sopra: ottantadue pixel di colonna, su
+   trecentonovanta, lasciavano alle modalita' una pastiglia per riga.
+   Misurato quando le tre righe qui sotto erano scritte per la sola finestra
+   dei widget e la gemella era rimasta indietro: la riga diventava una colonna
+   ma l'etichetta teneva il suo «flex:0 0 82px», che in colonna non e' piu' una
+   larghezza ma un'altezza — la parola «Modalita'» alta ottantadue pixel, col
+   vuoto sotto. Adesso non c'e' nessuna gemella da tenere allineata: la regola
+   e' una, come il pannello. */
+@media(max-width:600px){
+  .dm-w-panel-row{flex-direction:column;align-items:stretch;gap:6px}
+  .dm-w-panel-lbl{flex:none}
+  .dm-w-stepper{align-self:flex-start}
+}
+/* Il GUSCIO invece resta delle due finestre, perche' e' li' che il pannello e'
+ * una card per conto suo. Dentro la card di una stanza la card c'e' gia', e un
+ * riquadro dentro il riquadro sarebbe una cornice di troppo.
+ *
+ * Si accoda alla riga: margine negativo per chiudere lo spazio fra le righe,
+ * angoli alti squadrati e nessun bordo in cima. Le due cose diventano una card
+ * sola. */
 :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel{
-  display:grid;gap:10px;margin:-9px 0 0;padding:14px 14px 15px;
+  margin:-9px 0 0;padding:14px 14px 15px;
   border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent);
   border-top:0;border-radius:0 0 18px 18px;
   background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 5%,var(--card-bg,#fff));
   box-shadow:0 14px 30px -22px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent)}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel[hidden]{display:none}
 /* Da sola non e' accodata a niente: torna una card intera, con tutti e quattro
    gli angoli e il bordo in cima. */
 :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-solo{
   margin:0;border-top:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent);
   border-radius:18px}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-lbl{
-  flex:0 0 82px;font-size:10px;font-weight:800;letter-spacing:.9px;
-  text-transform:uppercase;color:var(--text-dim,#94a3b8)}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-chip{
-  padding:6px 11px;border-radius:999px;cursor:pointer;
-  border:1px solid var(--card-border,#e8edf3);background:var(--card-bg,#fff);
-  font:inherit;font-size:11.5px;font-weight:800;color:var(--text-dim,#64748b);
-  transition:background .18s ease,border-color .18s ease,color .18s ease}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-chip:hover{
-  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 45%,transparent)}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-chip[data-on="true"]{
-  background:var(--dm-widget-accent,#0ea5e9);border-color:transparent;color:#fff;
-  box-shadow:0 6px 14px -9px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent)}
-/* Il passo della temperatura: meno, il numero, piu'. */
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper{
-  display:inline-flex;align-items:center;gap:2px;padding:2px;border-radius:12px;
-  background:var(--card-bg,#fff);box-shadow:inset 0 0 0 1px var(--card-border,#e8edf3)}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper button{
-  width:30px;height:28px;display:grid;place-items:center;border:0;border-radius:10px;
-  background:transparent;color:var(--text,#0f172a);
-  font:inherit;font-size:16px;font-weight:800;line-height:1;cursor:pointer;
-  transition:background .15s ease}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper button:hover{
-  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 14%,transparent)}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper b{
-  min-width:52px;text-align:center;
-  font-family:'Oswald',system-ui,sans-serif;font-size:17px;font-weight:600;
-  font-variant-numeric:tabular-nums}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-note{
-  margin:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8)}
-/* Sul telefono l'etichetta va sopra: ottantadue pixel di colonna, su
-   trecentonovanta, lasciavano alle modalita' una pastiglia per riga.
-   Le tre righe valgono per tutt'e due le finestre. Le ultime due erano scritte
-   per la sola «#dm-widget-popup», e la gemella e' rimasta indietro: nella
-   finestra del Clima la riga diventava una colonna ma l'etichetta teneva il
-   suo «flex:0 0 82px», che in colonna non e' piu' una larghezza ma
-   un'altezza. Misurato: la parola «Modalita'» alta ottantadue pixel, con
-   sotto il vuoto — sono i buchi che si vedevano fra «MODALITA'» e le
-   pastiglie, fra «TEMPERATURA» e il suo passo, fra «VENTOLA» e i numeri.
-   La riga sopra le nominava gia' tutt'e due; queste due no. */
-@media(max-width:600px){
-  :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-row{flex-direction:column;align-items:stretch;gap:6px}
-  :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-lbl{flex:none}
-  :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper{align-self:flex-start}
-}
 #dm-widget-popup .dm-w-row{
   position:relative;display:flex;align-items:center;gap:12px;
   padding:10px 12px;border-radius:18px;

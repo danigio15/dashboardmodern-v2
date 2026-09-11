@@ -191,6 +191,31 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Stanze: i comandi del clima uscivano nudi**
+
+  «Card clima sezione stanze non si vede.» Dentro la pagina **Stanze** il
+  pannello del condizionatore c'era — modalità, temperatura, ventola, alette —
+  ma senza un filo di vestito: bottoni di sistema squadrati, incolonnati uno
+  sull'altro, con la frase in fondo tagliata dal bordo della card. Accanto, le
+  card delle Luci e delle Finestre stavano benissimo.
+
+  Il pannello è **lo stesso** della tessera della Home e della finestra del
+  Clima: stesso disegno, stessi tasti, stesso giro che li ascolta. Le sue
+  regole di stile però cominciavano tutte con l'elenco delle **due finestre**
+  che allora lo ospitavano, e dentro la card di una stanza nessuno dei due
+  antenati c'è. Un elenco di ospiti non si tiene aggiornato da solo: il terzo
+  che arriva non sa di doverci entrare.
+
+  Adesso il pannello **si veste da sé** — le righe, le etichette, le pastiglie,
+  il passo della temperatura valgono dovunque si trovi — e resta delle due
+  finestre solo il **guscio**: il bordo, la tinta, l'ombra, che lì servono
+  perché il pannello è una card per conto suo. Dentro la card di una stanza la
+  card c'è già, e un riquadro dentro il riquadro sarebbe una cornice di troppo.
+
+  Nella stessa card è tornata dentro anche la pulsantiera del lettore: stava
+  attaccata al bordo sinistro, dove l'angolo arrotondato la tagliava. Ora tutte
+  e due rientrano come le letture della stanza, incolonnate col nome della voce.
+
 - **Una plancia, un dispositivo solo**
 
   «In fase di inserimento dell'integrazione ne crea già 2.» La finestra «Nomina
