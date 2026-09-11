@@ -16,6 +16,7 @@ export default Object.freeze({
   "Add reading": "添加读数",
   "Advanced card — image, duration, temperature, door, costs": "高级卡片 — 图片、时长、温度、门、费用",
   "From these watts up the unit is on, below it is off. “My air conditioner draws 7 W while off”: with 20 written here, those 7 W stay off. Empty = the entity state decides, as before.": "达到此瓦数及以上视为开启，以下视为关闭。“我的空调关机时仍有 7 W”：在这里写 20，那 7 W 依然算关闭。留空 = 像以前一样由实体状态决定。",
+  "My sections": "我的板块",
   "No extra reading: the window shows what the appliance has in its own fields.": "没有额外读数：窗口只显示设备自己字段里的内容。",
   "On threshold (W)": "开启阈值（W）",
   "Player controls": "播放器控制",

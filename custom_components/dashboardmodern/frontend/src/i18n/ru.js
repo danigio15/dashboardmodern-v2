@@ -16,6 +16,7 @@ export default Object.freeze({
   "Add reading": "Добавить показание",
   "Advanced card — image, duration, temperature, door, costs": "Расширенная карточка — изображение, длительность, температура, дверь, стоимость",
   "From these watts up the unit is on, below it is off. “My air conditioner draws 7 W while off”: with 20 written here, those 7 W stay off. Empty = the entity state decides, as before.": "От этого значения и выше прибор включён, ниже — выключен. «Мой кондиционер в выключенном состоянии берёт 7 Вт»: если вписать сюда 20, эти 7 Вт останутся выключенными. Пусто = решает состояние сущности, как раньше.",
+  "My sections": "Мои разделы",
   "No extra reading: the window shows what the appliance has in its own fields.": "Дополнительных показаний нет: в окне видно то, что указано в полях прибора.",
   "On threshold (W)": "Порог включения (Вт)",
   "Player controls": "Управление плеером",

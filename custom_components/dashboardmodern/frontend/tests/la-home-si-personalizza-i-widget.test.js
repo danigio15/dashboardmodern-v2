@@ -105,7 +105,13 @@ test("una voce in evidenza puo' avere la tessera sua, che si apre su di lei", ()
   assert.equal(evidenzeSingole(STATI).length, 1);
   /* E la tessera a se' si disegna a caselle come la madre. */
   const home = leggi("sections/home-widgets-section.js");
-  assert.match(home, /const chiave = clean\(widget\.key\)\.startsWith\("evidenza-"\) \? "evidenza" : clean\(widget\.key\);/);
+  /* E insieme a lei quella di una sezione propria (#262): sono la stessa cosa
+   * — entita' scelte a mano, col loro nome e il loro valore — e si disegnano
+   * con lo stesso verbo. */
+  assert.match(
+    home,
+    /grezza\.startsWith\("evidenza-"\) \|\| grezza\.startsWith\("mia-"\) \? "evidenza" : grezza;/,
+  );
   assert.match(home, /\.\.\.evidenzaModels\(states\),/);
 });
 

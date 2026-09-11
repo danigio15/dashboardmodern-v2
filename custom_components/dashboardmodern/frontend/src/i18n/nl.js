@@ -16,6 +16,7 @@ export default Object.freeze({
   "Add reading": "Meetwaarde toevoegen",
   "Advanced card — image, duration, temperature, door, costs": "Uitgebreide kaart — afbeelding, duur, temperatuur, deur, kosten",
   "From these watts up the unit is on, below it is off. “My air conditioner draws 7 W while off”: with 20 written here, those 7 W stay off. Empty = the entity state decides, as before.": "Vanaf deze watts staat de unit aan, eronder uit. „Mijn airco trekt 7 W terwijl hij uit staat”: met 20 hier blijft die 7 W uit. Leeg = de status van de entiteit beslist, zoals voorheen.",
+  "My sections": "Mijn secties",
   "No extra reading: the window shows what the appliance has in its own fields.": "Geen extra meetwaarden: het venster toont wat in de velden van het apparaat staat.",
   "On threshold (W)": "Aan-drempel (W)",
   "Player controls": "Bediening van de speler",

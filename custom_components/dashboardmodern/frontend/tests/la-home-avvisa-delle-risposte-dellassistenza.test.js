@@ -146,8 +146,13 @@ test("all'avvio si legge lo stato, non il filo: leggere il filo e' averlo letto"
 test("la Home disegna la tessera, la ridisegna all'annuncio, e la sua finestra porta alla chat", () => {
   const home = leggi("src/sections/home-widgets-section.js");
   assert.match(home, /function chatModel\(\) \{\s*return tesseraDellaChat\(statoDellaChat\(\)\);/);
-  /* Per prima: e' una risposta a chi ha chiesto aiuto. */
-  assert.match(home, /chatModel\(\),\s*\.\.\.evidenzaModels\(states\),\s*segnalazioniModel\(\),/);
+  /* Per prima: e' una risposta a chi ha chiesto aiuto. Quello che le viene
+   * dietro sono le entita' scelte a mano — le evidenze e le sezioni che si fa
+   * l'utente (#262) — e poi le segnalazioni. */
+  assert.match(
+    home,
+    /chatModel\(\),[\s\S]{0,400}?\.\.\.evidenzaModels\(states\),[\s\S]{0,400}?\.\.\.sezioniMieModels\(states\),\s*segnalazioniModel\(\),/,
+  );
   /* L'annuncio della chat e' fra gli eventi che rifanno le tessere. Dopo di lui
    * c'e' anche `pageshow` — il ritorno in scena della plancia — quindi si
    * guarda che sia in quell'elenco, non che sia l'ultimo della fila. */

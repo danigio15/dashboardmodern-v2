@@ -16,6 +16,7 @@ export default Object.freeze({
   "Add reading": "Ölçüm ekle",
   "Advanced card — image, duration, temperature, door, costs": "Gelişmiş kart — görsel, süre, sıcaklık, kapı, maliyet",
   "From these watts up the unit is on, below it is off. “My air conditioner draws 7 W while off”: with 20 written here, those 7 W stay off. Empty = the entity state decides, as before.": "Bu watt değerinden yukarısı açık, aşağısı kapalı sayılır. “Klimam kapalıyken 7 W çekiyor”: buraya 20 yazılırsa o 7 W kapalı kalır. Boş = eskisi gibi varlığın durumu karar verir.",
+  "My sections": "Bölümlerim",
   "No extra reading: the window shows what the appliance has in its own fields.": "Ek ölçüm yok: pencere cihazın kendi alanlarındakileri gösterir.",
   "On threshold (W)": "Açık eşiği (W)",
   "Player controls": "Oynatıcı denetimleri",

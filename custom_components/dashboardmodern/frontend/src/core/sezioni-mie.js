@@ -25,6 +25,11 @@ const pulito = (valore) => String(valore ?? "").trim();
  * il problema sarebbe piu' difficile da capire che da evitare. */
 export const MASSIMO_SEZIONI = 8;
 
+/* La casella del magazzino in cui vivono. Sta qui e non nella sezione perche'
+ * a leggerla sono in due: la pagina che le disegna e la tessera che le porta in
+ * Home. */
+export const CHIAVE_SEZIONI_MIE = "cd_sezioni_mie";
+
 /** La chiave con cui la voce di una sezione si accende e si spegne. */
 export const chiaveDellaSezione = (id) => `mia-${pulito(id)}`;
 

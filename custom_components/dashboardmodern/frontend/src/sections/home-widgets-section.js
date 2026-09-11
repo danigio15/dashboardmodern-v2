@@ -40,6 +40,7 @@ import {
 } from "../core/racconto-tessera.js";
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
 import { escluseDellaTessera } from "../core/fuori-dai-widget.js";
+import { CHIAVE_SEZIONI_MIE, sezioniDaMostrare } from "../core/sezioni-mie.js";
 import { PERIOD_SOURCES } from "../core/period-service.js";
 import {
   TONO_DEL_GRADO,
@@ -4326,6 +4327,61 @@ export function evidenzeSingole(states) {
     .filter(Boolean);
 }
 
+/* Le tessere delle sezioni che si fa l'utente (#262, e la richiesta di #473).
+ *
+ * Una sezione propria nasceva con la sua voce nella barra e la sua pagina, e
+ * si fermava li': in Home non arrivava mai. Ma la Home e' il posto da cui si
+ * guarda la casa senza aprire niente, e chi si e' fatto una sezione per le due
+ * valvole del serbatoio sul tetto vuole vedere da li' se sono aperte — non
+ * andare a cercare una pagina.
+ *
+ * La tessera si disegna come quella delle evidenze, perche' e' la stessa cosa:
+ * un pugno di entita' scelte a mano, col loro nome e il loro valore. Una
+ * tessera per sezione, con il titolo e il disegno che le ha dato chi l'ha
+ * fatta; per ordine e visibilita' contano tutte insieme sotto «Sezioni mie»,
+ * come gli avvisi personalizzati sotto `custom`.
+ */
+export function sezioniMieModels(states) {
+  let sezioni = [];
+  try {
+    sezioni = sezioniDaMostrare(readJson(CHIAVE_SEZIONI_MIE, []));
+  } catch (_errore) {
+    return [];
+  }
+  if (!sezioni.length) return [];
+  const elenco = widgetPreferences().excluded;
+  return sezioni
+    .map((sezione) => {
+      const chiave = `mia-${sezione.id}`;
+      const fuori = escluseDellaTessera(elenco, chiave);
+      const rows = sezione.voci
+        .map((voce) =>
+          rigaInEvidenza(
+            states,
+            { entity: voce.entity, name: voce.nome, icon: voce.icona || sezione.icona },
+            fuori,
+          ),
+        )
+        .filter(Boolean);
+      if (!rows.length) return null;
+      return {
+        key: chiave,
+        accent: "#f59e0b",
+        icon: sezione.icona || "⭐",
+        label: sezione.titolo,
+        /* Quante cose ci sono dentro. Quali sono accese lo dice la didascalia
+         * una per una, che e' l'unico modo onesto quando le righe sono di
+         * generi diversi: due valvole e due batterie non fanno un numero. */
+        value: String(rows.length),
+        caption: rows.map((riga) => clean(`${riga.name} ${riga.value}`)).join(" · "),
+        ring: null,
+        attiva: rows.some((riga) => riga.on === true),
+        rows,
+      };
+    })
+    .filter(Boolean);
+}
+
 export function evidenzaModels(states) {
   return [evidenzaModel(states), ...evidenzeSingole(states)].filter(Boolean);
 }
@@ -4500,9 +4556,15 @@ export function applyWidgetPreferences(models, preferences = widgetPreferences()
       ? "custom"
       : widget.key.startsWith("evidenza-")
         ? "evidenza"
-        : eUnaTesseraEnergia(widget.key)
-          ? "energia"
-          : widget.key;
+        : /* Le sezioni che si fa l'utente si spostano e si spengono insieme,
+           * sotto la voce unica «Sezioni mie»: sono tante quante uno se ne fa,
+           * e una riga a testa nel catalogo lo riempirebbe di voci che
+           * cambiano da una casa all'altra. */
+          widget.key.startsWith("mia-")
+          ? "mie"
+          : eUnaTesseraEnergia(widget.key)
+            ? "energia"
+            : widget.key;
   const rank = (widget) => {
     const nome = chiave(widget);
     const index = preferences.order.indexOf(nome);
@@ -4934,6 +4996,10 @@ export function modelliDelleTessere(states) {
        * Chi lo vuole altrove lo sposta dalla scheda Widget. */
       chatModel(),
       ...evidenzaModels(states),
+      /* Le sezioni che si fa l'utente arrivano in Home accanto alle evidenze:
+       * sono la stessa cosa fatta in grande — entita' scelte a mano — e chi le
+       * cerca le cerca li'. */
+      ...sezioniMieModels(states),
       segnalazioniModel(),
       aggiornamentiModel(states),
       agendaModel(states),
@@ -6242,8 +6308,12 @@ const eUnaTesseraEnergia = (chiave) =>
   clean(chiave) === "energia" || clean(chiave).startsWith("energia_");
 
 function carteDalleRighe(widget) {
-  /* Una tessera «a se'» delle evidenze si disegna come la tessera madre. */
-  const chiave = clean(widget.key).startsWith("evidenza-") ? "evidenza" : clean(widget.key);
+  /* Una tessera «a se'» delle evidenze si disegna come la tessera madre, e
+   * cosi' anche quella di una sezione propria: sono entrambe un pugno di
+   * entita' scelte a mano, col loro nome e il loro valore. */
+  const grezza = clean(widget.key);
+  const chiave =
+    grezza.startsWith("evidenza-") || grezza.startsWith("mia-") ? "evidenza" : grezza;
   if (!(CHIAVI_A_CARTE.has(chiave) || eUnaTesseraEnergia(chiave) || chiave.startsWith("custom-")))
     return [];
   const righe = Array.isArray(widget.rows) ? widget.rows : [];

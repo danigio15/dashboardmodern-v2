@@ -16,6 +16,7 @@ export default Object.freeze({
   "Add reading": "Ajouter une mesure",
   "Advanced card — image, duration, temperature, door, costs": "Carte avancée — image, durée, température, porte, coûts",
   "From these watts up the unit is on, below it is off. “My air conditioner draws 7 W while off”: with 20 written here, those 7 W stay off. Empty = the entity state decides, as before.": "À partir de ces watts l’unité est allumée, en dessous elle est éteinte. « Mon climatiseur consomme 7 W à l’arrêt » : avec 20 écrit ici, ces 7 W restent éteint. Vide = l’état de l’entité décide, comme avant.",
+  "My sections": "Mes sections",
   "No extra reading: the window shows what the appliance has in its own fields.": "Aucune mesure supplémentaire : la fenêtre montre ce que l’appareil a dans ses propres champs.",
   "On threshold (W)": "Seuil d’allumage (W)",
   "Player controls": "Commandes du lecteur",

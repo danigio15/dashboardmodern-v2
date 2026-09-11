@@ -16,6 +16,7 @@ export default Object.freeze({
   "Add reading": "إضافة قراءة",
   "Advanced card — image, duration, temperature, door, costs": "بطاقة متقدمة — صورة ومدة ودرجة حرارة وباب وتكاليف",
   "From these watts up the unit is on, below it is off. “My air conditioner draws 7 W while off”: with 20 written here, those 7 W stay off. Empty = the entity state decides, as before.": "من هذه الواطات فما فوق تكون الوحدة قيد التشغيل، ودونها مطفأة. «مكيّفي يسحب 7 واط وهو مطفأ»: مع كتابة 20 هنا تبقى تلك الـ 7 واط مطفأة. فارغ = تقرّر حالة الكيان، كما في السابق.",
+  "My sections": "أقسامي",
   "No extra reading: the window shows what the appliance has in its own fields.": "لا توجد قراءات إضافية: تعرض النافذة ما يوجد في حقول الجهاز نفسه.",
   "On threshold (W)": "عتبة التشغيل (واط)",
   "Player controls": "عناصر التحكم بالمشغّل",

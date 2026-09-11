@@ -1906,6 +1906,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "My battery writes positive while charging",
   "My car",
   "My Home",
+  "My sections",
   "N/A",
   "Name",
   "Name (A–Z)",

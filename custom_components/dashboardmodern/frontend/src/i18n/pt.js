@@ -16,6 +16,7 @@ export default Object.freeze({
   "Add reading": "Adicionar leitura",
   "Advanced card — image, duration, temperature, door, costs": "Cartão avançado — imagem, duração, temperatura, porta, custos",
   "From these watts up the unit is on, below it is off. “My air conditioner draws 7 W while off”: with 20 written here, those 7 W stay off. Empty = the entity state decides, as before.": "A partir destes watts a unidade está ligada, abaixo está desligada. «O meu ar condicionado consome 7 W estando desligado»: com 20 escrito aqui, esses 7 W continuam desligado. Vazio = decide o estado da entidade, como antes.",
+  "My sections": "As minhas secções",
   "No extra reading: the window shows what the appliance has in its own fields.": "Sem leituras adicionais: a janela mostra o que o aparelho tem nos seus próprios campos.",
   "On threshold (W)": "Limiar de ligado (W)",
   "Player controls": "Comandos do leitor",

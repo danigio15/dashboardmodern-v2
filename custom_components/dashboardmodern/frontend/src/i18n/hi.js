@@ -16,6 +16,7 @@ export default Object.freeze({
   "Add reading": "रीडिंग जोड़ें",
   "Advanced card — image, duration, temperature, door, costs": "उन्नत कार्ड — छवि, अवधि, तापमान, दरवाज़ा, लागत",
   "From these watts up the unit is on, below it is off. “My air conditioner draws 7 W while off”: with 20 written here, those 7 W stay off. Empty = the entity state decides, as before.": "इन वाट से ऊपर यूनिट चालू है, नीचे बंद। «मेरा एसी बंद होने पर 7 W लेता है»: यहाँ 20 लिखने पर वे 7 W बंद ही रहते हैं। खाली = एंटिटी की स्थिति तय करेगी, पहले की तरह।",
+  "My sections": "मेरे अनुभाग",
   "No extra reading: the window shows what the appliance has in its own fields.": "कोई अतिरिक्त रीडिंग नहीं: विंडो वही दिखाती है जो उपकरण के अपने फ़ील्ड में है।",
   "On threshold (W)": "चालू की सीमा (W)",
   "Player controls": "प्लेयर नियंत्रण",

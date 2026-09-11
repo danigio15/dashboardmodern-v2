@@ -21,6 +21,7 @@
  * verde della configurazione, come fanno l'Agenda e la Continuita'.
  */
 import {
+  CHIAVE_SEZIONI_MIE,
   chiaveDellaSezione,
   contoDellaSezione,
   lettureDellaSezione,
@@ -42,7 +43,7 @@ import {
 const KEY = "__DASHBOARDMODERN_SEZIONI_MIE__";
 const state = (root[KEY] ||= { installed: false, frame: 0, firme: new Map() });
 
-export const CHIAVE_SEZIONI_MIE = "cd_sezioni_mie";
+export { CHIAVE_SEZIONI_MIE };
 /* La chiave con cui si spegne l'intera funzione: le singole sezioni hanno il
  * loro «mostra nella barra» dentro la riga, che e' una proprieta' della
  * sezione e non una preferenza di visibilita' del guscio. */

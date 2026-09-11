@@ -16,6 +16,7 @@ export default Object.freeze({
   "Add reading": "計測値を追加",
   "Advanced card — image, duration, temperature, door, costs": "詳細カード — 画像・所要時間・温度・ドア・費用",
   "From these watts up the unit is on, below it is off. “My air conditioner draws 7 W while off”: with 20 written here, those 7 W stay off. Empty = the entity state decides, as before.": "このワット以上で運転中、未満は停止とします。「エアコンが停止中に7 W」なら、20と書けばその7 Wは停止のままです。空欄＝従来どおりエンティティの状態で判断。",
+  "My sections": "マイセクション",
   "No extra reading: the window shows what the appliance has in its own fields.": "追加の計測値はありません：ウィンドウには機器の項目にあるものが表示されます。",
   "On threshold (W)": "運転判定のしきい値（W）",
   "Player controls": "プレーヤーの操作",

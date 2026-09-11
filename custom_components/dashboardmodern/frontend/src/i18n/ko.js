@@ -16,6 +16,7 @@ export default Object.freeze({
   "Add reading": "측정값 추가",
   "Advanced card — image, duration, temperature, door, costs": "고급 카드 — 이미지, 소요 시간, 온도, 문, 비용",
   "From these watts up the unit is on, below it is off. “My air conditioner draws 7 W while off”: with 20 written here, those 7 W stay off. Empty = the entity state decides, as before.": "이 와트 이상이면 켜짐, 미만이면 꺼짐입니다. “에어컨이 꺼진 상태에서 7W를 쓴다”면 여기에 20을 적으면 그 7W는 꺼짐으로 남습니다. 비우면 예전처럼 엔티티 상태가 결정합니다.",
+  "My sections": "내 섹션",
   "No extra reading: the window shows what the appliance has in its own fields.": "추가 측정값 없음: 창에는 기기의 자체 항목에 있는 것만 표시됩니다.",
   "On threshold (W)": "켜짐 기준 (W)",
   "Player controls": "플레이어 제어",

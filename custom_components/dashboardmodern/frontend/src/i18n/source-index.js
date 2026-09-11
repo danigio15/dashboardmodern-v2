@@ -2980,6 +2980,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Sezione Energia": "Energy section",
   "Sezione Energy": "Energy section",
   "Sezione salvata": "Section saved",
+  "Sezioni mie": "My sections",
   "Sezioni precedenti": "Previous sections",
   "Sezioni successive": "Next sections",
   "Sfoglia le cartelle di Home Assistant": "Browse the Home Assistant folders",

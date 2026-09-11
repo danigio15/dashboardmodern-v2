@@ -56,6 +56,10 @@ function catalogoTessere() {
      * aiuto. Chi non lo vuole in Home deve poterlo spegnere da qui. */
     ["assistenza", "💬", t("Assistenza", "Support")],
     ["evidenza", "⭐", t("In evidenza", "Highlights")],
+    /* Le sezioni che si fa l'utente (#262): una voce sola per tutte, come gli
+     * avvisi personalizzati. Sono tante quante uno se ne fa, e una riga a testa
+     * riempirebbe il catalogo di voci diverse da una casa all'altra. */
+    ["mie", "🧰", t("Sezioni mie", "My sections")],
     /* Le segnalazioni: la riga sta qui per tutti, ma la tessera in Home la
      * vede solo chi tiene la repository — il suo modello torna `null` per
      * chiunque altro. Chi non ha la console trova quindi un interruttore che
