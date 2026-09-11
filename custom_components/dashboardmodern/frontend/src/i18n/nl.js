@@ -2933,6 +2933,7 @@ export default Object.freeze({
   "Where to read if it is armed": "Waar te lezen of hij ingeschakeld is",
   "Which entity the dashboard uses": "Welke entiteit het dashboard gebruikt",
   "Which integrations": "Welke integraties",
+  "Which material": "Welk materiaal",
   "Which option": "Welke optie uit de lijst",
   "Which sections are visible": "Welke secties zichtbaar zijn",
   "Whiskers": "Minoes",

@@ -924,6 +924,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Cerchio = stanza": "Circle = room",
   "Cestino": "Waste bin",
   "Cestino dei rifiuti (problema sì/no)": "Waste bin (problem yes/no)",
+  "Che materiale è": "Which material",
   "Chi è, col suo nome di casa": "Who this is, by their home name",
   "Chi sta guardando?": "Who is watching?",
   "Chi suona · Apri · Cassetta": "Who rings · Open · Mailbox",

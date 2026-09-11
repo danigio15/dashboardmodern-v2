@@ -2933,6 +2933,7 @@ export default Object.freeze({
   "Where to read if it is armed": "कहाँ पढ़ें कि यह चालू है",
   "Which entity the dashboard uses": "डैशबोर्ड कौन-सी इकाई उपयोग करता है",
   "Which integrations": "किन इंटीग्रेशन से",
+  "Which material": "कौन-सा कचरा",
   "Which option": "सूची का कौन-सा विकल्प",
   "Which sections are visible": "कौन से अनुभाग दिखते हैं",
   "Whiskers": "मिट्ठू",

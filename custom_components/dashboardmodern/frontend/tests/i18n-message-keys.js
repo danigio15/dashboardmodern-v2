@@ -3422,6 +3422,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Where to read if it is armed",
   "Which entity the dashboard uses",
   "Which integrations",
+  "Which material",
   "Which option",
   "Which sections are visible",
   "Whiskers",

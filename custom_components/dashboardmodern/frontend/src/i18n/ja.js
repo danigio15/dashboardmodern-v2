@@ -2933,6 +2933,7 @@ export default Object.freeze({
   "Where to read if it is armed": "警戒中かどこで読むか",
   "Which entity the dashboard uses": "ダッシュボードが使うエンティティ",
   "Which integrations": "どの統合から",
+  "Which material": "どの分別",
   "Which option": "一覧のどの項目",
   "Which sections are visible": "どの区画を表示するか",
   "Whiskers": "タマ",

@@ -2933,6 +2933,7 @@ export default Object.freeze({
   "Where to read if it is armed": "경비 중인지 어디서 읽을지",
   "Which entity the dashboard uses": "대시보드가 쓰는 엔티티",
   "Which integrations": "어느 통합에서",
+  "Which material": "어떤 분리수거",
   "Which option": "목록의 어느 항목",
   "Which sections are visible": "어떤 구역이 보이는지",
   "Whiskers": "나비",

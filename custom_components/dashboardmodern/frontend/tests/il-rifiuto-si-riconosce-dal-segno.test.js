@@ -118,16 +118,18 @@ test("senza niente in vista la didascalia non prova a mettere un segno", () => {
   assert.deepEqual(rifiuti.prossimi, []);
 });
 
-/* ── e anche nella tendina, mentre si sceglie ──────────────────────────── */
+/* ── e anche mentre si sceglie, ma coi bidoni nostri ───────────────────── */
 
-/* «Nel menu a tendina dei rifiuti voglio vedere anche le icone, come hai fatto
- *  nel menu a tendina della sezione analisi dispositivi.»
+/* «Nel menu a tendina dei rifiuti voglio vedere anche le icone.» E poi: «le
+ *  icone non sono quelle, non mettere cose che non appartengono al nostro
+ *  catalogo».
  *
- * Dentro un <option> ci sta solo testo, e prima da lì l'emoji si toglieva: il
- * bidone disegnato sta accanto, nella testa della riga, e sembrava che
- * bastasse lui. Ma il bidone accanto dice cosa è scelto ADESSO — mentre si
- * sceglie la tendina è aperta e lo copre — e la scelta la si fa leggendo
- * undici righe di parole tutte uguali.
+ * Le icone dei rifiuti sono i bidoni che disegniamo noi — `disegni-rifiuti.js`
+ * — e dentro un <option> di sistema non ci stanno: lì ci sta solo testo, e
+ * l'unica cosa che ci si potrebbe mettere è un'emoji qualunque, che nostra non
+ * è. Quindi la tendina di sistema se n'è andata, e la scelta si fa con lo
+ * stesso foglio con cui si dice cosa esce in un giorno del turno: stessi
+ * bidoni, stesse righe.
  */
 import { readFileSync } from "node:fs";
 
@@ -136,20 +138,43 @@ const editor = readFileSync(
   "utf8",
 );
 
-test("ogni voce della tendina porta il segno del suo materiale", () => {
-  assert.match(editor, /`\$\{voce\.icona\} \$\{nomeDelMateriale\(voce\.chiave\)\}`/);
-  /* Il segno è quello del materiale, lo stesso della card e della tessera: uno
-   * solo, scritto in un posto solo. Qui non se ne inventa una tabella. */
-  assert.doesNotMatch(editor, /icona: "/);
+test("il materiale non si sceglie più da una tendina di sistema", () => {
+  /* Un <option> porta solo testo: lì dentro il nostro bidone non entra, e
+   * un'emoji al suo posto sarebbe un'icona che non è nostra. */
+  assert.doesNotMatch(editor, /<option value=/);
+  assert.doesNotMatch(editor, /voce\.icona/);
+  assert.match(editor, /<button type="button" class="ed-input dm-rifiuti-ed-materiale"/);
+  // Il valore resta dov'era, con lo stesso marchio: chi raccoglie non cambia.
+  assert.match(editor, /<input type="hidden" data-dm-rifiuti-campo="materiale"/);
 });
 
-test("è la stessa strada della tendina del Report", () => {
-  /* Lì il guscio scrive «⚡ Lavatrice» dentro l'option, ed è il precedente
-   * citato dalla richiesta: due tendine che si comportano diverso davanti alla
-   * stessa domanda sono due cose da imparare invece di una. */
-  const guscio = readFileSync(
-    new URL("../legacy/dashboard-runtime-it.js", import.meta.url),
+test("si sceglie dal foglio, con i bidoni disegnati da noi", () => {
+  assert.match(editor, /function apriLaTendinaDelMateriale\(riga\)/);
+  assert.match(editor, /apriIlFoglioDiScelta\(\{\s*titolo: t\("Che materiale è", "Which material"\)/);
+  /* Le righe del foglio le veste una funzione sola, la stessa dei giorni del
+   * turno: una domanda sola si fa in un modo solo. */
+  assert.match(editor, /function voceDelMateriale\(materiale, premuto\)/);
+  assert.match(
+    editor,
+    /disegnoDelBidone\(materiale\.chiave, materiale\.colore, 26\)/,
+  );
+  assert.equal((editor.match(/function voceDelMateriale/g) || []).length, 1);
+  assert.match(editor, /const riga = voceDelMateriale\(materiale, scelti\.has\(materiale\.chiave\)\)/);
+});
+
+test("scelto il materiale, la riga si riveste senza ridisegnare la scheda", () => {
+  /* Ridisegnare butterebbe via quello che si sta scrivendo nelle altre righe:
+   * il vestito lo cambia una funzione sola, chiamata sul posto. */
+  assert.match(editor, /function vestiLaRiga\(riga, chiave\)/);
+  assert.match(editor, /campo\.value = materiale\.chiave;\s*vestiLaRiga\(riga, materiale\.chiave\);/);
+  assert.match(editor, /disegnoDelBidone\(voce\.chiave, voce\.colore, 32\)/);
+});
+
+test("i bidoni sono quelli del nostro catalogo, non emoji", () => {
+  const disegni = readFileSync(
+    new URL("../src/core/disegni-rifiuti.js", import.meta.url),
     "utf8",
   );
-  assert.match(guscio, /<option value="\$\{d\.sensor\}">\$\{d\.icon \|\| '⚡'\} \$\{d\.name\}<\/option>/);
+  assert.match(disegni, /export function disegnoDelBidone\(chiave, colore, misura = 96\)/);
+  assert.match(editor, /import \{ disegnoDelBidone \} from "\.\.\/core\/disegni-rifiuti\.js"/);
 });

@@ -2933,6 +2933,7 @@ export default Object.freeze({
   "Where to read if it is armed": "Kurulu olup olmadığı nereden okunur",
   "Which entity the dashboard uses": "Panonun hangi varlığı kullandığı",
   "Which integrations": "Hangi entegrasyonlar",
+  "Which material": "Hangi malzeme",
   "Which option": "Listenin hangi seçeneği",
   "Which sections are visible": "Hangi bölümler görünüyor",
   "Whiskers": "Pamuk",

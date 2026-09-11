@@ -2933,6 +2933,7 @@ export default Object.freeze({
   "Where to read if it is armed": "从哪里读取是否已布防",
   "Which entity the dashboard uses": "面板使用的实体",
   "Which integrations": "来自哪些集成",
+  "Which material": "哪一类垃圾",
   "Which option": "列表里的哪一项",
   "Which sections are visible": "哪些板块可见",
   "Whiskers": "咪咪",

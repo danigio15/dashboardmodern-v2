@@ -2933,6 +2933,7 @@ export default Object.freeze({
   "Where to read if it is armed": "Где читать, стоит ли на охране",
   "Which entity the dashboard uses": "Какую сущность использует панель",
   "Which integrations": "Из каких интеграций",
+  "Which material": "Какая фракция",
   "Which option": "Какой пункт списка",
   "Which sections are visible": "Какие разделы видны",
   "Whiskers": "Барсик",

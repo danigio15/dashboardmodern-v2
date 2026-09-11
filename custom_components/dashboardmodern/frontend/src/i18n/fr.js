@@ -2933,6 +2933,7 @@ export default Object.freeze({
   "Where to read if it is armed": "Où lire s’il est armé",
   "Which entity the dashboard uses": "Quelle entité le tableau de bord utilise",
   "Which integrations": "Quelles intégrations",
+  "Which material": "Quelle matière",
   "Which option": "Quelle entrée de la liste",
   "Which sections are visible": "Quelles sections sont visibles",
   "Whiskers": "Minou",

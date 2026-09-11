@@ -2933,6 +2933,7 @@ export default Object.freeze({
   "Where to read if it is armed": "أين تُقرأ حالة التسليح",
   "Which entity the dashboard uses": "الكيان الذي تستخدمه اللوحة",
   "Which integrations": "من أي تكاملات",
+  "Which material": "أي نوع من النفايات",
   "Which option": "أي خيار من القائمة",
   "Which sections are visible": "أي الأقسام تظهر",
   "Whiskers": "مشمش",
