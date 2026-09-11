@@ -38,7 +38,7 @@ import {
   scorciatoia,
   senzaIlRicordo,
 } from "../core/apertura-telecamera.js";
-import { strategieDellaTelecamera } from "../core/strategie-telecamera.js";
+import { stradaScelta, strategieDellaTelecamera } from "../core/strategie-telecamera.js";
 import {
   allStates,
   clean,
@@ -50,6 +50,11 @@ import {
   t,
   writeJsonIfChanged,
 } from "./shared.js";
+import {
+  capacitaChieste,
+  capacitaDellaTelecamera,
+  chiediLeCapacita,
+} from "./telecamera-capacita-section.js";
 import { fermaIlNegoziatoDelPopup } from "./telecamera-webrtc-section.js";
 
 const KEY = "__DASHBOARDMODERN_TELECAMERA_SUBITO__";
@@ -216,6 +221,10 @@ function stradeDiAdesso(cam) {
   return strategieDellaTelecamera(cam || {}, stato, {
     webrtcNelBrowser: typeof root.RTCPeerConnection !== "undefined",
     hlsNelBrowser,
+    /* Che flussi sa fare, chiesto a Home Assistant (#502). Quando non l'ha
+     * ancora detto vale `null`, e chi sceglie la strada si arrangia con quello
+     * che trova negli attributi. */
+    capacita: capacitaDellaTelecamera(clean(cam?.entity)),
   });
 }
 
@@ -268,9 +277,28 @@ export function installTelecameraSubito() {
     mostraSubito(cam, content);
     if (!entity) return precedente.call(this, cam, title, content);
 
+    /* Se Home Assistant non ha ancora detto che flussi sa fare questa
+     * telecamera, glielo si chiede adesso e si aspetta: e' una domanda
+     * piccola, e la risposta decide se si guarda un video o un'istantanea.
+     * Chi ha gia' risposto non viene richiesto. */
+    if (!capacitaChieste(entity)) {
+      try {
+        await chiediLeCapacita(entity);
+      } catch (_errore) {}
+    }
     const ricordo = ricordoDellaTelecamera(memoria(), entity, Date.now());
     const strade = stradeDiAdesso(cam);
-    const corta = scorciatoia(ricordo, strade, Date.now());
+    /* La strada la si prende da qui quando si sa da che parte andare.
+     *
+     * Il ricordo e' «ieri ha funzionato cosi'»; le capacita' sono «Home
+     * Assistant dice che sa fare cosi'». La seconda vale anche la prima volta,
+     * e senza di lei si finiva nella fila del guscio — che sceglie con quello
+     * che trova negli attributi, e negli attributi dal 2025.6 non c'e' piu'
+     * niente. Se la strada scelta non regge, la fila del guscio e' ancora tutta
+     * li' dietro, intera, come per il ricordo. */
+    const corta =
+      scorciatoia(ricordo, strade, Date.now()) ||
+      (capacitaChieste(entity) ? stradaScelta(strade) : null);
     if (corta) {
       const inizio = Date.now();
       try {
