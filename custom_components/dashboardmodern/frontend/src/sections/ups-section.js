@@ -185,9 +185,9 @@ const POSTI = Object.freeze({
 
 /* Una targhetta senza numero non si disegna: chi non ha mappato la potenza non
  * deve trovarsi un «--» al posto suo, che e' una promessa non mantenuta. */
-function targhetta(posizione, etichetta, valore, unita, colore, cifre = 1) {
+function targhetta(posto, etichetta, valore, unita, colore, cifre = 1) {
   if (valore == null) return "";
-  return `<div class="dm-ups-nodo dm-ups-nodo-plate" style="${posizione}">
+  return `<div class="dm-ups-nodo dm-ups-nodo-plate" data-dm-ups-posto="${esc(posto)}" style="${POSTI[posto]}">
     <div class="dm-ups-plate">
       <span class="dm-ups-plate-lbl">${esc(etichetta)}</span>
       <b class="dm-ups-plate-val" style="color:${colore}">${esc(NUMERO(valore, cifre))}<i>${esc(unita)}</i></b>
@@ -223,7 +223,7 @@ function scena(dato, da) {
       <path class="dm-ups-corrente dm-ups-corrente-uscita" d="M 580 300 L 828 300"/>
     </svg>
 
-    <div class="dm-ups-nodo" style="${POSTI.rete}">
+    <div class="dm-ups-nodo" data-dm-ups-posto="rete" style="${POSTI.rete}">
       <div class="dm-ups-traliccio" aria-hidden="true">
         <svg viewBox="0 0 120 180" class="dm-ups-pilone">
           <g class="dm-ups-pilone-tratti">
@@ -242,7 +242,7 @@ function scena(dato, da) {
       <span class="dm-ups-nome">${esc(t("Rete elettrica", "Mains power"))}</span>
     </div>
 
-    <div class="dm-ups-nodo dm-ups-nodo-box" style="${POSTI.scatola}">
+    <div class="dm-ups-nodo dm-ups-nodo-box" data-dm-ups-posto="scatola" style="${POSTI.scatola}">
       <div class="dm-ups-box" aria-hidden="true">
         <span class="dm-ups-lcd">
           <span class="dm-ups-cella"><i style="height:${quota}%"></i></span>
@@ -257,7 +257,7 @@ function scena(dato, da) {
       <span class="dm-ups-nome">${esc(clean(dato.name) || t("UPS", "UPS"))}</span>
     </div>
 
-    <div class="dm-ups-nodo" style="${POSTI.casa}">
+    <div class="dm-ups-nodo" data-dm-ups-posto="casa" style="${POSTI.casa}">
       <div class="dm-ups-casa" aria-hidden="true">
         <span class="dm-ups-tetto"></span>
         <span class="dm-ups-muro"><i></i><i></i></span>
@@ -265,20 +265,22 @@ function scena(dato, da) {
       <span class="dm-ups-nome">${esc(t("Sotto protezione", "Protected load"))}</span>
     </div>
 
-    ${targhetta(POSTI.carico, t("Carico", "Load"), dato.carico, "%", "#38bdf8", 0)}
-    ${targhetta(
-      POSTI.autonomia,
-      t("Autonomia residua", "Runtime left"),
-      dato.autonomia,
-      " min",
-      buio ? "#f43f5e" : "#34d399",
-      0,
-    )}
-    ${targhetta(POSTI.tensione, t("Tensione", "Voltage"), dato.tensione, " V", "#a78bfa", 0)}
-    ${targhetta(POSTI.potenza, t("Potenza", "Power"), dato.potenza, " W", "#fb923c", 0)}
-    ${targhetta(POSTI.temperatura, t("Temperatura", "Temperature"), dato.temperatura, "°C", "#f59e0b")}
+    <div class="dm-ups-quadro">
+      ${targhetta("carico", t("Carico", "Load"), dato.carico, "%", "#38bdf8", 0)}
+      ${targhetta(
+        "autonomia",
+        t("Autonomia residua", "Runtime left"),
+        dato.autonomia,
+        " min",
+        buio ? "#f43f5e" : "#34d399",
+        0,
+      )}
+      ${targhetta("tensione", t("Tensione", "Voltage"), dato.tensione, " V", "#a78bfa", 0)}
+      ${targhetta("potenza", t("Potenza", "Power"), dato.potenza, " W", "#fb923c", 0)}
+      ${targhetta("temperatura", t("Temperatura", "Temperature"), dato.temperatura, "°C", "#f59e0b")}
+    </div>
 
-    <div class="dm-ups-nodo dm-ups-nodo-verdetto" style="${POSTI.verdetto}">
+    <div class="dm-ups-nodo dm-ups-nodo-verdetto" data-dm-ups-posto="verdetto" style="${POSTI.verdetto}">
       <span class="dm-ups-verdetto">${esc(riassunto(dato, da))}</span>
     </div>
   </div>`;
@@ -410,6 +412,11 @@ function installStyles() {
         radial-gradient(90% 80% at 6% 96%,rgba(251,146,60,.16),transparent 60%),
         var(--card-bg,#fff)}
     ${P} .dm-ups-scena{position:absolute;inset:0}
+    /* Le targhette stanno insieme in una scatola, ma finche' la scena e' un
+       palco quella scatola non deve esistere: display:contents la fa sparire
+       dal disegno e lascia ogni targhetta appesa dove la mette il suo posto.
+       Serve in verticale, dove le cinque diventano una griglia sola. */
+    ${P} .dm-ups-quadro{display:contents}
 
     /* I cavi: fondo spesso e anima chiara, come i tubi del locale caldaia. */
     ${P} .dm-ups-cavi{position:absolute;inset:0;width:100%;height:100%}
@@ -569,6 +576,75 @@ function installStyles() {
       ${P} .dm-ups-muro{top:42px}
       ${P} .dm-ups-plate{min-width:88px;padding:8px 12px}
       ${P} .dm-ups-plate-val{font-size:21px}
+    }
+
+    /* ── sul telefono la fila si alza in piedi ────────────────────────── */
+
+    /* «Aprendo la sezione dal cellulare la scheda la si vede compressa, non
+       c'e' modo di scalarle?» (#390)
+
+       Non e' questione di misure. La scena mette tre oggetti in fila —
+       traliccio, scatola, casa — larghi in tutto quattrocentotrenta pixel, e
+       li ancora a percentuali del palco. Su un telefono da trecentosessanta
+       il palco e' piu' stretto della fila: gli oggetti si passano l'uno sopra
+       l'altro, e le targhette dei numeri gli finiscono addosso. Rimpicciolire
+       tutto — che e' quello che la segnalazione chiedeva — farebbe entrare la
+       fila, ma con le etichette a cinque pixel: leggibile non sarebbe lo
+       stesso.
+
+       Uno schermo di telefono pero' e' stretto, non piccolo: di altezza ce
+       n'e'. Percio' la fila si alza in piedi. La rete sopra, l'UPS in mezzo,
+       la casa sotto, il cavo che li unisce in verticale con la stessa
+       corrente che scorre, e i numeri in una griglia sotto di loro. Gli
+       oggetti restano della misura che avevano, e nessuno tocca nessuno. */
+    @media (max-width:520px){
+      ${P} .dm-ups-stage{height:auto;padding:22px 12px 20px}
+      ${P} .dm-ups-scena{
+        position:static;display:flex;flex-direction:column;align-items:center;gap:0}
+      /* I cavi disegnati erano due segmenti orizzontali su un palco largo:
+         in colonna non hanno piu' niente da unire, e il loro posto lo prende
+         il tratto verticale qui sotto. */
+      ${P} .dm-ups-cavi{display:none}
+      ${P} .dm-ups-nodo{position:static;transform:none;max-width:100%}
+      ${P} .dm-ups-nodo[data-dm-ups-posto="rete"]{order:1}
+      ${P} .dm-ups-nodo[data-dm-ups-posto="scatola"]{order:2}
+      ${P} .dm-ups-nodo[data-dm-ups-posto="casa"]{order:3}
+      ${P} .dm-ups-quadro{
+        order:4;display:grid;width:100%;margin-top:20px;gap:10px;
+        grid-template-columns:repeat(auto-fit,minmax(132px,1fr))}
+      ${P} .dm-ups-quadro .dm-ups-nodo{align-items:stretch;gap:0}
+      ${P} .dm-ups-quadro .dm-ups-plate{min-width:0}
+      ${P} .dm-ups-nodo-verdetto{order:5;margin-top:16px}
+      /* La frase non ha piu' un angolo tutto suo in cui stare su una riga:
+         al centro, sotto i numeri, va a capo come qualsiasi altra frase. */
+      ${P} .dm-ups-verdetto{white-space:normal;text-align:center}
+
+      /* Il cavo verticale: fondo spesso, anima chiara e il tratto di corrente
+         che scende — le stesse tre cose dei cavi orizzontali, in una sola
+         pastiglia, perche' qui non c'e' un disegno sotto a cui appoggiarsi. */
+      ${P} .dm-ups-nodo[data-dm-ups-posto="rete"]::after,
+      ${P} .dm-ups-nodo[data-dm-ups-posto="scatola"]::after{
+        content:"";width:18px;height:46px;border-radius:9px;
+        background:
+          linear-gradient(180deg,var(--dm-ups-corrente,transparent) 0 20px,transparent 20px)
+            center 0/9px 46px repeat-y,
+          linear-gradient(180deg,#f8fafc,#f8fafc) center/10px 100% no-repeat,
+          #e2e8f0}
+      ${P} .dm-ups-scena[data-rete="true"] .dm-ups-nodo[data-dm-ups-posto="rete"]::after{
+        --dm-ups-corrente:#22c55e;animation:dmUpsScende 2.4s linear infinite}
+      ${P} .dm-ups-scena[data-rete="true"] .dm-ups-nodo[data-dm-ups-posto="scatola"]::after{
+        --dm-ups-corrente:#38bdf8;animation:dmUpsScende 2.4s linear infinite}
+      /* A corrente caduta il cavo di monte resta spento — e' tutta la notizia
+         — e quello di valle porta l'ambra della batteria, piu' in fretta. */
+      ${P} .dm-ups-scena[data-buio="true"] .dm-ups-nodo[data-dm-ups-posto="scatola"]::after{
+        --dm-ups-corrente:#fbbf24;animation:dmUpsScende 1.5s linear infinite}
+    }
+    @keyframes dmUpsScende{
+      from{background-position:center -46px,center,0 0}
+      to{background-position:center 0,center,0 0}
+    }
+    @media (prefers-reduced-motion:reduce){
+      ${P} .dm-ups-nodo::after{animation:none!important}
     }
     `,
   );

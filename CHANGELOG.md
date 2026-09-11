@@ -9,6 +9,27 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **UPS: sul telefono la scena si alza in piedi invece di accavallarsi** (#390)
+
+  «Aprendo la sezione dal cellulare la scheda la si vede compressa, non c'è modo
+  di scalarle?»
+
+  La scena mette tre oggetti in fila — il traliccio, la scatola, la casa — larghi
+  in tutto più di quattrocento pixel, e li àncora a percentuali del palco. Su un
+  telefono da trecentosessanta il palco è **più stretto della fila**: gli oggetti
+  si passano l'uno sopra l'altro, e le targhette dei numeri gli finiscono addosso.
+  Rimpicciolire tutto — che è quello che la segnalazione chiedeva — la fila la
+  farebbe entrare, ma con le etichette a cinque pixel: leggibile non sarebbe lo
+  stesso.
+
+  Uno schermo di telefono però è stretto, non piccolo: di altezza ce n'è. Sotto i
+  520 pixel la fila si alza in piedi — la rete sopra, l'UPS in mezzo, la casa
+  sotto, il cavo che li unisce in verticale con la stessa corrente che scorre (e
+  che a corrente caduta resta spento sul tratto di monte, come sul palco) — e i
+  cinque numeri vanno in una griglia sotto, alla loro misura. Gli oggetti restano
+  grandi come prima e nessuno tocca nessuno. Da tablet e da computer non cambia
+  niente.
+
 - **Una VMC spenta fra gli Avvisi non sparisce più dal Clima** (#371)
 
   «Quando si imposta una VMC questa compare in moltissime sezioni nella
