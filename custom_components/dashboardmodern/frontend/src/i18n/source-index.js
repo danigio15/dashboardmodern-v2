@@ -466,6 +466,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Afoso": "Muggy",
   "Agenda": "Calendar",
   "Aggiorna": "Refresh",
+  "Aggiornamenti": "Updates",
   "Aggiornamento dati Recorder…": "Updating Recorder data…",
   "Aggiornamento in corso...": "Updating...",
   "aggiornata da": "updated from",

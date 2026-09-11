@@ -2810,6 +2810,7 @@ export default Object.freeze({
   "Up to: fair": "حتى: مقبول",
   "Up to: good": "حتى: جيّد",
   "Up to: poor": "حتى: رديء",
+  "Updates": "التحديثات",
   "Updating Recorder data…": "جارٍ تحديث بيانات Recorder…",
   "Updating...": "جارٍ التحديث...",
   "Upload": "الرفع",

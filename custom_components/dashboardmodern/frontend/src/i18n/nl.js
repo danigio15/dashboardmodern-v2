@@ -2810,6 +2810,7 @@ export default Object.freeze({
   "Up to: fair": "Tot: redelijk",
   "Up to: good": "Tot: goed",
   "Up to: poor": "Tot: slecht",
+  "Updates": "Updates",
   "Updating Recorder data…": "Recorder-gegevens bijwerken…",
   "Updating...": "Bijwerken...",
   "Upload": "Uploaden",

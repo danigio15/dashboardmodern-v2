@@ -2810,6 +2810,7 @@ export default Object.freeze({
   "Up to: fair": "到此为止：一般",
   "Up to: good": "到此为止：良好",
   "Up to: poor": "到此为止：较差",
+  "Updates": "更新",
   "Updating Recorder data…": "正在更新 Recorder 数据…",
   "Updating...": "正在更新...",
   "Upload": "上行",

@@ -2810,6 +2810,7 @@ export default Object.freeze({
   "Up to: fair": "Şuraya kadar: orta",
   "Up to: good": "Şuraya kadar: iyi",
   "Up to: poor": "Şuraya kadar: kötü",
+  "Updates": "Güncellemeler",
   "Updating Recorder data…": "Recorder verileri güncelleniyor…",
   "Updating...": "Güncelleniyor...",
   "Upload": "Yükleme",

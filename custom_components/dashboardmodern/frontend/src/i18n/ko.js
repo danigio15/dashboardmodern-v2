@@ -2810,6 +2810,7 @@ export default Object.freeze({
   "Up to: fair": "여기까지: 보통",
   "Up to: good": "여기까지: 좋음",
   "Up to: poor": "여기까지: 나쁨",
+  "Updates": "업데이트",
   "Updating Recorder data…": "Recorder 데이터를 갱신하는 중…",
   "Updating...": "갱신하는 중...",
   "Upload": "올리기",

@@ -333,6 +333,10 @@ const LOCALE_IDENTITIES = {
     "Start",
     "Timer",
     "Toaster",
+    /* «Update» e' la parola che si usa in tedesco per un aggiornamento di
+       programma: il plurale si scrive come in inglese, e «Aktualisierungen»
+       lo dice nessuno davanti a una pastiglia. */
+    "Updates",
     "Upload",
     "WNW",
     "WSW",
@@ -423,6 +427,9 @@ const LOCALE_IDENTITIES = {
     "Start",
     "Timer",
     "Type",
+    /* Ook in het Nederlands heet een programma-update gewoon een update:
+       het meervoud is hetzelfde woord als in het Engels. */
+    "Updates",
     "Violet",
     "Warm",
     "Water",

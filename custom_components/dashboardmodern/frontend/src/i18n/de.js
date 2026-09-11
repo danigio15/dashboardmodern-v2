@@ -2810,6 +2810,7 @@ export default Object.freeze({
   "Up to: fair": "Bis: mäßig",
   "Up to: good": "Bis: gut",
   "Up to: poor": "Bis: schlecht",
+  "Updates": "Updates",
   "Updating Recorder data…": "Recorder-Daten werden aktualisiert…",
   "Updating...": "Wird aktualisiert...",
   "Upload": "Upload",

@@ -64,6 +64,11 @@ function catalogoTessere() {
      * altre, e una tessera senza la sua riga qui non si puo' ne' ordinare ne'
      * nascondere. */
     ["segnalazioni", "🎫", t("Segnalazioni", "Reports")],
+    /* Cosa c'e' da aggiornare in casa (#498). Come le segnalazioni, la riga
+     * sta qui per tutti e la tessera compare solo quando c'e' qualcosa da
+     * fare: senza aggiornamenti in attesa il suo modello torna `null`. Chi
+     * non vuole vederli nemmeno quando ci sono lo spegne da qui. */
+    ["aggiornamenti", "⬆️", t("Aggiornamenti", "Updates")],
     /* Impegni e cose da fare stanno in una tessera sola (#259): erano due
      * mattonelle con la stessa faccia, e chi guardava doveva ricordarsi quale
      * era quale. Dentro restano due blocchi, perche' un appuntamento succede a

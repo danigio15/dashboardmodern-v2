@@ -165,6 +165,7 @@ import {
   isRelayEntity,
   relayCoverCommands,
 } from "../core/cover-kind.js";
+import { aggiornamentiDaFare } from "../core/aggiornamenti-da-fare.js";
 import {
   CHIAVE_SOGLIA_UMIDITA,
   finestreDaArieggiare,
@@ -1343,6 +1344,46 @@ export function porteAperte(doors = [], states = {}) {
     if (clean(door?.entity).split(".")[0] !== "lock") return false;
     return PORTA_APERTA.test(clean(stateOf(states, door.entity)?.state).toLowerCase());
   });
+}
+
+/* Cosa c'e' da aggiornare in casa (#498).
+ *
+ * «Creare un avviso che segnali gli aggiornamenti presenti da effettuare,
+ * compresi quelli della fantastica dashmodern.»
+ *
+ * Home Assistant lo sa gia': ogni integrazione, ogni add-on e il sistema
+ * stesso pubblicano un'entita' `update.` che sta a ON quando c'e' una versione
+ * nuova. Qui non si va a chiedere niente fuori e non si configura niente —
+ * un elenco scritto a mano invecchierebbe al primo add-on installato.
+ *
+ * La tessera compare SOLO quando c'e' qualcosa da fare. Una tessera
+ * «Aggiornamenti: 0» occupa un posto per dire che non e' successo niente, e in
+ * una Home dove ogni posto e' una cosa che si guarda quello e' un posto
+ * sprecato.
+ *
+ * Non e' rossa: un aggiornamento non e' un guasto, e il rosso in questa Home
+ * vuol dire «vai a vedere adesso». E' ambra, come le cose da fare con calma.
+ */
+function aggiornamentiModel(states) {
+  const fuori = widgetExcludedEntities("aggiornamenti");
+  const fila = aggiornamentiDaFare(states).filter((voce) => widgetIncludes(voce.entity, fuori));
+  if (!fila.length) return null;
+  const primo = fila[0];
+  return {
+    key: "aggiornamenti",
+    accent: "#d97706",
+    icon: "⬆️",
+    label: t("Aggiornamenti", "Updates"),
+    value: String(fila.length),
+    /* Si nomina il primo — la plancia quando c'e', che e' quella per cui
+     * questa tessera e' stata chiesta — e si dice a che versione va. Gli altri
+     * si contano: i nomi di sei add-on in una didascalia non si leggono. */
+    caption:
+      fila.length === 1
+        ? `${primo.nome}${primo.a ? ` → ${primo.a}` : ""}`
+        : `${primo.nome} · +${fila.length - 1}`,
+    aggiornamenti: fila,
+  };
 }
 
 function porteModel(states) {
@@ -4894,6 +4935,7 @@ export function modelliDelleTessere(states) {
       chatModel(),
       ...evidenzaModels(states),
       segnalazioniModel(),
+      aggiornamentiModel(states),
       agendaModel(states),
       lightsModel(states),
       climateModel(states),
