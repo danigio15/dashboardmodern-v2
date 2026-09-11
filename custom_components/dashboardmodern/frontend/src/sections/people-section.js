@@ -178,18 +178,82 @@ function footMarkup(view) {
  *
  * Adesso e' un collegamento vero. Il resto della card continua ad aprire la
  * persona: due gesti diversi su due pezzi diversi, non uno che indovina cosa
- * volevi. L'indirizzo lo passa `encodeURIComponent`, quindi una virgola o uno
- * spazio non spezzano l'indirizzo — e senza indirizzo non c'e' niente da
- * toccare, come prima. */
+ * volevi. E senza indirizzo non c'e' niente da toccare, come prima.
+ *
+ * ── Quale mappa ─────────────────────────────────────────────────────────
+ *
+ * «Intendevo la mappa interna di HA... adesso punta su googlemap.»
+ *
+ * Giusto: portava l'indirizzo scritto a Google, che e' un altro sito e non sa
+ * niente di questa casa. La mappa che serve ce l'ha Home Assistant, e la
+ * mostra in due posti — la scheda di un'entita', con il segnaposto di QUESTA
+ * persona, e il pannello Mappa, che le fa vedere tutte.
+ *
+ * Il tocco prova la prima: dentro la plancia c'e' la cornice, la cornice sta
+ * nell'ombra del pannello, e da li' un annuncio sale fino a chi apre le schede
+ * — e' la stessa strada che usa qualunque card di Home Assistant. Quando non
+ * c'e' nessuna Home Assistant intorno — la plancia aperta per conto suo, come
+ * app a se' — quella strada non esiste, e il collegamento resta quello che e'
+ * scritto nel link: il pannello Mappa, che sta allo stesso indirizzo di casa.
+ *
+ * Il link porta il pannello Mappa anche quando la scheda si apre: cosi' il
+ * tasto centrale del mouse e «apri in una scheda nuova» finiscono su una
+ * mappa vera invece che su niente. */
+const MAPPA_DI_CASA = "/map";
+
 function mappaDi(indirizzo) {
-  const scritto = clean(indirizzo);
-  return scritto ? `https://maps.google.com/?q=${encodeURIComponent(scritto)}` : "";
+  return clean(indirizzo) ? MAPPA_DI_CASA : "";
+}
+
+/* Il pannello che ospita la plancia, dentro il documento di Home Assistant.
+ * La cornice e' figlia della sua ombra: da li' un annuncio con `composed`
+ * attraversa il confine e arriva a chi sta sopra. */
+function ospiteDellaPlancia() {
+  try {
+    const cornice = root.frameElement;
+    if (!cornice) return null;
+    return cornice.getRootNode?.()?.host || cornice;
+  } catch (_error) {
+    return null;
+  }
+}
+
+/* Se intorno alla plancia c'e' davvero Home Assistant. Si guarda l'elemento
+ * che fa da radice al suo pannello: senza quello non c'e' nessuno che ascolti,
+ * e annunciare vorrebbe dire un tocco che non fa niente. */
+function dentroHomeAssistant() {
+  try {
+    return Boolean(root.parent?.document?.querySelector?.("home-assistant"));
+  } catch (_error) {
+    return false;
+  }
+}
+
+/** Apre la scheda dell'entita' in Home Assistant, che porta la sua mappa. */
+export function apriLaMappaDiCasa(entity) {
+  const id = clean(entity);
+  if (!id || !dentroHomeAssistant()) return false;
+  const ospite = ospiteDellaPlancia();
+  const vista = ospite?.ownerDocument?.defaultView;
+  if (!ospite?.dispatchEvent || !vista?.CustomEvent) return false;
+  try {
+    ospite.dispatchEvent(
+      new vista.CustomEvent("hass-more-info", {
+        bubbles: true,
+        composed: true,
+        detail: { entityId: id },
+      }),
+    );
+    return true;
+  } catch (_error) {
+    return false;
+  }
 }
 
 function indirizzoMarkup(view) {
   const mappa = mappaDi(view.address);
   if (!mappa) return "";
-  return `<a class="dm-person-address" data-person-mappa href="${esc(mappa)}" target="_blank" rel="noopener"
+  return `<a class="dm-person-address" data-person-mappa="${esc(view.entity)}" href="${esc(mappa)}" target="_blank" rel="noopener"
     title="${esc(view.address)} — ${esc(t("Apri in mappa", "Open in map"))}">${esc(view.address)}</a>`;
 }
 
@@ -286,7 +350,7 @@ function popupBodyMarkup(view, people) {
       <strong>${esc(view.name)}</strong>
       <span class="dm-person-zone">${presenceIcon(view)} ${esc(presenceLabel(view))}</span>
       ${view.address ? `<small class="dm-person-pop-address">${esc(view.address)}</small>` : ""}
-      ${mapUrl ? `<a class="dm-person-pop-map" href="${esc(mapUrl)}" target="_blank" rel="noopener">🗺 ${t("Apri in mappa", "Open in map")}</a>` : ""}
+      ${mapUrl ? `<a class="dm-person-pop-map" data-person-mappa="${esc(view.entity)}" href="${esc(mapUrl)}" target="_blank" rel="noopener">🗺 ${t("Apri in mappa", "Open in map")}</a>` : ""}
     </div>
     <div class="dm-person-pop-tiles">${popupTiles(view)}</div>`;
 }
@@ -686,8 +750,14 @@ export function installPeopleSection() {
       (event) => {
         if (event.target?.closest?.(".tab[data-tab]")) schedule();
         /* Il luogo porta alla mappa e non apre la persona: due gesti diversi
-         * su due pezzi diversi (#438). */
-        if (event.target?.closest?.("[data-person-mappa]")) return;
+         * su due pezzi diversi (#438). E la mappa e' quella di casa: se la
+         * scheda dell'entita' si apre, il link non serve piu'; se non c'e'
+         * nessuna Home Assistant intorno, il link porta al pannello Mappa. */
+        const mappa = event.target?.closest?.("[data-person-mappa]");
+        if (mappa) {
+          if (apriLaMappaDiCasa(mappa.dataset.personMappa)) event.preventDefault();
+          return;
+        }
         const card = event.target?.closest?.("#dm-people .dm-person-card[data-person-id]");
         if (card) openPersonPopup(card.dataset.personId);
       },
