@@ -43,39 +43,37 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
   Un gettone scaduto ha un rimedio preciso, e adesso la plancia lo dice:
   l'integrazione dell'auto non è più collegata al suo account, e si riconnette
-  da Impostazioni → Dispositivi e servizi. Stessa cosa per un'auto che non
-  risponde in tempo: le vetture in cloud dormono, e spesso basta riprovare fra
-  un minuto. Quello che ha detto Home Assistant resta in coda fra parentesi —
-  è quello che serve a chi apre una segnalazione, e toglierlo sarebbe
-  nascondere la prova.
+  da Impostazioni → Dispositivi e servizi. Un permesso che manca è un'altra cosa
+  — lì l'integrazione sta benissimo, e a mancare è il permesso di chi guarda —
+  e ha la sua riga. Stessa cosa per un'auto che non risponde in tempo: le
+  vetture in cloud dormono, e spesso basta riprovare fra un minuto. Quello che
+  ha detto Home Assistant resta in coda fra parentesi — è quello che serve a chi
+  apre una segnalazione, e toglierlo sarebbe nascondere la prova.
 
-- **Wallbox: il totale dell'anno perdeva quasi mille kWh**
+- **Wallbox: il totale dell'anno era corto di quasi mille kWh, e non lo diceva**
 
-  «Il sensore restituisce 1440,76 kWh per 2026» — e la plancia ne diceva 546,
-  per quattro rilasci di fila.
+  «Il sensore restituisce 1440,76 kWh per 2026» — e la plancia ne diceva 546.
 
-  Il conto dell'anno somma i secchielli del Recorder, e sommare i secchielli è
-  giusto: è l'unico modo che non sbaglia anche sui contatori che si azzerano
-  ogni mese. Il guaio era più in basso, in **cosa** si sommava.
+  La differenza non è un errore di somma: è un pezzo di storia che nel Recorder
+  non c'è. La `sum` del Recorder non è la lettura del contatore, è un totale
+  **suo**, che parte da zero quando cominciano le **statistiche** di
+  quell'entità — non quando è stato acceso l'apparecchio. Se le statistiche
+  cominciano dopo (un'entità rifatta, un aiutante che filtra i picchi creato
+  mesi dopo la colonnina, un database ripulito), tutto quello che era stato
+  consumato prima non sta in nessun secchiello, e nessuna somma può ritrovarlo.
 
-  La `sum` del Recorder non è la lettura del contatore. È un totale suo, che
-  parte da zero quando cominciano le **statistiche** di quell'entità — non
-  quando è stato acceso l'apparecchio. Se le statistiche cominciano dopo (un'
-  entità rifatta, un aiutante che filtra i picchi creato mesi dopo la colonnina,
-  una purga del database), tutto quello che era stato consumato prima non sta in
-  nessun secchiello, e nessuna somma può ritrovarlo. Erano gli 894 kWh che
-  mancavano.
+  Quell'energia non si può nemmeno aggiungere al totale, perché **non si sa
+  quando è stata consumata**. Su una colonnina installata quest'anno è tutta di
+  quest'anno; su un contatore vecchio a cui hanno rifatto l'entità è di anni fa,
+  e scriverla nell'anno lo gonfierebbe di tutta la vita dell'apparecchio. Fra le
+  due la plancia non può scegliere da sola, e sbagliare in quel verso è molto
+  peggio che restare corti.
 
-  Adesso, quando l'arco contiene **tutta la vita registrata** del contatore —
-  nessuna riga prima, e la prima riga che arriva dopo il confine — si guarda
-  anche quello che il contatore segna addosso: se il suo ultimo azzeramento è
-  caduto dentro l'arco, allora quel numero l'arco lo contiene di sicuro, ed è un
-  pavimento. Su una colonnina installata a marzo il totale del 2026 torna a
-  essere 1440,76.
-
-  Nel caso normale — statistiche che coprono tutta la vita dell'apparecchio — la
-  somma dei secchielli è già maggiore o uguale alla lettura, quindi non cambia
-  nessun numero.
+  Quello che si può fare è **dirlo**, e adesso lo dice: sulla scheda del
+  dispositivo compare quanto manca — «894,9 kWh non contati: il contatore li
+  aveva già fatti prima che ne cominciassero le statistiche» — così un numero
+  corto smette di essere un numero sbagliato e diventa un numero di cui si sa il
+  perché.
 
 - **Wallbox: «49,4 kWh dal fotovoltaico» quando i veri erano 22,8**
 
@@ -97,11 +95,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   stava prendendo dalla rete questa frazione di quello che consumava. Il resto è
   una somma.
 
-  Le ore si chiedono solo a scheda del dispositivo aperta, e una volta sola per
-  periodo: il mese arriva subito, l'anno dopo. Se le ore non ci sono — un
-  Recorder che non le tiene, una domanda caduta — resta la stima di prima, che è
-  meglio di niente, invece di una percentuale inventata scritta come se fosse
-  misurata.
+  Le ore si chiedono solo a scheda del dispositivo aperta, e il mese in corso si
+  rimisura ogni tanto perché continua a riempirsi. Un'ora vale solo se ci sono
+  tutte e tre le misure — l'apparecchio, la casa, la rete — e la spartizione
+  vale solo se le ore spiegano il grosso del periodo: sotto quella soglia una
+  notte di ricarica deciderebbe la proporzione di un anno intero, e allora resta
+  la stima di prima, dichiarata per quello che è, invece di una percentuale
+  inventata scritta come se fosse misurata.
 
 - **Plancia predefinita: «Errore di configurazione» all'apertura dell'app** (#107)
 

@@ -219,12 +219,17 @@ function parolePerIlRifiuto(dettaglio) {
           "L'integrazione dell'auto non è più collegata al suo account: riconnettila in Impostazioni → Dispositivi e servizi.",
           "The car integration is no longer connected to its account: reconnect it in Settings → Devices & services.",
         )
-      : ragione === "non-raggiungibile"
+      : ragione === "permesso"
         ? t(
-            "L'auto non ha risposto in tempo: le vetture in cloud dormono, spesso basta riprovare fra un minuto.",
-            "The car did not answer in time: cloud vehicles sleep, trying again in a minute usually works.",
+            "Home Assistant non ti autorizza a comandare questa entità: serve un utente con il permesso, oppure l'entità è esposta in sola lettura.",
+            "Home Assistant does not allow you to command this entity: it needs a user with permission, or the entity is exposed read-only.",
           )
-        : "";
+        : ragione === "non-raggiungibile"
+          ? t(
+              "L'auto non ha risposto in tempo: le vetture in cloud dormono, spesso basta riprovare fra un minuto.",
+              "The car did not answer in time: cloud vehicles sleep, trying again in a minute usually works.",
+            )
+          : "";
   if (!consiglio) return dettaglio ? `${testa}: ${dettaglio}` : testa;
   return dettaglio ? `${consiglio} (${dettaglio})` : consiglio;
 }

@@ -483,6 +483,19 @@ function giorniPerEntita(plans, giorni, prefisso) {
   return perEntita;
 }
 
+/* Gli ammanchi per entita', come `giorniPerEntita` fa con le serie. */
+function ammanchiPerEntita(plans, ammanchi, prefisso) {
+  const perEntita = new Map();
+  if (!(ammanchi instanceof Map) || ammanchi.size === 0) return perEntita;
+  plans.forEach((plan) => {
+    const quanto = ammanchi.get(`${prefisso}${plan.key}`);
+    if (!Number.isFinite(quanto) || quanto <= 0) return;
+    perEntita.set(plan.entity, quanto);
+    perEntita.set(plan.source, quanto);
+  });
+  return perEntita;
+}
+
 function valoriPerEntita(plans, valori) {
   const values = new Map();
   plans.forEach((plan) => {
@@ -661,11 +674,19 @@ export async function loadAtomicEnergyBundle(
     })),
   );
   const giorniDeiDispositivi = new Map();
+  const ammanchiDeiDispositivi = new Map();
   const {
     valori: ricavati,
     caduti,
     giorni: giorniRicavati,
-  } = await broker.valoriPerArchi(richieste, new Map(), alPasso, giorniDeiDispositivi);
+    ammanchi: ammanchiRicavati,
+  } = await broker.valoriPerArchi(
+    richieste,
+    new Map(),
+    alPasso,
+    giorniDeiDispositivi,
+    ammanchiDeiDispositivi,
+  );
   /* Gli archi che non hanno risposto. Serve saperlo per famiglia: l'anno
    * senza il suo mese aperto sarebbe un anno piu' corto — un numero
    * sbagliato, non un numero mancante — e un numero sbagliato non si
@@ -767,6 +788,14 @@ export async function loadAtomicEnergyBundle(
         letture.dispMonth.prefisso,
       ),
       deviceYear: paniere("deviceYear", letture.dispYear, dispositivi.year),
+      /* Quanto manca all'anno di ogni dispositivo perche' le sue statistiche
+       * cominciano dopo il contatore: la card lo scrive, invece di lasciare un
+       * numero corto senza una parola. */
+      deviceYearAmmanco: ammanchiPerEntita(
+        dispositivi.year.plans,
+        ammanchiRicavati,
+        letture.dispYear.prefisso,
+      ),
       energyLoadsDay: letture.carichi.valori,
       rates: Object.freeze(rates()),
     }),
@@ -1103,6 +1132,31 @@ export function chiaveDellaQuota(entity, period) {
   return `${entity}|${Number(period?.year) || 0}-${Number(period?.month) || 0}`;
 }
 
+/* Quanto vale una misura del periodo in corso.
+ *
+ * Un mese chiuso non cambia piu': la sua spartizione e' scritta una volta e
+ * resta. Quello in corso continua a riempirsi — ogni notte di ricarica sposta
+ * la proporzione — e una misura di stamattina, tenuta per sempre, racconterebbe
+ * una giornata che non c'e' piu'. La frazione regge il totale che cresce; il
+ * MIX no, e va rifatto ogni tanto. */
+export const SCADENZA_DELLA_QUOTA_MS = 15 * 60_000;
+
+/** Se il periodo guardato è quello che si sta ancora riempiendo. */
+export function periodoInCorso(period, adesso = new Date()) {
+  return (
+    Number(period?.year) === adesso.getFullYear() && Number(period?.month) === adesso.getMonth() + 1
+  );
+}
+
+/** Se una quota già misurata va rimisurata. */
+export function quotaDaRifare(quota, period, adesso = new Date()) {
+  if (!quota) return true;
+  if (!periodoInCorso(period, adesso)) return false;
+  const quando = Number(quota.quando);
+  if (!Number.isFinite(quando)) return true;
+  return adesso.getTime() - quando > SCADENZA_DELLA_QUOTA_MS;
+}
+
 /* Misura la quota di sole dell'apparecchio aperto nella scheda, e ridisegna.
  *
  * Si fa solo a scheda aperta e solo per l'apparecchio scelto: sono ore di
@@ -1123,7 +1177,9 @@ export async function misuraLaQuotaDelDispositivo(bundle = state.bundle, adesso 
   );
   const dispositivo = clean(device?.history || entity);
   const chiave = chiaveDellaQuota(dispositivo, bundle.period);
-  if (state.quote.has(chiave) || state.quoteInCorso.has(chiave)) return state.quote.get(chiave);
+  if (state.quoteInCorso.has(chiave)) return state.quote.get(chiave);
+  const gia = state.quote.get(chiave);
+  if (gia && !quotaDaRifare(gia, bundle.period, adesso)) return gia;
 
   const fonti = pianiDelleFonti("month");
   const { casa, rete } = entitaDelleFonti(fonti);
@@ -1146,7 +1202,7 @@ export async function misuraLaQuotaDelDispositivo(bundle = state.bundle, adesso 
     );
     if (mese?.fonte === "secchielli") {
       misurate.month = mese;
-      state.quote.set(chiave, { ...misurate });
+      state.quote.set(chiave, { ...misurate, quando: adesso.getTime() });
       applyAtomicEnergyBundle(state.bundle);
     }
     const anno = await quotaSuArchi(
@@ -1171,16 +1227,72 @@ export async function misuraLaQuotaDelDispositivo(bundle = state.bundle, adesso 
     state.quoteInCorso.delete(chiave);
   }
   if (!misurate.month && !misurate.year) return null;
+  misurate.quando = adesso.getTime();
   state.quote.set(chiave, misurate);
   applyAtomicEnergyBundle(state.bundle);
   return misurate;
 }
 
-/* La spartizione da scrivere: misurata se c'e', stimata sulla casa altrimenti. */
+/* La spartizione da scrivere: misurata se c'e', stimata sulla casa altrimenti.
+ *
+ * Della misura si tiene la FRAZIONE, non i kWh. Il totale di un mese in corso
+ * cresce tutto il giorno, e dei kWh misurati stamattina resterebbero quelli di
+ * stamattina: la riga sotto smetterebbe di sommare al numero grande scritto
+ * sopra — due numeri sulla stessa riga che si contraddicono, che e' esattamente
+ * il difetto che `scriviLaQuota` esiste per non rifare. La frazione invece si
+ * rimoltiplica per il numero che si sta scrivendo, e la somma torna sempre. */
 function quotaDaScrivere(bundle, dispositivo, quale, valore) {
   const misurata = state.quote.get(chiaveDellaQuota(dispositivo, bundle?.period))?.[quale];
-  if (misurata) return misurata;
+  if (misurata && Number.isFinite(misurata.quotaRete)) {
+    const rete = Math.max(0, Math.min(1, misurata.quotaRete));
+    return { grid: valore * rete, solar: valore * (1 - rete) };
+  }
   return splitFor(bundle?.[quale], valore);
+}
+
+/* Il pezzo di storia che al totale manca per forza, scritto sulla card.
+ *
+ * «Il sensore restituisce 1440,76 kWh per 2026» e la plancia ne diceva 546. La
+ * differenza non e' un errore di somma: e' energia che il contatore aveva gia'
+ * fatto prima che Home Assistant cominciasse a tenerne le statistiche — una
+ * entita' rifatta, un aiutante creato mesi dopo l'apparecchio, un database
+ * ripulito. Nessuna somma di secchielli puo' ritrovarla, perche' i secchielli
+ * non ci sono.
+ *
+ * E nemmeno si puo' aggiungerla al totale: non si sa QUANDO e' stata
+ * consumata. Su una colonnina installata quest'anno e' tutta di quest'anno; su
+ * un contatore vecchio a cui hanno rifatto l'entita' e' di anni fa, e scriverla
+ * nell'anno vorrebbe dire gonfiarlo di tutta la sua vita. Fra le due la plancia
+ * non puo' scegliere da sola, e indovinare in quel verso e' molto peggio che
+ * restare corti.
+ *
+ * Quello che si puo' fare e' dirlo: cosi' un numero corto smette di essere un
+ * numero sbagliato e diventa un numero di cui si sa il perche'. */
+function scriviLAmmanco(bundle, source) {
+  const panel = doc?.querySelector(".ed-device-detail,#ed-device-detail");
+  if (!panel) return false;
+  let riga = panel.querySelector(":scope > .dm-ed-ammanco");
+  const quanto = bundle?.deviceYearAmmanco?.get(source);
+  if (!Number.isFinite(quanto) || quanto <= 0) {
+    riga?.remove?.();
+    return false;
+  }
+  if (!riga) {
+    riga = doc.createElement("div");
+    riga.className = "dm-ed-ammanco";
+    panel.append(riga);
+  }
+  /* Il numero sta FUORI dalla frase tradotta: una chiave con dentro un valore
+   * non e' una chiave, e in tredici lingue diventa tredici chiavi che non si
+   * ritrovano piu'. */
+  scriviTestoSeCambia(
+    riga,
+    `⚠️ ${formatNumber(quanto, 1)} kWh ${t(
+      "non contati: il contatore li aveva già fatti prima che ne cominciassero le statistiche",
+      "not counted: the counter had already made them before its statistics began",
+    )}`,
+  );
+  return true;
 }
 
 function applyDeviceDetail(bundle) {
@@ -1267,6 +1379,8 @@ function applyDeviceDetail(bundle) {
     "ed-dkpi-anno-costo-kwh",
     `${formatNumber(yearSplit.grid, 1)} kWh ${t("dalla rete", "from grid")}`,
   );
+
+  scriviLAmmanco(bundle, source);
 
   const panel = doc?.querySelector(".ed-device-detail,#ed-device-detail");
   if (panel)
@@ -1895,6 +2009,9 @@ function installStyles() {
       .dm-energy-help-compact{display:grid;gap:4px;margin:0 0 14px;padding:12px 14px;border:1px solid var(--divider-color,rgba(15,23,42,.12));border-radius:14px;background:var(--secondary-background-color,rgba(14,165,233,.08));color:var(--text,#0f172a);font-size:13px;line-height:1.45}
       .dm-energy-help-compact strong{font-size:14px}
       .dm-energy-total-note{display:block;margin-top:6px;color:var(--secondary-text-color,#64748b);font-size:11px;line-height:1.35}
+      /* Il pezzo di storia che al totale manca per forza: si dice, invece di
+         lasciare un numero corto senza una parola. */
+      .dm-ed-ammanco{margin:10px 0 0;padding:9px 13px;border-radius:12px;font-size:12px;font-weight:600;line-height:1.45;color:#92400e;background:#fef3c7;border:1px solid #fcd34d}
       .dm-energy-signed{margin:0 0 14px;padding:12px 14px;border:1px solid var(--divider-color,rgba(15,23,42,.14));border-radius:14px;background:color-mix(in srgb,var(--secondary-background-color,#f1f5f9) 70%,transparent)}
       .dm-energy-signed-head{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
       .dm-energy-signed-head input{margin-top:3px;flex:0 0 auto;width:17px;height:17px}

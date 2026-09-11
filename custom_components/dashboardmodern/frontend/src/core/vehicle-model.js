@@ -525,10 +525,13 @@ export function laVetturaDelleCaselle({
  * all'infinito.
  *
  * Il modulo e' puro e non traduce: torna una chiave — chi disegna sa in che
- * lingua parlare. Le chiavi sono due, piu' il silenzio:
+ * lingua parlare. Le chiavi sono tre, piu' il silenzio:
  *
  *   · `autenticazione`: l'integrazione non e' piu' collegata all'account
  *     dell'auto. Si riconnette dalle Impostazioni di Home Assistant;
+ *   · `permesso`: l'integrazione sta bene, ma Home Assistant non autorizza chi
+ *     guarda a comandare quell'entita'. E' un'altra cosa, e ha un altro
+ *     rimedio: riconnettere l'integrazione non servirebbe a niente;
  *   · `non-raggiungibile`: l'auto non ha risposto in tempo. Le auto in cloud
  *     dormono, e spesso basta riprovare;
  *   · `""`: non si sa, e allora si dice quello che ha detto Home Assistant
@@ -541,9 +544,25 @@ export function laVetturaDelleCaselle({
  */
 const PAROLE_DEL_RIFIUTO = Object.freeze([
   Object.freeze({
+    /* L'integrazione dell'auto non parla piu' col suo servizio.
+     *
+     * Si riconosce dalle parole che scrive l'integrazione stessa — gettone,
+     * sessione scaduta, credenziali — non da un codice HTTP. Un 401 o un 403
+     * nudi sono un'altra cosa (vedi sotto), e confonderli manderebbe chi legge
+     * a riconnettere un'integrazione che sta benissimo. */
     chiave: "autenticazione",
     segni:
-      /\btoken\b|unauthor|not authorized|authenticat|autentic|credential|session (has )?expired|invalid.{0,12}(login|session|key)|\b401\b|\b403\b/i,
+      /\btoken\b|authenticat|autentic|credential|session (has )?expired|expired session|invalid.{0,12}(login|session|key)|re-?auth/i,
+  }),
+  Object.freeze({
+    /* Home Assistant non autorizza CHI GUARDA a comandare quell'entita'.
+     *
+     * «Unauthorized», «Forbidden», un 401 o un 403 senza altro: qui
+     * l'integrazione dell'auto e' sana, e a mancare e' il permesso dell'utente
+     * della plancia — o l'entita' e' esposta in sola lettura. Riconnettere
+     * l'integrazione non servirebbe a niente. */
+    chiave: "permesso",
+    segni: /unauthor|not authorized|forbidden|not allowed|permission|\b401\b|\b403\b/i,
   }),
   Object.freeze({
     chiave: "non-raggiungibile",

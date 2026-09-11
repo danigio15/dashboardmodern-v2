@@ -97,6 +97,13 @@ export function quotaDiRete(consumoDiCasa, preloDallaRete) {
   return Math.max(0, Math.min(1, rete / casa));
 }
 
+/* Quanta parte del periodo le ore devono spiegare perche' la misura valga.
+ *
+ * Sotto questa soglia la proporzione misurata verrebbe stirata su un totale
+ * molto piu' grande: una notte di ricarica deciderebbe la spartizione di un
+ * anno. Meglio la stima di prima, dichiarata per quello che e'. */
+export const COPERTURA_MINIMA = 0.75;
+
 /**
  * La spartizione fra sole e rete dei kWh di un apparecchio.
  *
@@ -128,10 +135,23 @@ export function quotaSolareDelDispositivo({
   let quotaRete = 0;
   let quotaSole = 0;
   let coperto = 0;
+  let scoperto = 0;
   let secchielli = 0;
 
   for (const [momento, kwh] of suoi) {
     if (kwh <= 0) continue;
+    /* Un'ora si conta solo se TUTTE E TRE le misure ci sono.
+     *
+     * `quotaDiRete` legge un consumo di casa mancante come «tutto dalla rete»
+     * e un prelievo mancante come «tutto dal sole»: sono le due risposte
+     * prudenti quando il dato c'e' ed e' zero, e sono due invenzioni quando il
+     * dato non c'e' affatto. Un'ora in cui la casa o la rete non hanno un
+     * secchiello non dice niente sulla quota di sole, e allora non vota: entra
+     * nello scoperto, che e' cio' che decide se la misura vale. */
+    if (!diCasa.has(momento) || !dallaRete.has(momento)) {
+      scoperto += kwh;
+      continue;
+    }
     secchielli += 1;
     coperto += kwh;
     const share = quotaDiRete(diCasa.get(momento), dallaRete.get(momento));
@@ -139,18 +159,44 @@ export function quotaSolareDelDispositivo({
     quotaSole += kwh * (1 - share);
   }
 
-  if (!secchielli) return { grid: 0, solar: 0, coperto: 0, secchielli: 0, fonte: "" };
+  const vuota = { grid: 0, solar: 0, quotaRete: 0, coperto: 0, secchielli: 0, fonte: "" };
+  if (!secchielli) return vuota;
 
   const somma = quotaRete + quotaSole;
-  const scala = (() => {
-    const grande = numero(totale);
-    if (grande == null || grande <= 0 || somma <= 0) return 1;
-    return grande / somma;
-  })();
+  if (somma <= 0) return vuota;
+  const frazioneDiRete = quotaRete / somma;
+
+  /* La misura vale solo se copre abbastanza del periodo.
+   *
+   * Il numero grande della card e' il totale del periodo; le ore ne spiegano
+   * una parte. Riscalare la proporzione di quella parte su tutto il totale va
+   * bene finche' la parte e' il grosso: e' la stessa casa, le stesse abitudini.
+   * Non va piu' bene quando le ore sono una manciata — statistiche cominciate
+   * da poco, un Recorder che ne tiene per pochi giorni — perche' allora una
+   * notte sola deciderebbe la spartizione di un anno intero.
+   *
+   * Quando non copre, la misura si dichiara non fatta (`fonte: ""`), e chi
+   * chiama resta sulla stima di prima. `coperto` e `scoperto` tornano indietro
+   * comunque: sono il perche'. */
+  const grande = numero(totale);
+  const misurabile = coperto + scoperto;
+  const riferimento = grande != null && grande > 0 ? grande : misurabile;
+  if (riferimento > 0 && coperto / riferimento < COPERTURA_MINIMA)
+    return { ...vuota, coperto, secchielli };
+
+  const scala = grande != null && grande > 0 ? grande / somma : 1;
 
   return {
     grid: quotaRete * scala,
     solar: quotaSole * scala,
+    /* La FRAZIONE di rete, oltre ai kWh.
+     *
+     * I kWh qui dentro valgono per il totale che e' stato passato, e il totale
+     * di un mese in corso cresce tutto il giorno. Chi disegna tiene la frazione
+     * e la rimoltiplica per il numero che sta scrivendo: cosi' la spartizione
+     * somma sempre al totale che si vede, invece di restare indietro di
+     * quanto e' cresciuto il mese da quando si e' misurato. */
+    quotaRete: frazioneDiRete,
     coperto,
     secchielli,
     fonte: "secchielli",

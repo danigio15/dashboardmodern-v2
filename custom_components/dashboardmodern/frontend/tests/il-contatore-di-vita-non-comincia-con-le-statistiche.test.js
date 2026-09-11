@@ -20,7 +20,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { crescitaNellArco, letturaDelContatore } from "../src/core/period-service.js";
+import {
+  crescitaNellArco,
+  energiaPrimaDelleStatistiche,
+  letturaDelContatore,
+} from "../src/core/period-service.js";
 
 const arco = (dal, al, kind = "year") => ({
   kind,
@@ -41,30 +45,55 @@ const WALLBOX = [
   { start: "2026-08-31T00:00:00Z", sum: 546, state: 1440.762 },
 ];
 
-test("l'anno di un contatore di vita è la sua lettura, non la somma del Recorder", () => {
-  const anno = crescitaNellArco(WALLBOX, ANNO);
-  assert.equal(
-    Math.round(anno * 1000) / 1000,
-    1440.762,
-    "il numero scritto sul contatore, non i 546 dei secchielli",
-  );
+test("il pezzo che manca si sa quanto vale, e si sa che manca", () => {
+  /* Al primo secchiello la `sum` del Recorder vale 120 e il contatore ne segna
+   * 1014,9: la differenza — 894,9 — è l'energia che il contatore aveva già
+   * fatto prima che qualcuno la registrasse. */
+  assert.equal(Math.round(energiaPrimaDelleStatistiche(WALLBOX, ANNO) * 10) / 10, 894.9);
 });
 
-test("quando le statistiche coprono tutta la vita non cambia niente", () => {
-  /* Il caso normale: la `sum` del Recorder e la lettura del contatore sono
-   * nate insieme, quindi sono lo stesso numero e il massimo non sposta nulla. */
+test("quel pezzo NON si aggiunge al totale, perché non si sa quando è stato fatto", () => {
+  /* È la tentazione da cui guardarsi. Su una colonnina installata quest'anno
+   * quegli 894 kWh sono tutti di quest'anno; su un contatore vecchio a cui
+   * hanno rifatto l'entità — un'entità rinominata, un aiutante creato mesi
+   * dopo, un database ripulito — sono di anni fa, e scriverli nell'anno lo
+   * gonfierebbe di tutta la vita dell'apparecchio. Fra le due il Recorder non
+   * dà modo di scegliere, e sbagliare in quel verso è molto peggio che restare
+   * corti: il totale resta quello dei secchielli, e l'ammanco si dice. */
+  assert.equal(crescitaNellArco(WALLBOX, ANNO), 546);
+});
+
+test("un contatore le cui statistiche sono nate con lui non ha ammanchi", () => {
   const righe = [
-    { start: "2026-06-01T00:00:00Z", sum: 40, state: 40 },
+    { start: "2026-06-01T00:00:00Z", sum: 0, state: 0 },
     { start: "2026-07-01T00:00:00Z", sum: 105, state: 105 },
     { start: "2026-08-01T00:00:00Z", sum: 248.1, state: 248.1 },
   ];
+  assert.equal(energiaPrimaDelleStatistiche(righe, ANNO), 0);
   assert.equal(Math.round(crescitaNellArco(righe, ANNO) * 10) / 10, 248.1);
 });
 
+test("con una riga prima dell'arco l'ammanco non riguarda questo totale", () => {
+  /* Le statistiche cominciano prima del periodo guardato: qualunque pezzo
+   * manchi, manca a un periodo che non è questo. */
+  const righe = [
+    { start: "2025-12-01T00:00:00Z", sum: 800, state: 1200 },
+    { start: "2026-06-01T00:00:00Z", sum: 900, state: 1300 },
+  ];
+  assert.equal(energiaPrimaDelleStatistiche(righe, ANNO), 0);
+});
+
+test("senza `state` non si inventa un ammanco", () => {
+  assert.equal(
+    energiaPrimaDelleStatistiche(
+      WALLBOX.map(({ start, sum }) => ({ start, sum })),
+      ANNO,
+    ),
+    0,
+  );
+});
+
 test("un contatore che si azzera ogni mese resta contato per secchielli", () => {
-  /* Qui la lettura è solo l'ultimo mese — 46 — mentre i secchielli sanno di
-   * tutti i mesi. Prendere la lettura vorrebbe dire buttare via l'anno: il
-   * massimo dei due esiste apposta per non farlo. */
   const righe = [
     { start: "2026-06-01T00:00:00Z", sum: 50, state: 50 },
     { start: "2026-07-01T00:00:00Z", sum: 96, state: 46 },
@@ -73,11 +102,7 @@ test("un contatore che si azzera ogni mese resta contato per secchielli", () => 
   assert.equal(crescitaNellArco(righe, ANNO), 151);
 });
 
-test("l'arco che continua non prende la lettura del contatore", () => {
-  /* Il mese aperto di una colonnina nata a marzo: qui «nessuna riga prima del
-   * mio confine» non vuol dire che il contatore sia nato adesso — il pezzo di
-   * tempo prima se l'è già preso l'arco davanti. Scrivere lì la lettura di
-   * vita vorrebbe dire 1440,762 kWh consumati a settembre. */
+test("l'arco che continua conta la differenza, non la cumulata", () => {
   const settembre = arco("2026-09-01T00:00:00Z", "2026-09-11T00:00:00Z", "month");
   const righe = [
     { start: "2026-09-01T00:00:00Z", sum: 546, state: 1440.762 },
@@ -87,11 +112,13 @@ test("l'arco che continua non prende la lettura del contatore", () => {
     Math.round(crescitaNellArco(righe, settembre, { continuazione: true }) * 10) / 10,
     68.1,
   );
+  /* La funzione risponde anche qui — di suo non sa che questo arco continua un
+   * altro — ma chi la chiama gliela chiede solo sul PRIMO arco del periodo,
+   * così l'ammanco non finisce due volte sulla stessa card. */
+  assert.equal(energiaPrimaDelleStatistiche(righe, settembre), 894.762);
 });
 
-test("con una riga prima dell'arco la lettura non c'entra", () => {
-  /* Il contatore c'era già: la crescita è la differenza, e la sua cumulata di
-   * sempre non è il consumo di quest'anno. */
+test("con una riga prima dell'arco si sottrae, come sempre", () => {
   const righe = [
     { start: "2025-12-01T00:00:00Z", sum: 800, state: 1200 },
     { start: "2026-06-01T00:00:00Z", sum: 900, state: 1300 },
@@ -101,8 +128,6 @@ test("con una riga prima dell'arco la lettura non c'entra", () => {
 });
 
 test("se il Recorder non manda la lettura si fa come prima", () => {
-  /* Una versione di Home Assistant che risponde senza `state`: resta la somma
-   * dei secchielli, che è il conto di sempre. */
   const righe = WALLBOX.map(({ start, sum }) => ({ start, sum }));
   assert.equal(crescitaNellArco(righe, ANNO), 546);
 });

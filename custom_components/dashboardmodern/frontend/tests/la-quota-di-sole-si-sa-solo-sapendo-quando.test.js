@@ -89,11 +89,63 @@ test("la divisione si riscala sul numero grande della card", () => {
     [1, 5],
     [13, 5],
   ]);
-  const quota = quotaSolareDelDispositivo({ dispositivo: auto, casa, rete, totale: 20 });
-  assert.equal(quota.grid + quota.solar, 20, "la somma e' il numero scritto in grande");
-  assert.equal(quota.grid, 10, "e le proporzioni restano quelle misurate");
-  assert.equal(quota.solar, 10);
-  assert.equal(quota.coperto, 10, "ma i secchielli ne spiegavano dieci, e lo dice");
+  /* Le ore spiegano dieci kWh e la card ne scrive undici: il grosso c'e', e la
+   * proporzione misurata si stira su quel poco che manca. */
+  const quota = quotaSolareDelDispositivo({ dispositivo: auto, casa, rete, totale: 11 });
+  assert.equal(quota.grid + quota.solar, 11, "la somma e' il numero scritto in grande");
+  assert.equal(quota.grid, 5.5, "e le proporzioni restano quelle misurate");
+  assert.equal(quota.solar, 5.5);
+  assert.equal(quota.coperto, 10, "i secchielli ne spiegavano dieci, e lo dice");
+  assert.equal(quota.quotaRete, 0.5, "la frazione, per chi riscrive la riga più tardi");
+});
+
+test("una manciata di ore non decide la spartizione di un anno", () => {
+  /* «Riscalare» va bene finché la parte misurata è il grosso. Su un totale di
+   * venti spiegato da dieci, una notte di ricarica deciderebbe metà dell'anno:
+   * lì la misura si dichiara non fatta, e chi chiama resta sulla stima. */
+  const casa = secchielli([
+    [1, 10],
+    [13, 10],
+  ]);
+  const rete = secchielli([
+    [1, 10],
+    [13, 0],
+  ]);
+  const auto = secchielli([
+    [1, 5],
+    [13, 5],
+  ]);
+  const quota = quotaSolareDelDispositivo({ dispositivo: auto, casa, rete, totale: 100 });
+  assert.equal(quota.fonte, "", "non misurata: dieci kWh su cento non sono una misura");
+  assert.equal(quota.coperto, 10, "ma quanto copriva si dice comunque");
+});
+
+test("un'ora senza il dato della casa o della rete non vota", () => {
+  /* Senza il consumo di casa `quotaDiRete` risponde «tutto dalla rete», e
+   * senza il prelievo risponde «tutto dal sole»: due risposte prudenti quando
+   * il dato c'è ed è zero, due invenzioni quando il dato non c'è affatto. */
+  const auto = secchielli([
+    [1, 5],
+    [13, 5],
+  ]);
+  const casa = secchielli([[1, 10]]);
+  const rete = secchielli([[1, 0]]);
+  const quota = quotaSolareDelDispositivo({ dispositivo: auto, casa, rete });
+  assert.equal(quota.secchielli, 1, "vota solo l'ora che ha tutte e tre le misure");
+  assert.equal(quota.coperto, 5);
+  assert.equal(quota.fonte, "", "e cinque su dieci non bastano a dichiararla misurata");
+});
+
+test("quando le tre misure ci sono tutte, l'ora vale anche a zero", () => {
+  /* Zero prelievo È un dato: vuol dire che in quell'ora la casa andava a sole.
+   * Non va confuso con «il secchiello non c'è». */
+  const auto = secchielli([[13, 5]]);
+  const casa = secchielli([[13, 10]]);
+  const rete = secchielli([[13, 0]]);
+  const quota = quotaSolareDelDispositivo({ dispositivo: auto, casa, rete });
+  assert.equal(quota.fonte, "secchielli");
+  assert.equal(quota.solar, 5);
+  assert.equal(quota.grid, 0);
 });
 
 /* La regola che questo modulo esiste per non rompere: quando non si sa, non si

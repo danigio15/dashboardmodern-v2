@@ -24,10 +24,25 @@ test("il gettone scaduto si riconosce, comunque sia scritto", () => {
     ragioneDelRifiuto("Leapmotor remote control result failed: Token is invalid"),
     "autenticazione",
   );
-  assert.equal(ragioneDelRifiuto("401: Unauthorized"), "autenticazione");
   assert.equal(ragioneDelRifiuto("Session has expired, please log in again"), "autenticazione");
   assert.equal(ragioneDelRifiuto("Authentication failed"), "autenticazione");
-  assert.equal(ragioneDelRifiuto("Forbidden (403)"), "autenticazione");
+  assert.equal(ragioneDelRifiuto("Invalid session key"), "autenticazione");
+});
+
+test("un permesso che manca non è un'integrazione da riconnettere", () => {
+  /* Un 401 o un 403 nudi vogliono dire che Home Assistant non autorizza CHI
+   * GUARDA a comandare quell'entità: l'integrazione dell'auto sta benissimo, e
+   * mandare a riconnetterla manderebbe dalla parte sbagliata. */
+  assert.equal(ragioneDelRifiuto("401: Unauthorized"), "permesso");
+  assert.equal(ragioneDelRifiuto("Forbidden (403)"), "permesso");
+  assert.equal(ragioneDelRifiuto("User is not allowed to call number.set_value"), "permesso");
+  assert.equal(ragioneDelRifiuto("Missing permission for entity"), "permesso");
+});
+
+test("un gettone dentro un 401 resta un gettone", () => {
+  /* L'ordine conta: quando l'integrazione dice qual è il suo problema, quella
+   * parola vince sul codice che se la porta dietro. */
+  assert.equal(ragioneDelRifiuto("401 Unauthorized: token expired"), "autenticazione");
 });
 
 test("l'auto che dorme si riconosce, ed è un'altra cosa", () => {
@@ -62,5 +77,10 @@ test("il consiglio si scrive, e la riga di Home Assistant resta in coda", () => 
     SORGENTE,
     /Impostazioni → Dispositivi e servizi/,
     "il rimedio si dice dov'è, non «riconnetti l'integrazione» e arrangiati",
+  );
+  assert.match(
+    SORGENTE,
+    /ragione === "permesso"/,
+    "e il permesso che manca ha la sua riga, che è un'altra cosa",
   );
 });

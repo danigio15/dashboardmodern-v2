@@ -16,6 +16,8 @@ import { readFileSync } from "node:fs";
 import {
   chiaveDellaQuota,
   entitaDelleFonti,
+  periodoInCorso,
+  quotaDaRifare,
   secchielliNellArco,
 } from "../src/sections/energy-section.js";
 
@@ -145,8 +147,39 @@ test("una quota misurata non si rimisura a ogni giro", () => {
   /* Sono ore di statistiche, e il numero di un periodo chiuso non cambia più. */
   assert.match(
     SORGENTE,
-    /if \(state\.quote\.has\(chiave\) \|\| state\.quoteInCorso\.has\(chiave\)\)/,
+    /if \(state\.quoteInCorso\.has\(chiave\)\) return state\.quote\.get\(chiave\);/,
   );
+  assert.match(SORGENTE, /if \(gia && !quotaDaRifare\(gia, bundle\.period, adesso\)\) return gia;/);
   /* Ma se cambia la configurazione cambia anche chi è la casa e chi è la rete. */
   assert.match(SORGENTE, /state\.quote\.clear\(\);/);
+});
+
+test("il mese in corso, però, si rimisura: continua a riempirsi", () => {
+  const settembre = { year: 2026, month: 9 };
+  const agosto = { year: 2026, month: 8 };
+  const adesso = new Date(2026, 8, 11, 2, 0);
+  const appena = { quando: adesso.getTime() - 60_000 };
+  const vecchia = { quando: adesso.getTime() - 60 * 60_000 };
+
+  assert.equal(periodoInCorso(settembre, adesso), true);
+  assert.equal(periodoInCorso(agosto, adesso), false);
+
+  assert.equal(quotaDaRifare(appena, settembre, adesso), false, "misurata da poco: va bene");
+  assert.equal(quotaDaRifare(vecchia, settembre, adesso), true, "di un'ora fa: si rifà");
+  assert.equal(
+    quotaDaRifare(vecchia, agosto, adesso),
+    false,
+    "un mese chiuso non cambia più: si tiene per sempre",
+  );
+  assert.equal(quotaDaRifare(null, settembre, adesso), true);
+  assert.equal(quotaDaRifare({}, settembre, adesso), true, "senza data non si sa: si rifà");
+});
+
+test("la riga sotto somma sempre al numero grande, anche se la misura è di stamattina", () => {
+  /* Dei kWh misurati stamattina resterebbero quelli di stamattina, e la riga
+   * sotto smetterebbe di sommare al totale scritto sopra: due numeri sulla
+   * stessa riga che si contraddicono. Si tiene la FRAZIONE e la si rimoltiplica
+   * per il numero che si sta scrivendo. */
+  assert.match(SORGENTE, /if \(misurata && Number\.isFinite\(misurata\.quotaRete\)\)/);
+  assert.match(SORGENTE, /grid: valore \* rete, solar: valore \* \(1 - rete\)/);
 });

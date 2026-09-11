@@ -722,8 +722,8 @@ export function crescitaNellArco(righe = [], range, { continuazione = false } = 
   const dentro = ordinate.filter(
     (riga) => rowTimestamp(riga) >= inizio && rowTimestamp(riga) < fine,
   );
-  const nato = continuazione ? null : contatoreNatoDentro(prima, dentro, inizio);
-  const partenza = prima.at(-1) || nato;
+  const partenza =
+    prima.at(-1) || (continuazione ? null : contatoreNatoDentro(prima, dentro, inizio));
   if (!dentro.length) return null;
   /* Senza un predecessore, la prima riga di dentro E' il punto di partenza:
    * vale zero, non se stessa.
@@ -753,41 +753,53 @@ export function crescitaNellArco(righe = [], range, { continuazione = false } = 
    * (`recorderBucketConsumptions`): erano due modi di misurare la stessa cosa,
    * uno giusto sempre e uno giusto quasi sempre, e a comandare qui era il
    * secondo. Adesso ce n'e' uno. */
-  const somma = recorderBucketConsumptions(secchielli, base).reduce(
+  return recorderBucketConsumptions(secchielli, base).reduce(
     (totale, riga) => totale + Math.max(0, Number(riga.change) || 0),
     0,
   );
-  if (!nato) return somma;
-  /* Il contatore e' nato dentro questo arco: la sua lettura e' un pavimento.
-   *
-   * «Il sensore restituisce 1440,76 kWh per 2026» — e la plancia continuava a
-   * dirne 546, anche dopo aver imparato a sommare i secchielli invece di
-   * sottrarre i contatori dei mesi. Sommare i secchielli era giusto; il guaio
-   * era piu' in basso, in COSA si sommava.
-   *
-   * La `sum` del Recorder non e' la lettura del contatore: e' un totale suo,
-   * che parte da zero quando cominciano le STATISTICHE di quell'entita'. Se le
-   * statistiche cominciano dopo l'apparecchio — un'entita' rifatta, un
-   * aiutante che filtra i picchi creato mesi dopo la colonnina, una purga del
-   * database — allora tutto quello che era stato consumato prima non sta in
-   * nessun secchiello, e nessuna somma di secchielli puo' ritrovarlo. Erano gli
-   * 894 kWh che mancavano.
-   *
-   * Quando pero' l'arco contiene tutta la vita registrata del contatore — e'
-   * esattamente cio' che dice `contatoreNatoDentro`: niente righe prima, e la
-   * prima riga che arriva dopo il confine — allora anche l'ultimo azzeramento
-   * del contatore fisico e' caduto dentro l'arco. Quindi quello che il
-   * contatore segna adesso l'ha consumato dentro l'arco: e' un numero che
-   * l'arco contiene di sicuro, cioe' un pavimento.
-   *
-   * Si prende il piu' grande dei due, e non e' un ripiego: nel caso normale —
-   * statistiche che coprono tutta la vita — la somma dei secchielli e' gia'
-   * maggiore o uguale alla lettura (su un contatore che si azzera li conta
-   * tutti, su uno di vita coincide), quindi il massimo non cambia niente.
-   * Cambia solo li' dove la somma e' corta, ed e' proprio il caso in cui era
-   * corta per forza. */
-  const lettura = letturaDelContatore(dentro.at(-1));
-  return lettura == null ? somma : Math.max(somma, lettura);
+}
+
+/* L'energia che il contatore aveva gia' fatto quando le sue statistiche sono
+ * cominciate — cioe' quanto manca al conto, e non si puo' recuperare.
+ *
+ * «Il sensore restituisce 1440,76 kWh per 2026» e la plancia ne diceva 546. La
+ * differenza non e' un errore di somma: e' un pezzo di storia che nel Recorder
+ * non c'e'.
+ *
+ * La `sum` del Recorder e' un totale SUO, che parte da zero quando cominciano
+ * le statistiche di quell'entita'. Lo `state` e' la lettura del contatore
+ * fisico, che e' cominciata quando e' stato acceso l'apparecchio. Al primo
+ * secchiello la loro differenza e' esattamente l'energia che il contatore aveva
+ * gia' accumulato prima che qualcuno la registrasse: un'entita' rifatta, un
+ * aiutante creato mesi dopo, un database ripulito.
+ *
+ * Quell'energia e' vera, ed e' irrecuperabile: nessuna somma di secchielli puo'
+ * ritrovarla, perche' i secchielli non ci sono. E soprattutto non si sa QUANDO
+ * e' stata consumata — prima o dentro il periodo che si sta guardando — quindi
+ * non si puo' scriverla in nessun totale senza inventare. Si puo' pero' dirlo a
+ * chi guarda, che e' la differenza fra un numero sbagliato e un numero corto di
+ * cui si sa il perche'.
+ *
+ * Torna zero quando non c'e' niente da dire: nessuna riga, nessuno `state`, o
+ * un contatore le cui statistiche sono nate con lui.
+ */
+export function energiaPrimaDelleStatistiche(righe = [], range) {
+  if (!range?.start || !range?.end) return 0;
+  const inizio = range.start.getTime();
+  const fine = range.end.getTime();
+  const ordinate = (Array.isArray(righe) ? righe : [])
+    .slice()
+    .sort((sinistra, destra) => rowTimestamp(sinistra) - rowTimestamp(destra));
+  /* Solo se le statistiche cominciano DENTRO l'arco: se c'e' una riga prima,
+   * il pezzo mancante e' fuori da quello che si sta guardando e non riguarda
+   * questo totale. */
+  if (ordinate.some((riga) => rowTimestamp(riga) < inizio)) return 0;
+  const prima = ordinate.find((riga) => rowTimestamp(riga) >= inizio && rowTimestamp(riga) < fine);
+  if (!prima) return 0;
+  const lettura = letturaDelContatore(prima);
+  const somma = cumulativeValue(prima);
+  if (lettura == null || somma == null) return 0;
+  return Math.max(0, lettura - somma);
 }
 
 /* Un contatore che a inizio periodo non c'era ancora parte da zero.
@@ -1431,7 +1443,13 @@ export class HomeAssistantBroker {
    * tutte vorrebbe dire portarsi dietro trecento righe per ogni misura di
    * ogni periodo, e a novantanove di quelle non serve nessuno.
    */
-  async valoriPerArchi(richieste = [], valori = new Map(), alPasso = () => {}, giorni = new Map()) {
+  async valoriPerArchi(
+    richieste = [],
+    valori = new Map(),
+    alPasso = () => {},
+    giorni = new Map(),
+    ammanchi = new Map(),
+  ) {
     const perArco = new Map();
     /* Chi comincia il suo periodo e chi lo continua: della stessa misura — la
      * stessa `plan.key` — puo' esserci un arco a ore chiuse e uno a cinque
@@ -1477,6 +1495,15 @@ export class HomeAssistantBroker {
             const continuazione =
               (primoArco.get(plan.key) ?? range.start.getTime()) < range.start.getTime();
             const crescita = crescitaNellArco(righe[plan.entity], range, { continuazione });
+            /* Quanto il contatore aveva gia' fatto prima delle sue statistiche:
+             * e' il pezzo che al totale manca per forza, e si dice invece di
+             * lasciare un numero corto senza spiegazione. Solo sul primo arco:
+             * su quello che continua, il pezzo davanti se l'e' gia' guardato
+             * l'arco precedente. */
+            if (!continuazione) {
+              const mancante = energiaPrimaDelleStatistiche(righe[plan.entity], range);
+              if (mancante > 0) ammanchi.set(plan.key, mancante);
+            }
             if (crescita == null) continue;
             const arrotondata = Math.round(crescita * 1000) / 1000;
             valori.set(plan.key, (valori.get(plan.key) ?? 0) + arrotondata);
@@ -1501,7 +1528,7 @@ export class HomeAssistantBroker {
         }
       }),
     );
-    return { valori, caduti, giorni };
+    return { valori, caduti, giorni, ammanchi };
   }
 
   async valuesForEntities(ids, kind, selected) {
