@@ -427,6 +427,7 @@ export default Object.freeze({
   "Automatic hours (temperature / 2)": "Otomatik saat (sıcaklık / 2)",
   "Automatic switch-off": "Otomatik kapatma",
   "Automations": "Otomasyonlar",
+  "Available": "Mevcut",
   "Avatar (without a photo)": "Avatar (fotoğraf yokken)",
   "Average of all rooms": "Tüm odaların ortalaması",
   "Average of all units": "Tüm ünitelerin ortalaması",

@@ -97,3 +97,42 @@ test("la tessera compare solo quando c'è qualcosa da fare, e non è rossa", () 
   /* Si spegne e si sposta come le altre: la sua riga sta nel catalogo. */
   assert.match(modello, /widgetExcludedEntities\("aggiornamenti"\)/);
 });
+
+test("aprendo la tessera si vedono tutti, uno per uno, con le loro versioni", () => {
+  /* La tessera nomina il primo e conta gli altri: i nomi di sei add-on in una
+   * didascalia non si leggono. Chi la apre li vuole vedere tutti — ed è per
+   * questo che si apre.
+   *
+   * Il caso mancava nella funzione che sceglie cosa disegnare dentro la
+   * finestra, e la finestra rispondeva vuota con la tessera accesa su sei
+   * aggiornamenti: il modo peggiore di sbagliare, perché non sembra un difetto
+   * ma una casa in pari. */
+  assert.match(
+    sorgente,
+    /if \(widget\.key === "aggiornamenti"\) return aggiornamentiDetail\(widget\);/,
+  );
+
+  /* E legge il campo che il modello scrive davvero: due nomi diversi per la
+   * stessa lista sarebbero un caso che c'è e una finestra vuota lo stesso. */
+  const modello = sorgente.slice(
+    sorgente.indexOf("function aggiornamentiModel("),
+    sorgente.indexOf("function porteModel("),
+  );
+  assert.match(modello, /\n    aggiornamenti: fila,/);
+  const finestra = sorgente.slice(
+    sorgente.indexOf("function aggiornamentiDetail("),
+    sorgente.indexOf("function customDetail("),
+  );
+  assert.match(finestra, /widget\.aggiornamenti \|\| \[\]/);
+
+  /* Da che versione a che versione: è quello che serve per decidere se andarlo
+   * a fare adesso o dopo cena. Chi le versioni non le dichiara si nomina e
+   * basta, come già fa la tessera. */
+  assert.match(finestra, /const da = clean\(voce\?\.da\);/);
+  assert.match(finestra, /const a = clean\(voce\?\.a\);/);
+  assert.match(finestra, /da \&\& a \?/);
+
+  /* E nessun tasto per installare: si installa da Home Assistant, dove accanto
+   * al tasto ci sono le note di rilascio. */
+  assert.doesNotMatch(finestra, /chiamaHa|call_service|cdApplEntTog/);
+});

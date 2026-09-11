@@ -35,15 +35,39 @@ import { chiediAHomeAssistant, clean, readJson, root } from "./shared.js";
 const KEY = "__DASHBOARDMODERN_TELECAMERA_CAPACITA__";
 const state = (root[KEY] ||= {
   installed: false,
-  /* entity → { frontend_stream_types: [...] }, o `false` quando la domanda è
-   * stata fatta e non ha risposto: `false` vuol dire «chiesto, niente», e serve
-   * a non richiedere in continuazione a chi non sa rispondere. */
+  /* entity → { frontend_stream_types: [...] } quando ha risposto, oppure
+   * `{ caduta: quando }` quando la domanda è stata fatta e non ha risposto. */
   dette: new Map(),
   inCorso: new Set(),
 });
 
 /** Quanto si aspetta una risposta: è una domanda piccola, non un flusso. */
 const ATTESA = 6000;
+
+/* Quanto si aspetta prima di richiedere a chi non ha risposto.
+ *
+ * Una risposta mancata non è una risposta definitiva: la prima domanda parte
+ * appena la plancia è in piedi, e può correre contro il socket che si sta
+ * ancora alzando. Segnata come «non lo so» per sempre, quella telecamera
+ * restava sul ripiego fino al ricaricamento della pagina — cioè proprio la
+ * situazione che questa sezione esiste per togliere.
+ *
+ * Ma nemmeno si richiede a ogni giro: un Home Assistant che quella domanda non
+ * ce l'ha risponde «no» ogni volta, e chiederglielo ogni due secondi sarebbe
+ * rumore sul socket per sempre. Mezzo minuto è la distanza fra le due cose: un
+ * socket che torna su si riprende la risposta al primo evento utile, e chi
+ * dice no lo dice al massimo due volte al minuto. */
+const RIPROVA_DOPO = 30_000;
+
+/** Se a questa telecamera si può richiedere: non ha mai risposto, ed è passato abbastanza. */
+function siPuoRichiedere(entity, adesso) {
+  const detta = state.dette.get(entity);
+  if (detta === undefined) return true;
+  if (detta && typeof detta === "object" && Array.isArray(detta.frontend_stream_types))
+    return false;
+  const quando = Number(detta?.caduta) || 0;
+  return adesso - quando >= RIPROVA_DOPO;
+}
 
 /** Le telecamere configurate, così come le legge il resto della plancia. */
 function telecamereDiCasa() {
@@ -69,24 +93,25 @@ function entitaDelle(righe) {
  *
  * `null` vuol dire «non lo so»: o non si è ancora chiesto, o la domanda non ha
  * avuto risposta. Chi sceglie la strada tratta i due casi allo stesso modo — si
- * arrangia con quello che c'è negli attributi — e la differenza la sa soltanto
- * `capacitaChieste`, che serve a non insistere.
+ * arrangia con quello che c'è negli attributi — e a tenerli separati è
+ * `siPuoRichiedere`, che di una domanda caduta si segna l'ora e la rifà più
+ * tardi invece di insistere subito o di non riprovare mai più.
  */
 export function capacitaDellaTelecamera(entity) {
   const detta = state.dette.get(clean(entity));
-  return detta && typeof detta === "object" ? detta : null;
+  return Array.isArray(detta?.frontend_stream_types) ? detta : null;
 }
 
-/** Se a Home Assistant è stato chiesto, e ha risposto. */
+/** Se Home Assistant ha risposto davvero: una domanda caduta non conta. */
 export function capacitaChieste(entity) {
   return Boolean(capacitaDellaTelecamera(entity));
 }
 
 /** Chiede le capacità di una telecamera, una volta sola. */
-export async function chiediLeCapacita(entity) {
+export async function chiediLeCapacita(entity, adesso = Date.now()) {
   const cercata = clean(entity);
   if (!cercata.startsWith("camera.")) return null;
-  if (state.dette.has(cercata) || state.inCorso.has(cercata))
+  if (state.inCorso.has(cercata) || !siPuoRichiedere(cercata, adesso))
     return capacitaDellaTelecamera(cercata);
   state.inCorso.add(cercata);
   try {
@@ -99,13 +124,17 @@ export async function chiediLeCapacita(entity) {
      * che risponde una forma che non ci si aspetta vale come un «non lo so». */
     const tipi = risposta?.frontend_stream_types;
     const elenco = tipi instanceof Set ? [...tipi] : Array.isArray(tipi) ? tipi : null;
-    state.dette.set(cercata, elenco ? { frontend_stream_types: elenco } : false);
+    state.dette.set(
+      cercata,
+      elenco ? { frontend_stream_types: elenco } : { caduta: Date.now() },
+    );
   } catch (_errore) {
-    /* Chiesto, niente risposta: non si richiede a ogni giro di stati. Il
-     * ricordo sta in memoria, quindi un ricaricamento ci riprova — che è
-     * giusto: fra un ricaricamento e l'altro può essere cambiato Home
-     * Assistant. */
-    state.dette.set(cercata, false);
+    /* Chiesto, niente risposta: si segna QUANDO, non solo che è andata male.
+     * Fra mezzo minuto si potrà richiedere — un socket che si riprende deve
+     * poter dare la risposta che la prima volta non è arrivata — ma non
+     * prima, così chi la domanda non ce l'ha non se la sente ripetere in
+     * continuazione. */
+    state.dette.set(cercata, { caduta: Date.now() });
   } finally {
     state.inCorso.delete(cercata);
   }
@@ -113,10 +142,10 @@ export async function chiediLeCapacita(entity) {
 }
 
 /** Le chiede per tutte le telecamere che ancora non l'hanno detto. */
-export function chiediLeCapacitaDiTutte() {
+export function chiediLeCapacitaDiTutte(adesso = Date.now()) {
   for (const entity of entitaDelle(telecamereDiCasa())) {
-    if (state.dette.has(entity) || state.inCorso.has(entity)) continue;
-    chiediLeCapacita(entity).catch(() => {});
+    if (state.inCorso.has(entity) || !siPuoRichiedere(entity, adesso)) continue;
+    chiediLeCapacita(entity, adesso).catch(() => {});
   }
 }
 

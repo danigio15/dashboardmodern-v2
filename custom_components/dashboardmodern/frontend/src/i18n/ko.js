@@ -427,6 +427,7 @@ export default Object.freeze({
   "Automatic hours (temperature / 2)": "자동 시간 (온도 ÷ 2)",
   "Automatic switch-off": "자동 끄기",
   "Automations": "자동화",
+  "Available": "사용 가능",
   "Avatar (without a photo)": "아바타(사진이 없을 때)",
   "Average of all rooms": "모든 방의 평균",
   "Average of all units": "모든 유닛의 평균",

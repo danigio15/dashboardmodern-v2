@@ -18,6 +18,7 @@
  * Chi decide sta nel modulo puro `core/stanze-in-plancia.js`; qui c'è la mano
  * che disegna e il tocco che porta nella stanza.
  */
+import { eAcceso } from "../core/stato-acceso.js";
 import {
   CHIAVE_STANZE_IN_PLANCIA,
   idDellaStanza,
@@ -67,8 +68,13 @@ export function riassuntoDellaStanza(pagina, states = allStates()) {
   let accese = 0;
   for (const blocco of pagina?.blocchi || [])
     for (const voce of blocco?.voci || []) {
+      /* «Acceso» non vuol dire `on` e basta: una cassa che suona dice
+       * `playing`, un condizionatore che scalda dice `heat`, un robot al
+       * lavoro dice `cleaning`. Contando la sola parola `on` si contavano gli
+       * interruttori, e una stanza con la musica accesa e il termosifone che
+       * va risultava spenta. Le parole stanno in un posto solo. */
       const entity = clean(voce?.entity || voce?.entity_id);
-      if (entity && clean(states?.[entity]?.state).toLowerCase() === "on") accese += 1;
+      if (entity && eAcceso(states?.[entity])) accese += 1;
     }
   return { gradi, umidita, accese, quante: Number(pagina?.count) || 0 };
 }
@@ -100,6 +106,26 @@ function cardMarkup(pagina, states) {
   </button>`;
 }
 
+/* «E' nato un blocco»: l'avviso per chi mette i blocchi in fila.
+ *
+ * Il blocco nasce in fondo alla pagina, perche' `append` non conosce l'ordine
+ * che chi ha la casa si e' scelto. Chi quell'ordine lo applica gira sugli
+ * eventi di stato, e quando questo blocco nasce quel giro e' gia' passato: il
+ * disegno sta dentro un requestAnimationFrame, la messa in fila no. Cosi' la
+ * prima stanza spuntata compariva in coda alla Home — sotto i dispositivi,
+ * anche a chi le stanze le aveva messe in cima — e ci restava fino al cambio
+ * di stato seguente, che rimetteva tutto a posto per caso.
+ *
+ * Si avvisa invece di chiamare: e' la sezione che ordina a conoscere questa,
+ * e chiamarla da qui sarebbe un anello fra due moduli. */
+function avvisaCheENato() {
+  try {
+    root.dispatchEvent?.(
+      new CustomEvent("dashboardmodern:blocco-nuovo", { detail: { id: BLOCCO_ID } }),
+    );
+  } catch (_errore) {}
+}
+
 function host(pagina) {
   let nodo = doc?.getElementById?.(BLOCCO_ID);
   if (nodo) return nodo;
@@ -108,6 +134,7 @@ function host(pagina) {
   nodo.id = BLOCCO_ID;
   nodo.className = "dm-stanze-plancia";
   pagina.append(nodo);
+  avvisaCheENato();
   return nodo;
 }
 

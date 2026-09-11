@@ -98,7 +98,7 @@ test("tutte le tessere energia seguono l'ordine di «Energia», e ognuna porta a
   );
   magazzino.delete("cd_widgets");
   const home = leggi("sections/home-widgets-section.js");
-  assert.match(home, /SEZIONE_DEL_WIDGET\[eUnaTesseraEnergia\(chiave\) \? "energia" : clean\(chiave\)\]/);
+  assert.match(home, /SEZIONE_DEL_WIDGET\[eUnaTesseraEnergia\(grezza\) \? "energia" : grezza\]/);
   assert.match(home, /impianto: clean\(impianto\?\.id\) \|\| PRIMO_IMPIANTO,/);
   assert.match(home, /data-dm-w-impianto="\$\{esc\(widget\.impianto\)\}"/);
   assert.match(home, /new CustomEvent\("dashboardmodern:energy-plant-requested", \{ detail: \{ plant: impianto \} \}\)/);

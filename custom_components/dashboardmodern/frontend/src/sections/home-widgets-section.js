@@ -40,7 +40,12 @@ import {
 } from "../core/racconto-tessera.js";
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
 import { escluseDellaTessera } from "../core/fuori-dai-widget.js";
-import { CHIAVE_SEZIONI_MIE, sezioniDaMostrare } from "../core/sezioni-mie.js";
+import {
+  CHIAVE_SEZIONI_MIE,
+  chiaveDellaSezione,
+  eUnaSezioneMia,
+  sezioniDaMostrare,
+} from "../core/sezioni-mie.js";
 import { PERIOD_SOURCES } from "../core/period-service.js";
 import {
   TONO_DEL_GRADO,
@@ -4353,7 +4358,7 @@ export function sezioniMieModels(states) {
   const elenco = widgetPreferences().excluded;
   return sezioni
     .map((sezione) => {
-      const chiave = `mia-${sezione.id}`;
+      const chiave = chiaveDellaSezione(sezione.id);
       const fuori = escluseDellaTessera(elenco, chiave);
       const rows = sezione.voci
         .map((voce) =>
@@ -4561,7 +4566,7 @@ export function applyWidgetPreferences(models, preferences = widgetPreferences()
            * sotto la voce unica «Sezioni mie»: sono tante quante uno se ne fa,
            * e una riga a testa nel catalogo lo riempirebbe di voci che
            * cambiano da una casa all'altra. */
-          widget.key.startsWith("mia-")
+          eUnaSezioneMia(widget.key)
           ? "mie"
           : eUnaTesseraEnergia(widget.key)
             ? "energia"
@@ -6146,6 +6151,32 @@ function fumoDetail(widget) {
     .join("");
 }
 
+/* La finestra degli aggiornamenti (#498): cosa aspetta, e da che versione a
+ * che versione.
+ *
+ * La tessera dice quanti sono e nomina il primo, perche' i nomi di sei add-on
+ * in una didascalia non si leggono. Chi la apre li vuole vedere tutti: senza
+ * questa funzione la finestra rispondeva «niente da mostrare», che con la
+ * tessera accesa su sei aggiornamenti e' la risposta sbagliata.
+ *
+ * Il tasto per installare non c'e' e non ci va: si installa da Home Assistant,
+ * dove accanto al tasto ci sono le note di rilascio — e un aggiornamento
+ * lanciato da qui, senza averle lette, e' un aggiornamento fatto al buio. */
+function aggiornamentiDetail(widget) {
+  return (widget.aggiornamenti || [])
+    .map((voce) => {
+      const da = clean(voce?.da);
+      const a = clean(voce?.a);
+      const versioni = da && a ? `${da} \u2192 ${a}` : a || da;
+      return rowShell(
+        `<span class="dm-w-glyph" data-on="true" aria-hidden="true">\u2B06\uFE0F</span>
+         <span class="dm-w-name">${esc(clean(voce?.nome) || clean(voce?.entity))}</span>
+         <span class="dm-w-val">${esc(versioni || t("Disponibile", "Available"))}</span>`,
+      );
+    })
+    .join("");
+}
+
 /* Anche gli avvisi personalizzati sono caselle: nome e stato, in carta. */
 function customDetail() {
   return "";
@@ -6314,7 +6345,7 @@ function carteDalleRighe(widget) {
    * entita' scelte a mano, col loro nome e il loro valore. */
   const grezza = clean(widget.key);
   const chiave =
-    grezza.startsWith("evidenza-") || grezza.startsWith("mia-") ? "evidenza" : grezza;
+    grezza.startsWith("evidenza-") || eUnaSezioneMia(grezza) ? "evidenza" : grezza;
   if (!(CHIAVI_A_CARTE.has(chiave) || eUnaTesseraEnergia(chiave) || chiave.startsWith("custom-")))
     return [];
   const righe = Array.isArray(widget.rows) ? widget.rows : [];
@@ -6958,6 +6989,7 @@ function detailRows(widget, states) {
   if (widget.key === "batterie") return batteriesDetail(widget);
   if (widget.key === "allagamenti") return floodDetail(widget);
   if (widget.key === "fumo") return fumoDetail(widget);
+  if (widget.key === "aggiornamenti") return aggiornamentiDetail(widget);
   if (widget.key.startsWith("custom-")) return customDetail(widget);
   return "";
 }
@@ -7030,8 +7062,17 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
  * le scrive `display:none` addosso — e portarci sarebbe peggio che non
  * offrirlo: si aprirebbe una pagina che l'utente ha deciso di non avere. */
 function voceDellaSezione(chiave) {
-  /* Ogni tessera energia porta alla sezione, non solo la prima (#286). */
-  const tab = SEZIONE_DEL_WIDGET[eUnaTesseraEnergia(chiave) ? "energia" : clean(chiave)];
+  const grezza = clean(chiave);
+  /* Le sezioni che si fa chi ha la casa (#504) non stanno nell'elenco qui
+   * sopra, e non possono starci: cambiano da una casa all'altra. La loro voce
+   * pero' si chiama esattamente come la loro tessera — le da' lo stesso nome
+   * la stessa funzione — e chiedere l'elenco voleva dire non trovarla mai. Il
+   * tasto «Apri sezione» non compariva proprio dove serviva di piu': su una
+   * pagina che uno si e' costruito apposta per andarci. */
+  const tab = eUnaSezioneMia(grezza)
+    ? grezza
+    : /* Ogni tessera energia porta alla sezione, non solo la prima (#286). */
+      SEZIONE_DEL_WIDGET[eUnaTesseraEnergia(grezza) ? "energia" : grezza];
   if (!tab) return null;
   const voce = doc?.querySelector?.(`.tab[data-tab="${tab}"]`);
   if (!voce || voce.style?.display === "none") return null;

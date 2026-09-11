@@ -342,7 +342,10 @@ function onClickFreccia(event) {
   );
   if (stanza) {
     const id = clean(stanza.getAttribute("data-dm-stanza-plancia-scelta"));
-    const prossime = conLaStanza(stanzeScelte(), { id }, stanza.checked);
+    /* Le stanze di casa servono a contare il tetto su quelle che esistono
+     * davvero: un id rimasto in memoria di una stanza cancellata non occupa un
+     * posto in plancia e non deve occuparne uno qui. */
+    const prossime = conLaStanza(stanzeScelte(), { id }, stanza.checked, stanzeDiCasa());
     writeJsonIfChanged(CHIAVE_STANZE_IN_PLANCIA, prossime);
     /* Il tetto: se la spunta non e' entrata, la casella torna com'era invece
      * di restare accesa su una scelta che non c'e'. */
@@ -418,6 +421,10 @@ export function installHomeBlocchiSection() {
     "dashboardmodern:state-changed",
     "dashboardmodern:editor-rendered",
     "dashboardmodern:plancia-dipinta",
+    /* Un blocco che nasce a meta' giro lo dice: nasce in fondo alla pagina, e
+     * senza questo giro in piu' ci resterebbe fino al prossimo evento di
+     * stato — la prima stanza spuntata si vedeva comparire sotto tutto. */
+    "dashboardmodern:blocco-nuovo",
   ])
     root.addEventListener?.(evento, inCoda);
   /* E quando si TORNA sulla Home.

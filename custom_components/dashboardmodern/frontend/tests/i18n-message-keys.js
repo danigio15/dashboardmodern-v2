@@ -706,6 +706,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Automatic hours (temperature / 2)",
   "Automatic switch-off",
   "Automations",
+  "Available",
   "Avatar (without a photo)",
   "average",
   "Average of all rooms",

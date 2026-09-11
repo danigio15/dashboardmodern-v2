@@ -110,7 +110,7 @@ test("una voce in evidenza puo' avere la tessera sua, che si apre su di lei", ()
    * con lo stesso verbo. */
   assert.match(
     home,
-    /grezza\.startsWith\("evidenza-"\) \|\| grezza\.startsWith\("mia-"\) \? "evidenza" : grezza;/,
+    /grezza\.startsWith\("evidenza-"\) \|\| eUnaSezioneMia\(grezza\) \? "evidenza" : grezza;/,
   );
   assert.match(home, /\.\.\.evidenzaModels\(states\),/);
 });

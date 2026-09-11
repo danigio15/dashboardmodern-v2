@@ -427,6 +427,7 @@ export default Object.freeze({
   "Automatic hours (temperature / 2)": "स्वचालित घंटे (तापमान / 2)",
   "Automatic switch-off": "स्वचालित बंद",
   "Automations": "स्वचालन",
+  "Available": "उपलब्ध",
   "Avatar (without a photo)": "अवतार (बिना फ़ोटो के)",
   "Average of all rooms": "सभी कमरों का औसत",
   "Average of all units": "सभी इकाइयों का औसत",

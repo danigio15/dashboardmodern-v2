@@ -132,7 +132,7 @@ test("un elenco vuoto non si salva: il campo se ne va", () => {
 });
 
 test("la finestra le disegna col vocabolario di tutti, non con uno suo", () => {
-  assert.match(FINESTRA, /import \{ lettureDelDispositivo as lettureScelte \}/);
+  assert.match(FINESTRA, /lettureDelDispositivo as lettureScelte,?\n\} from "\.\.\/core\/letture-accanto\.js";/);
   const blocco = FINESTRA.slice(FINESTRA.indexOf("function aggiungiAltreLetture"));
   assert.match(blocco.slice(0, 1200), /lettureScelte\(/);
   assert.match(blocco.slice(0, 1200), /Altre letture/);
@@ -154,4 +154,31 @@ test("le letture stanno sopra i comandi, in tutti e due i rami della finestra", 
   );
   for (const pezzo of FINESTRA.split("aggiungiAltriComandi(lista, appliance, titoletto);").slice(0, 2))
     assert.match(pezzo.slice(-600), /aggiungiAltreLetture\(lista, appliance, titoletto\);/);
+});
+
+test("una lettura scelta a mano si vede una volta sola, non due", () => {
+  /* L'apparecchio collegato a un'integrazione elenca «Le letture del
+   * dispositivo»: tutte quelle che il dispositivo pubblica. Se una di quelle è
+   * anche stata scelta a mano nella fila «Altre letture», la stessa misura
+   * usciva due volte nella stessa finestra, a due caselle di distanza — e chi
+   * legge due caselle uguali pensa che siano due sonde.
+   *
+   * Per i comandi la regola c'era già (#338) e diceva la stessa cosa: quello
+   * che si è scelto a mano esce da dove lo mette l'integrazione. Qui mancava
+   * la metà che riguarda le letture. */
+  const blocco = FINESTRA.slice(
+    FINESTRA.indexOf("function vesteIntegrazione("),
+    FINESTRA.indexOf("const testa = doc.createElement(\"section\");"),
+  );
+  assert.match(blocco, /const scelteDaLeggere = new Set\(elencoLetture\(appliance\?\.letture\)\);/);
+  assert.match(
+    blocco,
+    /const letture = nuove\(gruppi\.readings\)\.filter\(\(voce\) => !scelteDaLeggere\.has\(voce\.entity\)\);/,
+  );
+  /* E toglierle da lì non le fa sparire del tutto: se non resta altro da dire,
+   * la finestra si apre lo stesso perché «Altre letture» ha ancora le sue. */
+  assert.match(blocco, /!scelteDaLeggere\.size\n  \)\n    return;/);
+  /* Lo stesso elenco che usa l'editor per salvarle: due modi di leggere quella
+   * casella sarebbero due modi di sbagliarla. */
+  assert.match(FINESTRA, /\n  elencoLetture,\n/);
 });

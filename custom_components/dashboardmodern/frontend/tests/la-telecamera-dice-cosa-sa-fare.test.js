@@ -137,11 +137,20 @@ test("la domanda è quella di Home Assistant, e passa dal ponte", () => {
   assert.match(PONTE, /"camera\/capabilities",/);
 });
 
-test("si chiede una volta sola, e non si insiste con chi non risponde", () => {
+test("si chiede una volta sola, non si insiste — ma nemmeno ci si arrende", () => {
   /* Una risposta mancata si segna: senza, a ogni giro di stati si rifarebbe la
-   * stessa domanda a un Home Assistant che quella domanda non ce l'ha. */
-  assert.match(SEZIONE, /state\.dette\.set\(cercata, false\);/);
-  assert.match(SEZIONE, /if \(state\.dette\.has\(cercata\) \|\| state\.inCorso\.has\(cercata\)\)/);
+   * stessa domanda a un Home Assistant che quella domanda non ce l'ha.
+   *
+   * Ma segnarla per sempre era troppo: una domanda cade anche perché la rete
+   * ha singhiozzato o perché la telecamera stava ripartendo, e una plancia che
+   * non riparte fino al ricaricamento della pagina sceglie la strada al buio
+   * per tutta la giornata. Si segna QUANDO è caduta, e dopo mezzo minuto si
+   * riprova; una risposta vera, invece, non si richiede più. */
+  assert.match(SEZIONE, /state\.dette\.set\(cercata, \{ caduta: Date\.now\(\) \}\);/);
+  assert.match(SEZIONE, /const RIPROVA_DOPO = 30_000;/);
+  assert.match(SEZIONE, /if \(state\.inCorso\.has\(cercata\) \|\| !siPuoRichiedere\(cercata, adesso\)\)/);
+  /* Chi ha risposto davvero non si richiede: la risposta c'è, è quella. */
+  assert.match(SEZIONE, /Array\.isArray\(detta\.frontend_stream_types\)\)\n    return false;/);
   /* E non si scrive da nessuna parte: la risposta cambia quando cambia
    * l'impianto, e una vecchia salvata varrebbe meno di nessuna. */
   assert.doesNotMatch(SEZIONE, /writeJson|localStorage/);

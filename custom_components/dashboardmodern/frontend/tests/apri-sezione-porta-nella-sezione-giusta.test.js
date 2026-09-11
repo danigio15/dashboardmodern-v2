@@ -17,6 +17,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 
+import { chiaveDellaSezione, eUnaSezioneMia } from "../src/core/sezioni-mie.js";
 import { ALLERTE_TAB } from "../src/sections/allerte-section.js";
 import { BATTERIE_TAB } from "../src/sections/batterie-section.js";
 import { CALENDARIO_TAB } from "../src/sections/calendario-section.js";
@@ -152,4 +153,42 @@ test("il tasto si rifa' a ogni giro: una voce nata dopo lo fa comparire", () => 
    * che promette una pagina spenta e' peggio di nessun tasto. */
   assert.match(corpo, /if \(!vuole\) piede\?\.remove\(\);/);
   assert.match(corpo, /else if \(!piede\) scheda\.insertAdjacentHTML\("beforeend", vuole\);/);
+});
+
+/* Le sezioni che si fa chi ha la casa (#504).
+ *
+ * Nella tavola non ci possono stare: cambiano da una casa all'altra, e una
+ * riga per ognuna vorrebbe dire una tavola che si riscrive da sola. Ma una
+ * pagina ce l'hanno davvero — se l'e' fatta l'utente apposta — e il tasto
+ * «Apri sezione» non compariva mai, proprio dove serviva di piu'.
+ *
+ * La voce e la tessera portano lo stesso nome perche' glielo da' la stessa
+ * funzione: e' quello il legame che tiene, non due `startsWith` scritti a mano
+ * in due file che un giorno si allontanano. */
+test("la tessera di una sezione propria porta nella sua pagina", () => {
+  const chiave = chiaveDellaSezione("orto");
+  assert.equal(chiave, "mia-orto");
+  assert.equal(eUnaSezioneMia(chiave), true);
+  assert.equal(eUnaSezioneMia("luci"), false);
+  assert.equal(eUnaSezioneMia(""), false);
+
+  /* La voce nella barra la crea la sezione, con quello stesso nome. */
+  const sezioni = readFileSync(
+    new URL("../src/sections/sezioni-mie-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(sezioni, /const chiave = chiaveDellaSezione\(sezione\.id\);/);
+  assert.match(sezioni, /voce\.dataset\.tab = chiave;/);
+
+  /* E la tessera si chiama cosi' e chiede la voce con lo stesso nome, invece
+   * di cercarla in una tavola dove non c'e' e non puo' esserci. */
+  assert.match(SORGENTE, /const chiave = chiaveDellaSezione\(sezione\.id\);/);
+  const cerca = SORGENTE.slice(
+    SORGENTE.indexOf("function voceDellaSezione(chiave) {"),
+    SORGENTE.indexOf("function bricioleDelWidget("),
+  );
+  assert.match(cerca, /eUnaSezioneMia\(grezza\)\n    \? grezza/);
+  /* E non la si riconosce col prefisso battuto a mano: quello sta in un posto
+   * solo, dove si costruisce la chiave. */
+  assert.doesNotMatch(SORGENTE, /startsWith\("mia-"\)/);
 });

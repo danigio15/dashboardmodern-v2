@@ -23,7 +23,10 @@ import {
   comandoDelDispositivo as servizioDelComando,
   elencoComandi,
 } from "../core/comandi-accanto.js";
-import { lettureDelDispositivo as lettureScelte } from "../core/letture-accanto.js";
+import {
+  elencoLetture,
+  lettureDelDispositivo as lettureScelte,
+} from "../core/letture-accanto.js";
 import {
   applianceModelForIndex,
   buildCardMarkup,
@@ -624,17 +627,30 @@ function vesteIntegrazione(lista, appliance, giaMostrate, titoletto) {
   });
   const nuove = (voci) => voci.filter((voce) => !voce.mapped);
   const stato = nuove(gruppi.state);
-  const letture = nuove(gruppi.readings);
   /* Un'entita' scelta come «altro comando» (#338) esce di li' e basta: e' la
    * stessa entita', e disegnarla due volte — una fra i comandi del dispositivo
    * e una fra quelli scelti — sarebbe la stessa cosa detta due volte, con due
    * tasti che si contraddicono a vicenda mentre lo stato cambia. */
   const scelti = new Set(elencoComandi(appliance?.comandi));
+  /* E quello vale uguale per una lettura scelta a mano (#471): «Altre letture»
+   * qui sotto la disegna gia', ed e' li' che chi l'ha scelta se l'aspetta.
+   * Lasciandola anche fra le letture del dispositivo, la stessa misura usciva
+   * due volte nella stessa finestra, a due caselle di distanza — e chi legge
+   * due caselle uguali pensa che siano due sonde. */
+  const scelteDaLeggere = new Set(elencoLetture(appliance?.letture));
+  const letture = nuove(gruppi.readings).filter((voce) => !scelteDaLeggere.has(voce.entity));
   const comandi = gruppi.controls.filter(
     (voce) => !scelti.has(voce.entity) && (!voce.mapped || voce.control?.kind !== "toggle"),
   );
   const diagnostica = gruppi.diagnostics.filter((voce) => !scelti.has(voce.entity));
-  if (!stato.length && !letture.length && !comandi.length && !diagnostica.length && !scelti.size)
+  if (
+    !stato.length &&
+    !letture.length &&
+    !comandi.length &&
+    !diagnostica.length &&
+    !scelti.size &&
+    !scelteDaLeggere.size
+  )
     return;
 
   const testa = doc.createElement("section");

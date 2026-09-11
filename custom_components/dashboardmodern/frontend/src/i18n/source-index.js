@@ -1211,6 +1211,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Disinserisci": "Disarm",
   "Disinserito": "Disarmed",
   "Dispensa": "Pantry",
+  "Disponibile": "Available",
   "Dispositivi": "Devices",
   "Dispositivi accesi": "Powered on",
   "Dispositivi dentro il carico": "Appliances inside the load",

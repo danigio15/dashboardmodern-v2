@@ -62,17 +62,39 @@ export function laStanzaSiVede(scelte, stanza) {
 }
 
 /**
+ * Quante, fra quelle scritte, una stanza ce l'hanno ancora.
+ *
+ * Senza l'elenco delle stanze si contano tutte, che è l'unica cosa che si può
+ * dire. Con l'elenco davanti si contano solo quelle che esistono: un id
+ * rimasto scritto dopo che la stanza è stata cancellata non occupa un posto in
+ * plancia — `stanzeInPlancia` non lo trova e lo salta — e non deve occuparne
+ * uno nel tetto. Chi ne aveva otto e ne cancellava una si ritrovava sette
+ * stanze in plancia e il tetto pieno lo stesso: nessuna spunta nuova entrava
+ * più, e la casella tornava indietro da sola senza dire perché.
+ */
+function quanteSiVedono(fila, stanze) {
+  if (!Array.isArray(stanze)) return fila.length;
+  const esistono = new Set(stanze.map((stanza) => idDellaStanza(stanza)).filter(Boolean));
+  return fila.filter((voce) => esistono.has(voce)).length;
+}
+
+/**
  * L'elenco con una stanza accesa o spenta.
  *
  * Torna sempre un elenco nuovo: chi chiama lo scrive nel magazzino, e scrivere
  * l'oggetto che si è appena letto vuol dire non accorgersi del cambiamento.
+ *
+ * Le stanze di casa sono l'ultimo pezzo e si possono non passare: servono solo
+ * a contare il tetto su quelle vere. Gli id orfani restano scritti — ripulirli
+ * qui vorrebbe dire cancellare una configurazione mentre nessuno guarda, che è
+ * la regola di `stanzeInPlancia` e vale anche qui.
  */
-export function conLaStanza(scelte, stanza, accesa) {
+export function conLaStanza(scelte, stanza, accesa, stanze = null) {
   const id = idDellaStanza(stanza);
   const fila = (Array.isArray(scelte) ? scelte : []).map((voce) => pulito(voce)).filter(Boolean);
   if (!id) return fila;
   const senza = fila.filter((voce) => voce !== id);
   if (!accesa) return senza;
-  if (senza.length >= STANZE_MASSIME) return senza;
+  if (quanteSiVedono(senza, stanze) >= STANZE_MASSIME) return senza;
   return [...senza, id];
 }

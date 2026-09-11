@@ -427,6 +427,7 @@ export default Object.freeze({
   "Automatic hours (temperature / 2)": "自动时长（温度 ÷ 2）",
   "Automatic switch-off": "自动关闭",
   "Automations": "自动化",
+  "Available": "可用",
   "Avatar (without a photo)": "头像（无照片时）",
   "Average of all rooms": "所有房间的平均值",
   "Average of all units": "所有设备的平均值",

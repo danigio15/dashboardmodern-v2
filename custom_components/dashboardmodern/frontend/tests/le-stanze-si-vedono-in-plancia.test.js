@@ -81,6 +81,53 @@ test("spuntare e togliere, senza doppioni e senza sforare il tetto", () => {
   assert.equal(STANZE_MASSIME, 8, "le parole della scheda dicono «al massimo otto»");
 });
 
+test("una stanza cancellata non tiene occupato un posto in plancia", () => {
+  /* Il tetto è alla plancia, non alla memoria. Chi ne aveva otto e ne cancella
+   * una in plancia ne vede sette — `stanzeInPlancia` l'id orfano non lo trova
+   * — ma il tetto lo contava lo stesso: nessuna spunta nuova entrava più, e la
+   * casella tornava indietro da sola senza dire perché.
+   *
+   * L'id orfano resta scritto: ripulirlo qui vorrebbe dire cancellare una
+   * configurazione mentre nessuno guarda, ed è la stessa regola per cui una
+   * stanza cancellata «sparisce da sé, senza toccare il magazzino». */
+  const scritte = [
+    ...Array.from({ length: STANZE_MASSIME - 1 }, (_, i) => `room-${i}`),
+    "room-cancellata",
+  ];
+  const esistono = scritte
+    .filter((id) => id !== "room-cancellata")
+    .map((id) => ({ id, name: id }));
+
+  /* Senza l'elenco delle stanze si conta tutto, che è l'unica cosa che si può
+   * dire: è il caso di chi chiama senza saperle. */
+  assert.deepEqual(conLaStanza(scritte, { id: "room-nuova" }, true), scritte);
+
+  /* Con l'elenco davanti, il posto lasciato libero dalla cancellata è libero. */
+  const dopo = conLaStanza(scritte, { id: "room-nuova" }, true, esistono);
+  assert.deepEqual(dopo, [...scritte, "room-nuova"]);
+  /* E l'id orfano è ancora lì: non si è ripulito niente di nascosto. */
+  assert.ok(dopo.includes("room-cancellata"));
+
+  /* Il tetto resta un tetto: con otto stanze vere la nona non entra. */
+  const tutte = Array.from({ length: STANZE_MASSIME }, (_, i) => `room-${i}`);
+  assert.deepEqual(
+    conLaStanza(
+      tutte,
+      { id: "room-troppa" },
+      true,
+      tutte.map((id) => ({ id, name: id })),
+    ),
+    tutte,
+  );
+});
+
+test("chi spunta una stanza le stanze di casa le passa", () => {
+  /* Il tetto si conta su quelle vere solo se chi chiama dice quali sono: la
+   * scheda le ha già in mano per disegnare l'elenco. */
+  const blocchi = leggi("sections/home-blocchi-section.js");
+  assert.match(blocchi, /conLaStanza\(stanzeScelte\(\), \{ id \}, stanza\.checked, stanzeDiCasa\(\)\)/);
+});
+
 test("l'id di una stanza è quello della sua pagina", () => {
   assert.equal(idDellaStanza({ id: "room-garage", name: "Garage" }), "room-garage");
   /* Una stanza vecchia senza id si riconosce dal nome, come fa il resto. */

@@ -427,6 +427,7 @@ export default Object.freeze({
   "Automatic hours (temperature / 2)": "Automatische uren (temperatuur / 2)",
   "Automatic switch-off": "Automatisch uitschakelen",
   "Automations": "Automatiseringen",
+  "Available": "Beschikbaar",
   "Avatar (without a photo)": "Avatar (zonder foto)",
   "Average of all rooms": "Gemiddelde van alle kamers",
   "Average of all units": "Gemiddelde van alle units",

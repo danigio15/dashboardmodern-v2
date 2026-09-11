@@ -42,7 +42,8 @@ test("la chiave del magazzino sta nel nucleo, e la legge anche la tessera", () =
    * le disegna e la tessera che le porta in Home — e una costante duplicata è
    * il modo più rapido di farle divergere. */
   assert.equal(CHIAVE_SEZIONI_MIE, "cd_sezioni_mie");
-  assert.match(TESSERE, /import \{ CHIAVE_SEZIONI_MIE, sezioniDaMostrare \} from "\.\.\/core\/sezioni-mie\.js"/);
+  assert.match(TESSERE, /sezioniDaMostrare,?\n\} from "\.\.\/core\/sezioni-mie\.js";/);
+  assert.match(TESSERE, /\n  CHIAVE_SEZIONI_MIE,\n/);
 });
 
 test("una sezione con dentro qualcosa si mostra, una vuota no", () => {
@@ -55,7 +56,11 @@ test("una sezione con dentro qualcosa si mostra, una vuota no", () => {
 test("ogni sezione ha la sua tessera, col suo titolo e il suo disegno", () => {
   const blocco = TESSERE.slice(TESSERE.indexOf("export function sezioniMieModels"));
   const dentro = blocco.slice(0, 2200);
-  assert.match(dentro, /const chiave = `mia-\$\{sezione\.id\}`/);
+  /* Il nome della tessera lo fa la stessa funzione che fa quello della voce
+   * nella barra: battuto a mano qui, i due si allontanavano senza che nessuno
+   * se ne accorgesse — ed e' quello che teneva il tasto «Apri sezione» fuori
+   * da queste tessere. */
+  assert.match(dentro, /const chiave = chiaveDellaSezione\(sezione\.id\);/);
   assert.match(dentro, /key: chiave,/);
   assert.match(dentro, /label: sezione\.titolo/);
   assert.match(dentro, /icon: sezione\.icona \|\| "⭐"/);
@@ -67,7 +72,7 @@ test("ogni sezione ha la sua tessera, col suo titolo e il suo disegno", () => {
 test("si spostano e si spengono tutte insieme, sotto una voce sola", () => {
   /* Sono tante quante uno se ne fa: una riga a testa nel catalogo lo
    * riempirebbe di voci diverse da una casa all'altra. */
-  assert.match(TESSERE, /widget\.key\.startsWith\("mia-"\)\s*\n?\s*\?\s*"mie"/);
+  assert.match(TESSERE, /eUnaSezioneMia\(widget\.key\)\s*\n?\s*\?\s*"mie"/);
   const catalogo = EDITOR.slice(
     EDITOR.indexOf("function catalogoTessere"),
     EDITOR.indexOf("function tessereOrdinate"),
@@ -77,7 +82,10 @@ test("si spostano e si spengono tutte insieme, sotto una voce sola", () => {
 
 test("la finestra le disegna a caselle, come le evidenze", () => {
   const blocco = TESSERE.slice(TESSERE.indexOf("function carteDalleRighe"));
-  assert.match(blocco.slice(0, 700), /grezza\.startsWith\("evidenza-"\) \|\| grezza\.startsWith\("mia-"\)/);
+  assert.match(blocco.slice(0, 700), /grezza\.startsWith\("evidenza-"\) \|\| eUnaSezioneMia\(grezza\)/);
+  /* Il prefisso sta scritto in un posto solo, dove la chiave si costruisce:
+   * riconoscerlo a mano qui e la' e' come averlo scritto tre volte. */
+  assert.doesNotMatch(TESSERE, /startsWith\("mia-"\)/);
 });
 
 test("entrano in Home accanto alle evidenze", () => {

@@ -427,6 +427,7 @@ export default Object.freeze({
   "Automatic hours (temperature / 2)": "自動の時間（温度 ÷ 2）",
   "Automatic switch-off": "自動で消す",
   "Automations": "オートメーション",
+  "Available": "利用可能",
   "Avatar (without a photo)": "アバター（写真なしのとき）",
   "Average of all rooms": "全部屋の平均",
   "Average of all units": "全ユニットの平均",
