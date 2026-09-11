@@ -2926,6 +2926,7 @@ export default Object.freeze({
   "When Solar and Grid are configured, Home consumption uses the same flow balance as Home Assistant. The total kWh meter wins: when one is set, day, month and year are derived from it through Recorder and the period fields are not read. The daily, monthly and annual fields are for when no total meter exists.": "太陽光と系統を設定すると、住宅の消費は Home Assistant と同じ収支で求めます。積算 kWh メーターが優先で、設定されていれば日・月・年は Recorder 経由でそこから求め、期間の項目は読まれません。日次・月次・年次の項目は、積算メーターがない場合のためのものです。",
   "When a custom alert turns on, the dashboard opens it by itself. Only when it turns on, and never on top of a window that is already open.": "カスタム通知が点いたとき、ダッシュボードが自分で開きます。点いたときだけで、すでに開いているウィンドウの上には決して開きません。",
   "When a room's humidity goes above this level, that room's window suggests opening it to air out. The humidity is the room sensor's. It applies to the windows without a threshold of their own in their row. Empty means 60. Zero turns the suggestion off.": "部屋の湿度がこの値を超えると、その部屋の窓が換気のために開けるよう勧めます。湿度は部屋のセンサーのものです。自分の行にしきい値のない窓に適用されます。空欄は 60。ゼロで提案を止めます。",
+  "When set, the button opens the keypad and only fires with the right code — the same keypad as the panel. Empty, it fires on tap.": "設定すると、ボタンはキーパッドを開き、正しいコードでのみ動作します——警報盤と同じキーパッドです。空欄なら、タップで動作します。",
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.": "トイレを最後に掃除した時刻。日付でも、経過した分数でもかまいません。下で決めた時間を過ぎるとカードが知らせます。",
   "Where": "どこ",
   "Where it is raining now": "いま雨が降っている場所",

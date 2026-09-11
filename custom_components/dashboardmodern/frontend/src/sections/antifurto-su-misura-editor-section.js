@@ -22,6 +22,7 @@ import {
   normalizzaModoSuMisura,
   vuoleUnOpzione,
 } from "../core/antifurto-su-misura.js";
+import { normalizzaIlCodice } from "../core/codice-a-tastierino.js";
 import { casellaDellaCentrale } from "./alarm-modes-editor-section.js";
 import { openIconPicker } from "./icon-engine-section.js";
 import {
@@ -113,6 +114,20 @@ function rigaMarkup(modo, indice) {
           "Empty means “on”. Without it the button still works: it simply does not stay lit.",
         ),
       )}</small></label>
+    <label class="ed-slot"><span class="ed-slot-lbl">${esc(t("PIN (facoltativo)", "PIN (optional)"))}</span>
+      <span class="ed-form-row"><input id="dm-suo-${indice}-pin" class="ed-input mono" data-suo-field="pin"
+        value="${esc(clean(modo?.pin))}" inputmode="numeric" autocomplete="off" placeholder="1234"></span>
+      <small>${esc(
+        t(
+          "Scritto, il tasto apre il tastierino e parte solo col codice giusto — lo stesso tastierino della centrale. Vuoto, parte al tocco.",
+          "When set, the button opens the keypad and only fires with the right code — the same keypad as the panel. Empty, it fires on tap.",
+        ),
+      )}</small>
+      ${
+        clean(modo?.pin) && !normalizzaIlCodice(modo?.pin)
+          ? `<output class="dm-suo-muto">${esc(t("Il PIN è di 4-8 cifre.", "The PIN is 4-8 digits."))}</output>`
+          : ""
+      }</label>
     ${
       buona
         ? ""

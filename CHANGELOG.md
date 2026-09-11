@@ -26,6 +26,36 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Antifurto su misura: il tasto può chiedere il suo PIN** (#336)
+
+  «Sarebbe comodo che nella sezione allarme, oltre a scegliere l'entità, si
+  possa inserire un pin ed esca il tastierino, come succede già nella sezione
+  aperture mettendo una serratura.»
+
+  Una centrale vera il codice lo dichiara lei — `code_format` — e a verificarlo
+  è Home Assistant. Uno script, una scena, un interruttore un codice non lo
+  accettano: l'unico posto dove chiederlo è la plancia, un istante prima di
+  mandare il comando. È esattamente quello che fanno già le aperture della
+  Sicurezza, e da oggi lo fanno anche i tasti d'inserimento scritti a mano.
+
+  Il tastierino che si apre è **quello di sempre**, quello della centrale: un
+  tasto col PIN non scavalca il guscio, gli lascia fare quello che ha sempre
+  fatto e si riprende il comando all'OK, dopo aver confrontato le cifre. Un
+  secondo tastierino identico accanto al primo sarebbe stato due posti dove si
+  scrive un codice e due modi di sbagliarlo. Ci scrive sopra il nome del tasto,
+  che prima diceva «Azione».
+
+  Il PIN è facoltativo: chi non lo scrive preme e basta, come prima. E un PIN
+  scritto male — tre cifre, una lettera — non blocca niente: vale come nessun
+  PIN, perché un tasto che non si preme più per una casella lasciata a metà è
+  peggio del tasto senza chiave. A correggere chi scrive ci pensa la scheda,
+  dove si scrive.
+
+  Sotto, la regola del codice adesso sta in **un posto solo** — quattro-otto
+  cifre — invece che battuta due volte: le aperture e i tasti su misura
+  chiedono alla stessa funzione. Tre porte sullo stesso gesto che accettano
+  codici diversi sono tre porte che un giorno non si somigliano più.
+
 - **Rifiuti: il materiale si sceglie vedendo i bidoni**
 
   «Nel menu a tendina dei rifiuti voglio vedere anche le icone.» E poi, sulla

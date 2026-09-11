@@ -2926,6 +2926,7 @@ export default Object.freeze({
   "When Solar and Grid are configured, Home consumption uses the same flow balance as Home Assistant. The total kWh meter wins: when one is set, day, month and year are derived from it through Recorder and the period fields are not read. The daily, monthly and annual fields are for when no total meter exists.": "当光伏和电网都配置好后，家庭用电会采用与 Home Assistant 相同的能量平衡。以总 kWh 电表为准：填了总表，日、月、年就通过 Recorder 由它算出，周期字段不会被读取。日、月、年字段是留给没有总表的情况。",
   "When a custom alert turns on, the dashboard opens it by itself. Only when it turns on, and never on top of a window that is already open.": "自定义提醒亮起时，面板会自己打开它。只在亮起的那一刻，且绝不覆盖在已经打开的窗口上。",
   "When a room's humidity goes above this level, that room's window suggests opening it to air out. The humidity is the room sensor's. It applies to the windows without a threshold of their own in their row. Empty means 60. Zero turns the suggestion off.": "当房间湿度超过此值时，该房间的窗户会建议开窗通风。湿度取自房间的传感器。适用于自己一行中没有单独阈值的窗户。留空表示 60。填 0 关闭建议。",
+  "When set, the button opens the keypad and only fires with the right code — the same keypad as the panel. Empty, it fires on tap.": "填写后，按钮会打开键盘，只有输入正确的密码才会执行——与主机用的是同一个键盘。留空则触摸即执行。",
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.": "猫砂盆上次清理是什么时候：一个日期，或者过去了多少分钟。超过下面设定的小时数，卡片就会说。",
   "Where": "在哪",
   "Where it is raining now": "现在哪里在下雨",

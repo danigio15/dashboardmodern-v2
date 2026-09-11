@@ -2926,6 +2926,7 @@ export default Object.freeze({
   "When Solar and Grid are configured, Home consumption uses the same flow balance as Home Assistant. The total kWh meter wins: when one is set, day, month and year are derived from it through Recorder and the period fields are not read. The daily, monthly and annual fields are for when no total meter exists.": "태양광과 계통을 설정하면 홈 소비는 Home Assistant와 같은 흐름 수지를 씁니다. 누적 kWh 계량기가 우선이며, 설정되어 있으면 일·월·연을 Recorder를 통해 거기서 구하고 기간 항목은 읽지 않습니다. 일간·월간·연간 항목은 누적 계량기가 없을 때를 위한 것입니다.",
   "When a custom alert turns on, the dashboard opens it by itself. Only when it turns on, and never on top of a window that is already open.": "사용자 알림이 켜지면 대시보드가 알아서 엽니다. 켜질 때만 열고, 이미 열려 있는 창 위에는 절대 열지 않습니다.",
   "When a room's humidity goes above this level, that room's window suggests opening it to air out. The humidity is the room sensor's. It applies to the windows without a threshold of their own in their row. Empty means 60. Zero turns the suggestion off.": "방의 습도가 이 수준을 넘으면 그 방의 창문이 환기를 위해 열라고 제안합니다. 습도는 방 센서의 값입니다. 자기 행에 기준이 없는 창문에 적용됩니다. 비우면 60. 0은 제안을 끕니다.",
+  "When set, the button opens the keypad and only fires with the right code — the same keypad as the panel. Empty, it fires on tap.": "설정하면 버튼이 키패드를 열고 올바른 코드로만 실행됩니다 — 제어반과 같은 키패드입니다. 비워 두면 누르는 즉시 실행됩니다.",
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.": "화장실을 마지막으로 청소한 때: 날짜여도, 지난 분이어도 됩니다. 아래에 정한 시간이 지나면 카드가 알려 줍니다.",
   "Where": "어디",
   "Where it is raining now": "지금 비가 오는 곳",

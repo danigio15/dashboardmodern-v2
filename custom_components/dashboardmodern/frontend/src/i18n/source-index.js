@@ -2848,6 +2848,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Scongelamento": "Defrosting",
   "Sconosciuto": "Unknown",
   "Scritta come Home Assistant la elenca, lettera per lettera.": "Spelled the way Home Assistant lists it, letter for letter.",
+  "Scritto, il tasto apre il tastierino e parte solo col codice giusto — lo stesso tastierino della centrale. Vuoto, parte al tocco.": "When set, the button opens the keypad and only fires with the right code — the same keypad as the panel. Empty, it fires on tap.",
   "Scrivi a chi mantiene la plancia: conversazione privata, non passa da GitHub": "Write to whoever maintains the dashboard: a private conversation, not through GitHub",
   "Scrivi almeno due lettere: si cerca in tutte le schede insieme.": "Type at least two letters: it searches every tab at once.",
   "Scrivi il tuo messaggio…": "Write your message…",

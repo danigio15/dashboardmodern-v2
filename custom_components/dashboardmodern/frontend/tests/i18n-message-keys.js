@@ -3414,6 +3414,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "When",
   "When a custom alert turns on, the dashboard opens it by itself. Only when it turns on, and never on top of a window that is already open.",
   "When a room's humidity goes above this level, that room's window suggests opening it to air out. The humidity is the room sensor's. It applies to the windows without a threshold of their own in their row. Empty means 60. Zero turns the suggestion off.",
+  "When set, the button opens the keypad and only fires with the right code — the same keypad as the panel. Empty, it fires on tap.",
   "When Solar and Grid are configured, Home consumption uses the same flow balance as Home Assistant. The total kWh meter wins: when one is set, day, month and year are derived from it through Recorder and the period fields are not read. The daily, monthly and annual fields are for when no total meter exists.",
   "When the litter box was last cleaned: a date, or the minutes gone by. Past the hours set below the card says so.",
   "Where",
