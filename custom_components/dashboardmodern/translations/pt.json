@@ -28,7 +28,7 @@
         },
         "data_description": {
           "allowed_users": "Apenas um filtro de visibilidade da interface. Os dados e os serviços continuam sujeitos às permissões do Home Assistant.",
-          "register_lovelace_dashboard": "O painel é criado da primeira vez que um administrador abre o DashboardModern.",
+          "register_lovelace_dashboard": "O painel de apoio é criado ao arrancar o Home Assistant, e é o que permite escolher esta plancia como predefinida. Desligado, a plancia fica na barra lateral mas não aparece entre os painéis predefinidos.",
           "admin_only": "Filtro nativo do Home Assistant; prevalece nas contas que não são de administrador.",
           "check_updates": "Pergunta ao GitHub a cada meia hora se saiu uma versão mais recente e mostra-a em Definições → Atualizações. Desligue para que o painel não vá à internet; o painel de controlo nunca precisa disso.",
           "tickets_enabled": "Permite a quem usa o painel relatar um erro, propor uma ideia ou pedir ajuda sem sair dele. O relato torna-se um issue público no GitHub, aberto em nome próprio — a mesma conta que o HACS já lhe pediu. Desligado, não sai nada de casa.",
@@ -49,6 +49,10 @@
           }
         }
       }
+    },
+    "plancia_non_registrabile": {
+      "title": "«{plancia}» não pode ser escolhido como painel predefinido",
+      "description": "O Home Assistant não mantém uma lista de painéis onde escrever: acontece quando o Lovelace está em modo YAML (lovelace: mode: yaml no teu configuration.yaml). Nesse modo os painéis escreve-los tu, e este tem de ser acrescentado ali à mão. «{plancia}» continua acessível pela barra lateral como sempre: não está avariado, apenas não se consegue registar sozinho. Se não usas o modo YAML, reinicia o Home Assistant e reabre esta página."
     }
   },
   "entity": {

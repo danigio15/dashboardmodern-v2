@@ -28,7 +28,7 @@
         },
         "data_description": {
           "allowed_users": "Solo filtro di visibilità UI. Dati e servizi restano soggetti ai permessi Home Assistant dell'utente autenticato.",
-          "register_lovelace_dashboard": "La plancia viene creata alla prima apertura effettuata da un amministratore.",
+          "register_lovelace_dashboard": "La plancia di appoggio si crea all'avvio di Home Assistant, ed è quella che permette di sceglierla come predefinita. Spenta, la plancia resta nella barra laterale ma non compare fra le predefinite.",
           "admin_only": "Filtro nativo Home Assistant; prevale sulla selezione utenti per gli account non amministratori.",
           "check_updates": "Chiede a GitHub ogni mezz'ora se è uscita una versione più recente, e la mostra in Impostazioni → Aggiornamenti. Spegnilo per non far parlare la plancia con l'esterno: per funzionare non le serve.",
           "tickets_enabled": "Permette a chi usa la plancia di segnalare un difetto, proporre un'idea o chiedere aiuto senza uscirne. La segnalazione diventa una issue pubblica su GitHub, aperta a nome suo — lo stesso account che HACS gli ha già chiesto. Spento, non esce niente di casa.",
@@ -49,6 +49,10 @@
           }
         }
       }
+    },
+    "plancia_non_registrabile": {
+      "title": "«{plancia}» non si può scegliere come plancia predefinita",
+      "description": "Home Assistant non tiene un elenco di plance su cui scrivere: succede quando Lovelace è in modo YAML (lovelace: mode: yaml nel tuo configuration.yaml). In quel modo le plance le scrivi tu nel file, e questa va aggiunta lì a mano. «{plancia}» resta raggiungibile dalla barra laterale come sempre: non è rotta, semplicemente non può registrarsi da sola. Se invece non usi il modo YAML, riavvia Home Assistant e riapri questa pagina."
     }
   },
   "entity": {

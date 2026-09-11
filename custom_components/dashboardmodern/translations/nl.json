@@ -28,7 +28,7 @@
         },
         "data_description": {
           "allowed_users": "Alleen een zichtbaarheidsfilter van de interface. Voor gegevens en services gelden nog steeds de rechten van Home Assistant.",
-          "register_lovelace_dashboard": "Het dashboard wordt aangemaakt zodra een beheerder DashboardModern voor het eerst opent.",
+          "register_lovelace_dashboard": "Het bijbehorende dashboard wordt aangemaakt wanneer Home Assistant start; daarmee kun je deze plancia als standaard kiezen. Uitgeschakeld blijft de plancia in de zijbalk, maar verschijnt hij niet bij de standaarddashboards.",
           "admin_only": "Ingebouwd filter van Home Assistant; het wint voor accounts zonder beheerdersrechten.",
           "check_updates": "Vraagt GitHub elk half uur of er een nieuwere release is en toont die bij Instellingen → Updates. Zet het uit zodat het paneel helemaal niet het internet op gaat; het dashboard heeft het nooit nodig.",
           "tickets_enabled": "Laat iedereen die het dashboard gebruikt een fout melden, een idee opperen of hulp vragen zonder het te verlaten. De melding wordt een openbaar issue op GitHub, op eigen naam — hetzelfde account dat HACS al vroeg. Uitgeschakeld verlaat er niets het huis.",
@@ -49,6 +49,10 @@
           }
         }
       }
+    },
+    "plancia_non_registrabile": {
+      "title": "“{plancia}” kan niet als standaarddashboard worden gekozen",
+      "description": "Home Assistant houdt geen beschrijfbare lijst met dashboards bij: dat gebeurt als Lovelace in YAML-modus draait (lovelace: mode: yaml in je configuration.yaml). In die modus schrijf je de dashboards zelf, en dit moet daar met de hand worden toegevoegd. “{plancia}” blijft zoals altijd bereikbaar via de zijbalk: het is niet stuk, het kan zichzelf alleen niet registreren. Gebruik je geen YAML-modus, start Home Assistant opnieuw op en open deze pagina nogmaals."
     }
   },
   "entity": {

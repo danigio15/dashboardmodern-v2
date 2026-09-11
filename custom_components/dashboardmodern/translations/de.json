@@ -28,7 +28,7 @@
         },
         "data_description": {
           "allowed_users": "Nur ein Sichtbarkeitsfilter der Oberfläche. Für Daten und Dienste gelten weiterhin die Home-Assistant-Berechtigungen.",
-          "register_lovelace_dashboard": "Das Dashboard wird angelegt, sobald ein Administrator DashboardModern zum ersten Mal öffnet.",
+          "register_lovelace_dashboard": "Das Begleit-Dashboard wird beim Start von Home Assistant angelegt; darüber lässt sich diese Plancia als Standard auswählen. Ausgeschaltet bleibt die Plancia in der Seitenleiste, erscheint aber nicht unter den Standard-Dashboards.",
           "admin_only": "Nativer Home-Assistant-Filter; für Konten ohne Administratorrechte hat er Vorrang.",
           "check_updates": "Fragt GitHub jede halbe Stunde, ob eine neuere Version veröffentlicht wurde, und zeigt sie unter Einstellungen → Updates. Ausschalten, damit das Panel gar nicht ins Internet geht; das Dashboard selbst braucht es nie.",
           "tickets_enabled": "Erlaubt allen, die das Dashboard nutzen, einen Fehler zu melden, eine Idee vorzuschlagen oder um Hilfe zu bitten, ohne es zu verlassen. Die Meldung wird zu einem öffentlichen Issue auf GitHub, im eigenen Namen — mit demselben Konto, nach dem HACS bereits gefragt hat. Ausgeschaltet verlässt nichts das Haus.",
@@ -49,6 +49,10 @@
           }
         }
       }
+    },
+    "plancia_non_registrabile": {
+      "title": "„{plancia}“ kann nicht als Standard-Dashboard gewählt werden",
+      "description": "Home Assistant führt keine beschreibbare Dashboard-Liste: Das passiert, wenn Lovelace im YAML-Modus läuft (lovelace: mode: yaml in der configuration.yaml). In diesem Modus schreibst du die Dashboards selbst, und dieses muss dort von Hand ergänzt werden. „{plancia}“ bleibt wie immer über die Seitenleiste erreichbar: Es ist nicht kaputt, es kann sich nur nicht selbst eintragen. Wenn du den YAML-Modus nicht nutzt, starte Home Assistant neu und öffne diese Seite erneut."
     }
   },
   "entity": {
