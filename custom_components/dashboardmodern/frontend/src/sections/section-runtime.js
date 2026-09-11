@@ -105,6 +105,7 @@ import { installPreseSection } from "./prese-section.js";
 import { installEnergyPlantsSection } from "./energy-plants-section.js";
 import { installRoomAssignSection } from "./room-assign-section.js";
 import { installRoomsPageSection } from "./rooms-page-section.js";
+import { installStanzeInPlancia } from "./stanze-in-plancia-section.js";
 import { installRoomsOrderEditor } from "./rooms-order-editor-section.js";
 import { installAutoIntegrazione } from "./auto-integrazione-section.js";
 import { installEnergiaCerchiStorico } from "./energia-cerchi-storico-section.js";
@@ -1015,6 +1016,9 @@ export function installSectionRuntime() {
     /* Le Stanze leggono le assegnazioni di tutte le altre sezioni e
      * riusano la card della pagina Luci: si installano dopo di lei. */
     installRoomsPageSection();
+    /* Il blocco delle stanze in plancia (#493) chiede alla pagina Stanze chi
+     * c'e' e dove portare col tocco: si installa dopo di lei. */
+    installStanzeInPlancia();
     /* L'ordine delle stanze si cambia in configurazione: le frecce si
      * appoggiano alle righe che disegna il documento vendorizzato. */
     installRoomsOrderEditor();

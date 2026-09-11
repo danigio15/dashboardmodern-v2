@@ -187,10 +187,19 @@ test("togliere una chiave non alza la revisione", async () => {
    * appeso al muro e spenta sul telefono sarebbe la stessa casa che dice due
    * cose. Spegnerla non e' come riordinarla — riordinarla vorrebbe dire
    * poterla mandare in fondo, cioe' non vederla mai senza averlo chiesto. */
-  assert.equal(CONFIG_KEYS_REVISION, 47);
+  /* E la 48 con le stanze in plancia (#493, `cd_home_stanze`): «have the option
+   * to display a block on the home screen showing the rooms or areas of the
+   * house», e «it should also be possible to choose which rooms or areas
+   * appear». Quali stanze uno vuole davanti è una scelta della casa: chi
+   * sceglie il giardino e il garage dal computer li ritrova sul telefono. */
+  assert.equal(CONFIG_KEYS_REVISION, 48);
   assert.ok(
     CONFIG_KEYS.includes("cd_home_pastiglie"),
     "le pastiglie si spengono per la casa, non per il vetro da cui le si guarda",
+  );
+  assert.ok(
+    CONFIG_KEYS.includes("cd_home_stanze"),
+    "le stanze in plancia si scelgono per la casa, non per lo schermo",
   );
   assert.ok(
     CONFIG_KEYS.includes("cd_stampanti"),

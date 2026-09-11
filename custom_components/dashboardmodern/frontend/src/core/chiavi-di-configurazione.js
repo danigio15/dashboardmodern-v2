@@ -220,7 +220,12 @@
  * perche' reolink ti sgancia questi sensori — che la Dashboard metta l'avviso
  * con il fotogramma». Quali sensori guarda ogni telecamera e' una proprieta'
  * della casa, non del telefono da cui la si guarda: viaggia con le altre. */
-export const CONFIG_KEYS_REVISION = 47;
+/* La revisione 48 aggiunge le stanze in plancia (`cd_home_stanze`, #493):
+ * «have the option to display a block on the home screen showing the rooms or
+ * areas of the house», e «it should also be possible to choose which rooms or
+ * areas appear». Quali stanze uno vuole davanti e' una scelta della casa: chi
+ * sceglie il giardino e il garage dal computer li ritrova sul telefono. */
+export const CONFIG_KEYS_REVISION = 48;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -257,6 +262,10 @@ export const CONFIG_KEYS = Object.freeze([
   // una preferenza della casa, non del dispositivo — chi le spegne le vuole
   // spente sul telefono come sul tablet appeso al muro.
   "cd_home_pastiglie",
+  // Quali stanze si vedono in plancia (#493): «it should also be possible to
+  // choose which rooms or areas appear on the home screen». Quali stanze uno
+  // vuole davanti e' una scelta della casa, non del dispositivo.
+  "cd_home_stanze",
   // La riga sotto il meteo (#356): quali pastiglie si vedono, e da quale
   // contatto arriva la posta (#357).
   "cd_barra_casa",

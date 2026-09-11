@@ -27,6 +27,9 @@ test("l'ordine scelto si rispetta, e quello che non c'e' va in coda al suo posto
     "azioni",
     "persone",
     "widget",
+    /* Le stanze (#493) sono nate dopo, e in coda al loro posto di serie: chi
+     * aveva gia' un ordine salvato non se lo vede scombinare. */
+    "stanze",
     "dispositivi",
   ]);
   assert.equal(eLOrdineDiSerie(["azioni"]), false);
@@ -35,6 +38,7 @@ test("l'ordine scelto si rispetta, e quello che non c'e' va in coda al suo posto
     "azioni",
     "persone",
     "widget",
+    "stanze",
   ]);
 });
 
@@ -45,6 +49,7 @@ test("un ordine sporco non rompe la Home", () => {
     "azioni",
     "persone",
     "widget",
+    "stanze",
     "dispositivi",
   ]);
   /* Un nome che non esiste piu' — una versione che toglie un blocco — si
@@ -53,6 +58,7 @@ test("un ordine sporco non rompe la Home", () => {
     "widget",
     "persone",
     "azioni",
+    "stanze",
     "dispositivi",
   ]);
   /* E le voci che non sono nemmeno stringhe. */
@@ -60,6 +66,7 @@ test("un ordine sporco non rompe la Home", () => {
     "persone",
     "widget",
     "azioni",
+    "stanze",
     "dispositivi",
   ]);
 });

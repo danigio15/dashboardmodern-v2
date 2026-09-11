@@ -436,6 +436,37 @@ export function ensureRoomsTab() {
   return tab;
 }
 
+/**
+ * Apre la pagina delle Stanze su una stanza precisa.
+ *
+ * La chiama il blocco delle stanze in plancia (#493): li' una card e' una
+ * stanza, e toccarla deve portare dove quella stanza si comanda. La scelta e
+ * il cambio di pagina stanno qui perche' stanno qui il resto delle due cose —
+ * chi tocca una pastiglia dentro la pagina fa esattamente questo.
+ *
+ * Torna `false` quando la pagina non c'è ancora: succede prima che il guscio
+ * abbia finito di alzarsi, e non è un errore da urlare.
+ */
+export function apriLaStanza(id) {
+  if (!doc) return false;
+  const voce = ensureRoomsTab();
+  const pagina = ensureRoomsPage();
+  if (!voce || !pagina) return false;
+  const scelta = clean(id);
+  if (scelta) {
+    state.room = scelta;
+    state.signature = "";
+  }
+  for (const nodo of doc.querySelectorAll(".tab")) nodo.classList.remove("active");
+  for (const nodo of doc.querySelectorAll(".page")) nodo.classList.remove("active");
+  voce.classList.add("active");
+  pagina.classList.add("active");
+  root.navigator?.vibrate?.(8);
+  root.scrollTo?.({ top: 0, behavior: "instant" });
+  schedule();
+  return true;
+}
+
 function teachNavVisibility() {
   const previous = root.cdNavVisMap;
   if (typeof previous !== "function" || previous.__dmStanze) return;

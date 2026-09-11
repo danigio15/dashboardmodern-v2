@@ -28,6 +28,12 @@ export const BLOCCHI_DELLA_HOME = Object.freeze([
    * piu', ed e' proprio per questo che sa farlo. */
   "widget",
   "azioni",
+  /* Le stanze (#493): «una fila di stanze in plancia, e poter scegliere quali».
+   * Nasce in coda perche' arriva dopo, e chi aveva gia' un ordine salvato non
+   * se lo vede scombinare: `ordineDeiBlocchi` mette i nomi nuovi al loro posto
+   * di serie, non per primi. Il blocco compare solo quando una stanza e' stata
+   * scelta — senza, di ordine non c'e' niente da mettere. */
+  "stanze",
   "dispositivi",
 ]);
 

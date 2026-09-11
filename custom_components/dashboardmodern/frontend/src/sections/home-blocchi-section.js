@@ -20,6 +20,18 @@ import { spostaNellElenco } from "../core/ordine-a-mano.js";
 import { BLOCCHI_DELLA_HOME, ordineDeiBlocchi } from "../core/ordine-dei-blocchi.js";
 import { CHIAVE_PASTIGLIE, lePastiglieSiVedono } from "../core/pastiglie-di-stato.js";
 import {
+  CHIAVE_STANZE_IN_PLANCIA,
+  conLaStanza,
+  idDellaStanza,
+  laStanzaSiVede,
+  STANZE_MASSIME,
+} from "../core/stanze-in-plancia.js";
+import {
+  BLOCCO_ID as BLOCCO_STANZE,
+  ridisegnaStanzeInPlancia,
+  stanzeScelte,
+} from "./stanze-in-plancia-section.js";
+import {
   attributoSeCambia,
   clean,
   doc,
@@ -53,6 +65,9 @@ function pezziDelBlocco(nome, pagina) {
   const dentro = (nodo) => (nodo && nodo.parentElement === pagina ? nodo : null);
   if (nome === "persone") return [dentro(doc.getElementById("dm-people"))].filter(Boolean);
   if (nome === "widget") return [dentro(doc.getElementById("dm-widgets"))].filter(Boolean);
+  /* Le stanze (#493) sono un nodo solo: il titolo se lo porta dentro, come le
+   * persone e i widget. */
+  if (nome === "stanze") return [dentro(doc.getElementById(BLOCCO_STANZE))].filter(Boolean);
   if (nome === "dispositivi")
     return [dentro(doc.getElementById("dev-title")), dentro(doc.getElementById("dev-grid"))].filter(
       Boolean,
@@ -148,6 +163,7 @@ const NOMI_DEI_BLOCCHI = () => ({
   persone: ["👥", t("Persone", "People")],
   widget: ["🧩", t("Widget", "Widgets")],
   azioni: ["⚡", t("Azioni rapide", "Quick actions")],
+  stanze: ["🛋️", t("Stanze", "Rooms")],
   dispositivi: ["📟", t("Dispositivi", "Devices")],
 });
 
@@ -181,7 +197,8 @@ function pannelloMarkup() {
       ),
     )}</div>
     <div class="dm-blocco-list">${righe}</div>
-    ${pastiglieMarkup()}`;
+    ${pastiglieMarkup()}
+    ${stanzeMarkup()}`;
 }
 
 /* L'interruttore delle pastiglie di stato (#491).
@@ -206,6 +223,54 @@ function pastiglieMarkup() {
       accese ? " checked" : ""
     }><span></span></label>
   </div>`;
+}
+
+/* Quali stanze si vedono in plancia (#493).
+ *
+ * «It should also be possible to choose which rooms or areas appear on the home
+ * screen.» Una casa di dodici stanze non le vuole tutte in plancia: ne vuole
+ * tre — il giardino, il garage, la camera dei bambini. Senza nessuna spuntata
+ * il blocco non c'e', ed e' giusto cosi': una plancia non deve riempirsi da
+ * sola di roba che nessuno ha chiesto.
+ */
+function stanzeDiCasa() {
+  try {
+    const lette = root.getStanze?.();
+    if (Array.isArray(lette)) return lette;
+  } catch (_errore) {}
+  const salvate = readJson("cd_stanze", []);
+  return Array.isArray(salvate) ? salvate : [];
+}
+
+function stanzeMarkup() {
+  const stanze = stanzeDiCasa();
+  if (!stanze.length) return "";
+  const scelte = stanzeScelte();
+  const righe = stanze
+    .map((stanza) => {
+      const id = idDellaStanza(stanza);
+      if (!id) return "";
+      const accesa = laStanzaSiVede(scelte, stanza);
+      return `<label class="ed-row dm-blocco-stanza">
+        <span class="dm-blocco-icona" aria-hidden="true">${esc(clean(stanza.icon) || "\u{1F6CB}\uFE0F")}</span>
+        <span class="ed-row-main"><strong class="ed-row-new">${esc(clean(stanza.name) || id)}</strong></span>
+        <span class="dm-blocco-switch"><input type="checkbox" data-dm-stanza-plancia-scelta="${esc(id)}"${
+          accesa ? " checked" : ""
+        }><span></span></span>
+      </label>`;
+    })
+    .join("");
+  /* Il tetto si scrive a parole, non interpolato: una chiave di traduzione con
+   * dentro un pezzo di codice non e' una frase che si possa tradurre. Che le
+   * parole dicano il numero vero lo tiene una prova. */
+  return `<div class="ed-sec-title dm-blocco-sep">\u{1F6CB}\uFE0F ${esc(t("Stanze in plancia", "Rooms on Home"))}</div>
+    <div class="ed-intro">${esc(
+      t(
+        "Quali stanze si vedono in Home, con la temperatura e quante cose sono accese: un tocco porta dentro la stanza. Al massimo otto; nessuna spuntata vuol dire nessun blocco.",
+        "Which rooms show up on Home, with the temperature and how many things are on: one tap takes you into the room. At most eight; none ticked means no block at all.",
+      ),
+    )}</div>
+    <div class="dm-blocco-list">${righe}</div>`;
 }
 
 /** Scrive addosso al documento se le pastiglie si vedono. */
@@ -249,6 +314,25 @@ function onClickFreccia(event) {
     vestiLePastiglie();
     return;
   }
+  /* La spunta di una stanza (#493): si scrive l'elenco, il blocco si rifa'
+   * subito e si rimette in fila insieme agli altri — la prima stanza spuntata
+   * lo fa nascere, l'ultima tolta lo fa sparire. */
+  const stanza = event.target?.closest?.(
+    "[data-dm-home-blocchi] [data-dm-stanza-plancia-scelta]",
+  );
+  if (stanza) {
+    const id = clean(stanza.getAttribute("data-dm-stanza-plancia-scelta"));
+    const prossime = conLaStanza(stanzeScelte(), { id }, stanza.checked);
+    writeJsonIfChanged(CHIAVE_STANZE_IN_PLANCIA, prossime);
+    /* Il tetto: se la spunta non e' entrata, la casella torna com'era invece
+     * di restare accesa su una scelta che non c'e'. */
+    if (stanza.checked && !prossime.includes(id)) stanza.checked = false;
+    ridisegnaStanzeInPlancia();
+    try {
+      applicaLOrdineDeiBlocchi();
+    } catch (_error) {}
+    return;
+  }
   const freccia = event.target?.closest?.(
     "[data-dm-home-blocchi] [data-blocco-su],[data-dm-home-blocchi] [data-blocco-giu]",
   );
@@ -273,7 +357,10 @@ function stile() {
     #ed-body .dm-blocco-row{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important}
     #ed-body .dm-blocco-icona{font-size:17px;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px}
     #ed-body .dm-blocco-move[disabled]{opacity:.3;pointer-events:none}
-    #ed-body .dm-blocco-pastiglie{display:flex!important;align-items:center;gap:12px;padding:10px 12px!important}
+    #ed-body .dm-blocco-pastiglie,
+    #ed-body .dm-blocco-stanza{display:flex!important;align-items:center;gap:12px;padding:10px 12px!important}
+    #ed-body .dm-blocco-stanza{cursor:pointer}
+    #ed-body .dm-blocco-sep{margin-top:4px}
     #ed-body .dm-blocco-pastiglie .ed-row-old{display:block;margin-top:2px;line-height:1.35}
     #ed-body .dm-blocco-switch{flex:0 0 auto;display:inline-flex;cursor:pointer}
     #ed-body .dm-blocco-switch input{position:absolute;opacity:0;width:0;height:0}
