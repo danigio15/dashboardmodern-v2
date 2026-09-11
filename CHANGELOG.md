@@ -9,6 +9,27 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Rifiuti: nel widget il segno del materiale accanto al nome** (#384)
+
+  «Nel widget visualizzare l'immagine del rifiuto oltre alla descrizione, sarebbe
+  una chicca.»
+
+  Un ritiro si riconosce dal segno prima che dalla parola — il barattolo, la
+  bottiglia, la mela — e la tessera il segno ce l'aveva già: ogni riga lo porta
+  nella sua casella. Nella didascalia però restavano i soli nomi, e quella è la
+  riga che si legge passando: «Da mettere fuori stasera · Carta e cartone ·
+  Organico» diventa **«Da mettere fuori stasera · 📦 Carta e cartone · 🍎
+  Organico»**.
+
+  Il segno non se lo inventa: è lo stesso che la riga mostra già, perché due segni
+  per la stessa cosa sono il modo in cui uno dei due, un giorno, dice un materiale
+  diverso dall'altro. Vale per tutte e due le strade — il turno scritto a mano sul
+  frigo (#366) e l'entità calendario — e quando il messaggio del calendario **non**
+  nomina nessuna frazione resta il segno del calendario: «♻️ Altro» sarebbe una
+  risposta, e lì una risposta non c'è.
+
+  La frase parlata della tessera resta senza segni: si legge, non si guarda.
+
 - **L'interruttore del modo chiosco, in ⚙️ Impostazioni** (#480)
 
   «Da smartphone non me la propone, su tablet e pc ho la barra laterale, è

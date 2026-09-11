@@ -4558,6 +4558,31 @@ function allerteModel(states) {
  * Il numero grande e' la parola del quando — «Domani» — e la didascalia dice
  * cosa: e' la risposta alla domanda della sera. Si accende il giorno prima e
  * il giorno stesso, che sono i due momenti in cui serve vederla. */
+/* Il segno di un ritiro (#384).
+ *
+ * «Nel widget visualizzare l'immagine del rifiuto oltre alla descrizione,
+ *  sarebbe una chicca.»
+ *
+ * Un ritiro si riconosce dal segno prima che dalla parola — il barattolo, la
+ * bottiglia, la mela — ed e' lo stesso segno che la riga porta gia' nella sua
+ * casella: qui non se ne inventa un altro, si prende quello.
+ *
+ * Il calendario e' il caso a parte. Quando dal messaggio si capisce il
+ * materiale porta il segno di quel materiale; quando non si capisce, il
+ * materiale e' «altro» e il segno resta quello del calendario — «♻️ Altro»
+ * sarebbe una risposta, e li' una risposta non c'e'. */
+function segnoDelRitiro(riga, dalCalendario = false) {
+  if (dalCalendario && (!clean(riga?.materiale) || riga.materiale === "altro")) return "📅";
+  return clean(riga?.icona) || "♻️";
+}
+
+/** I nomi dei prossimi ritiri, ognuno col suo segno davanti. */
+function nomiColSegno(prossimi) {
+  return prossimi
+    .map((riga) => `${riga.glyph ? `${riga.glyph} ` : ""}${riga.name}`)
+    .join(" · ");
+}
+
 function rifiutiModel(states) {
   const grezza = readJson(CHIAVE_RIFIUTI, {});
   /* L'interruttore «Nel widget» toglie le entita' una per una: quello che ha
@@ -4583,10 +4608,13 @@ function rifiutiModel(states) {
   const lettura = letturaRifiuti(config, states, root.resolveEntity || ((value) => value));
   const dalCalendario =
     lettura.calendario && lettura.calendario.giorni !== null && lettura.calendario.giorni >= 0
-      ? [{ ...lettura.calendario, nome: lettura.calendario.nome }]
+      ? [{ ...lettura.calendario, nome: lettura.calendario.nome, dalCalendario: true }]
       : [];
   const prossimi = (lettura.prossimi.length ? lettura.prossimi : dalCalendario).map((riga) => ({
     name: nomeDellaRiga(riga) || t("Calendario dei ritiri", "Collection calendar"),
+    /* Il segno del materiale viaggia a parte dal nome: la didascalia lo mostra,
+     * la frase parlata no — «Domani ritirano 🧴 Plastica» si legge male. */
+    glyph: segnoDelRitiro(riga, Boolean(riga.dalCalendario)),
     quando: riga.quando,
     giorni: riga.giorni,
   }));
@@ -4600,8 +4628,8 @@ function rifiutiModel(states) {
     giorni: riga.giorni,
   });
   const rows = [
-    ...lettura.righe.map((riga) => rigaDi(riga, riga.icona)),
-    ...(lettura.calendario ? [rigaDi(lettura.calendario, "📅")] : []),
+    ...lettura.righe.map((riga) => rigaDi(riga, segnoDelRitiro(riga))),
+    ...(lettura.calendario ? [rigaDi(lettura.calendario, segnoDelRitiro(lettura.calendario, true))] : []),
   ];
   const primaRiga = lettura.prossimi[0] || dalCalendario[0] || null;
   return {
@@ -4615,10 +4643,8 @@ function rifiutiModel(states) {
      * adesso, mentre «Domani» lascia a chi legge il passo che conta. */
     caption: primo
       ? primo.quando === "domani"
-        ? `${t("Da mettere fuori stasera", "Put it out tonight")} · ${prossimi
-            .map((riga) => riga.name)
-            .join(" · ")}`
-        : prossimi.map((riga) => riga.name).join(" · ")
+        ? `${t("Da mettere fuori stasera", "Put it out tonight")} · ${nomiColSegno(prossimi)}`
+        : nomiColSegno(prossimi)
       : t("Nessuna data in vista", "No date in sight"),
     ring: null,
     attiva: Boolean(primo && (primo.quando === "oggi" || primo.quando === "domani")),
