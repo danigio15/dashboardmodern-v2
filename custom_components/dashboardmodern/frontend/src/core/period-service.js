@@ -546,6 +546,46 @@ export function inKilowattora(valore, unita) {
 }
 
 /* L'unita' dichiarata da un'entita', gia' pulita e in minuscolo. */
+/* L'entita' da cui un'entita' e' fatta, quando lo dichiara lei stessa.
+ *
+ * «Ma non e' assolutamente vero, nel database i dati ci sono.»
+ *
+ * E infatti ci sono. Non sotto l'entita' che la plancia stava leggendo.
+ *
+ * Un aiutante di Home Assistant — un filtro che toglie i picchi, una derivata,
+ * un'integrazione, un contatore di servizio — e' un'entita' NUOVA costruita
+ * sopra un'altra. Legge lo stesso apparecchio e in questo istante segna lo
+ * stesso numero, ma le sue statistiche a lungo termine cominciano il giorno in
+ * cui e' stato creato l'aiutante, non il giorno in cui e' stato acceso
+ * l'apparecchio. Un aiutante creato a giugno sopra una colonnina installata a
+ * marzo ha, nel Recorder, tre mesi in meno — e quei tre mesi nel database ci
+ * sono eccome, scritti sotto il nome dell'entita' di partenza.
+ *
+ * Il legame non si indovina: lo pubblica l'aiutante stesso, nell'attributo
+ * `entity_id` dei suoi attributi. Su quella segnalazione si legge chiaro:
+ *
+ *     sensor.wallbox_lifetime_filtered
+ *       state_class: total_increasing
+ *       entity_id: sensor.1p7k_101573_lifetime_energy
+ *
+ * Si torna un nome solo, e solo quando ce n'e' uno solo: un gruppo o una somma
+ * di piu' entita' non ha una sorgente, ne ha tante, e prenderne una sarebbe
+ * leggere l'apparecchio sbagliato.
+ */
+export function sorgenteDichiarata(entity, states = {}) {
+  const id = String(entity ?? "").trim();
+  if (!id) return "";
+  const dichiarata = states?.[id]?.attributes?.entity_id;
+  const nome =
+    typeof dichiarata === "string"
+      ? dichiarata.trim()
+      : Array.isArray(dichiarata) && dichiarata.length === 1
+        ? String(dichiarata[0] ?? "").trim()
+        : "";
+  if (!nome || !nome.includes(".") || nome === id) return "";
+  return nome;
+}
+
 export function unitaDellEntita(entity, states = {}) {
   return String(states?.[entity]?.attributes?.unit_of_measurement || "")
     .trim()
@@ -662,7 +702,11 @@ export function sourcePlans(
             : "legacy-cumulative",
       },
     ];
-  }).map((plan) => ({ ...plan, unita: unitaDellEntita(plan.entity, states) }));
+  }).map((plan) => ({
+    ...plan,
+    unita: unitaDellEntita(plan.entity, states),
+    sorgente: sorgenteDichiarata(plan.entity, states),
+  }));
 }
 
 /* I piani che si leggono dallo stato, e quelli che li deve ricavare il
@@ -1491,28 +1535,75 @@ export class HomeAssistantBroker {
             plans.filter((plan) => plan.entity).map((plan) => [plan.entity, plan.unita || ""]),
           );
           const righe = await this.statistics(ids, baseline.start, range.end, range.period, unita);
+          /* Chi ha le statistiche piu' corte del proprio apparecchio si fa
+           * prestare la testa che manca dall'entita' da cui e' fatto.
+           *
+           * «Nel database i dati ci sono»: si', sotto l'altro nome. Un aiutante
+           * creato dopo l'apparecchio ha, nel Recorder, solo la sua vita di
+           * aiutante — ma dichiara da chi e' fatto, e quell'altro le righe
+           * mancanti ce le ha. Si chiede solo a chi serve, e solo sull'arco che
+           * comincia il periodo: sugli archi che continuano il pezzo davanti
+           * se l'e' gia' guardato l'arco prima. */
+          const conLaTestaCorta = plans.filter((plan) => {
+            const sorgente = String(plan?.sorgente ?? "").trim();
+            if (!sorgente || sorgente === plan.entity) return false;
+            const continuazione =
+              (primoArco.get(plan.key) ?? range.start.getTime()) < range.start.getTime();
+            if (continuazione) return false;
+            return energiaPrimaDelleStatistiche(righe[plan.entity], range) > 0;
+          });
+          const dalleSorgenti = conLaTestaCorta.length
+            ? await this.statistics(
+                [...new Set(conLaTestaCorta.map((plan) => plan.sorgente))],
+                baseline.start,
+                range.end,
+                range.period,
+                Object.fromEntries(
+                  conLaTestaCorta.map((plan) => [plan.sorgente, plan.unita || ""]),
+                ),
+              )
+            : {};
+          const piuLunga = new Map(
+            conLaTestaCorta.flatMap((plan) => {
+              const sue = righe[plan.entity] || [];
+              const della = dalleSorgenti[plan.sorgente] || [];
+              /* Si passa alla sorgente solo se davvero arriva piu' indietro:
+               * un'entita' che non ha quelle righe non e' un rimedio, e
+               * scambiarla per tale vorrebbe dire leggere un altro apparecchio
+               * per niente. */
+              const mancaAncora = energiaPrimaDelleStatistiche(della, range);
+              const primaSua = sue.map(rowTimestamp).filter(Boolean).sort()[0] ?? Infinity;
+              const primaDella = della.map(rowTimestamp).filter(Boolean).sort()[0] ?? Infinity;
+              if (!della.length || primaDella >= primaSua) return [];
+              return [[plan.key, { righe: della, mancante: mancaAncora }]];
+            }),
+          );
           for (const plan of plans) {
             const continuazione =
               (primoArco.get(plan.key) ?? range.start.getTime()) < range.start.getTime();
-            const crescita = crescitaNellArco(righe[plan.entity], range, { continuazione });
+            const prestata = piuLunga.get(plan.key);
+            const mie = prestata ? prestata.righe : righe[plan.entity];
+            const crescita = crescitaNellArco(mie, range, { continuazione });
             /* Quanto il contatore aveva gia' fatto prima delle sue statistiche:
              * e' il pezzo che al totale manca per forza, e si dice invece di
              * lasciare un numero corto senza spiegazione. Solo sul primo arco:
              * su quello che continua, il pezzo davanti se l'e' gia' guardato
              * l'arco precedente. */
             if (!continuazione) {
-              const mancante = energiaPrimaDelleStatistiche(righe[plan.entity], range);
+              const mancante = prestata
+                ? prestata.mancante
+                : energiaPrimaDelleStatistiche(righe[plan.entity], range);
               if (mancante > 0) ammanchi.set(plan.key, mancante);
             }
             if (crescita == null) continue;
             const arrotondata = Math.round(crescita * 1000) / 1000;
             valori.set(plan.key, (valori.get(plan.key) ?? 0) + arrotondata);
             if (conIGiorni) {
-              const dentro = (righe[plan.entity] || []).filter((riga) => {
+              const dentro = (mie || []).filter((riga) => {
                 const quando = rowTimestamp(riga);
                 return quando >= range.start.getTime() && quando < range.end.getTime();
               });
-              const prima = (righe[plan.entity] || []).filter(
+              const prima = (mie || []).filter(
                 (riga) => rowTimestamp(riga) < range.start.getTime(),
               );
               giorni.set(plan.key, recorderBucketConsumptions(dentro, prima.at(-1) || null));

@@ -9,6 +9,36 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Wallbox: l'anno leggeva l'aiutante invece del sensore da cui è fatto**
+
+  «Ma non è assolutamente vero, nel database i dati ci sono.» E infatti ci sono.
+  Non sotto l'entità che la plancia stava leggendo.
+
+  I due sensori della stessa colonnina segnano lo stesso numero — 1440,762 —
+  ma uno dei due è un **aiutante** costruito sopra l'altro, e lo dichiara:
+
+      sensor.wallbox_lifetime_filtered
+        entity_id: sensor.1p7k_101573_lifetime_energy
+
+  Le statistiche a lungo termine di un aiutante cominciano il giorno in cui è
+  stato creato l'aiutante, non il giorno in cui è stata installata la colonnina.
+  Un aiutante creato a giugno sopra una colonnina di marzo ha tre mesi in meno
+  nel Recorder — tre mesi che nel database ci sono eccome, scritti sotto il nome
+  dell'entità di partenza. Da lì i 546 kWh invece di 1440,76.
+
+  Adesso la plancia quel legame lo segue. Quando le statistiche dell'entità
+  configurata non arrivano fino all'inizio del periodo e quell'entità dichiara
+  da chi è fatta, la testa che manca la chiede alla sorgente. Si fa solo a chi
+  serve, solo sul primo arco del periodo, e solo se la sorgente arriva davvero
+  più indietro: un'entità che non ha quelle righe non è un rimedio.
+
+- **Wallbox: l'avviso dei kWh non contati finiva fuori schermo**
+
+  Era appeso in fondo al pannello del dispositivo, cioè sotto il grafico. Chi
+  apriva la card non lo vedeva: un avviso che bisogna scorrere per trovare non è
+  un avviso. Adesso sta sotto «Totale anno», attaccato al numero di cui parla —
+  e, quando la sorgente riempie il buco, non serve più e non compare.
+
 - **Plancia predefinita: la dashboard rotta si aggiusta aprendo la plancia, senza riavviare**
 
   La 1.4.19 ha smesso di scrivere il filtro che svuotava quella dashboard. Ma
