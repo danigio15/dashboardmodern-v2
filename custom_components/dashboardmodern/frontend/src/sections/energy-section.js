@@ -585,12 +585,25 @@ function mancantiDi(kind, record) {
  * sopra ai numeri cosa manca e chi lo riguarda, e quello che non e' arrivato
  * non si ridomanda subito: un contatore senza statistiche non ne mette su
  * perche' glielo si richiede quattro volte al secondo. */
-export async function loadAtomicEnergyBundle(period = selectedPeriod(), alPasso = () => {}) {
+export async function loadAtomicEnergyBundle(
+  period = selectedPeriod(),
+  alPasso = () => {},
+  /* L'istante da cui si tagliano gli archi.
+   *
+   * Era `new Date()` scritto qui dentro, e da fuori non c'era modo di dirgli
+   * che ora fosse. Gli archi dipendono dall'ora — il giorno in corso si chiede
+   * in due pezzi, le ore chiuse e l'ora aperta, e nella PRIMA ora del giorno le
+   * ore chiuse non esistono ancora — quindi una prova sugli archi diceva cose
+   * diverse a seconda di quando girava, e a mezzanotte diventava rossa da sola.
+   *
+   * Il valore di serie e' lo stesso di prima: in esercizio non cambia niente. */
+  adesso = new Date(),
+) {
   runtimeMetrics.increment("energyRefreshes");
   const generation = ++state.generation;
   const chiave = chiaveDelCarico(period);
   const monthDate = selectedDate(period);
-  const today = new Date();
+  const today = adesso;
   const states = allStates();
 
   const fonti = {

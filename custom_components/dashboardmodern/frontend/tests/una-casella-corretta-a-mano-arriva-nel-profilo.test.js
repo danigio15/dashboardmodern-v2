@@ -202,17 +202,24 @@ test("«＋ Nuova auto» non versa le caselle in nessuno", () => {
   assert.equal(motivo, "auto-che-nasce");
 });
 
-/* È il caso che ha fatto nascere questa funzione: se non si sa più di chi sono,
- * la correzione NON si butta. Chi ha premuto «Salva sezione» ha fatto un gesto
- * esplicito, e l'unica domanda aperta è su quale auto: quella che ha davanti. */
-test("una chiave che nomina un'auto sparita non fa perdere la correzione", () => {
+/* Il caso che ha fatto nascere questa funzione, e la trappola dentro.
+ *
+ * Ci avevo messo un ripiego sull'auto in uso — «chi ha premuto Salva ha fatto
+ * un gesto esplicito, l'unica domanda è su quale auto» — e il ripiego era un
+ * modo per rifare proprio il difetto che questa regola impedisce: cancellare
+ * la vettura aperta con la matita NON azzera la chiave, quindi il salvataggio
+ * dopo avrebbe versato le caselle della cancellata dentro un'altra macchina.
+ *
+ * Sono caselle che descrivono un'auto che non esiste. La risposta è nessuno —
+ * e detta, non taciuta. */
+test("una chiave che nomina un'auto sparita non scrive su nessun'altra", () => {
   const { auto, motivo } = laVetturaDelleCaselle({
     elenco: [ZOE, TESLA],
     chiave: "auto-cancellata",
     inUso: TESLA,
   });
-  assert.equal(auto, TESLA, "si ripiega sull'auto in uso invece di rifiutare in silenzio");
-  assert.equal(motivo, "chiave-sparita", "e lo dice, invece di tacere");
+  assert.equal(auto, null, "l'auto in uso non si prende le caselle di una cancellata");
+  assert.equal(motivo, "chiave-sparita", "e il rifiuto dice perché, invece di tacere");
 });
 
 test("un nome già in elenco sceglie l'auto che lo porta", () => {

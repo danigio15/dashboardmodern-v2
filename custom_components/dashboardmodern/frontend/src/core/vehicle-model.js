@@ -469,12 +469,16 @@ export function stessoModello(a, b) {
  *
  *  - `chiave` vuota e' il gesto «＋ Nuova auto»: i campi sono di una vettura
  *    che sta nascendo e non sono di nessuno finche' non la si salva.
- *  - `chiave` piena e' la matita: quelle caselle sono di QUELL'auto. Se pero'
- *    l'auto che la chiave nomina non c'e' piu' — cancellata, o un elenco
- *    riletto che le ha dato un'altra identita' — la correzione non si butta:
- *    chi ha premuto «Salva sezione» ha fatto un gesto esplicito, e l'unica
- *    domanda aperta e' su quale auto. La risposta e' quella in uso, che e'
- *    l'auto che ha davanti.
+ *  - `chiave` piena e' la matita: quelle caselle sono di QUELL'auto, e di
+ *    nessun'altra. Se l'auto che la chiave nomina non c'e' piu' — cancellata,
+ *    o un elenco riletto che le ha dato un'altra identita' — non si ripiega
+ *    sull'auto in uso. Ci avevo provato, ed e' un modo per rifare il difetto
+ *    che questa regola esiste per impedire: cancellare la vettura aperta con
+ *    la matita non azzera la chiave, quindi il «Salva sezione» dopo avrebbe
+ *    versato le caselle di quella cancellata dentro un'altra macchina. Sono
+ *    caselle che descrivono un'auto che non esiste, e la risposta giusta e'
+ *    nessuno. La sessione si rimette a posto da sola al primo ridisegno, che
+ *    la chiave la riscrive su una vettura vera.
  *  - Senza chiave comanda il NOME scritto: un nome gia' in elenco sceglie
  *    l'auto che lo porta; un nome nuovo e' una vettura che nasce, e le sue
  *    caselle aspettano. Nessun nome vuol dire l'auto in uso.
@@ -497,11 +501,9 @@ export function laVetturaDelleCaselle({
   if (cercata) {
     const trovata = auto.find((car) => clean(car?.[VEHICLE_KEY_FIELD]) === cercata) || null;
     if (trovata) return { auto: trovata, motivo: "" };
-    /* La chiave nomina un'auto che non c'e' piu'. Prima si rifiutava, e la
-     * correzione spariva senza un rumore. */
-    return inUso
-      ? { auto: inUso, motivo: "chiave-sparita" }
-      : { auto: null, motivo: "chiave-sparita-e-nessuna-in-uso" };
+    /* La chiave nomina un'auto che non c'e' piu': non si scrive su nessuna, e
+     * si dice perche'. Il rumore era quello che mancava, non il ripiego. */
+    return { auto: null, motivo: "chiave-sparita" };
   }
   const nome = clean(nomeScritto);
   const omonima = nome ? auto.find((car) => clean(car?.name) === nome) || null : null;
