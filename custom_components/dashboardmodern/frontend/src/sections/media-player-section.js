@@ -560,6 +560,10 @@ export function chiudiIlLettore() {
     host.innerHTML = "";
     delete host.dataset.dmMpFirma;
   }
+  /* E chiudendo si rifa' il conto: se la pagina Musica non e' davanti, il
+   * battito non ha piu' niente da far avanzare e si ferma subito invece di
+   * arrivare al giro dopo. */
+  batti(letture());
   return true;
 }
 
@@ -582,6 +586,13 @@ function disegnaIlLettoreAperto() {
   }
   if (host.hidden) host.hidden = false;
   posaLeCopertine(host, [riga]);
+  /* Il tempo che passa non lo manda nessuno — sta scritto sopra `batti`, e
+   * vale qui quanto nella pagina Musica. A rimettere in moto il battito fin
+   * qui era il solo disegno di quella pagina: chi apre la finestra dai tre
+   * puntini di un'azione rapida quella pagina non la sta guardando, e i
+   * secondi e la barra restavano fermi su un brano che invece andava avanti,
+   * finche' non passava di li' un evento di stato per tutt'altra ragione. */
+  batti(letture());
   return true;
 }
 

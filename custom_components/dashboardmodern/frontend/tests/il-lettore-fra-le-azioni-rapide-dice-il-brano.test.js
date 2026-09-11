@@ -82,3 +82,30 @@ test("la firma di una card sta in un posto solo", () => {
   assert.equal((sorgente.match(/function firmaDelLettore\(/g) || []).length, 1);
   assert.equal((sorgente.match(/firmaDelLettore\b/g) || []).length, 3);
 });
+
+test("aprendo la finestra il tempo riparte, e chiudendola si ferma", () => {
+  /* Il tempo che passa non lo manda nessuno: Home Assistant dice a che secondo
+   * era il brano quando l'ha misurato, e poi tace finche' non cambia
+   * qualcos'altro. Chi fa avanzare i secondi e' un battito, e a rimetterlo in
+   * moto era il solo disegno della pagina Musica.
+   *
+   * Ma la finestra si apre dai tre puntini di un'azione rapida, con la pagina
+   * Musica che non e' davanti: senza un battito qui, i secondi e la barra
+   * restavano fermi su un brano che invece andava avanti — finche' non passava
+   * di li' un evento di stato per tutt'altra ragione. E chiudendola il conto si
+   * rifa': senza niente da far avanzare, il battito si ferma subito. */
+  const sorgente = leggi("sections/media-player-section.js");
+  const finestra = sorgente.slice(
+    sorgente.indexOf("function disegnaIlLettoreAperto"),
+    sorgente.indexOf("/* ── i comandi"),
+  );
+  assert.match(finestra, /batti\(letture\(\)\);/);
+  const chiusura = sorgente.slice(
+    sorgente.indexOf("export function chiudiIlLettore"),
+    sorgente.indexOf("function disegnaIlLettoreAperto"),
+  );
+  assert.match(chiusura, /batti\(letture\(\)\);/);
+  /* Il battito resta uno solo: due orologi sullo stesso brano lo farebbero
+   * avanzare a due secondi per secondo. */
+  assert.match(sorgente, /if \(state\.battito\) return;/);
+});
