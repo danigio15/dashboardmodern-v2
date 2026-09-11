@@ -215,8 +215,13 @@ const LOCALE_IDENTITIES = {
     "Pickup",
     "Script",
     "Total",
+    /* «Animal» in spagnolo e in francese si scrive come in inglese: e' la
+     * stessa parola latina arrivata in tre lingue senza cambiare. Inventarne
+     * un'altra per non farla somigliare sarebbe tradurre male apposta. */
+    "Animal",
   ]),
   fr: new Set([
+    "Animal",
     /* La modulation d'une chaudière se dit comme en anglais. */
     "Modulation (%)",
     /* Le train, sa destination: les mêmes mots des deux côtés de la Manche. */
@@ -337,6 +342,8 @@ const LOCALE_IDENTITIES = {
     /* Le coordinate si scrivono cosi' anche in portoghese. */
     "Latitude",
     "Longitude",
+    /* E «Animal», come in spagnolo e in francese. */
+    "Animal",
     "Casual",
     "Natural",
     "Polo",

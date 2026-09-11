@@ -364,7 +364,11 @@ async def async_setup_entry(
     integrazione = await async_get_integration(hass, DOMAIN)
     coordinator = DashboardModernReleaseCoordinator(hass)
     async_add_entities(
-        [DashboardModernUpdate(coordinator, normalize_version(integrazione.version))]
+        [
+            DashboardModernUpdate(
+                coordinator, normalize_version(integrazione.version), entry
+            )
+        ]
     )
     # La prima occhiata a GitHub si fa da parte, non qui.
     #
@@ -399,9 +403,12 @@ class DashboardModernUpdate(
     )
 
     def __init__(
-        self, coordinator: DashboardModernReleaseCoordinator, installed: str
+        self,
+        coordinator: DashboardModernReleaseCoordinator,
+        installed: str,
+        entry: ConfigEntry,
     ) -> None:
-        """Bind the entity to the integration, not to a single plancia."""
+        """Hang the entity on the device the plancia already has."""
         super().__init__(coordinator)
         self._installed = installed
         self._riavvio_richiesto = False
@@ -410,9 +417,27 @@ class DashboardModernUpdate(
         # `_attr_name = None` dice «usa il nome del dispositivo» — e la pagina
         # Aggiornamenti ripiegava sull'entity_id: il dialogo titolava
         # «update.dashboardmodern_...» e la riga dell'elenco restava grigia.
+        # Il dispositivo e' QUELLO DELLA VOCE, non un secondo dispositivo suo.
+        #
+        # «In fase di inserimento dell'integrazione ne crea gia' 2», con la
+        # finestra «Nomina e assegna» che ne mostra due: «Casa 3.0» e
+        # «DashboardModern v2», un'entita' per uno. Erano questi due:
+        # l'interruttore della presenza simulata si attacca a
+        # `(DOMAIN, entry_id)`, questa entita' si attaccava a una stringa
+        # fissa — e per Home Assistant un identificativo diverso e' un
+        # dispositivo diverso. Stessa integrazione, stessa voce, due schede.
+        #
+        # La stringa fissa non era un capriccio: serviva un dispositivo, se
+        # non altro perche' senza la pagina Aggiornamenti ripiegava
+        # sull'`entity_id` e titolava «update.dashboardmodern_...». Ma quel
+        # dispositivo c'era gia', ed e' quello della plancia.
+        #
+        # Il nome della pagina Aggiornamenti non ci rimette: lo dice
+        # `_attr_title`, che e' scritto qui sopra e resta «DashboardModern v2»
+        # comunque si chiami la plancia.
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, "dashboardmodern")},
-            name=NAME,
+            identifiers={(DOMAIN, entry.entry_id)},
+            name=entry.title or NAME,
             manufacturer="DashboardModern",
             model=NAME,
             sw_version=installed,

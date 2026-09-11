@@ -226,3 +226,47 @@ export function tesseraDellaScheda(scheda) {
 export function tesseraDelBlocco(posto) {
   return TESSERE_PER_BLOCCO[Number(posto)] || "";
 }
+
+/**
+ * La tessera di un gruppo del Quadro Avvisi.
+ *
+ * La scheda degli Avvisi e' un elenco solo, e le sue fisarmoniche non sono
+ * sezioni: sono le liste sorvegliate — batterie, allagamenti, fumo, luci,
+ * clima, riscaldamento — che stanno tutte sulla stessa pagina. La linguetta
+ * quindi non dice la tessera, e il posto in fila nemmeno, perche' quei posti
+ * li contano le linguette «sezN».
+ *
+ * Il gruppo invece la dice: tre di quelle liste hanno una tessera in Home che
+ * legge proprio loro, e sono queste.
+ */
+export const TESSERE_PER_GRUPPO = Object.freeze({
+  batt: "batterie",
+  allag: "allagamenti",
+  fumo: "fumo",
+});
+
+/**
+ * I gruppi sorvegliati che in Home non hanno nessuna tessera.
+ *
+ * Il Quadro Avvisi dalla Home e' uscito del tutto, e di quelle liste sono
+ * rimaste tessere solo le tre qui sopra. Le aperture le racconta la tessera
+ * Finestre leggendo i contatti delle coperture, e luci, clima e riscaldamento
+ * hanno le loro sezioni: qui nessuno le legge.
+ *
+ * Serve saperlo perche' un interruttore «nel widget» su una di queste righe
+ * prometterebbe di togliere da una tessera che non c'e' — e, non sapendo di
+ * quale parlare, scriverebbe una scelta valida per TUTTE: un'entita' spenta
+ * fra gli Avvisi spariva anche dal Clima, che e' la stessa entita' vista da
+ * un'altra parte e nessuno l'aveva chiesto (#371).
+ */
+export const GRUPPI_SENZA_TESSERA = Object.freeze(["win", "luci", "clima", "risc"]);
+
+/** La tessera di un gruppo sorvegliato, o «» se quel gruppo non ne ha una. */
+export function tesseraDelGruppo(gruppo) {
+  return TESSERE_PER_GRUPPO[pulito(gruppo)] || "";
+}
+
+/** Se di questo gruppo si sa che in Home non ha nessuna tessera. */
+export function ilGruppoNonHaTessera(gruppo) {
+  return GRUPPI_SENZA_TESSERA.includes(pulito(gruppo));
+}

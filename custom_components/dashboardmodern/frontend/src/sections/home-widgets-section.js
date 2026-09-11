@@ -148,6 +148,7 @@ import {
   rifiutiConfigurati,
 } from "../core/rifiuti-model.js";
 import { nomeDellaRiga, parolaDelQuando } from "./rifiuti-section.js";
+import { disegnoDelBidone } from "../core/disegni-rifiuti.js";
 import { CHIAVE_VMC, entitaDellaVmc, letturaVmc, vmcDisegnabili, vmcParla } from "../core/vmc-model.js";
 import { avvisiAppenaAccesi } from "../core/avvisi-che-si-aprono.js";
 import { comandiMediaMarkup, sottoDelLettore, titoloDelLettore } from "./media-player-section.js";
@@ -167,6 +168,10 @@ import {
 import { azioniDellaPorta } from "../core/security-door-model.js";
 import { humidityEntry } from "../core/room-overview.js";
 import { CHIAVE_VARCHI, contoDeiVarchi, varchiDiCasa } from "../core/varchi-di-casa.js";
+import {
+  CHIAVE_RILEVAMENTI,
+  rilevamentiAccesi,
+} from "../core/rilevamenti-telecamera.js";
 import {
   CHIAVE_VERSO_BATTERIA,
   batteriaGirata,
@@ -233,6 +238,7 @@ import {
 import { loadCameraFrame } from "./live-ui-section.js";
 import { hasConfiguredData } from "../core/dashboard-store.js";
 import {
+  activeLocale,
   allStates,
   clean,
   doc,
@@ -1327,7 +1333,7 @@ function formatWatts(value) {
   return `${formatNumber(value, 0)} W`;
 }
 
-function camerasModel() {
+function camerasModel(states = allStates()) {
   const fuori = widgetExcludedEntities("telecamere");
   let cameras = [];
   try {
@@ -1340,16 +1346,51 @@ function camerasModel() {
     }))
     .filter((row) => row.entity && widgetIncludes(row.entity, fuori));
   if (!rows.length) return null;
+  /* Cosa stanno vedendo adesso (#394).
+   *
+   * «Che la Dashboard metta l'avviso con il fotogramma.» La tessera delle
+   * telecamere e' il posto: e' quella che i fotogrammi li carica gia', ed e'
+   * quella che uno guarda per sapere se fuori c'e' qualcuno. Un avviso a parte
+   * sarebbe una seconda tessera che dice di una cosa sola, accesa quasi mai.
+   *
+   * Quando qualcosa si vede, il numero grande smette di contare le telecamere
+   * e dice cosa e' stato visto: «quante telecamere ho» e' una domanda che non
+   * si fa mentre c'e' una persona in giardino. */
+  const visti = rilevamentiAccesi(
+    readJson(CHIAVE_RILEVAMENTI, {}),
+    states,
+    rows,
+    activeLocale(),
+  );
+  const primo = visti[0] || null;
   return {
     key: "telecamere",
-    accent: "#0284c7",
-    icon: "📹",
+    accent: primo ? "#dc2626" : "#0284c7",
+    icon: primo ? primo.segno : "📹",
     label: t("Telecamere", "Cameras"),
-    value: String(rows.length),
-    caption: rows[0].name,
+    value: primo ? primo.parola : String(rows.length),
+    caption: primo ? `${primo.nome} · ${oraDelRilevamento(primo.quando)}` : rows[0].name,
     ring: null,
+    /* Acceso solo quando c'e' davvero qualcosa: una tessera che si accende
+     * sempre non e' piu' un avviso. E' la stessa regola dei Varchi. */
+    alert: Boolean(primo),
+    visti,
     rows,
   };
+}
+
+/* L'ora di un rilevamento, come la si legge passando. Solo l'ora e i minuti:
+ * il giorno lo si sa, ed e' successo adesso o non sarebbe acceso. */
+function oraDelRilevamento(quando) {
+  if (!Number.isFinite(quando)) return "";
+  try {
+    return new Date(quando).toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (_errore) {
+    return "";
+  }
 }
 
 const ENERGY_SLOTS = Object.freeze([
@@ -1411,6 +1452,31 @@ function lettureDellImpianto(states, impianto, primo) {
     states,
     clean(impianto?.battery?.soc) || (primo ? "dm.energy_stato_carica_batteria" : ""),
   );
+  /* La batteria entra qui gia' nella convenzione di casa: positivo = scarica.
+   *
+   * Meta' dei sensori scrive positivo quando la batteria si CARICA, e il verso
+   * lo dichiara chi abita la casa una volta sola (#434). Quel verso lo girava
+   * solo la mappa dei flussi; queste righe portavano il numero grezzo, e ci
+   * leggevano sopra tre cose diverse:
+   *
+   *   · la frase della tessera, che con un sensore girato scriveva «La
+   *     batteria copre 3,12 kW» mentre la mappa, accanto, disegnava la stessa
+   *     batteria che si caricava. Dal campo: «segna che la batteria copre la
+   *     casa a 3.12 kW» con il sole a 3,94 kW, la casa a 727 W e la rete a
+   *     zero — cioe' un bilancio in cui quei 3,12 kW non possono che ENTRARE
+   *     nella batteria;
+   *   · il soggetto del racconto, che diventa «quando sara' piena» solo sotto
+   *     i -10 W e quindi non ci arrivava mai;
+   *   · la casella del popup, che stampava il numero grezzo.
+   *
+   * Girarlo in tre posti sarebbe stato lo stesso errore tre volte. Si gira
+   * qui, dove la riga nasce, e da qui in poi c'e' una convenzione sola. */
+  const battuta = readings.find((row) => row.group === "battery");
+  if (battuta)
+    battuta.watts = potenzaDellaBatteria(
+      battuta.watts,
+      batteriaGirata(readJson(CHIAVE_VERSO_BATTERIA, {})),
+    );
   const rows = readings.filter((row) => row.watts != null);
   if (soc != null) {
     const batteria = rows.find((row) => row.group === "battery");
@@ -1452,13 +1518,10 @@ export function lettureDiCasa(states = allStates()) {
   return {
     solare: di("solar")?.watts ?? null,
     rete: di("grid")?.watts ?? null,
-    /* La batteria nella convenzione di casa: positivo = scarica. Meta' dei
-     * sensori scrive positivo quando si CARICA, e il verso lo dice la casa una
-     * volta sola — sennò la mappa disegna le frecce all'incontrario (#434). */
-    batteria: potenzaDellaBatteria(
-      di("battery")?.watts ?? null,
-      batteriaGirata(readJson(CHIAVE_VERSO_BATTERIA, {})),
-    ),
+    /* La batteria e' gia' nella convenzione di casa — positivo = scarica —
+     * perche' il verso lo gira `lettureDellImpianto`, dove la riga nasce.
+     * Girarlo di nuovo qui lo rimetterebbe com'era: una doppia negazione. */
+    batteria: di("battery")?.watts ?? null,
     casa: sommaNumeri(letture.map((lettura) => lettura.house)),
     soc: di("battery")?.soc ?? null,
   };
@@ -1799,6 +1862,21 @@ function letturaVettura(states, auto, fuori, indice, visti = new Set()) {
   const misura = (riferimento) => {
     const entity = clean(mappa[riferimento]);
     if (!entity || !widgetIncludes(entity, fuori)) return null;
+    /* Un'entita' che Home Assistant non ha PIU' non e' una casella vuota: e'
+     * una casella che punta a un fantasma (#348).
+     *
+     * «Vedo ancora le 5 entita'.» Quando un'integrazione si toglie e si
+     * rimette, Home Assistant non riusa i nomi: il sensore di carica torna
+     * come `..._2`, `..._3`, e il profilo salvato quella volta resta a
+     * indicare quello di prima, che non esiste piu'. Qui si rispondeva lo
+     * stesso — un valore vuoto, ma una casella compilata — e quel profilo
+     * continuava a contare come una vettura: cinque auto, cinque righe della
+     * ricarica, tutte sullo stesso sensore vivo.
+     *
+     * Attenzione a cosa si sta dicendo: un'auto che dorme c'e' e risponde
+     * «unavailable», e quella deve restare. Qui si guarda se l'entita' esiste
+     * nel registro degli stati, non cosa dice. */
+    if (!stateOf(states, entity)) return null;
     visti.add(entity);
     return { entity, value: numOf(states, entity), state: clean(states?.[entity]?.state) };
   };
@@ -1845,6 +1923,11 @@ function letturaVettura(states, auto, fuori, indice, visti = new Set()) {
     carburante: Boolean(serbatoio),
     km: autonomia?.value == null ? null : autonomia.value,
     ricarica: ricaricaDellaVettura(states, mappa, stato),
+    /* Da quale entita' viene ognuna delle tre righe: serve a non raccontare
+     * due volte la stessa, quando due vetture leggono lo stesso sensore. */
+    caricaEntita: carica?.entity || "",
+    kmEntita: autonomia?.entity || "",
+    ricaricaEntita: stato?.entity || "",
     kw: sbircia("dm.ev_potenza_ricarica"),
     target: sbircia("dm.ev_target_soc"),
     altre: altreCaselleEv(states, mappa, fuori, visti),
@@ -1936,6 +2019,9 @@ function glifoEv(riferimento) {
 
 /* Tutte le caselle dell'auto che sono state mappate, meno quelle gia' dette e
  * quelle che l'interruttore ha messo fuori. */
+/** La casella che dice se il motore gira: la stessa della pagina Auto. */
+const RIF_MOTORE = "dm.ev_motore";
+
 function altreCaselleEv(states, mappa, fuori, visti) {
   const righe = [];
   for (const riferimento of Object.keys(mappa || {}).sort()) {
@@ -1948,7 +2034,11 @@ function altreCaselleEv(states, mappa, fuori, visti) {
     /* Le caselle della colonnina sono della casa, non di questa vettura: la
      * riga non porta il nome dell'auto, perche' il cavo e' lo stesso qualunque
      * macchina ci sia attaccata. */
-    righe.push(eDellaWallbox(riferimento) ? { ...riga, diCasa: true } : riga);
+    const vestita = eDellaWallbox(riferimento) ? { ...riga, diCasa: true } : riga;
+    /* Il motore porta scritto che e' il motore. Fra venti caselle tutte uguali
+     * era una riga come le altre, e chi racconta la tessera non aveva modo di
+     * sapere se la macchina e' accesa: diceva «ferma» a prescindere (#326). */
+    righe.push(riferimento === RIF_MOTORE ? { ...vestita, ruolo: "motore" } : vestita);
   }
   return righe;
 }
@@ -1984,6 +2074,9 @@ function letturaAttiva(states, fuori) {
     carburante: Boolean(serbatoio),
     km: autonomia?.value == null ? null : autonomia.value,
     ricarica: ricaricaDellaVettura(states, mappa, stato),
+    caricaEntita: carica?.entity || "",
+    kmEntita: autonomia?.entity || "",
+    ricaricaEntita: stato?.entity || "",
     kw: refValue(states, "dm.ev_potenza_ricarica", fuori)?.value ?? null,
     target: refValue(states, "dm.ev_target_soc", fuori)?.value ?? null,
     altre: altreCaselleEv(states, mappa, fuori, visti),
@@ -1993,22 +2086,33 @@ function letturaAttiva(states, fuori) {
 function righeVettura(lettura, conNome) {
   const righe = [];
   const prefisso = conNome && lettura.nome ? `${lettura.nome} · ` : "";
+  /* Ogni riga porta il suo `carburante` (#326).
+   *
+   * Chi racconta la tessera distingue il pieno di benzina dalla carica
+   * guardando le righe: se vanno TUTTE a carburante, la spina non esiste e non
+   * se ne parla. La distinzione era scritta ma nessuno la scriveva sulle
+   * righe, e cosi' di un serbatoio si continuava a dire che era «ferma» —
+   * parola della colonnina, non del motore. */
+  const dellaVettura = (riga) => ({ ...riga, carburante: lettura.carburante === true });
   if (lettura.percentuale != null)
-    righe.push({
+    righe.push(dellaVettura({
       glyph: lettura.carburante ? "⛽" : "🔋",
       name: `${prefisso}${lettura.carburante ? t("Carburante", "Fuel") : t("Carica", "Charge")}`,
+      entity: lettura.caricaEntita || "",
       value: `${Math.round(lettura.percentuale)}%`,
-    });
+    }));
   if (lettura.km != null)
-    righe.push({
+    righe.push(dellaVettura({
       glyph: "🛣️",
       name: `${prefisso}${t("Autonomia", "Range")}`,
+      entity: lettura.kmEntita || "",
       value: `${formatNumber(lettura.km, 0)} km`,
-    });
+    }));
   if (lettura.ricarica)
-    righe.push({
+    righe.push(dellaVettura({
       glyph: "🔌",
       name: `${prefisso}${t("Ricarica", "Charging")}`,
+      entity: lettura.ricaricaEntita || "",
       /* La parola, non il codice: «C» e' il gergo della wallbox, e in una
        * casella si legge malissimo. La lettera la decide il nucleo della
        * pastiglia (#348), e le parole sono le stesse del popup dell'auto;
@@ -2016,12 +2120,14 @@ function righeVettura(lettura, conNome) {
       value:
         statoUmanoEV(lettura.ricarica) ||
         (autoAllaPresa(lettura.ricarica) ? t("In carica", "Charging") : t("Scollegata", "Unplugged")),
-    });
+    }));
   /* E tutte le altre caselle mappate di questa vettura: sono quelle su cui
    * l'interruttore «nel widget» sta acceso, e finora non uscivano. Quelle
    * della colonnina sono della casa e non portano il nome dell'auto. */
   for (const riga of lettura.altre || [])
-    righe.push(prefisso && !riga.diCasa ? { ...riga, name: `${prefisso}${riga.name}` } : riga);
+    righe.push(
+      dellaVettura(prefisso && !riga.diCasa ? { ...riga, name: `${prefisso}${riga.name}` } : riga),
+    );
   return righe;
 }
 
@@ -2065,7 +2171,23 @@ function evModel(states) {
   const letture = profilate.length ? profilate : [letturaAttiva(states, fuori)].filter(Boolean);
   if (!letture.length) return null;
   const piu = letture.length > 1;
-  const rows = letture.flatMap((lettura) => righeVettura(lettura, piu));
+  /* Una entita' fa UNA riga, anche quando la leggono due vetture.
+   *
+   * Il cavo della colonnina e' uno solo, e chi ha due auto sullo stesso
+   * attacco lo ha scritto in tutti e due i profili: la riga della ricarica
+   * usciva una volta per vettura, identica, e da fuori sembravano due cose
+   * diverse che dicono la stessa. Le caselle in fondo erano gia' cosi' — qui
+   * la regola vale anche per le tre righe di testa. */
+  const dette = new Set();
+  const rows = letture
+    .flatMap((lettura) => righeVettura(lettura, piu))
+    .filter((riga) => {
+      const entity = clean(riga?.entity);
+      if (!entity) return true;
+      if (dette.has(entity)) return false;
+      dette.add(entity);
+      return true;
+    });
   if (!rows.length) return null;
 
   /* Con piu' auto la tessera mostra la piu' scarica: e' quella che chiede
@@ -4499,6 +4621,47 @@ function allerteModel(states) {
  * Il numero grande e' la parola del quando — «Domani» — e la didascalia dice
  * cosa: e' la risposta alla domanda della sera. Si accende il giorno prima e
  * il giorno stesso, che sono i due momenti in cui serve vederla. */
+/* Il segno di un ritiro (#384).
+ *
+ * «Nel widget visualizzare l'immagine del rifiuto oltre alla descrizione,
+ *  sarebbe una chicca.»
+ *
+ * Un ritiro si riconosce dal segno prima che dalla parola — il barattolo, la
+ * bottiglia, la mela — ed e' lo stesso segno che la riga porta gia' nella sua
+ * casella: qui non se ne inventa un altro, si prende quello.
+ *
+ * Il calendario e' il caso a parte. Quando dal messaggio si capisce il
+ * materiale porta il segno di quel materiale; quando non si capisce, il
+ * materiale e' «altro» e il segno resta quello del calendario — «♻️ Altro»
+ * sarebbe una risposta, e li' una risposta non c'e'. */
+function segnoDelRitiro(riga, dalCalendario = false) {
+  if (dalCalendario && (!clean(riga?.materiale) || riga.materiale === "altro")) return "📅";
+  return clean(riga?.icona) || "♻️";
+}
+
+/* E il disegno vero, dove si puo' disegnare.
+ *
+ * «Le icone non sono quelle, non mettere cose che non appartengono al nostro
+ *  catalogo.»
+ *
+ * Il segno qui sopra e' una PAROLA, e serve dove ci sta solo testo: la
+ * didascalia della tessera e la fascia «come sta la casa», che scrivono quello
+ * che ricevono e basta. Dove invece si puo' disegnare — le caselle della
+ * finestra — si disegna il bidone nostro, quello di `core/disegni-rifiuti.js`:
+ * lo stesso della pagina Rifiuti, della scheda in configurazione e del foglio
+ * con cui si sceglie il materiale.
+ *
+ * Non sono due icone per la stessa cosa: e' la stessa cosa, e la parola e' il
+ * ripiego per i posti dove un disegno non entra. Il calendario che non ha
+ * saputo dire quale materiale non si disegna: un bidone qualunque direbbe una
+ * frazione che nessuno ha letto. */
+function disegnoDelRitiro(riga, dalCalendario = false) {
+  const materiale = clean(riga?.materiale);
+  if (!materiale) return "";
+  if (dalCalendario && materiale === "altro") return "";
+  return disegnoDelBidone(materiale, clean(riga?.colore), 18);
+}
+
 function rifiutiModel(states) {
   const grezza = readJson(CHIAVE_RIFIUTI, {});
   /* L'interruttore «Nel widget» toglie le entita' una per una: quello che ha
@@ -4524,16 +4687,20 @@ function rifiutiModel(states) {
   const lettura = letturaRifiuti(config, states, root.resolveEntity || ((value) => value));
   const dalCalendario =
     lettura.calendario && lettura.calendario.giorni !== null && lettura.calendario.giorni >= 0
-      ? [{ ...lettura.calendario, nome: lettura.calendario.nome }]
+      ? [{ ...lettura.calendario, nome: lettura.calendario.nome, dalCalendario: true }]
       : [];
   const prossimi = (lettura.prossimi.length ? lettura.prossimi : dalCalendario).map((riga) => ({
     name: nomeDellaRiga(riga) || t("Calendario dei ritiri", "Collection calendar"),
+    /* Il segno del materiale viaggia a parte dal nome: la didascalia lo mostra,
+     * la frase parlata no — «Domani ritirano 🧴 Plastica» si legge male. */
+    glyph: segnoDelRitiro(riga, Boolean(riga.dalCalendario)),
     quando: riga.quando,
     giorni: riga.giorni,
   }));
   const primo = prossimi[0] || null;
-  const rigaDi = (riga, glyph) => ({
+  const rigaDi = (riga, glyph, disegno) => ({
     glyph,
+    disegno,
     name: nomeDellaRiga(riga) || t("Calendario dei ritiri", "Collection calendar"),
     entity: riga.entity,
     value: parolaDelQuando(riga),
@@ -4541,8 +4708,16 @@ function rifiutiModel(states) {
     giorni: riga.giorni,
   });
   const rows = [
-    ...lettura.righe.map((riga) => rigaDi(riga, riga.icona)),
-    ...(lettura.calendario ? [rigaDi(lettura.calendario, "📅")] : []),
+    ...lettura.righe.map((riga) => rigaDi(riga, segnoDelRitiro(riga), disegnoDelRitiro(riga))),
+    ...(lettura.calendario
+      ? [
+          rigaDi(
+            lettura.calendario,
+            segnoDelRitiro(lettura.calendario, true),
+            disegnoDelRitiro(lettura.calendario, true),
+          ),
+        ]
+      : []),
   ];
   const primaRiga = lettura.prossimi[0] || dalCalendario[0] || null;
   return {
@@ -4550,10 +4725,28 @@ function rifiutiModel(states) {
     accent: "#22c55e",
     icon: "♻️",
     label: t("Rifiuti", "Waste"),
+    /* La faccia della tessera e' il bidone del prossimo ritiro (#384).
+     *
+     * «Nel widget visualizzare l'immagine del rifiuto oltre alla descrizione.»
+     * E poi: «le icone non sono quelle, non mettere cose che non appartengono
+     * al nostro catalogo». Il disegno e' quello di `core/disegni-rifiuti.js` —
+     * lo stesso della pagina, della scheda e del foglio con cui si sceglie il
+     * materiale — e sta dove la tessera ha gia' il suo posto per una faccia,
+     * al posto del simbolo del riciclo che dice solo «questa e' la tessera dei
+     * rifiuti», cosa che dice gia' il nome.
+     *
+     * Quando il prossimo ritiro non si sa, o arriva da un calendario che non
+     * ha detto quale frazione, il disegno non c'e' e resta il simbolo di
+     * sempre: meglio dire «rifiuti» che disegnare un bidone a caso. */
+    faccia: primaRiga ? disegnoDelRitiro(primaRiga, Boolean(primaRiga.dalCalendario)) : "",
+    facciaFirma: primaRiga ? `${clean(primaRiga.materiale)}~${clean(primaRiga.quando)}` : "",
     value: primaRiga ? parolaDelQuando(primaRiga) : "—",
     /* Quando il ritiro e' domani, la tessera dice il gesto e non solo il
      * giorno (#441): «Da mettere fuori stasera» e' quello che uno deve fare
      * adesso, mentre «Domani» lascia a chi legge il passo che conta. */
+    /* La didascalia e' parole: il disegno del ritiro lo porta la faccia della
+     * tessera, qui sopra, e un'emoji al suo fianco sarebbe un'icona che nostra
+     * non e'. */
     caption: primo
       ? primo.quando === "domani"
         ? `${t("Da mettere fuori stasera", "Put it out tonight")} · ${prossimi
@@ -6040,7 +6233,10 @@ function carteDalleRighe(widget) {
   return righe
     .filter((riga) => !riga.comando && typeof riga?.on !== "boolean")
     .map((riga) => ({
-      glyph: riga.glyph || "•",
+      /* Il disegno vince sulla parola: dove una riga porta il suo disegno — i
+       * bidoni dei rifiuti — la casella lo mostra, invece dell'emoji che serve
+       * dove ci sta solo testo. */
+      glyph: riga.disegno || riga.glyph || "•",
       valore: clean(riga.value) || (riga.raw == null ? "—" : String(riga.raw)),
       etichetta: clean(riga.name),
     }));
@@ -8355,68 +8551,83 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{col
   background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 14%,transparent);
   border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent);
   transform:rotate(60deg)}
-/* Il pannello si accoda alla riga: margine negativo per chiudere lo spazio
- * fra le righe, angoli alti squadrati e nessun bordo in cima. Le due cose
- * diventano una card sola. */
+/* Cosa c'e' DENTRO il pannello: le righe, le etichette, le pastiglie, il passo
+ * della temperatura. Vale dovunque il pannello si trovi, e non chiede di chi
+ * sia figlio.
+ *
+ * Prima ognuna di queste righe cominciava con l'elenco delle due finestre che
+ * allora lo ospitavano. Poi lo stesso pannello e' finito anche dentro le card
+ * della pagina Stanze (#467) — stesso markup, stessi tasti, stesso giro che li
+ * ascolta — e li' nessuno dei due antenati c'e': i comandi del clima uscivano
+ * nudi, bottoni di sistema incolonnati che sbordavano dalla card.
+ *
+ * Un elenco di ospiti non si tiene aggiornato da solo, e il terzo che arriva
+ * non sa di doverci entrare. Il pannello si veste da se'. */
+.dm-w-panel{display:grid;gap:10px}
+.dm-w-panel[hidden]{display:none}
+.dm-w-panel-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dm-w-panel-lbl{
+  flex:0 0 82px;font-size:10px;font-weight:800;letter-spacing:.9px;
+  text-transform:uppercase;color:var(--text-dim,#94a3b8)}
+.dm-w-chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
+.dm-w-chip{
+  padding:6px 11px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--card-border,#e8edf3);background:var(--card-bg,#fff);
+  font:inherit;font-size:11.5px;font-weight:800;color:var(--text-dim,#64748b);
+  transition:background .18s ease,border-color .18s ease,color .18s ease}
+.dm-w-chip:hover{
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 45%,transparent)}
+.dm-w-chip[data-on="true"]{
+  background:var(--dm-widget-accent,#0ea5e9);border-color:transparent;color:#fff;
+  box-shadow:0 6px 14px -9px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent)}
+/* Il passo della temperatura: meno, il numero, piu'. */
+.dm-w-stepper{
+  display:inline-flex;align-items:center;gap:2px;padding:2px;border-radius:12px;
+  background:var(--card-bg,#fff);box-shadow:inset 0 0 0 1px var(--card-border,#e8edf3)}
+.dm-w-stepper button{
+  width:30px;height:28px;display:grid;place-items:center;border:0;border-radius:10px;
+  background:transparent;color:var(--text,#0f172a);
+  font:inherit;font-size:16px;font-weight:800;line-height:1;cursor:pointer;
+  transition:background .15s ease}
+.dm-w-stepper button:hover{
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 14%,transparent)}
+.dm-w-stepper b{
+  min-width:52px;text-align:center;
+  font-family:'Oswald',system-ui,sans-serif;font-size:17px;font-weight:600;
+  font-variant-numeric:tabular-nums}
+.dm-w-panel-note{
+  margin:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8)}
+/* Sul telefono l'etichetta va sopra: ottantadue pixel di colonna, su
+   trecentonovanta, lasciavano alle modalita' una pastiglia per riga.
+   Misurato quando le tre righe qui sotto erano scritte per la sola finestra
+   dei widget e la gemella era rimasta indietro: la riga diventava una colonna
+   ma l'etichetta teneva il suo «flex:0 0 82px», che in colonna non e' piu' una
+   larghezza ma un'altezza — la parola «Modalita'» alta ottantadue pixel, col
+   vuoto sotto. Adesso non c'e' nessuna gemella da tenere allineata: la regola
+   e' una, come il pannello. */
+@media(max-width:600px){
+  .dm-w-panel-row{flex-direction:column;align-items:stretch;gap:6px}
+  .dm-w-panel-lbl{flex:none}
+  .dm-w-stepper{align-self:flex-start}
+}
+/* Il GUSCIO invece resta delle due finestre, perche' e' li' che il pannello e'
+ * una card per conto suo. Dentro la card di una stanza la card c'e' gia', e un
+ * riquadro dentro il riquadro sarebbe una cornice di troppo.
+ *
+ * Si accoda alla riga: margine negativo per chiudere lo spazio fra le righe,
+ * angoli alti squadrati e nessun bordo in cima. Le due cose diventano una card
+ * sola. */
 :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel{
-  display:grid;gap:10px;margin:-9px 0 0;padding:14px 14px 15px;
+  margin:-9px 0 0;padding:14px 14px 15px;
   border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent);
   border-top:0;border-radius:0 0 18px 18px;
   background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 5%,var(--card-bg,#fff));
   box-shadow:0 14px 30px -22px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent)}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel[hidden]{display:none}
 /* Da sola non e' accodata a niente: torna una card intera, con tutti e quattro
    gli angoli e il bordo in cima. */
 :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-solo{
   margin:0;border-top:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent);
   border-radius:18px}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-lbl{
-  flex:0 0 82px;font-size:10px;font-weight:800;letter-spacing:.9px;
-  text-transform:uppercase;color:var(--text-dim,#94a3b8)}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-chip{
-  padding:6px 11px;border-radius:999px;cursor:pointer;
-  border:1px solid var(--card-border,#e8edf3);background:var(--card-bg,#fff);
-  font:inherit;font-size:11.5px;font-weight:800;color:var(--text-dim,#64748b);
-  transition:background .18s ease,border-color .18s ease,color .18s ease}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-chip:hover{
-  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 45%,transparent)}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-chip[data-on="true"]{
-  background:var(--dm-widget-accent,#0ea5e9);border-color:transparent;color:#fff;
-  box-shadow:0 6px 14px -9px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent)}
-/* Il passo della temperatura: meno, il numero, piu'. */
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper{
-  display:inline-flex;align-items:center;gap:2px;padding:2px;border-radius:12px;
-  background:var(--card-bg,#fff);box-shadow:inset 0 0 0 1px var(--card-border,#e8edf3)}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper button{
-  width:30px;height:28px;display:grid;place-items:center;border:0;border-radius:10px;
-  background:transparent;color:var(--text,#0f172a);
-  font:inherit;font-size:16px;font-weight:800;line-height:1;cursor:pointer;
-  transition:background .15s ease}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper button:hover{
-  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 14%,transparent)}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper b{
-  min-width:52px;text-align:center;
-  font-family:'Oswald',system-ui,sans-serif;font-size:17px;font-weight:600;
-  font-variant-numeric:tabular-nums}
-:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-note{
-  margin:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8)}
-/* Sul telefono l'etichetta va sopra: ottantadue pixel di colonna, su
-   trecentonovanta, lasciavano alle modalita' una pastiglia per riga.
-   Le tre righe valgono per tutt'e due le finestre. Le ultime due erano scritte
-   per la sola «#dm-widget-popup», e la gemella e' rimasta indietro: nella
-   finestra del Clima la riga diventava una colonna ma l'etichetta teneva il
-   suo «flex:0 0 82px», che in colonna non e' piu' una larghezza ma
-   un'altezza. Misurato: la parola «Modalita'» alta ottantadue pixel, con
-   sotto il vuoto — sono i buchi che si vedevano fra «MODALITA'» e le
-   pastiglie, fra «TEMPERATURA» e il suo passo, fra «VENTOLA» e i numeri.
-   La riga sopra le nominava gia' tutt'e due; queste due no. */
-@media(max-width:600px){
-  :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-row{flex-direction:column;align-items:stretch;gap:6px}
-  :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-lbl{flex:none}
-  :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper{align-self:flex-start}
-}
 #dm-widget-popup .dm-w-row{
   position:relative;display:flex;align-items:center;gap:12px;
   padding:10px 12px;border-radius:18px;
@@ -8833,6 +9044,14 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-arte{
   width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-chip:has(.dm-tile-arte){overflow:hidden;padding:0}
+/* Un disegno nostro dentro la pastiglia — il bidone del prossimo ritiro —
+   prende la misura della pastiglia, come farebbe un'icona: e' un disegno, non
+   una fotografia, quindi non la riempie da bordo a bordo. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-chip .dm-catalogo-art{display:grid;place-items:center;line-height:0}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-chip .dm-catalogo-art svg{width:26px;height:26px;display:block}
+@media(max-width:520px){
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-chip .dm-catalogo-art svg{width:23px;height:23px}
+}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-caption{
   flex:1;min-width:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8);
   white-space:nowrap;overflow:hidden;

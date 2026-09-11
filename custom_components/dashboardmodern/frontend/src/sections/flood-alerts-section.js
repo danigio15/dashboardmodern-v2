@@ -20,6 +20,7 @@
  * toglie, e la rimozione resta — e' la stessa regola delle altre liste.
  */
 import { allStates, clean, doc, esc, lexicalGlobal, onEditorRedraw, readJson, root, scriviSeCambia, t, writeJsonIfChanged } from "./shared.js";
+import { MARCHIO_TESSERA } from "../core/fuori-dai-widget.js";
 
 const KEY = "__DASHBOARDMODERN_FLOOD_ALERTS__";
 const state = (root[KEY] ||= { installed: false, frame: 0, deleteBound: false });
@@ -192,6 +193,10 @@ function ensureFloodEditorRows() {
   if (!esistente) {
     acc.className = "ed-acc";
     acc.dataset.dmFloodAcc = "true";
+    /* Di quale tessera parla l'interruttore «nel widget» su queste righe: la
+     * scheda degli Avvisi tiene sei liste sulla stessa pagina, e senza dirlo
+     * la scelta si scriveva nuda e valeva per tutte le tessere (#371). */
+    acc.setAttribute(MARCHIO_TESSERA, "allagamenti");
     /* Dopo l'ultima fisarmonica dei gruppi, prima di quella degli avvisi
      * personalizzati: e' il posto che le spetta nell'ordine che c'e' gia'. */
     const gruppi = [...body.querySelectorAll("details.ed-acc")].filter(

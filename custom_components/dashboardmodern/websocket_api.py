@@ -37,6 +37,7 @@ from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant.components import websocket_api
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import callback
 
 from .config_flow import OPTION_ADMIN_ONLY, OPTION_ALLOWED_USERS
@@ -230,6 +231,27 @@ async def _config_authorized(
     return _may_use(padrona, user)
 
 
+async def _ripara_la_dashboard_compagna(
+    hass: HomeAssistant, entry_id: str | None
+) -> None:
+    """La dashboard di appoggio di questa plancia, rimessa a posto se serve.
+
+    Senza `entry_id` si prende la plancia principale, che e' quella che il
+    guscio chiede quando non ne nomina una: e' la stessa scelta che fa il resto
+    della configurazione condivisa.
+    """
+    from .frontend import async_ripara_dashboard_compagna
+
+    voci = hass.config_entries.async_entries(DOMAIN)
+    scelta = entry_id or next(
+        (voce.entry_id for voce in voci if voce.state is ConfigEntryState.LOADED),
+        None,
+    )
+    if not scelta:
+        return
+    await async_ripara_dashboard_compagna(hass, scelta)
+
+
 @websocket_api.websocket_command(
     {
         vol.Required("type"): TYPE_GET,
@@ -250,6 +272,17 @@ async def async_get_config(
     store = await async_get_config_store(hass)
     result = await store.async_get(msg["profile"], entry_id=msg.get("entry_id"))
     connection.send_result(msg["id"], result)
+    # Chi apre la plancia rimette a posto la sua dashboard di appoggio.
+    #
+    # «Plancia preferita da sempre errore quando si apre app»: la vista di
+    # quella dashboard la scrive l'integrazione all'avvio, e finora solo li'.
+    # Una vista sbagliata restava sbagliata fino al riavvio successivo — e un
+    # aggiornamento a cui si risponde «riavvio dopo» lascia in piedi proprio
+    # quella. Qui si sa che qualcuno sta guardando questa plancia, ed e' la
+    # strada che ha sempre funzionato: si ripara di la'. La risposta e' gia'
+    # partita, quindi non fa aspettare nessuno, e se non riesce non rompe
+    # niente.
+    await _ripara_la_dashboard_compagna(hass, msg.get("entry_id"))
 
 
 @websocket_api.websocket_command(

@@ -475,6 +475,10 @@ export function personViewModel(person, states = {}, nowMs = null) {
   const watch = readNumber(states?.[person.watch]?.state);
   return {
     id: person.id,
+    /* L'entita' di Home Assistant, non solo il nostro identificativo: il luogo
+     * si tocca e si apre la mappa di casa su QUESTA persona (#438), e per
+     * chiederla bisogna saperla nominare. */
+    entity: clean(person.entity),
     name: person.name || clean(entityState?.attributes?.friendly_name) || person.entity,
     photo,
     initials: personInitials(person.name || clean(entityState?.attributes?.friendly_name)),

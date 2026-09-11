@@ -509,3 +509,117 @@ async def test_la_vista_di_appoggio_non_puo_restare_senza_niente(hass: Any) -> N
             "un filtro sull'unica vista puo' solo lasciare la dashboard senza "
             f"niente da mostrare (ammessi: {ammessi})"
         )
+
+
+class _MagazzinoCheRilegge(_Magazzino):
+    """Un magazzino che sa anche rileggere quello che ha dentro.
+
+    Lovelace lo sa fare, e serve per la riparazione: senza rileggere non si puo'
+    sapere se quello che c'e' scritto e' gia' giusto.
+    """
+
+    def __init__(self, dentro: dict | None = None) -> None:
+        super().__init__()
+        self.dentro = dentro
+        self.salvataggi = 0
+
+    async def async_load(self, _forza: bool = False) -> dict | None:
+        return self.dentro
+
+    async def async_save(self, config: dict) -> None:
+        await super().async_save(config)
+        self.salvataggi += 1
+        self.dentro = config
+
+
+async def test_una_vista_vecchia_col_filtro_si_rimette_a_posto(hass: Any) -> None:
+    """«Plancia preferita da sempre errore quando si apre app.»
+
+    La vista scritta da una versione di prima porta il filtro delle persone
+    ammesse: su una vista sola quel filtro puo' solo lasciare la dashboard senza
+    niente, ed e' la schermata rossa. Non basta smettere di scriverlo — quello
+    gia' scritto resta scritto finche' qualcuno non lo riscrive.
+    """
+    entry = _voce(hass, options={"allowed_users": ["utente-1"]})
+    url_path = fe._lovelace_url_path(entry)
+    vecchia = {
+        "views": [
+            {
+                "title": "Casa 3.0",
+                "path": "home",
+                "type": "panel",
+                "visible": [{"user": "utente-1"}],
+                "cards": [{"type": "custom:dashboardmodern-card"}],
+            }
+        ]
+    }
+    magazzino = _MagazzinoCheRilegge(vecchia)
+    _lovelace(hass, {url_path: magazzino})
+
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
+
+    (vista,) = magazzino.salvata["views"]
+    assert "visible" not in vista
+    # Il permesso non si e' perso: sta sulla card, dove funziona.
+    (card,) = vista["cards"]
+    assert card["allowed_user_ids"] == ["utente-1"]
+
+
+async def test_una_vista_gia_giusta_non_si_riscrive(hass: Any) -> None:
+    """Il controllo si fa a ogni avvio e a ogni apertura della plancia: se
+    quello che c'e' e' gia' quello che ci va, Lovelace non si tocca."""
+    entry = _voce(hass)
+    url_path = fe._lovelace_url_path(entry)
+    magazzino = _MagazzinoCheRilegge()
+    _lovelace(hass, {url_path: magazzino})
+
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
+    assert magazzino.salvataggi == 1
+
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
+    assert magazzino.salvataggi == 1, "la seconda volta non c'era niente da fare"
+
+
+async def test_un_magazzino_che_non_si_rilegge_si_riscrive(hass: Any) -> None:
+    """Nel dubbio si riscrive: una scrittura di troppo non fa male a nessuno,
+    una vista rotta lasciata li' si'."""
+    entry = _voce(hass)
+
+    class _Muto(_MagazzinoCheRilegge):
+        async def async_load(self, _forza: bool = False) -> dict | None:
+            raise RuntimeError("Lovelace non risponde")
+
+    url_path = fe._lovelace_url_path(entry)
+    magazzino = _Muto({"views": [{"type": "panel"}]})
+    _lovelace(hass, {url_path: magazzino})
+
+    # Scritta: e' quello che conta. L'esito e' `False` perche' la rilettura di
+    # controllo fallisce anche lei, e una scrittura che non si riesce a
+    # confermare si dice ad alta voce invece di darla per buona.
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is False
+    assert magazzino.salvataggi == 1
+
+
+async def test_la_riparazione_non_esplode_mai(hass: Any) -> None:
+    """La chiama chi apre la plancia: se fallisce non deve portarsi dietro la
+    configurazione di chi stava guardando."""
+    entry = _voce(hass)
+    hass.data["lovelace"] = None
+    assert await fe.async_ripara_dashboard_compagna(hass, entry.entry_id) is False
+
+
+def test_chi_apre_la_plancia_ripara_la_dashboard_di_appoggio() -> None:
+    """La strada che ha sempre funzionato — aprire la plancia dalla barra —
+    adesso aggiusta quella che non funzionava.
+
+    Senza questo, una vista sbagliata resta sbagliata fino al riavvio
+    successivo: e un aggiornamento a cui si risponde «riavvio dopo» lascia in
+    piedi proprio quella, insieme al codice nuovo che la correggerebbe.
+    """
+    sorgente = (fe.FRONTEND_DIR.parent / "websocket_api.py").read_text(encoding="utf-8")
+    assert "_ripara_la_dashboard_compagna" in sorgente
+    assert "async_ripara_dashboard_compagna" in sorgente
+    # Dopo aver risposto, non prima: nessuno deve aspettare la riparazione.
+    risposta = sorgente.index('connection.send_result(msg["id"], result)')
+    riparazione = sorgente.index("await _ripara_la_dashboard_compagna(")
+    assert risposta < riparazione

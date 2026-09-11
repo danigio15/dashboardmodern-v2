@@ -61,8 +61,10 @@ import {
   finestraDellaPioggia,
   finestraDiTessere,
   fotogrammaRainViewer,
+  fotogrammiRainViewer,
   luogoDelRadar,
   modelloDelFondo,
+  modelliDelServizio,
   modelloDelServizio,
   problemaDellIndirizzo,
   urlDellaTessera,
@@ -96,12 +98,28 @@ const state = (root[KEY] ||= {
   /* Il fotogramma piu' recente di ogni servizio, e le richieste in volo. */
   fotogrammi: {},
   chiedendo: {},
+  /* L'animazione: il passo che gira e quale fotogramma si sta guardando. */
+  passo: 0,
+  posto: 0,
 });
 state.fotogrammi ||= {};
 state.chiedendo ||= {};
 
-/* Come si legge il fotogramma di adesso dall'elenco di ogni servizio. */
+/* Come si legge il fotogramma di adesso dall'elenco di ogni servizio, e come
+ * si leggono tutti quelli che servono ad animarlo. */
 const FOTOGRAMMI = Object.freeze({ rainviewer: fotogrammaRainViewer });
+const ELENCHI = Object.freeze({ rainviewer: fotogrammiRainViewer });
+
+/* Quanto resta a schermo un fotogramma dell'animazione.
+ *
+ * Mezzo secondo: sei fotogrammi fanno tre secondi di pioggia che cammina, che
+ * e' il tempo in cui si legge da che parte va un fronte. Piu' veloce diventa
+ * uno sfarfallio, piu' lento non e' piu' un movimento. */
+const PASSO_ANIMAZIONE = 500;
+
+/* E quanto si resta fermi sull'ultimo prima di ricominciare: senza, il salto
+ * dall'adesso a un'ora fa sembra un difetto invece che un giro finito. */
+const PAUSA_SULL_ULTIMO = 1200;
 
 /* Quanto si aspetta prima di richiedere un elenco che non e' arrivato. */
 const RIPROVA_DOPO = 60_000;
@@ -257,6 +275,14 @@ export function radarScelto(stored = configurazione()) {
     lon: clean(grezzo.lon),
     raggio: Number.isFinite(raggio) && raggio > 0 ? Math.min(500, raggio) : RAGGIO_DI_SERIE,
     nome: clean(grezzo.nome),
+    /* Il radar cammina, salvo che non lo si sia spento (#393).
+     *
+     * Acceso di serie perche' e' cio' che un radar e': una fotografia della
+     * pioggia dice dove piove, il movimento dice dove va — ed e' la seconda la
+     * domanda per cui lo si apre. Chi lo spegne torna al fotogramma solo, che
+     * e' un giro di quadratini invece di sei: e' la ragione per cui
+     * l'interruttore c'e'. */
+    animato: clean(grezzo.animato) !== "no",
   };
   /* L'entita' vince quando c'e': non esce di casa, e chi l'ha compilata ha
    * gia' il radar dentro Home Assistant. */
@@ -330,13 +356,22 @@ async function aggiornaFotogramma(servizio) {
   if (state.chiedendo[servizio]) return state.chiedendo[servizio];
   state.chiedendo[servizio] = (async () => {
     let fotogramma = null;
+    let elenco = [];
     try {
       const risposta = await root.fetch(dichiarato.elenco, { cache: "no-store" });
-      if (risposta?.ok) fotogramma = leggi(await risposta.json());
+      if (risposta?.ok) {
+        const detto = await risposta.json();
+        fotogramma = leggi(detto);
+        elenco = ELENCHI[servizio]?.(detto) || [];
+      }
     } catch (_errore) {
       fotogramma = null;
+      elenco = [];
     }
-    state.fotogrammi[servizio] = { quando: Date.now(), fotogramma };
+    /* Una richiesta sola per tutti e due: l'ultimo fotogramma e la fila che lo
+     * precede stanno nella stessa risposta, e chiederla due volte per leggerne
+     * due pezzi sarebbe il doppio del traffico per lo stesso foglio. */
+    state.fotogrammi[servizio] = { quando: Date.now(), fotogramma, elenco };
     delete state.chiedendo[servizio];
     disegnaRadar();
     return fotogramma;
@@ -352,6 +387,24 @@ export function modelloVivo(scelto) {
   if (!SERVIZI_RADAR[scelto.servizio]) return "";
   if (fotogrammaDaRileggere(scelto.servizio)) aggiornaFotogramma(scelto.servizio);
   return modelloDelServizio(scelto.servizio, fotogrammaDi(scelto.servizio)?.fotogramma);
+}
+
+/**
+ * I modelli da disegnare adesso, uno per fotogramma, dal piu' vecchio al piu'
+ * recente — l'ultimo e' l'adesso.
+ *
+ * Con l'animazione spenta, o con un indirizzo scritto a mano che una fila di
+ * fotogrammi non ce l'ha, e' uno solo: la fila e' una proprieta' del servizio,
+ * non una cosa che si puo' inventare.
+ */
+export function modelliVivi(scelto) {
+  const adesso = modelloVivo(scelto);
+  if (!adesso) return [];
+  const solo = [{ modello: adesso, fotogramma: fotogrammaDi(scelto.servizio)?.fotogramma || null }];
+  if (!scelto?.animato) return solo;
+  const elenco = fotogrammaDi(scelto.servizio)?.elenco;
+  const tutti = modelliDelServizio(scelto.servizio, elenco);
+  return tutti.length > 1 ? tutti : solo;
 }
 
 /** Se il radar a entita' sta rispondendo adesso. */
@@ -394,6 +447,7 @@ function blocco() {
       <div class="dm-radar-tessere"></div>
       <img class="${IMMAGINE}" alt="${esc(t("Radar meteo", "Weather radar"))}" decoding="async">
       <span class="dm-radar-mirino" aria-hidden="true"></span>
+      <span class="dm-radar-ora" data-dm-radar-ora hidden></span>
       <span class="dm-radar-muto">${esc(
         t("Il radar non sta rispondendo.", "The radar is not reporting."),
       )}</span>
@@ -513,7 +567,8 @@ function daTessere(scelto, nodo) {
    * imponeva 240, il conto ne disegnava 213 — e la mappa stava dentro una
    * scatola piu' alta di lei, scentrata rispetto al mirino. */
   quadro.style.height = `${finestraTessere.alto}px`;
-  const modello = modelloVivo(scelto);
+  const modelli = modelliVivi(scelto);
+  const modello = modelli.length ? modelli[modelli.length - 1].modello : "";
   if (!modello) {
     /* Il servizio non ha ancora detto qual e' il fotogramma di adesso: si
      * aspetta la sua risposta, e se non arriva il blocco lo dice — con lo zoom
@@ -544,7 +599,7 @@ function daTessere(scelto, nodo) {
 
   /* Si ridisegna solo se il quadro e' cambiato davvero: rifare le immagini a
    * ogni giro le farebbe lampeggiare mentre si guarda. */
-  const firma = `${luogo.lat},${luogo.lon},${finestraTessere.zoom},${finestraPioggia.zoom},${misure.latoPx}x${misure.altoPx},${modello},${scelto.fondo}`;
+  const firma = `${luogo.lat},${luogo.lon},${finestraTessere.zoom},${finestraPioggia.zoom},${misure.latoPx}x${misure.altoPx},${modelli.map((voce) => voce.modello).join("|")},${scelto.fondo}`;
   /* Si contano i quadratini della PIOGGIA, non quelli del fondo. Il fondo e'
    * un contorno: se OpenStreetMap arriva e RainViewer no, una mappa vuota passava per
    * un radar vivo — col primo quadratino del fondo il blocco si diceva
@@ -573,11 +628,10 @@ function daTessere(scelto, nodo) {
     dove.dataset.dmFirma = firma;
     const pezzi = [];
     let attesiPioggia = 0;
-    for (const [strato, dellaPioggia] of [
-      [scelto.fondo, false],
-      [modello, true],
-    ]) {
-      if (!strato) continue;
+    /* I quadratini di un fotogramma: il fondo li mette dritti nel riquadro, la
+     * pioggia dentro il suo strato — cosi' i fotogrammi si accendono uno per
+     * volta senza rifare le immagini a ogni passo. */
+    const stendi = (strato, dentro, dellaPioggia) => {
       const suo = dellaPioggia ? finestraPioggia : finestraTessere;
       for (const tessera of suo.tessere) {
         const url = urlDellaTessera(strato, tessera, suo.zoom);
@@ -597,11 +651,27 @@ function daTessere(scelto, nodo) {
         immagine.addEventListener("load", () => segnala(immagine, true, dellaPioggia), {
           once: true,
         });
-        pezzi.push(immagine);
+        dentro.push(immagine);
         if (dellaPioggia) attesiPioggia += 1;
       }
+    };
+    if (scelto.fondo) stendi(scelto.fondo, pezzi, false);
+    /* Uno strato per fotogramma (#393). Con l'animazione spenta ce n'e' uno
+     * solo, ed e' esattamente il disegno di prima dentro una scatola in piu'. */
+    for (const [indice, voce] of modelli.entries()) {
+      const strato = doc.createElement("div");
+      strato.className = "dm-radar-strato";
+      strato.dataset.dmFotogramma = String(indice);
+      if (indice === modelli.length - 1) strato.dataset.dmVisto = "si";
+      const dentro = [];
+      stendi(voce.modello, dentro, true);
+      strato.replaceChildren(...dentro);
+      pezzi.push(strato);
     }
     dove.replaceChildren(...pezzi);
+    /* Si riparte dall'adesso: l'ultimo e' quello che stava a schermo prima del
+     * ridisegno, e ricominciare da un'ora fa sarebbe un salto all'indietro. */
+    state.posto = Math.max(0, modelli.length - 1);
     /* «Vivo» quando un quadratino e' arrivato, non quando l'abbiamo chiesto.
      *
      * Qui si contavano le immagini create, che e' un'altra cosa: se il
@@ -665,13 +735,108 @@ export function disegnaRadar() {
     const nota = nodo.querySelector(".dm-radar-nota");
     if (nota) nota.textContent = t("Dove piove adesso", "Where it is raining now");
     daEntita(scelto, nodo);
-  } else daTessere(scelto, nodo);
+  } else {
+    daTessere(scelto, nodo);
+    /* Disegnato il quadro, si decide se farlo camminare: la fila degli strati
+     * c'e' solo adesso, e prima di questo non c'era niente da animare. */
+    regolaLAnimazione();
+  }
   return true;
 }
 
 /* ── il giro, solo mentre si guarda ───────────────────────────────────── */
 
+/* ── l'animazione: la pioggia che cammina (#393) ───────────────────────── */
+
+/* «Un package del meteo possibilmente dinamico.»
+ *
+ * Il radar c'era gia', ma fermo: un fotogramma solo, l'ultimo misurato. Una
+ * fotografia della pioggia dice DOVE piove; la domanda per cui si apre un
+ * radar e' DOVE VA, e a quella risponde solo il movimento.
+ *
+ * I fotogrammi sono gia' tutti a schermo, uno per strato, disegnati una volta
+ * sola: qui non si scarica e non si disegna niente, si accende uno strato e si
+ * spengono gli altri. Ridisegnare a ogni passo vorrebbe dire chiedere gli
+ * stessi quadratini sei volte al secondo. */
+
+/** Chi ha chiesto meno movimento non ne riceve. */
+function menoMovimento() {
+  try {
+    return Boolean(root.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+  } catch (_errore) {
+    return false;
+  }
+}
+
+function strati(nodo) {
+  return [...(nodo?.querySelectorAll?.(".dm-radar-strato") || [])];
+}
+
+/* Accende il fotogramma numero `posto` e scrive la sua ora. Fuori
+ * dall'animazione serve lo stesso: e' quella che accende l'adesso. */
+function mostraIlFotogramma(nodo, posto) {
+  const fila = strati(nodo);
+  if (!fila.length) return;
+  const quale = ((posto % fila.length) + fila.length) % fila.length;
+  for (const [indice, strato] of fila.entries()) {
+    if (indice === quale) strato.dataset.dmVisto = "si";
+    else delete strato.dataset.dmVisto;
+  }
+  const orologio = nodo.querySelector("[data-dm-radar-ora]");
+  if (!orologio) return;
+  /* L'ora la porta il fotogramma, non l'orologio di chi guarda: e' l'unica
+   * cosa che distingue «un'ora fa» da «adesso» mentre l'animazione gira. */
+  const scelto = radarScelto();
+  const elenco = modelliVivi(scelto);
+  const ora = oraDelFotogramma(elenco[quale]?.fotogramma?.time);
+  orologio.textContent = ora;
+  orologio.hidden = !ora || fila.length < 2;
+}
+
+/* Un passo dell'animazione. Sull'ultimo — l'adesso — ci si ferma un attimo di
+ * piu': senza, il ritorno indietro sembra un difetto invece che un giro
+ * finito. */
+function passoDellAnimazione() {
+  const nodo = bloccoEsistente();
+  const fila = strati(nodo);
+  if (!nodo || fila.length < 2) return;
+  state.posto = (state.posto + 1) % fila.length;
+  mostraIlFotogramma(nodo, state.posto);
+  const ultimo = state.posto === fila.length - 1;
+  riarma(ultimo ? PAUSA_SULL_ULTIMO : PASSO_ANIMAZIONE);
+}
+
+function riarma(fra) {
+  if (state.passo) root.clearTimeout?.(state.passo);
+  state.passo = root.setTimeout?.(passoDellAnimazione, fra) || 0;
+}
+
+function fermaLAnimazione() {
+  if (!state.passo) return;
+  root.clearTimeout?.(state.passo);
+  state.passo = 0;
+}
+
+/* L'animazione gira solo se c'e' qualcosa da animare e se ha senso animarlo:
+ * la finestra aperta, piu' di un fotogramma, e nessuno che abbia chiesto meno
+ * movimento. Negli altri casi resta acceso l'adesso, che e' esattamente cio'
+ * che si vedeva prima. */
+function regolaLAnimazione() {
+  const nodo = bloccoEsistente();
+  const fila = strati(nodo);
+  if (!nodo || fila.length < 2 || !finestraAperta() || menoMovimento()) {
+    fermaLAnimazione();
+    if (nodo && fila.length) {
+      state.posto = fila.length - 1;
+      mostraIlFotogramma(nodo, state.posto);
+    }
+    return;
+  }
+  if (!state.passo) riarma(PASSO_ANIMAZIONE);
+}
+
 function ferma() {
+  fermaLAnimazione();
   if (!state.timer) return;
   root.clearInterval?.(state.timer);
   state.timer = 0;
@@ -1010,6 +1175,16 @@ function casellaMarkup(config) {
           data-dm-radar-campo="zoomPioggia" value="${esc(numeroScritto(config.zoomPioggia))}"
           placeholder="${esc(numeroScritto(zoomDellaPioggia({}, servizioScelto(config))))}"></label>
     </div>
+    <label class="dm-radar-animato"><input type="checkbox" data-dm-radar-campo="animato"
+      ${clean(config.animato) === "no" ? "" : "checked"}><span>${esc(
+        t("Radar animato", "Animated radar"),
+      )}</span></label>
+    <small>${esc(
+      t(
+        "Acceso, il radar mostra l'ultima ora di pioggia in movimento: si vede da che parte va il fronte, non solo dov'è adesso. Sono sei fotogrammi invece di uno, quindi sei giri di quadratini: spegnilo se la connessione è lenta o se preferisci una sola immagine.",
+        "On, the radar plays the last hour of rain: you see which way the front is moving, not only where it is now. That is six frames instead of one, so six rounds of tiles: turn it off on a slow connection, or if you prefer a single image.",
+      ),
+    )}</small>
     <div class="dm-radar-dove">
       <label><span class="dm-radar-lbl">${esc(t("Latitudine", "Latitude"))}</span>
         <input class="ed-input mono" data-dm-radar-campo="lat" value="${esc(clean(config.lat))}"
@@ -1047,8 +1222,17 @@ function montaLaCasella() {
 
 function raccogli(dentro) {
   const prossima = { ...configurazione() };
-  for (const campo of dentro.querySelectorAll("[data-dm-radar-campo]"))
-    prossima[clean(campo.dataset.dmRadarCampo)] = clean(campo.value);
+  for (const campo of dentro.querySelectorAll("[data-dm-radar-campo]")) {
+    /* Una spunta non ha un `value` che voglia dire qualcosa: dice si' o no.
+     *
+     * E il si' si scrive VUOTO, non "si": `radarToccato` guarda se qualcosa e'
+     * stato scritto per decidere se questa casa il radar l'ha configurato, e
+     * un valore di serie scritto dentro la farebbe passare per configurata a
+     * chi non ha scelto niente. Il no invece e' una scelta, e si scrive. */
+    const valore =
+      campo.type === "checkbox" ? (campo.checked ? "" : "no") : clean(campo.value);
+    prossima[clean(campo.dataset.dmRadarCampo)] = valore;
+  }
   return prossima;
 }
 
@@ -1149,6 +1333,28 @@ function installStyles() {
       #weather-modal .dm-radar-t{position:absolute;display:block;image-rendering:auto}
       /* Il fondo sotto, la pioggia sopra: due strati, un ordine solo. */
       #weather-modal .dm-radar-fondo{opacity:.85;filter:saturate(.7)}
+      /* Un fotogramma per strato, tutti impilati e uno solo acceso (#393).
+         Si spengono con l'opacita' e non con display:none: il browser tiene
+         le immagini decodificate e il passo non sfarfalla. Il velo dura meno
+         del passo, altrimenti due fotogrammi si sovrappongono. */
+      #weather-modal .dm-radar-strato{
+        position:absolute;inset:0;opacity:0;transition:opacity 160ms linear;
+        pointer-events:none}
+      #weather-modal .dm-radar-strato[data-dm-visto="si"]{opacity:1}
+      /* L'ora del fotogramma che si sta guardando: senza, «un'ora fa» e
+         «adesso» si somigliano troppo per distinguerli. */
+      #weather-modal .dm-radar-ora{
+        position:absolute;right:8px;top:8px;padding:2px 8px;border-radius:999px;
+        font-size:11px;font-weight:800;letter-spacing:.02em;
+        color:#f8fafc;background:rgba(15,23,42,.72);
+        font-variant-numeric:tabular-nums;pointer-events:none}
+      #weather-modal .dm-radar-blocco[data-dm-modo="entita"] .dm-radar-ora{display:none}
+      #weather-modal .dm-radar-blocco[data-dm-radar="muto"] .dm-radar-ora{display:none}
+      /* Chi ha chiesto meno movimento vede il fotogramma di adesso e basta:
+         lo decide anche il codice, ma il velo lo toglie comunque questa. */
+      @media (prefers-reduced-motion: reduce){
+        #weather-modal .dm-radar-strato{transition:none}
+      }
       #weather-modal .dm-radar-img{width:100%;height:auto;display:block;position:relative}
       /* Il mirino al centro: senza, un radar e' una macchia e non si sa dove
          si sta guardando. */
@@ -1168,6 +1374,12 @@ function installStyles() {
       #ed-body .dm-radar-oppure{
         margin:10px 2px 4px;font-size:10.5px;font-weight:800;letter-spacing:.05em;
         text-transform:uppercase;color:var(--text-dim,#64748b)}
+      /* L'interruttore dell'animazione: una riga con la spunta a sinistra,
+         come le altre scelte a due valori della configurazione. */
+      #ed-body .dm-radar-animato{
+        display:flex;align-items:center;gap:9px;margin:10px 2px 2px;
+        font-size:12.5px;font-weight:700;cursor:pointer}
+      #ed-body .dm-radar-animato input{width:16px;height:16px;margin:0;cursor:pointer;flex:0 0 auto}
       #ed-body .dm-radar-prova{
         flex:0 0 auto;padding:0 14px;height:38px;border:1px solid var(--card-border,#e2e8f0);
         border-radius:10px;background:var(--card-background-color,#fff);cursor:pointer;

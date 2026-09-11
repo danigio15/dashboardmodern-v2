@@ -428,26 +428,52 @@ export function indirizzoRitirato(modello) {
   return OSPITI_RITIRATI.some((forma) => forma.test(ospite));
 }
 
-/**
- * Il fotogramma piu' recente dell'elenco di RainViewer.
+/* Quanti fotogrammi si tengono per animare: sei, cioe' l'ultima ora.
  *
- * L'elenco ha la forma `{ host, radar: { past: [{ time, path }], nowcast: [...] } }`:
- * si prende l'ultimo dei passati, che e' l'ultimo misurato — i «nowcast» sono
- * previsioni, e un radar che mostra una previsione spacciandola per il presente
- * dice una cosa che non e' successa. Con un elenco storto si torna `null`, e
- * chi disegna sa che non c'e' niente da chiedere.
+ * RainViewer ne pubblica uno ogni dieci minuti e ne tiene un paio d'ore. Sei
+ * bastano a vedere da che parte va un fronte — che e' la domanda a cui serve
+ * un radar animato — e sono sei giri di quadratini invece di uno: prenderli
+ * tutti costerebbe traffico a chi guarda e al servizio, per un pezzo di storia
+ * che nessuno sta guardando. */
+export const FOTOGRAMMI_ANIMATI = 6;
+
+/**
+ * I fotogrammi dell'elenco di RainViewer, dal piu' vecchio al piu' recente.
+ *
+ * L'elenco ha la forma `{ host, radar: { past: [{ time, path }], nowcast: [...] } }`.
+ * Si prendono solo i **passati**, che sono i misurati: i «nowcast» sono
+ * previsioni, e un radar che mostra una previsione insieme al presente, senza
+ * dirlo, racconta come successa una cosa che non e' successa.
+ *
+ * Con un elenco storto si torna un elenco vuoto, e chi disegna sa che non c'e'
+ * niente da chiedere.
+ */
+export function fotogrammiRainViewer(elenco, quanti = FOTOGRAMMI_ANIMATI) {
+  const host = stringa(elenco?.host);
+  if (!host) return [];
+  const tetto = Number(quanti);
+  const quanti_ = Number.isFinite(tetto) && tetto > 0 ? Math.floor(tetto) : FOTOGRAMMI_ANIMATI;
+  const passati = Array.isArray(elenco?.radar?.past) ? elenco.radar.past : [];
+  const puliti = passati.filter((voce) => stringa(voce?.path));
+  return puliti.slice(-quanti_).map((voce) => {
+    const quando = Number(voce.time);
+    return {
+      host: host.replace(/\/+$/, ""),
+      path: stringa(voce.path),
+      time: Number.isFinite(quando) ? quando : null,
+    };
+  });
+}
+
+/**
+ * Il fotogramma piu' recente dell'elenco di RainViewer, o `null`.
+ *
+ * E' l'ultimo di quelli sopra: un radar fermo mostra l'adesso, ed e' quello
+ * che si vede anche quando l'animazione e' spenta.
  */
 export function fotogrammaRainViewer(elenco) {
-  const host = stringa(elenco?.host);
-  const passati = Array.isArray(elenco?.radar?.past) ? elenco.radar.past : [];
-  const ultimo = [...passati].reverse().find((voce) => stringa(voce?.path));
-  if (!host || !ultimo) return null;
-  const quando = Number(ultimo.time);
-  return {
-    host: host.replace(/\/+$/, ""),
-    path: stringa(ultimo.path),
-    time: Number.isFinite(quando) ? quando : null,
-  };
+  const tutti = fotogrammiRainViewer(elenco, FOTOGRAMMI_ANIMATI);
+  return tutti.length ? tutti[tutti.length - 1] : null;
 }
 
 /**
@@ -467,6 +493,18 @@ export function modelloDelServizio(servizio, fotogramma = null) {
     modello = modello.replaceAll("{host}", host).replaceAll("{path}", path);
   }
   return /\{[zxy]\}/.test(modello) ? modello : "";
+}
+
+/**
+ * Un modello di indirizzo per ogni fotogramma, nell'ordine in cui sono
+ * successi. I fotogrammi che non danno un modello buono restano fuori: un
+ * buco in mezzo all'animazione e' un lampo di mappa vuota.
+ */
+export function modelliDelServizio(servizio, fotogrammi = []) {
+  const elenco = Array.isArray(fotogrammi) ? fotogrammi : [];
+  return elenco
+    .map((fotogramma) => ({ modello: modelloDelServizio(servizio, fotogramma), fotogramma }))
+    .filter((voce) => voce.modello);
 }
 
 /**

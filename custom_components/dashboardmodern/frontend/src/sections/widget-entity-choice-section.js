@@ -46,9 +46,11 @@ import {
 } from "./home-widgets-section.js";
 import {
   escluseDellaTessera,
+  ilGruppoNonHaTessera,
   MARCHIO_TESSERA,
   rimettiNellaTessera,
   tesseraDelBlocco,
+  tesseraDelGruppo,
   tesseraDellaScheda,
   togliDallaTessera,
 } from "../core/fuori-dai-widget.js";
@@ -108,13 +110,65 @@ function postoDelBlocco(nodo) {
   return [...body.querySelectorAll(":scope > details.ed-acc")].indexOf(blocco);
 }
 
+/* ── di quale avviso parla questa riga ─────────────────────────────────── */
+
+/* La scheda degli Avvisi non e' fatta come le altre: le sue fisarmoniche non
+ * sono sezioni, sono le liste sorvegliate, e stanno tutte sulla stessa
+ * pagina. La linguetta non dice la tessera e il posto in fila nemmeno — quei
+ * posti li contano le linguette «sezN», e qui i blocchi stanno dentro
+ * `.ed-list`, non appesi al corpo.
+ *
+ * Lo dice il cestino della riga, che e' quello del guscio e porta scritto il
+ * gruppo: `edDelAvviso('batt','sensor.x')`. E' struttura, non parole, e vale
+ * nelle due lingue.
+ *
+ * L'avviso personalizzato ha un cestino suo — `edDelAvvisoCustom(3)` — e il
+ * numero e' il suo posto nell'elenco, cioe' esattamente la tessera che lo
+ * mostra: `custom-3`. Si guarda per primo perche' il suo nome comincia come
+ * l'altro. */
+const AVVISO_CUSTOM_RE = /edDelAvvisoCustom\(\s*(\d+)\s*\)/;
+const AVVISO_GRUPPO_RE = /edDelAvviso\(\s*['"]([a-z_]+)['"]/i;
+
+/* Tutti i comandi scritti sulla riga, non solo il primo: l'avviso
+ * personalizzato ha due tasti — la matita e il cestino — e la matita viene
+ * prima, cosi' guardare solo il primo voleva dire non trovare mai il
+ * cestino. */
+function comandiDellaRiga(row) {
+  return [...(row?.querySelectorAll?.("[onclick]") || [])]
+    .map((nodo) => clean(nodo.getAttribute("onclick")))
+    .join(" ");
+}
+
+/** Il posto di un avviso personalizzato nel suo elenco, o -1. */
+function postoDellAvvisoCustom(row) {
+  const trovato = AVVISO_CUSTOM_RE.exec(comandiDellaRiga(row));
+  return trovato ? Number(trovato[1]) : -1;
+}
+
+/** Il gruppo sorvegliato di questa riga degli Avvisi, o «». */
+export function gruppoDellAvviso(row) {
+  const comando = comandiDellaRiga(row);
+  if (AVVISO_CUSTOM_RE.test(comando)) return "";
+  return clean(AVVISO_GRUPPO_RE.exec(comando)?.[1]);
+}
+
 /** La tessera di cui parla questa riga, o «» se non si sa. */
 export function tesseraDellaRiga(nodo) {
   const marchiata = nodo?.closest?.(`[${MARCHIO_TESSERA}]`);
   if (marchiata) return clean(marchiata.getAttribute(MARCHIO_TESSERA));
-  const posto = postoDelBlocco(nodo);
-  if (posto >= 0) return tesseraDelBlocco(posto);
+  const riga = nodo?.closest?.(".ed-row");
+  const posto = postoDellAvvisoCustom(riga);
+  if (posto >= 0) return `custom-${posto}`;
+  const gruppo = gruppoDellAvviso(riga);
+  if (gruppo) return tesseraDelGruppo(gruppo);
+  const blocco = postoDelBlocco(nodo);
+  if (blocco >= 0) return tesseraDelBlocco(blocco);
   return tesseraDellaScheda(schedaAttiva());
+}
+
+/** Se questa riga sta in un gruppo sorvegliato che in Home non ha tessera. */
+export function rigaSenzaTessera(row) {
+  return ilGruppoNonHaTessera(gruppoDellAvviso(row));
 }
 
 /* ── le righe ─────────────────────────────────────────────────────────── */
@@ -257,6 +311,17 @@ export function ensureEntityChoices() {
      * devono comparire nei widget». La riga si riconosce dal suo cestino, che
      * chiama `edDelQA`: e' struttura, non parole, e vale nelle due lingue. */
     if (row.querySelector('[onclick^="edDelQA"]')) {
+      row.querySelector(`[${CHOICE_ATTRIBUTE}]`)?.remove();
+      continue;
+    }
+    /* Nemmeno un avviso sorvegliato di un gruppo che in Home non ha tessera.
+     * Il Quadro Avvisi dalla Home e' uscito, e di quelle liste sono rimaste
+     * tessere solo le batterie, gli allagamenti e il fumo: sulle altre righe
+     * l'interruttore non sapeva di quale tessera parlare e scriveva una
+     * scelta valida per tutte, cosi' una sonda spenta fra gli Avvisi spariva
+     * anche dal Clima (#371). Chi la vuole fuori da una tessera la trova
+     * nella scheda di quella tessera, dove la scelta ha un nome. */
+    if (rigaSenzaTessera(row)) {
       row.querySelector(`[${CHOICE_ATTRIBUTE}]`)?.remove();
       continue;
     }

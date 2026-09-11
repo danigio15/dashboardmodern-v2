@@ -957,7 +957,27 @@ function installStyles() {
     `
     ${regolaDelleBolleVecchie()}
     .dm-energy-flow-active{display:inline!important;visibility:visible!important;opacity:1!important;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--dm-flow-color) 52%,transparent))!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
-    .dm-energy-flow-idle{opacity:.30!important;filter:none!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
+    /* Un collegamento spento non si disegna affatto.
+     *
+     * «Nello sfondo si vedono le linee tratteggiate che vanno da un cerchio
+     * all'altro: le linee devono comparire solo quando c'e' il flow colorato
+     * che va verso il cerchio.»
+     *
+     * Le rotaie grigie erano la mappa dell'impianto — tutti i collegamenti
+     * possibili, sempre — e sopra ci scorreva il tratteggio colorato di quelli
+     * vivi. Ma la scena dice una cosa sola: dove sta passando l'energia
+     * adesso. Una rotaia spenta e' un collegamento che non porta niente
+     * disegnato accanto a uno che porta, e a colpo d'occhio sono la stessa
+     * cosa: il solare che va in rete sembrava disegnato anche a mezzanotte.
+     *
+     * Adesso si vede quello che scorre, e basta. La riga che il collegamento
+     * occupa resta dov'e' — il tratteggio ricompare nello stesso posto appena
+     * il ramo riparte, e la dissolvenza di mezzo secondo del guscio lo fa
+     * entrare e uscire senza scatti. */
+    .dm-energy-flow-idle{opacity:0!important;filter:none!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
+    /* Anche le linee dei carichi disegnate dal guscio, che la scena non
+       colora: la loro accensione e' la classe «active» di sempre. */
+    .flow-line:not(.active):not(.dm-energy-flow-active){opacity:0!important}
     .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke:var(--dm-flow-color)!important;stroke-dasharray:12 9!important;stroke-linecap:round!important;animation-name:dmEnergyFlowDash!important;animation-duration:.8s!important;animation-timing-function:linear!important;animation-iteration-count:infinite!important;animation-play-state:running!important;will-change:stroke-dashoffset!important}
     @keyframes dmEnergyFlowDash{from{stroke-dashoffset:0}to{stroke-dashoffset:-42}}
     /* Nessuna eccezione per "riduci movimento": il tratteggio che scorre non e'

@@ -174,16 +174,10 @@
  * nome, icona, entita' da chiamare. E' roba della casa, non dello schermo:
  * l'antifurto configurato sul tablet deve funzionare anche dal telefono.
  *
- * La revisione 38 aggiunge il flusso dell'energia in Home (`cd_flusso_home`,
- * #415): «sulla home, accanto magari alle card delle persone, un'immagine con
- * il flusso dal fotovoltaico alla casa, dalla casa alle batterie, dalla casa
- * all'auto». Vederlo o no e' una scelta sulla casa, come l'ordine dei blocchi
- * che gli sta accanto.
- *
- * E gli animali di casa (`cd_animali`, #358): i loro nomi, le loro foto e le
- * entita' della ciotola, della lettiera, dell'acqua, della porta col microchip
- * e del collare. Anche questa e' roba della casa: il gatto configurato sul
- * tablet deve esistere anche sul telefono.
+ * La revisione 38 aggiunge gli animali di casa (`cd_animali`, #358): i loro
+ * nomi, le loro foto e le entita' della ciotola, della lettiera, dell'acqua,
+ * della porta col microchip e del collare. Anche questa e' roba della casa: il
+ * gatto configurato sul tablet deve esistere anche sul telefono.
  *
  * La revisione 39 aggiunge chi resta fuori dal grafico delle Temperature
  * (`cd_grafico_stanze`, #433): «poter togliere dal grafico alcune
@@ -221,7 +215,12 @@
  * inoltre volevo chiedere una sezione per la cassetta della posta». Chi apre,
  * chi suona, e i due sensori della cassetta: sono cose del cancello di casa,
  * uguali su ogni dispositivo che le guarda. */
-export const CONFIG_KEYS_REVISION = 45;
+/* La revisione 46 aggiunge i rilevamenti delle telecamere (`cd_rilevamenti`,
+ * #394): «una volta che io imposto persona, animale, veicolo e movimento —
+ * perche' reolink ti sgancia questi sensori — che la Dashboard metta l'avviso
+ * con il fotogramma». Quali sensori guarda ogni telecamera e' una proprieta'
+ * della casa, non del telefono da cui la si guarda: viaggia con le altre. */
+export const CONFIG_KEYS_REVISION = 46;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -239,6 +238,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_floors",
   "cd_floor_icons",
   "cd_cameras",
+  "cd_rilevamenti",
   "cd_appliances",
   "cd_loads",
   "cd_devices",
@@ -253,8 +253,6 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_widgets",
   // In che ordine stanno i blocchi della Home: persone, widget, azioni, dispositivi.
   "cd_home_blocchi",
-  // Se il flusso dell'energia si vede in Home (#415).
-  "cd_flusso_home",
   // La riga sotto il meteo (#356): quali pastiglie si vedono, e da quale
   // contatto arriva la posta (#357).
   "cd_barra_casa",

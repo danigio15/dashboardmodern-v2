@@ -42,11 +42,17 @@ test("una vettura dichiarata a benzina mostra il serbatoio anche se ha ancora un
 test("il radar e' vivo solo se arriva la pioggia: il fondo della mappa non conta", () => {
   const radar = leggi("sections/radar-meteo-section.js");
   assert.match(radar, /const segnala = \(immagine, riuscito, dellaPioggia\) => \{\s*if \(!riuscito\) immagine\.remove\(\);\s*if \(!dellaPioggia\) return;/);
-  /* Quale strato sia la pioggia adesso lo dice la coppia da cui si parte, non
-     un confronto fra stringhe: i due strati hanno finestre diverse — la
-     pioggia puo' essere chiesta piu' larga (#323) — e sapere chi e' chi serve
-     anche a scegliere la finestra giusta, non solo a contare. */
-  assert.match(radar, /for \(const \[strato, dellaPioggia\] of \[/);
+  /* Quale strato sia la pioggia lo dice una bandiera passata a mano, non un
+     confronto fra stringhe: i due strati hanno finestre diverse — la pioggia
+     puo' essere chiesta piu' larga (#323) — e sapere chi e' chi serve anche a
+     scegliere la finestra giusta, non solo a contare.
+
+     Dalla 1.4.20 i fotogrammi della pioggia sono piu' d'uno (#393): il fondo
+     si stende una volta sola, la pioggia una volta per fotogramma, e la
+     bandiera resta l'argomento che li distingue. */
+  assert.match(radar, /const stendi = \(strato, dentro, dellaPioggia\) => \{/);
+  assert.match(radar, /if \(scelto\.fondo\) stendi\(scelto\.fondo, pezzi, false\);/);
+  assert.match(radar, /stendi\(voce\.modello, dentro, true\);/);
   assert.match(radar, /const suo = dellaPioggia \? finestraPioggia : finestraTessere;/);
   assert.match(radar, /if \(dellaPioggia\) attesiPioggia \+= 1;/);
   assert.match(radar, /attesi = attesiPioggia;/);

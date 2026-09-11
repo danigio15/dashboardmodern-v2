@@ -192,11 +192,33 @@ function offertaVecchia(entity, pc, sdp) {
  * sessione ha un nome. Torna la sessione, con la connessione e il modo di
  * chiuderla; il video si riempie da solo quando arriva la traccia.
  */
-export async function avviaWebRtcNativo(entity, video, { attesa = 15000, conAudio = false } = {}) {
+export async function avviaWebRtcNativo(
+  entity,
+  video,
+  { attesa = 15000, conAudio = false, quandoSiPuoChiudere = null } = {},
+) {
   if (typeof root.RTCPeerConnection !== "function") throw new Error("browser-senza-webrtc");
   presa();
   const ice = await serverIceDiCasa(entity);
   const pc = new root.RTCPeerConnection({ iceServers: ice.iceServers, bundlePolicy: "max-bundle" });
+  /* Il modo di chiuderlo esiste da subito, non solo a negoziato finito.
+   *
+   * «Vedi che parte doppia connessione insieme.» Un negoziato dura secondi, e
+   * in quei secondi chi ha aperto il popup puo' aprirlo di nuovo — o la strada
+   * ricordata puo' scadere e far ripartire la fila intera. Finche' l'unico modo
+   * di chiudere arrivava insieme alla sessione RIUSCITA, un negoziato ancora in
+   * volo non si poteva fermare: restava li' a trattare con la telecamera mentre
+   * il secondo faceva lo stesso. Due connessioni sulla stessa telecamera, e
+   * nessuna delle due che arriva in fondo.
+   *
+   * Adesso chi chiama puo' tenersi il modo di chiuderlo appena c'e' qualcosa da
+   * chiudere. Chiuderlo due volte non fa niente: `chiusa` lo sa gia'. */
+  let chiudiPresto = () => {
+    try {
+      pc.close();
+    } catch (_error) {}
+  };
+  quandoSiPuoChiudere?.((...argomenti) => chiudiPresto(...argomenti));
   pc.ontrack = (evento) => {
     const flusso = evento.streams?.[0];
     if (flusso && video && video.srcObject !== flusso) {
@@ -231,6 +253,7 @@ export async function avviaWebRtcNativo(entity, video, { attesa = 15000, conAudi
       chiudi();
       reject(errore);
     };
+    chiudiPresto = chiudi;
     const riuscita = () => {
       if (chiusa) return;
       root.clearTimeout?.(timer);
@@ -462,10 +485,41 @@ export function fermaIVideo() {
  * la connessione, e lascia in `_dmPc` e `_dmNativeSubId` quello che la sua
  * pulizia chiude. `_dmPc` e' un `let` del guscio: ci si arriva con l'eval
  * indiretto, passando per una variabile di appoggio. */
+/* Un negoziato per volta, per il popup: quello di prima si chiude prima che
+ * cominci questo.
+ *
+ * «Telecamere continua a dare problema, vedi che parte doppia connessione
+ * insieme.» Il popup puo' chiedere di aprire due volte per la stessa
+ * telecamera senza che nessuno abbia sbagliato: la strada ricordata ha un
+ * permesso di tempo corto, e quando scade la plancia riparte con la fila
+ * intera del guscio — che rifa' lo stesso negoziato. Il primo pero' non si era
+ * fermato: nessuno lo aveva fermato, perche' finche' non riesce non c'e'
+ * niente da chiudere in mano a nessuno.
+ *
+ * Risultato: due trattative aperte sulla stessa telecamera, due `<video>` di
+ * cui uno gia' staccato dalla pagina, e il velo «Connessione WebRTC…» agganciato
+ * a quello staccato che nessuno togliera' mai piu'.
+ *
+ * Qui si tiene il modo di chiudere quello in corso, e la prima cosa che fa
+ * un'apertura nuova e' chiudere la vecchia. */
+let chiudiIlNegoziatoDelPopup = null;
+
 async function avviaPerIlPopup(entityId, videoEl) {
-  const sessione = await avviaWebRtcNativo(clean(entityId), videoEl, {
+  const entity = clean(entityId);
+  try {
+    chiudiIlNegoziatoDelPopup?.();
+  } catch (_error) {}
+  chiudiIlNegoziatoDelPopup = null;
+  /* E la tessera della stessa telecamera, se stava trasmettendo: il popup si
+   * apre sopra di lei, quindi nessuno la sta guardando — e per una telecamera
+   * che regge un flusso solo, due sono uno di troppo. */
+  spegniSessione(entity, { pausa: false });
+  const sessione = await avviaWebRtcNativo(entity, videoEl, {
     attesa: 15000,
     conAudio: true,
+    quandoSiPuoChiudere: (chiudi) => {
+      chiudiIlNegoziatoDelPopup = chiudi;
+    },
   });
   root.__dmWebRtcPc = sessione.pc;
   try {
@@ -473,6 +527,16 @@ async function avviaPerIlPopup(entityId, videoEl) {
   } catch (_error) {}
   root._dmNativeSubId = sessione.idSottoscrizione;
   return sessione.pc;
+}
+
+/** Ferma il negoziato del popup, se ce n'e' uno in volo. */
+export function fermaIlNegoziatoDelPopup() {
+  if (!chiudiIlNegoziatoDelPopup) return false;
+  try {
+    chiudiIlNegoziatoDelPopup();
+  } catch (_error) {}
+  chiudiIlNegoziatoDelPopup = null;
+  return true;
 }
 
 function installaNelPopup() {
@@ -484,6 +548,22 @@ function installaNelPopup() {
   avviaPerIlPopup.__dmTelecameraWebRtc = true;
   avviaPerIlPopup.__dmPrevious = root.dmStartWebRTCNative;
   root.dmStartWebRTCNative = avviaPerIlPopup;
+  /* Chiudere il popup ferma anche il negoziato che stava ancora trattando.
+   *
+   * La pulizia del guscio chiude quello che trova in `_dmPc`, e li' dentro una
+   * connessione ci arriva solo a negoziato RIUSCITO: una trattativa ancora in
+   * volo la pulizia non la vedeva, e restava aperta sulla telecamera dopo che
+   * il popup era gia' chiuso. */
+  const pulizia = root.dmCamCleanup;
+  if (typeof pulizia === "function" && !pulizia.__dmTelecameraWebRtc) {
+    const nostra = (...argomenti) => {
+      fermaIlNegoziatoDelPopup();
+      return pulizia.apply(root, argomenti);
+    };
+    nostra.__dmTelecameraWebRtc = true;
+    nostra.__dmPrevious = pulizia;
+    root.dmCamCleanup = nostra;
+  }
   return true;
 }
 

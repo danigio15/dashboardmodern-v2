@@ -31,6 +31,7 @@ import {
   wrapFunction,
   writeJsonIfChanged,
 } from "./shared.js";
+import { MARCHIO_TESSERA } from "../core/fuori-dai-widget.js";
 
 const KEY = "__DASHBOARDMODERN_SMOKE_ALERTS__";
 const STYLE_ID = "dm-smoke-alerts-style";
@@ -195,6 +196,9 @@ function ensureSmokeEditorRows() {
   if (!esistente) {
     acc.className = "ed-acc";
     acc.dataset.dmSmokeAcc = "true";
+    /* Come per gli allagamenti: la tessera la dice la fisarmonica, se no
+     * l'interruttore scrive una scelta buona per tutte le tessere (#371). */
+    acc.setAttribute(MARCHIO_TESSERA, "fumo");
     /* Dopo l'ultima fisarmonica che c'e' gia' — comprese quelle degli
      * allagamenti — cosi' l'ordine delle voci e' quello delle tendine. */
     const gruppi = [...body.querySelectorAll("details.ed-acc")].filter(

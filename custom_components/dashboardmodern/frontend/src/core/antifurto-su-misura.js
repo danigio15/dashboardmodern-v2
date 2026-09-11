@@ -22,6 +22,7 @@
  */
 
 import { actionCatalogMatch } from "./personalization-catalog.js";
+import { ilCodiceCombacia, ilCodiceServe, normalizzaIlCodice } from "./codice-a-tastierino.js";
 
 const pulito = (valore) => String(valore ?? "").trim();
 const minuscolo = (valore) => pulito(valore).toLowerCase();
@@ -95,7 +96,28 @@ export function normalizzaModoSuMisura(grezzo, indice = 0) {
      * meglio di uno acceso a caso. */
     stato: pulito(grezzo.stato) || entita,
     valore: pulito(grezzo.valore) || opzione,
+    /* Il codice che questo tasto chiede prima di partire (#336).
+     *
+     * «Oltre a scegliere l'entita' si possa inserire un pin ed esca il
+     * tastierino, come succede gia' nella sezione aperture mettendo una
+     * serratura.» Una centrale vera il codice lo dichiara lei e lo verifica
+     * Home Assistant; uno script e un interruttore un codice non lo
+     * accettano, quindi l'unico posto dove chiederlo e' qui, prima di
+     * mandare il comando — esattamente come per le aperture.
+     *
+     * Facoltativo: chi non lo scrive preme e basta, come ha sempre fatto. */
+    pin: normalizzaIlCodice(grezzo.pin),
   });
+}
+
+/** Se questo tasto, prima di partire, chiede il codice. */
+export function ilModoChiedeIlCodice(modo) {
+  return ilCodiceServe(modo?.pin);
+}
+
+/** Il codice digitato fa partire questo tasto? Un tasto senza codice parte sempre. */
+export function ilCodiceApreIlModo(modo, digitato) {
+  return ilCodiceCombacia(modo?.pin, digitato);
 }
 
 /** L'elenco pulito, da qualunque cosa ci sia in memoria. */

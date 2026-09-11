@@ -10,6 +10,7 @@ import {
   periodRange,
   recorderBucketConsumptions,
   rowTimestamp,
+  sorgenteDichiarata,
   smistaIPiani,
   sourcePlans,
   isCumulativeEnergyEntity,
@@ -402,19 +403,34 @@ function pianiDeiCarichi() {
 }
 
 function pianiPerIDispositivi(elenco, kind, prefisso = "report-device") {
+  const states = allStates();
+  /* Ogni piano si porta dietro l'entita' da cui la sua e' fatta, se lo
+   * dichiara. Serve quando le statistiche dell'aiutante sono piu' corte
+   * dell'apparecchio: la testa che manca ce l'ha la sorgente (vedi
+   * `sorgenteDichiarata`). */
+  const sorgente = (entity) => sorgenteDichiarata(entity, states);
   return elenco.flatMap((item, index) => {
     const history = clean(item.history);
     const entity = clean(item.entity);
     const key = clean(item.key) ? `${prefisso}:${clean(item.key)}` : `${prefisso}-${index}`;
     if (history && item.cumulative !== false) {
-      return [{ key, entity: history, source: history, kind, direct: false }];
+      return [
+        {
+          key,
+          entity: history,
+          source: history,
+          kind,
+          direct: false,
+          sorgente: sorgente(history),
+        },
+      ];
     }
     // A period helper (for example sensor.energy_mese_microonde) is useful only
     // for the current month. HomeAssistantBroker.valuesForPlans intentionally
     // refuses direct values for past months, and annual history requires a real
     // cumulative meter instead of reusing a monthly measurement.
     if (kind === "month" && entity) {
-      return [{ key, entity, source: entity, kind, direct: true }];
+      return [{ key, entity, source: entity, kind, direct: true, sorgente: sorgente(entity) }];
     }
     return [];
   });
@@ -1269,9 +1285,18 @@ function quotaDaScrivere(bundle, dispositivo, quale, valore) {
  * Quello che si puo' fare e' dirlo: cosi' un numero corto smette di essere un
  * numero sbagliato e diventa un numero di cui si sa il perche'. */
 function scriviLAmmanco(bundle, source) {
-  const panel = doc?.querySelector(".ed-device-detail,#ed-device-detail");
+  /* Sotto il titolo dell'anno, non in fondo al pannello.
+   *
+   * Appesa in fondo finiva sotto il grafico, cioe' fuori schermo: «NIENTE»,
+   * con la foto della card che l'avviso non ce l'aveva. Un avviso che bisogna
+   * scorrere per trovare non e' un avviso. Sta attaccata alla riga che
+   * riguarda — il totale dell'anno — e la si vede insieme al numero di cui
+   * parla. */
+  const titolo = doc?.getElementById("ed-dkpi-year-lbl");
+  const blocco = titolo?.parentElement;
+  const panel = blocco || doc?.querySelector(".ed-device-detail,#ed-device-detail");
   if (!panel) return false;
-  let riga = panel.querySelector(":scope > .dm-ed-ammanco");
+  let riga = (blocco ? panel.parentElement : panel)?.querySelector?.(".dm-ed-ammanco");
   const quanto = bundle?.deviceYearAmmanco?.get(source);
   if (!Number.isFinite(quanto) || quanto <= 0) {
     riga?.remove?.();
@@ -1280,7 +1305,8 @@ function scriviLAmmanco(bundle, source) {
   if (!riga) {
     riga = doc.createElement("div");
     riga.className = "dm-ed-ammanco";
-    panel.append(riga);
+    if (blocco) blocco.after(riga);
+    else panel.append(riga);
   }
   /* Il numero sta FUORI dalla frase tradotta: una chiave con dentro un valore
    * non e' una chiave, e in tredici lingue diventa tredici chiavi che non si

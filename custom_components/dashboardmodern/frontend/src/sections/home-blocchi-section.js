@@ -17,7 +17,6 @@
  * impaginazione.
  */
 import { spostaNellElenco } from "../core/ordine-a-mano.js";
-import { CHIAVE_FLUSSO_HOME, flussoInHome, renderFlusso } from "./flusso-di-casa-section.js";
 import { BLOCCHI_DELLA_HOME, ordineDeiBlocchi } from "../core/ordine-dei-blocchi.js";
 import {
   clean,
@@ -178,19 +177,7 @@ function pannelloMarkup() {
         "The order they appear in on Home: people, widgets, quick actions, devices. Inside each block the order is set where that block is configured: people in their own tab, tiles in Widgets, quick actions in theirs.",
       ),
     )}</div>
-    <div class="dm-blocco-list">${righe}</div>
-    <label class="dm-blocco-flusso">
-      <input type="checkbox" data-dm-blocco-flusso${flussoInHome() ? " checked" : ""}>
-      <span>
-        <b>${esc(t("Mostra il flusso dell'energia", "Show the energy flow"))}</b>
-        <small>${esc(
-          t(
-            "La card accanto alle persone con il fotovoltaico, la rete, la batteria, la casa e l'auto: le stesse frecce della sezione Energia. Compare da sola quando c'è abbastanza da raccontare, e si sposta insieme alle persone.",
-            "The card beside the people with solar, the grid, the battery, the house and the car: the same arrows as the Energy section. It shows up by itself when there is enough to tell, and it moves along with the people.",
-          ),
-        )}</small>
-      </span>
-    </label>`;
+    <div class="dm-blocco-list">${righe}</div>`;
 }
 
 /** Il pannello in cima alla scheda Home dell'editor, quando e' quella aperta. */
@@ -201,7 +188,7 @@ export function ensurePannelloDeiBlocchi(body = doc?.getElementById?.("ed-body")
     pannello?.remove();
     return false;
   }
-  const firma = `${ordineSalvato().join(",")}§${flussoInHome()}`;
+  const firma = ordineSalvato().join(",");
   if (pannello && pannello.dataset.dmFirma === firma) return true;
   if (!pannello) {
     pannello = doc.createElement("div");
@@ -234,29 +221,9 @@ function onClickFreccia(event) {
   ensurePannelloDeiBlocchi();
 }
 
-/* L'interruttore del flusso: si spegne e la card sparisce dalla Home subito,
- * non al prossimo stato che arriva. */
-function onClickFlusso(event) {
-  const casella = event.target?.closest?.("[data-dm-blocco-flusso]");
-  if (!casella) return;
-  writeJsonIfChanged(CHIAVE_FLUSSO_HOME, Boolean(casella.checked));
-  try {
-    renderFlusso();
-    applicaLOrdineDeiBlocchi();
-  } catch (_error) {}
-  ensurePannelloDeiBlocchi();
-  root.edToast?.(
-    casella.checked
-      ? t("🔀 Flusso dell'energia in Home", "🔀 Energy flow on Home")
-      : t("🔀 Flusso dell'energia nascosto", "🔀 Energy flow hidden"),
-  );
-}
-
 function stile() {
   return `
     #ed-body .dm-home-blocchi{display:block;margin-bottom:14px}
-    #ed-body .dm-blocco-flusso{display:flex;align-items:flex-start;gap:10px;margin:0 0 14px}
-    #ed-body .dm-blocco-flusso small{display:block;opacity:.75}
     #ed-body .dm-blocco-list{display:grid;gap:6px;margin-bottom:14px}
     #ed-body .dm-blocco-row{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important}
     #ed-body .dm-blocco-icona{font-size:17px;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px}
@@ -270,7 +237,6 @@ export function installHomeBlocchiSection() {
   installStyle("dm-home-blocchi", stile());
   onEditorRedraw("__dmHomeBlocchiEditor", () => ensurePannelloDeiBlocchi());
   doc.addEventListener("click", onClickFreccia);
-  doc.addEventListener("change", onClickFlusso);
   for (const evento of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",

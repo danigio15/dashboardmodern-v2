@@ -781,8 +781,37 @@ export function letturaRifiuti(
     return dalSensore ? materialeDiSerie(dalSensore) : null;
   };
   const materialeDellaRiga = (riga) => vestitoDellaRiga(riga)?.chiave || riga.materiale;
+  const conEntita = dato.righe.filter((riga) => riga.entity.includes("."));
+  /* Una riga il cui sensore, invece di una data, porta un ELENCO (#443).
+   *
+   * «Purtroppo anche dopo l'aggiornamento ancora non legge il sensore», con
+   * `sensor.savno_conegliano_prossimi_ritiri` nella foto. L'elenco la plancia
+   * lo sapeva gia' leggere, ma solo dalla casella in fondo — quella del
+   * calendario. Chi ha un sensore solo per tutta la raccolta lo scrive dove
+   * c'e' scritto «Sensore o calendario del ritiro», cioe' in una riga, che e'
+   * la casella che si incontra per prima e che dice proprio il suo nome.
+   *
+   * Li' quel sensore veniva letto come una riga qualunque: si cercava una data
+   * nel suo stato, non c'era, e restava un trattino muto. Il suo elenco — con
+   * dentro tutti i ritiri — nessuno lo guardava.
+   *
+   * Adesso lo si guarda, e solo quando serve: una riga da cui una data esce
+   * resta la riga che e', perche' li' il materiale l'ha scelto chi configura e
+   * la data c'e'. Una riga da cui non esce niente, prima di rassegnarsi al
+   * trattino, chiede al sensore se per caso porta un elenco. */
+  const elenchiDelleRighe = new Map();
+  for (const riga of conEntita) {
+    const stato = leggi(riga.entity);
+    if (!risponde(stato) || dataDelRitiro(stato, adesso)) continue;
+    const voci = ritiriDaUnElenco(stato, adesso);
+    if (voci.length) elenchiDelleRighe.set(riga.entity, voci);
+  }
+  const dalleRighe = [...elenchiDelleRighe.values()].flat();
   const daiSensori = new Set(
-    dato.righe.filter((riga) => riga.entity.includes(".")).map(materialeDellaRiga),
+    conEntita
+      .filter((riga) => !elenchiDelleRighe.has(riga.entity))
+      .map(materialeDellaRiga)
+      .concat(dalleRighe.map((riga) => riga.materiale)),
   );
   /* Un sensore solo che porta tutto l'elenco (#443): le sue voci diventano
    * righe come le altre. Un materiale che ha gia' il suo sensore per materiale
@@ -792,12 +821,17 @@ export function letturaRifiuti(
     dato.calendario.includes(".") ? leggi(dato.calendario) : null,
     adesso,
   ).filter((riga) => !daiSensori.has(riga.materiale));
-  const dallElencoMateriali = new Set(dallElenco.map((riga) => riga.materiale));
+  /* Due elenchi che portano lo stesso materiale non fanno due bidoni: quello
+   * scritto in una riga l'ha scelto chi configura, e comanda. */
+  const vistiDalleRighe = new Set(dalleRighe.map((riga) => riga.materiale));
+  const dallElencoMateriali = new Set(
+    dallElenco.map((riga) => riga.materiale).concat(dalleRighe.map((riga) => riga.materiale)),
+  );
   const dalTurno = ritiriDalTurno(dato.turno, adesso).filter(
     (riga) => !daiSensori.has(riga.materiale) && !dallElencoMateriali.has(riga.materiale),
   );
-  const righe = dato.righe
-    .filter((riga) => riga.entity.includes("."))
+  const righe = conEntita
+    .filter((riga) => !elenchiDelleRighe.has(riga.entity))
     .map((riga) => {
       const stato = leggi(riga.entity);
       const data = dataDelRitiro(stato, adesso);
@@ -825,7 +859,11 @@ export function letturaRifiuti(
         quando: quandoCodice(giorni),
       };
     })
-    .concat(dallElenco, dalTurno)
+    .concat(
+      dalleRighe,
+      dallElenco.filter((riga) => !vistiDalleRighe.has(riga.materiale)),
+      dalTurno,
+    )
     .sort((a, b) => {
       if (a.giorni === null && b.giorni === null) return 0;
       if (a.giorni === null) return 1;

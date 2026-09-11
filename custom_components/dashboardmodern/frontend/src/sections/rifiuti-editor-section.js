@@ -90,25 +90,14 @@ function nuovaRiga(materiale = "plastica") {
 
 /* ── il disegno ───────────────────────────────────────────────────────── */
 
-/* La tendina dei materiali. Dentro un <option> ci sta solo testo — niente
- * disegno — quindi qui l'emoji non si sostituisce: si toglie. Il bidone
- * disegnato sta accanto, nella testa della riga, e il colore ce l'ha gia'. */
-function materialiMarkup(scelto) {
-  return MATERIALI.map(
-    (voce) =>
-      `<option value="${esc(voce.chiave)}"${voce.chiave === scelto ? " selected" : ""}>${esc(
-        nomeDelMateriale(voce.chiave),
-      )}</option>`,
-  ).join("");
-}
-
 function rigaMarkup(riga, indice) {
   const voce = materialeDiSerie(riga.materiale);
   const id = `dm-rifiuti-entity-${indice}`;
   return `<article class="ed-row dm-todo-ed-row dm-rifiuti-ed-riga" data-open="true" data-dm-rifiuti-riga="${esc(riga.id)}" style="--dm-bidone:${esc(voce.colore)}">
     <div class="dm-rifiuti-ed-testa">
       <span class="dm-rifiuti-ed-ic" aria-hidden="true">${disegnoDelBidone(voce.chiave, voce.colore, 32)}</span>
-      <select class="ed-input dm-rifiuti-ed-materiale" data-dm-rifiuti-campo="materiale" aria-label="${esc(t("Materiale", "Material"))}">${materialiMarkup(voce.chiave)}</select>
+      <input type="hidden" data-dm-rifiuti-campo="materiale" value="${esc(voce.chiave)}">
+      <button type="button" class="ed-input dm-rifiuti-ed-materiale" data-dm-rifiuti-materiale aria-label="${esc(t("Materiale", "Material"))}"><span data-dm-rifiuti-materiale-nome>${esc(nomeDelMateriale(voce.chiave))}</span></button>
       <button type="button" class="ed-del" data-dm-rifiuti-togli="${esc(riga.id)}" title="${esc(t("Togli", "Remove"))}" aria-label="${esc(t("Togli", "Remove"))}">🗑️</button>
     </div>
     <div class="dm-todo-ed-body">
@@ -211,6 +200,70 @@ function turnoMarkup(dato) {
   </div>`;
 }
 
+/* Come si vestono le righe di un foglio di scelta: il bidone disegnato e il
+ * nome. E' lo stesso in tutti e due i fogli di questa scheda — il materiale
+ * della riga e i materiali di un giorno del turno — perche' sono la stessa
+ * domanda fatta due volte. */
+function voceDelMateriale(materiale, premuto) {
+  const riga = doc.createElement("button");
+  riga.type = "button";
+  riga.className = "dm-turno-voce";
+  riga.setAttribute("aria-pressed", premuto ? "true" : "false");
+  riga.innerHTML = `<span aria-hidden="true">${disegnoDelBidone(materiale.chiave, materiale.colore, 26)}</span><span>${esc(nomeDelMateriale(materiale.chiave))}</span>`;
+  return riga;
+}
+
+/* La scelta del materiale di una riga.
+ *
+ * «Nel menu a tendina dei rifiuti voglio vedere anche le icone.» Le icone dei
+ * rifiuti sono i bidoni che disegniamo noi — `core/disegni-rifiuti.js` — e
+ * dentro un <option> di sistema non ci stanno: li' ci sta solo testo, e
+ * l'unica cosa che ci si potrebbe mettere sarebbe un'emoji qualunque, che
+ * nostra non e'.
+ *
+ * Allora non e' piu' una tendina di sistema: e' lo stesso foglio di scelta con
+ * cui si dice cosa esce in un giorno del turno, qui sotto. Stessi bidoni,
+ * stessa misura, stesse righe — e una domanda sola si fa in un modo solo.
+ *
+ * Il valore resta dov'era, in un campo nascosto con lo stesso marchio di
+ * prima: chi raccoglie la scheda non si accorge di niente. */
+function apriLaTendinaDelMateriale(riga) {
+  const campo = riga?.querySelector?.('[data-dm-rifiuti-campo="materiale"]');
+  if (!campo) return;
+  const corpo = apriIlFoglioDiScelta({
+    titolo: t("Che materiale è", "Which material"),
+    id: "dm-rifiuti-materiale",
+  });
+  if (!corpo) return;
+  corpo.className = "dm-foglio-scelta-corpo dm-turno-menu";
+  for (const materiale of MATERIALI) {
+    const voce = voceDelMateriale(materiale, materiale.chiave === clean(campo.value));
+    voce.dataset.dmRifiutiMaterialeVoce = materiale.chiave;
+    voce.addEventListener("click", () => {
+      campo.value = materiale.chiave;
+      vestiLaRiga(riga, materiale.chiave);
+      chiudiIlFoglioDiScelta();
+    });
+    corpo.append(voce);
+  }
+}
+
+/* Il vestito di una riga: il colore, il bidone, il nome sul tasto e il nome
+ * suggerito nella casella. Lo chiamano in due — chi sceglie dal foglio e il
+ * ridisegno — e due copie di questo direbbero due cose diverse al primo
+ * ritocco. */
+function vestiLaRiga(riga, chiave) {
+  const voce = materialeDiSerie(chiave);
+  if (!riga) return;
+  riga.style.setProperty("--dm-bidone", voce.colore);
+  const icona = riga.querySelector(".dm-rifiuti-ed-ic");
+  if (icona) icona.innerHTML = disegnoDelBidone(voce.chiave, voce.colore, 32);
+  const scritta = riga.querySelector("[data-dm-rifiuti-materiale-nome]");
+  if (scritta) scritta.textContent = nomeDelMateriale(voce.chiave);
+  const nome = riga.querySelector('[data-dm-rifiuti-campo="nome"]');
+  if (nome) nome.placeholder = nomeDelMateriale(voce.chiave);
+}
+
 /* La tendina di un giorno: i materiali da accendere, uno o piu'. */
 function apriLaTendinaDelGiorno(indice) {
   const dato = bozza();
@@ -223,12 +276,8 @@ function apriLaTendinaDelGiorno(indice) {
   if (!corpo) return;
   corpo.className = "dm-foglio-scelta-corpo dm-turno-menu";
   for (const materiale of MATERIALI) {
-    const riga = doc.createElement("button");
-    riga.type = "button";
-    riga.className = "dm-turno-voce";
+    const riga = voceDelMateriale(materiale, scelti.has(materiale.chiave));
     riga.dataset.dmTurnoVoce = materiale.chiave;
-    riga.setAttribute("aria-pressed", scelti.has(materiale.chiave) ? "true" : "false");
-    riga.innerHTML = `<span aria-hidden="true">${disegnoDelBidone(materiale.chiave, materiale.colore, 26)}</span><span>${esc(nomeDelMateriale(materiale.chiave))}</span>`;
     riga.addEventListener("click", () => {
       const acceso = riga.getAttribute("aria-pressed") === "true";
       riga.setAttribute("aria-pressed", acceso ? "false" : "true");
@@ -369,6 +418,12 @@ function onClick(event) {
     apriLaTendinaDelGiorno(Number(giorno.dataset.dmTurnoGiorno) || 0);
     return;
   }
+  const materiale = event.target.closest("[data-dm-rifiuti-materiale]");
+  if (materiale) {
+    event.preventDefault();
+    apriLaTendinaDelMateriale(materiale.closest("[data-dm-rifiuti-riga]"));
+    return;
+  }
   const pick = event.target.closest("[data-dm-rifiuti-pick]");
   if (pick) {
     event.preventDefault();
@@ -405,8 +460,8 @@ function onClick(event) {
   }
 }
 
-/* Cambiare materiale cambia subito colore e simbolo della riga: e' il modo di
- * vedere cosa si e' scelto senza salvare. */
+/* Qui resta solo la data d'inizio del turno: il materiale non e' piu' una
+ * tendina di sistema — si sceglie dal foglio, che si riveste da se'. */
 function onChange(event) {
   const body = doc?.getElementById("ed-body");
   if (!body || schedaAttiva() !== RIFIUTI_EDITOR_TAB || !body.contains(event.target)) return;
@@ -418,16 +473,6 @@ function onChange(event) {
     ridisegna();
     return;
   }
-  const select = event.target.closest('[data-dm-rifiuti-campo="materiale"]');
-  if (!select) return;
-  const riga = select.closest("[data-dm-rifiuti-riga]");
-  const voce = materialeDiSerie(select.value);
-  if (!riga) return;
-  riga.style.setProperty("--dm-bidone", voce.colore);
-  const icona = riga.querySelector(".dm-rifiuti-ed-ic");
-  if (icona) icona.innerHTML = disegnoDelBidone(voce.chiave, voce.colore, 32);
-  const nome = riga.querySelector('[data-dm-rifiuti-campo="nome"]');
-  if (nome) nome.placeholder = nomeDelMateriale(voce.chiave);
 }
 
 export function ensureRifiutiEditorTab() {
@@ -458,7 +503,16 @@ function installStyles() {
       #ed-body .dm-rifiuti-ed-ic{display:grid;place-items:center;width:32px;height:32px;flex:0 0 auto}
       #ed-body .dm-rifiuti-ed-ic .dm-appliance-art{display:block;line-height:0}
       .dm-turno-voce .dm-appliance-art,#ed-body .dm-turno-casella .dm-appliance-art{display:block;line-height:0}
-      #ed-body .dm-rifiuti-ed-materiale{flex:1 1 auto;min-width:0;margin:0}
+      #ed-body .dm-rifiuti-ed-materiale{
+        flex:1 1 auto;min-width:0;margin:0;display:flex;align-items:center;gap:8px;
+        text-align:left;cursor:pointer}
+      #ed-body .dm-rifiuti-ed-materiale>span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      /* La freccia della tendina di sistema, che il tasto non ha di suo: senza,
+         non si vede che si apre qualcosa. */
+      #ed-body .dm-rifiuti-ed-materiale::after{
+        content:"";flex:0 0 auto;width:8px;height:8px;margin-right:2px;
+        border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+        transform:translateY(-2px) rotate(45deg);opacity:.55}
       #ed-body .dm-rifiuti-ed-aggiungi{width:100%;margin:6px 0 12px}
       /* Il calendario di casa (#366): due file da sette, come un calendario da
        * parete — e' il modo in cui uno guarda il foglietto sul frigo. */

@@ -13,6 +13,8 @@
  * Il modulo e' puro: guarda una riga e uno stato, non legge nient'altro.
  */
 
+import { ilCodiceCombacia, normalizzaIlCodice } from "./codice-a-tastierino.js";
+
 const clean = (value) => String(value ?? "").trim();
 
 /** I domini che sanno aprire qualcosa. */
@@ -33,12 +35,12 @@ export function isDoorEntity(value) {
   return entity.includes(".") && SECURITY_DOOR_DOMAINS.includes(domain);
 }
 
-/* Un PIN e' una sequenza di 4-8 cifre, come quello della centrale. Qualunque
- * altra cosa scritta nella casella non diventa un PIN a meta': sparisce. */
-export function normalizeDoorPin(value) {
-  const pin = clean(value);
-  return /^\d{4,8}$/.test(pin) ? pin : "";
-}
+/* Un PIN e' una sequenza di 4-8 cifre, come quello della centrale — e come
+ * quello dei tasti d'inserimento su misura (#336). La regola sta scritta in un
+ * posto solo, `core/codice-a-tastierino.js`: tre porte sullo stesso gesto che
+ * accettano codici diversi sono tre porte che un giorno non si somigliano
+ * piu'. Qui resta il nome con cui la conoscono le aperture. */
+export const normalizeDoorPin = normalizzaIlCodice;
 
 export function normalizeSecurityDoors(values) {
   if (!Array.isArray(values)) return [];
@@ -171,7 +173,5 @@ export function doorOpenCall(entity, state = null, gesto = "") {
 
 /** Il PIN digitato apre questa porta? Una porta senza PIN e' sempre aperta al tocco confermato. */
 export function doorPinMatches(door, typed) {
-  const expected = normalizeDoorPin(door?.pin);
-  if (!expected) return true;
-  return clean(typed) === expected;
+  return ilCodiceCombacia(door?.pin, typed);
 }

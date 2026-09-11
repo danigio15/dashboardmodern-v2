@@ -5,6 +5,537 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.20
+
+### Tolto
+
+- **La card del flusso dell'energia in Home**
+
+  «Eliminami sto flusso sia da codice che dalla sezione config, non mi piace e
+  non c'entra nulla con il resto.»
+
+  Era la card accanto alle persone col fotovoltaico, la rete, la batteria, la
+  casa e l'auto (#415, #416). Se n'è andata tutta: il disegno, il conto che le
+  stava sotto, il suo interruttore in **Config › Home**, la sua chiave di
+  configurazione, le prove e le traduzioni. La mappa dei flussi resta **una
+  sola**, quella della sezione Energia, che è dove uno la cerca.
+
+  La chiave `cd_flusso_home` esce dall'elenco di quelle che viaggiano con la
+  casa senza alzarne la revisione: una chiave tolta non deve far rifare il
+  travaso a nessuno.
+
+### Aggiunto
+
+- **Il radar meteo cammina** (#393)
+
+  «Sarebbe bello un package del meteo possibilmente dinamico da poter inserire
+  in home, dove implementarlo con un radar.»
+
+  Il radar c'era già — dentro le previsioni, sopra i sette giorni — ma era una
+  fotografia: **un fotogramma solo**, l'ultimo misurato. Una fotografia dice
+  dove piove; la domanda per cui si apre un radar è **dove va**, e a quella
+  risponde solo il movimento.
+
+  Adesso mostra l'ultima ora in movimento — sei fotogrammi, uno ogni dieci
+  minuti — con l'ora di quello che si sta guardando scritta nell'angolo: senza,
+  «un'ora fa» e «adesso» si somigliano troppo. Sull'ultimo si ferma un attimo di
+  più, altrimenti il ritorno indietro sembra un difetto invece che un giro
+  finito.
+
+  Sono i fotogrammi **misurati**, non le previsioni: RainViewer pubblica anche i
+  «nowcast», e un radar che li mostra insieme al presente senza dirlo racconta
+  come successa una cosa che non è successa.
+
+  Costa sei giri di quadratini invece di uno, e per questo c'è l'interruttore
+  **Radar animato** nella sua scheda: spento, si torna esattamente al fotogramma
+  di prima. Chi ha chiesto meno movimento al proprio sistema non lo riceve — e
+  a finestra chiusa non gira niente. La fila si chiede con la stessa richiesta
+  da cui si legge l'ultimo fotogramma: una sola, non due.
+
+- **Le telecamere dicono cosa hanno visto** (#394)
+
+  «Io utilizzo reolink, mi piacerebbe appunto una volta che io imposto persona,
+  animale, veicolo e movimento — perché reolink ti sgancia questi sensori — che
+  la Dashboard metta l'avviso con il fotogramma e in contemporanea arriva una
+  notifica da home assistant.»
+
+  Dentro ci sono due richieste, e una delle due la plancia non deve farla.
+
+  **L'avviso in plancia** è cosa nostra, ed è fatto. Quando uno di quei sensori
+  scatta, la tessera **Telecamere** in Home smette di contare le telecamere e
+  dice cosa è stato visto: «👤 Persona · Ingresso · 14:32», rossa, col fotogramma
+  lì dentro. È la tessera giusta perché è quella che i fotogrammi li carica già,
+  ed è quella che si guarda per sapere se fuori c'è qualcuno: un avviso a parte
+  sarebbe stata una seconda tessera accesa quasi mai. Si accende **solo** quando
+  c'è qualcosa — è la stessa regola dei Varchi.
+
+  Quando due scattano insieme — e scattano quasi sempre insieme, perché una
+  persona che cammina è anche movimento — ne dice **uno**, il più importante:
+  «Movimento in giardino» sotto una persona vera è la notizia detta peggio.
+
+  **Le caselle si riempiono da sole.** Chi ha una Reolink ha
+  `binary_sensor.ingresso_person` accanto a `camera.ingresso`: il riconoscimento
+  guarda il nome, perché la classe non basta — Reolink pubblica persona, veicolo
+  e animale tutti come `motion`. Quello che propone si corregge, ed è la ragione
+  per cui sono caselle e non una spunta. La scheda sta in **Config → Sicurezza**,
+  sotto le telecamere, perché parla di quelle.
+
+  **Il push sul telefono lo manda Home Assistant, non la plancia.** Rifarne uno
+  qui vorrebbe dire un secondo motore di automazioni da tenere allineato al
+  primo — e per spedirlo peggio, perché quello di Home Assistant gira sul server
+  e la plancia gira in un browser che di notte è chiuso. Quello che si può fare
+  bene è consegnare l'automazione **già scritta**, con dentro le entità scelte e
+  il fotogramma allegato per entità (l'unico modo perché arrivi anche da fuori
+  casa): è in fondo alla stessa scheda, con il tasto che la copia.
+
+- **Antifurto su misura: il tasto può chiedere il suo PIN** (#336)
+
+  «Sarebbe comodo che nella sezione allarme, oltre a scegliere l'entità, si
+  possa inserire un pin ed esca il tastierino, come succede già nella sezione
+  aperture mettendo una serratura.»
+
+  Una centrale vera il codice lo dichiara lei — `code_format` — e a verificarlo
+  è Home Assistant. Uno script, una scena, un interruttore un codice non lo
+  accettano: l'unico posto dove chiederlo è la plancia, un istante prima di
+  mandare il comando. È esattamente quello che fanno già le aperture della
+  Sicurezza, e da oggi lo fanno anche i tasti d'inserimento scritti a mano.
+
+  Il tastierino che si apre è **quello di sempre**, quello della centrale: un
+  tasto col PIN non scavalca il guscio, gli lascia fare quello che ha sempre
+  fatto e si riprende il comando all'OK, dopo aver confrontato le cifre. Un
+  secondo tastierino identico accanto al primo sarebbe stato due posti dove si
+  scrive un codice e due modi di sbagliarlo. Ci scrive sopra il nome del tasto,
+  che prima diceva «Azione».
+
+  Il PIN è facoltativo: chi non lo scrive preme e basta, come prima. E un PIN
+  scritto male — tre cifre, una lettera — non blocca niente: vale come nessun
+  PIN, perché un tasto che non si preme più per una casella lasciata a metà è
+  peggio del tasto senza chiave. A correggere chi scrive ci pensa la scheda,
+  dove si scrive.
+
+  Sotto, la regola del codice adesso sta in **un posto solo** — quattro-otto
+  cifre — invece che battuta due volte: le aperture e i tasti su misura
+  chiedono alla stessa funzione. Tre porte sullo stesso gesto che accettano
+  codici diversi sono tre porte che un giorno non si somigliano più.
+
+- **Rifiuti: il materiale si sceglie vedendo i bidoni**
+
+  «Nel menu a tendina dei rifiuti voglio vedere anche le icone.» E poi, sulla
+  prima stesura: «le icone non sono quelle, non mettere cose che non
+  appartengono al nostro catalogo».
+
+  Aveva ragione. Le icone dei rifiuti sono i **bidoni che disegniamo noi**, uno
+  per materiale, e dentro un `<option>` di sistema non ci stanno: lì ci sta solo
+  testo, e l'unica cosa che ci si potrebbe mettere è un'emoji qualunque — che
+  nostra non è.
+
+  Quindi la tendina di sistema se n'è andata. Il materiale si sceglie dallo
+  **stesso foglio** con cui si dice cosa esce in un giorno del turno, qui sotto
+  nella stessa scheda: stessi bidoni, stessa misura, stesse righe. Una domanda
+  sola si fa in un modo solo.
+
+  Il valore resta dov'era e la riga si riveste sul posto — colore, bidone, nome
+  suggerito — senza ridisegnare la scheda, così quello che si sta scrivendo
+  nelle altre righe non si perde.
+
+
+- **Rifiuti: nel widget il bidone del materiale, disegnato da noi** (#384)
+
+  «Nel widget visualizzare l'immagine del rifiuto oltre alla descrizione, sarebbe
+  una chicca.» E poi, sulla prima stesura: «le icone non sono quelle».
+
+  Un ritiro si riconosce dal segno prima che dalla parola — il barattolo, la
+  bottiglia, la mela. Il segno però dev'essere **il nostro**: i bidoni che
+  disegniamo noi, uno per materiale, gli stessi che si scelgono nella scheda dei
+  rifiuti. Un'emoji di sistema al loro posto è un'altra cosa che assomiglia alla
+  nostra, e due cose che si assomigliano in due posti sono già un errore.
+
+  Adesso il bidone sta dove il disegno ci sta davvero: sulla **faccia della
+  tessera** in Home — quella che prima portava un simbolo generico — e nelle
+  **caselle del popup**, una riga per ritiro. La didascalia torna alle sole
+  parole: è testo puro, lì un disegno non entra, e riempirla di emoji sarebbe
+  stato il rattoppo di prima.
+
+  Il bidone non se lo inventa: è quello del materiale della riga, e quando il
+  messaggio del calendario **non** nomina nessuna frazione non ne disegna
+  nessuno — un bidone qualunque sarebbe una risposta, e lì una risposta non c'è.
+  Vale per tutte e due le strade, il turno scritto a mano sul frigo (#366) e
+  l'entità calendario.
+
+  La frase parlata della tessera resta senza segni: si legge, non si guarda.
+
+- **L'interruttore del modo chiosco, in ⚙️ Impostazioni** (#480)
+
+  «Da smartphone non me la propone, su tablet e pc ho la barra laterale, è
+  possibile toglierla?» — «Ma non vorrei disattivarla per tutte le plance,
+  sarebbe possibile avere una funzione tipo kiosk mode?»
+
+  La barra laterale la nasconde Home Assistant, ed è una preferenza del
+  **profilo**: vale per tutto quello che quell'utente apre, non per una
+  dashboard sola. Spegnerla da lì è la risposta sbagliata alla domanda giusta.
+
+  Il modo chiosco la risposta giusta ce l'aveva già: manda la plancia a tutto
+  schermo — sopra la barra laterale, sopra l'intestazione — e riguarda questa
+  plancia e basta. Su un telefono si accende da solo. Il guaio era arrivarci: a
+  mano si accendeva tenendo premuto l'hamburger della plancia, oppure scrivendo
+  `?kiosk=1` nell'indirizzo. Due cose che non stanno scritte da nessuna parte —
+  e una funzione che c'è ma non si trova, per chi la cerca, non c'è.
+
+  Adesso ha il suo interruttore in **⚙️ Impostazioni**, sotto la lingua, dov'era
+  andato a cercarlo chi l'ha chiesto. Non è un secondo modo chiosco: è lo stesso,
+  visto da un posto dove si arriva — e infatti dice quello che è vero anche
+  quando lo accende il dito tenuto premuto. La scelta vale per **questo
+  apparecchio**, come il tema e la barra in basso: la plancia a tutto schermo sul
+  tablet appeso al muro e con la barra laterale sul computer è esattamente il
+  caso della segnalazione.
+
+### Corretto
+
+- **Stanze: i comandi del clima uscivano nudi**
+
+  «Card clima sezione stanze non si vede.» Dentro la pagina **Stanze** il
+  pannello del condizionatore c'era — modalità, temperatura, ventola, alette —
+  ma senza un filo di vestito: bottoni di sistema squadrati, incolonnati uno
+  sull'altro, con la frase in fondo tagliata dal bordo della card. Accanto, le
+  card delle Luci e delle Finestre stavano benissimo.
+
+  Il pannello è **lo stesso** della tessera della Home e della finestra del
+  Clima: stesso disegno, stessi tasti, stesso giro che li ascolta. Le sue
+  regole di stile però cominciavano tutte con l'elenco delle **due finestre**
+  che allora lo ospitavano, e dentro la card di una stanza nessuno dei due
+  antenati c'è. Un elenco di ospiti non si tiene aggiornato da solo: il terzo
+  che arriva non sa di doverci entrare.
+
+  Adesso il pannello **si veste da sé** — le righe, le etichette, le pastiglie,
+  il passo della temperatura valgono dovunque si trovi — e resta delle due
+  finestre solo il **guscio**: il bordo, la tinta, l'ombra, che lì servono
+  perché il pannello è una card per conto suo. Dentro la card di una stanza la
+  card c'è già, e un riquadro dentro il riquadro sarebbe una cornice di troppo.
+
+  Nella stessa card è tornata dentro anche la pulsantiera del lettore: stava
+  attaccata al bordo sinistro, dove l'angolo arrotondato la tagliava. Ora tutte
+  e due rientrano come le letture della stanza, incolonnate col nome della voce.
+
+- **Una plancia, un dispositivo solo**
+
+  «In fase di inserimento dell'integrazione ne crea già 2.» La finestra «Nomina
+  e assegna», quella che Home Assistant apre appena finito di aggiungere
+  l'integrazione, mostrava **due schede** — il nome scelto per la plancia e
+  «DashboardModern v2» — con un'entità per una. Le stesse due restavano poi in
+  **Impostazioni › Dispositivi e servizi**, sotto un'unica voce: «2 dispositivi,
+  2 entità».
+
+  Non erano due integrazioni e non erano due plance: era una voce sola con due
+  dispositivi. L'interruttore della presenza simulata si è sempre presentato
+  come `(dashboardmodern, identificativo della voce)`; l'avviso di aggiornamento
+  si presentava con una **stringa fissa**, uguale per tutte le case. Per Home
+  Assistant un identificativo diverso è un dispositivo diverso: stessa voce,
+  stessa integrazione, due schede.
+
+  La stringa fissa non era un capriccio — senza un dispositivo la pagina
+  Aggiornamenti ripiegava sull'`entity_id` e titolava
+  «update.dashboardmodern_…» — ma quel dispositivo c'era già, ed è quello della
+  plancia. Adesso l'avviso sta lì sopra insieme all'interruttore, e la scheda
+  porta il nome che si è dato alla plancia. La pagina Aggiornamenti non ci
+  rimette il nome: quello lo dice il titolo dell'entità, e resta
+  «DashboardModern v2» comunque si chiami la plancia.
+
+  A chi aggiorna la scheda di troppo **se ne va da sola** al primo avvio, con
+  la riga che si era lasciata dietro nel registro delle entità: senza, resterebbe
+  nell'elenco vuota, col nome dell'integrazione accanto come se ci fosse ancora
+  qualcosa dentro.
+
+- **Energia: la batteria che si carica non «copre la casa»**
+
+  Dal campo, due foto dello stesso istante: la tessera scrive «La batteria
+  copre 3,12 kW», e la mappa dei flussi accanto disegna quella stessa batteria
+  che **si carica** a 3212 W.
+
+  Quale delle due mentiva si sa senza aprire il codice: il sole faceva 3,94 kW,
+  la casa ne usava 727 W e la rete era a zero. Se la batteria stesse scaricando
+  3,12 kW, in casa entrerebbero sette kilowatt per alimentarne 727 senza
+  mandarne fuori nessuno. La batteria si stava caricando, ed erano esattamente
+  i watt che avanzavano: 3939 − 727 = 3212.
+
+  La causa è del 2024 e stava nascosta: **metà dei sensori scrive positivo
+  quando la batteria si carica**, e il verso lo dichiara chi abita la casa una
+  volta sola (#434). Quel verso però lo girava **solo la mappa**. Le righe della
+  tessera portavano il numero grezzo, e ci leggevano sopra tre cose diverse: la
+  frase, il soggetto del racconto — che diventa «quando sarà piena» solo sotto i
+  −10 W, e quindi non ci arrivava mai — e la casella del popup.
+
+  Adesso il verso si gira **dove la riga nasce**, una volta, e da lì in poi c'è
+  una convenzione sola. Girarlo in tre posti sarebbe stato lo stesso errore tre
+  volte; girarlo due volte riporterebbe il numero com'era, ed è una prova che
+  adesso lo dice.
+
+- **Persone: il luogo apre la mappa di Home Assistant, non Google** (#438)
+
+  «Intendevo la mappa interna di HA... adesso punta su googlemap.»
+
+  Giusto. Il collegamento portava l'indirizzo **scritto** a Google Maps: un altro
+  sito, che di questa casa non sa niente — né le zone, né dove stanno i
+  dispositivi. La mappa che serve ce l'ha Home Assistant, e la mostra in due
+  posti: la **scheda dell'entità**, col segnaposto di quella persona, e il
+  **pannello Mappa**, che le fa vedere tutte.
+
+  Adesso il tocco chiede la prima. La plancia gira dentro una cornice, la cornice
+  sta nell'ombra del pannello, e da lì un annuncio attraversa il confine e arriva
+  a chi apre le schede: è la stessa strada che usa qualunque card di Home
+  Assistant, e la finestra si apre sopra la plancia senza portare via nessuno.
+
+  Quando intorno non c'è nessuna Home Assistant — la plancia aperta per conto suo,
+  come app a sé — non si annuncia a nessuno: un tocco che non fa niente sarebbe
+  peggio di un ripiego. Lì resta il collegamento scritto nel link, che è il
+  pannello **Mappa** della stessa casa. È anche dove finiscono il tasto centrale
+  del mouse e «apri in una scheda nuova».
+
+- **Auto: «Ferma» non era una cosa che la tessera sapesse** (#326)
+
+  «L'indicazione "Ferma" presente dopo l'indicazione "È al xx%" sta ad indicare
+  che il motore è spento? perché se è così, quando la macchina è accesa da
+  sempre "Ferma".»
+
+  No, e la risposta è il difetto: quella parola parlava della **colonnina** —
+  cavo fuori, carica ferma — e letta accanto a una percentuale sembrava dire che
+  il motore è spento, cosa che la tessera non aveva guardato. Del motore non
+  chiedeva niente a nessuno.
+
+  Sotto c'era un guasto più vecchio. La distinzione fra il pieno di benzina e la
+  carica la fa chi racconta la tessera, guardando se **tutte** le righe vanno a
+  carburante — ma nessuno quel campo lo scriveva sulle righe. La correzione della
+  1.4.8 («si parla di serbatoio, non di spina») era scritta in un posto dove i
+  numeri veri non arrivavano mai, e le prove passavano perché si costruivano le
+  righe a mano. Adesso ogni riga porta il suo carburante, e con un serbatoio letto
+  la frase è **«Il serbatoio è al 64%»**: della spina non si parla più.
+
+  E il motore, se la sua casella c'è, si guarda davvero: a motore acceso la
+  tessera dice **«Motore acceso»** e passa al tono «in corso». Spento non lo
+  dice — è come sta un'auto in garage quasi sempre — e senza quella casella non
+  si inventa niente. Per l'elettrica staccata sopra il venti per cento la frase
+  diventa «È al 64%, **non attaccata**»: quello che si sa, e basta.
+
+- **Flusso energia: le linee tratteggiate si vedono solo dove l'energia passa**
+
+  «Nello sfondo si vedono le linee tratteggiate che vanno da un cerchio
+  all'altro: le linee devono comparire solo quando c'è il flow colorato che va
+  verso il cerchio.»
+
+  Le rotaie grigie erano la mappa dell'impianto — tutti i collegamenti possibili,
+  disegnati sempre — e sopra ci scorreva il tratteggio colorato di quelli vivi.
+  Ma la scena dice una cosa sola: **dove sta passando l'energia adesso**. Una
+  rotaia spenta è un collegamento che non porta niente disegnato accanto a uno
+  che porta, e a colpo d'occhio sono la stessa cosa: il solare che va in rete
+  sembrava disegnato anche a mezzanotte, e la casa sembrava collegata al boiler
+  spento.
+
+  Adesso si vede quello che scorre, e basta. Il posto del collegamento resta dov'è
+  — il tratteggio ricompare nello stesso punto appena il ramo riparte, con la
+  stessa dissolvenza di mezzo secondo con cui prima si accendeva.
+
+- **Auto: «vedo ancora le 5 entità»** (#348)
+
+  La tessera toglieva già i profili gemelli — stessa mappatura, stesso sensore
+  di carica — ma non questi. Quando un'integrazione si toglie e si rimette,
+  Home Assistant **non riusa i nomi**: il sensore di carica torna come `..._2`,
+  `..._3`, e il profilo salvato quella volta resta a indicare quello di prima,
+  che non esiste più. Alla tessera quel profilo sembrava una casella compilata —
+  un valore vuoto, ma compilata — e continuava a contare come una vettura: cinque
+  auto, e cinque volte la riga della ricarica sull'unico sensore ancora vivo.
+
+  Adesso un'entità che Home Assistant non ha più non è una casella compilata: è
+  una casella che punta a un fantasma, e quel profilo non fa più un'auto.
+  Attenzione a cosa vuol dire: un'auto che **dorme** c'è e risponde
+  «unavailable», e quella resta dov'è — si guarda se l'entità esiste, non cosa
+  dice.
+
+  E una regola in più che vale comunque: un'entità fa **una** riga sola, anche
+  quando la leggono due vetture. Chi ha due auto sullo stesso attacco ha scritto
+  la colonnina in tutti e due i profili, e la riga della ricarica usciva due
+  volte, identica.
+
+- **UPS: sul telefono la scena si alza in piedi invece di accavallarsi** (#390)
+
+  «Aprendo la sezione dal cellulare la scheda la si vede compressa, non c'è modo
+  di scalarle?»
+
+  La scena mette tre oggetti in fila — il traliccio, la scatola, la casa — larghi
+  in tutto più di quattrocento pixel, e li àncora a percentuali del palco. Su un
+  telefono da trecentosessanta il palco è **più stretto della fila**: gli oggetti
+  si passano l'uno sopra l'altro, e le targhette dei numeri gli finiscono addosso.
+  Rimpicciolire tutto — che è quello che la segnalazione chiedeva — la fila la
+  farebbe entrare, ma con le etichette a cinque pixel: leggibile non sarebbe lo
+  stesso.
+
+  Uno schermo di telefono però è stretto, non piccolo: di altezza ce n'è. Sotto i
+  520 pixel la fila si alza in piedi — la rete sopra, l'UPS in mezzo, la casa
+  sotto, il cavo che li unisce in verticale con la stessa corrente che scorre (e
+  che a corrente caduta resta spento sul tratto di monte, come sul palco) — e i
+  cinque numeri vanno in una griglia sotto, alla loro misura. Gli oggetti restano
+  grandi come prima e nessuno tocca nessuno. Da tablet e da computer non cambia
+  niente.
+
+- **Una VMC spenta fra gli Avvisi non sparisce più dal Clima** (#371)
+
+  «Quando si imposta una VMC questa compare in moltissime sezioni nella
+  configurazione delle entità. E se la tolgo da una sezione per esempio allerte,
+  sparisce anche da climate!»
+
+  Il rilevamento degli Avvisi mette da solo ogni entità `climate.` nella sua
+  lista sorvegliata del Clima: la macchina della ventilazione compare lì senza
+  che nessuno ce l'abbia messa, ed è il motivo per cui la si ritrova in posti
+  dove non la si era scritta. Accanto le sta l'interruttore «nel widget» — e la
+  scheda degli Avvisi non è una sezione sola: sono sei liste sulla stessa
+  pagina. L'interruttore quindi non sapeva di quale tessera parlasse, e nel
+  dubbio scriveva una scelta valida per **tutte**: spenta fra gli Avvisi, la
+  macchina spariva anche dal Clima, che è la stessa entità guardata da un'altra
+  parte e nessuno l'aveva chiesto.
+
+  Adesso le liste che una tessera ce l'hanno la dicono — le batterie, gli
+  allagamenti, il fumo, e ogni avviso personalizzato con il proprio posto — e la
+  scelta vale solo lì. Le altre — aperture, luci, clima, riscaldamento — in Home
+  una tessera non ce l'hanno più: lì l'interruttore prometteva di togliere da
+  qualcosa che non esiste, e non c'è più. Chi vuole togliere una di quelle
+  entità da una tessera lo fa nella scheda di quella tessera, dove la scelta ha
+  un nome.
+
+- **Telecamere: sulla stessa telecamera partivano due connessioni insieme**
+
+  «Vedi che parte doppia connessione insieme», con la foto del popup che mostra
+  due cose sovrapposte: un fotogramma sotto, il segnaposto di un video fermo
+  sopra, e in fondo il velo «Connessione WebRTC…» che non se ne va più.
+
+  Il popup può chiedere di aprire due volte la stessa telecamera senza che
+  nessuno abbia sbagliato: la strada ricordata dall'ultima volta ha un permesso
+  di tempo corto, e quando scade la plancia riparte con la fila intera, che rifà
+  lo stesso negoziato. Il primo però non si fermava — perché finché non riesce
+  non c'è niente da chiudere in mano a nessuno: la pulizia chiude la connessione
+  che trova nella sua variabile, e lì dentro ci arriva solo una connessione
+  **riuscita**.
+
+  Risultato: due trattative aperte sulla stessa telecamera, due video di cui uno
+  già staccato dalla pagina, e il velo agganciato a quello staccato, che nessuno
+  toglierà mai più.
+
+  Adesso un negoziato si può chiudere da subito, non solo quando riesce. Una
+  apertura nuova chiude quella di prima prima di cominciare; chiudere il popup
+  ferma anche la trattativa ancora in volo; e la scorciatoia che scade ferma la
+  sua prima di lasciare il posto alla fila intera. In più, aprendo il popup si
+  spegne la tessera della stessa telecamera: il popup le sta sopra, nessuno la
+  sta guardando, e per una telecamera che regge un flusso solo due sono uno di
+  troppo.
+
+- **Irrigazione: i tre tasti del programma non erano della stessa misura** (#479)
+
+  «Problema sempre presente sia su schermo 27 pollici che da iphone», dopo che la
+  correzione precedente aveva rimpicciolito la pagina. La pagina non c'entrava:
+  il guaio era nei tre tasti, e ce l'avevano addosso.
+
+  Erano impostati per crescere e riempire la riga, fino a un tetto. Su una riga
+  sola la crescita si ferma al tetto e avanza un vuoto in coda; quando invece i
+  tre vanno a capo due più uno — ed è quello che succede su un telefono — il
+  terzo resta **da solo** su una riga da riempire e cresce fino al tetto, mentre
+  i due sopra restano alla misura minima. Un tasto largo il doppio degli altri,
+  sotto di loro.
+
+  Adesso le colonne le decide la griglia, non quanti tasti sono rimasti
+  sull'ultima riga: tutti della stessa misura, con un minimo leggibile sul
+  telefono e un tetto che non li fa mai diventare tasti da mezzo metro.
+
+- **Rifiuti: il sensore con l'elenco dei ritiri si legge anche scritto in una riga** (#443)
+
+  «Purtroppo anche dopo l'aggiornamento ancora non legge il sensore.»
+
+  L'elenco la plancia lo sapeva già leggere, ma solo dalla casella in fondo,
+  quella del calendario. Chi ha **un** sensore per tutta la raccolta — quello che
+  porta tutti i ritiri negli attributi — lo scrive dove c'è scritto «Sensore o
+  calendario del ritiro», cioè in una riga: è la casella che si incontra per
+  prima e dice proprio il suo nome.
+
+  Lì quel sensore veniva letto come una riga qualunque: si cercava una data nel
+  suo stato, non c'era, e restava un trattino muto. Il suo elenco non lo guardava
+  nessuno.
+
+  Adesso lo si guarda, e solo quando serve: una riga da cui una data esce resta
+  la riga che è — lì il materiale l'ha scelto chi configura e la data c'è. Una
+  riga da cui non esce niente, prima di rassegnarsi al trattino, chiede al
+  sensore se per caso porta un elenco.
+
+- **Finestre: con l'allerta della finestra aperta le altre schede restavano a scaletta** (#424)
+
+  La colonna era sparita — quella era la segnalazione di partenza, risolta nella
+  1.4.17 — ma sotto ne è rimasta un'altra: una finestra aperta si porta dietro la
+  sua fascia d'allerta, quindi quella scheda è più alta delle altre. Ogni scheda
+  teneva la sua altezza naturale e si appoggiava in cima alla riga: bordi di
+  sopra allineati, bordi di sotto a scaletta.
+
+  Adesso le schede di una riga prendono tutte l'altezza della più alta, e dentro
+  ognuna il contenuto resta in cima: il vuoto in più va in fondo, dove non lo
+  nota nessuno.
+
+- **Wallbox: l'anno leggeva l'aiutante invece del sensore da cui è fatto**
+
+  «Ma non è assolutamente vero, nel database i dati ci sono.» E infatti ci sono.
+  Non sotto l'entità che la plancia stava leggendo.
+
+  I due sensori della stessa colonnina segnano lo stesso numero — 1440,762 —
+  ma uno dei due è un **aiutante** costruito sopra l'altro, e lo dichiara:
+
+      sensor.wallbox_lifetime_filtered
+        entity_id: sensor.1p7k_101573_lifetime_energy
+
+  Le statistiche a lungo termine di un aiutante cominciano il giorno in cui è
+  stato creato l'aiutante, non il giorno in cui è stata installata la colonnina.
+  Un aiutante creato a giugno sopra una colonnina di marzo ha tre mesi in meno
+  nel Recorder — tre mesi che nel database ci sono eccome, scritti sotto il nome
+  dell'entità di partenza. Da lì i 546 kWh invece di 1440,76.
+
+  Adesso la plancia quel legame lo segue. Quando le statistiche dell'entità
+  configurata non arrivano fino all'inizio del periodo e quell'entità dichiara
+  da chi è fatta, la testa che manca la chiede alla sorgente. Si fa solo a chi
+  serve, solo sul primo arco del periodo, e solo se la sorgente arriva davvero
+  più indietro: un'entità che non ha quelle righe non è un rimedio.
+
+- **Wallbox: l'avviso dei kWh non contati finiva fuori schermo**
+
+  Era appeso in fondo al pannello del dispositivo, cioè sotto il grafico. Chi
+  apriva la card non lo vedeva: un avviso che bisogna scorrere per trovare non è
+  un avviso. Adesso sta sotto «Totale anno», attaccato al numero di cui parla —
+  e, quando la sorgente riempie il buco, non serve più e non compare.
+
+- **Plancia predefinita: la dashboard rotta si aggiusta aprendo la plancia, senza riavviare**
+
+  La 1.4.19 ha smesso di scrivere il filtro che svuotava quella dashboard. Ma
+  quello che era **già** scritto è rimasto scritto: la vista la mette a posto
+  l'integrazione, e finora lo faceva in un momento solo — all'avvio di Home
+  Assistant. Chi aggiorna la plancia e risponde «riavvio dopo» si ritrova il
+  codice nuovo insieme alla vista vecchia, e la schermata rossa continua.
+
+  Adesso c'è un secondo momento, ed è quello che ha sempre funzionato: **quando
+  si apre la plancia dalla barra laterale**. Lì la plancia chiede la sua
+  configurazione, e da lì rimette a posto la propria dashboard di appoggio se
+  serve. Chi ha la schermata rossa la aggiusta facendo la cosa che già faceva
+  per aggirarla, senza sapere niente di niente.
+
+  Se quello che c'è scritto è già giusto non si tocca niente: si rilegge, si
+  confronta, e si riscrive solo quando le due cose non coincidono — così il
+  controllo può stare su ogni apertura senza pesare.
+
+- **Elettrodomestici: «Ritardo fine ciclo» era dove nessuno lo cercava** (#392)
+
+  «Scusami ma non riesco a trovare questa sezione, c'è scritto solo quella della
+  soglia attiva», e subito dopo un secondo: «anch'io ho lo stesso problema».
+
+  Il campo c'era. Stava nella fisarmonica «Card avanzata — immagine, ciclo,
+  temperatura, costi», chiusa di suo, in mezzo alle foto e ai costi. Chi cerca
+  «quanto deve stare sotto soglia prima che il ciclo sia finito» lo cerca
+  accanto alla soglia, perché è la stessa domanda: sopra questa potenza sta
+  lavorando, sotto quest'altra è in standby, dopo questi minuti ha finito.
+
+  Tre numeri di una regola sola, spezzati in due posti di cui uno chiuso e
+  intitolato a un'altra cosa. Adesso stanno insieme, nella parte che si vede
+  subito aprendo l'apparecchio.
+
 ## 1.4.19
 
 ### Corretto

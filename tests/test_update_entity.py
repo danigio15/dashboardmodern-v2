@@ -303,10 +303,21 @@ def test_l_entita_ha_un_nome_da_mostrare() -> None:
     non c'era: la pagina Aggiornamenti ripiegava sull'entity_id — il dialogo
     titolava «update.dashboardmodern_...» e la riga dell'elenco restava
     grigia, senza nome.
+
+    Il dispositivo c'e' ancora, ma non e' piu' suo: e' quello della plancia,
+    lo stesso dell'interruttore della presenza simulata. Una stringa fissa qui
+    faceva una seconda scheda per la stessa voce — «in fase di inserimento
+    dell'integrazione ne crea gia' 2» — e il nome da mostrare si prende dalla
+    plancia senza bisogno di un dispositivo in piu'.
+
+    La pagina Aggiornamenti non ci rimette il nome: quello lo dice
+    `_attr_title`, e resta «DashboardModern v2» comunque si chiami la plancia.
     """
     sorgente = UPDATE.read_text(encoding="utf-8")
     assert "DeviceInfo(" in sorgente
-    assert "name=NAME" in sorgente
+    assert "identifiers={(DOMAIN, entry.entry_id)}" in sorgente
+    assert "name=entry.title or NAME" in sorgente
+    assert "_attr_title = NAME" in sorgente
     assert "sw_version=installed" in sorgente
 
 

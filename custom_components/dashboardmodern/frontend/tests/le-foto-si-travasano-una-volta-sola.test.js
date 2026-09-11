@@ -135,11 +135,11 @@ test("togliere una chiave non alza la revisione", async () => {
    * l'antifurto se l'e' fatto con gli script la fila dei tasti se la descrive —
    * nome, icona, entita' da premere — ed e' l'antifurto della casa: inserirlo
    * dal tablet e non poterlo inserire dal telefono sarebbe il difetto piu'
-   * grave di tutti quelli di questo elenco. E la 38 col flusso dell'energia in
-   * Home (#415, #416, `cd_flusso_home`): «sulla home, accanto magari alle card
-   * delle persone, un'immagine con il flusso dal fotovoltaico alla casa, dalla
-   * casa alle batterie, dalla casa all'auto». Vederlo o no e' una scelta sulla
-   * casa, come l'ordine dei blocchi che gli sta accanto. E la 39 con chi resta
+   * grave di tutti quelli di questo elenco. La 38 aveva portato il flusso
+   * dell'energia in Home (`cd_flusso_home`): quella card e' stata tolta —
+   * «non mi piace e non c'entra nulla con il resto» — e la sua chiave con
+   * lei, senza alzare la revisione, che e' quello che questa prova difende.
+   * E la 39 con chi resta
    * fuori dal grafico delle Temperature (#433, `cd_grafico_stanze`): «poter
    * togliere dal grafico alcune entita'/stanze cliccandoci sopra in modo tale
    * che diventi piu' leggibile la variazione. Nel mio caso il vano tecnico».
@@ -175,19 +175,24 @@ test("togliere una chiave non alza la revisione", async () => {
    * «avendo un intercom ho un button.cancello per aprire, inoltre volevo
    * chiedere una sezione per la cassetta della posta». Il cancello è uno solo,
    * e chi lo configura dal telefono lo ritrova dal computer. */
-  assert.equal(CONFIG_KEYS_REVISION, 45);
+  /* E la 46 con i rilevamenti delle telecamere (#394, `cd_rilevamenti`): «una
+   * volta che io imposto persona, animale, veicolo e movimento — perché
+   * reolink ti sgancia questi sensori — che la Dashboard metta l'avviso con il
+   * fotogramma». Quali sensori guarda ogni telecamera è una proprietà della
+   * casa: chi li sceglie dal computer li ritrova sul tablet appeso al muro. */
+  assert.equal(CONFIG_KEYS_REVISION, 46);
   assert.ok(
     CONFIG_KEYS.includes("cd_stampanti"),
     "le stampanti si configurano per la casa, non per lo schermo",
   );
   assert.ok(CONFIG_KEYS.includes("cd_nodi"), "un cluster è della casa, non dello schermo");
   assert.ok(
-    CONFIG_KEYS.includes("cd_citofono"),
-    "il cancello è uno solo, e la cassetta della posta pure",
+    CONFIG_KEYS.includes("cd_rilevamenti"),
+    "quali sensori guarda una telecamera è della casa, non dello schermo",
   );
   assert.ok(
-    CONFIG_KEYS.includes("cd_flusso_home"),
-    "il flusso in Home si sceglie per la casa, non per lo schermo",
+    CONFIG_KEYS.includes("cd_citofono"),
+    "il cancello è uno solo, e la cassetta della posta pure",
   );
   assert.ok(
     CONFIG_KEYS.includes("cd_presenza"),
@@ -211,7 +216,7 @@ test("togliere una chiave non alza la revisione", async () => {
   );
   assert.ok(CONFIG_KEYS.includes("cd_macchine"), "le macchine devono viaggiare con la casa");
   assert.ok(CONFIG_KEYS.includes("cd_assist"), "Assist deve viaggiare con la casa");
-  for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
+  for (const chiave of ["cd_ev_image", "cd_ev_image_plugged", "cd_flusso_home"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 
   // Un salvataggio alla revisione corrente e' completo: quello che non c'e'

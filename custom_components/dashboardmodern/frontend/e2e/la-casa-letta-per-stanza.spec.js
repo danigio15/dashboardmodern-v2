@@ -310,3 +310,70 @@ test("il lettore e il clima si comandano dalla stanza, senza cambiare pagina", a
   const clima = page.locator('#page-stanze [data-dm-stanza-entita="climate.salone"]');
   await expect(clima.locator("[data-dm-w-panel]")).toHaveCount(1);
 });
+
+/* «Card clima sezione stanze non si vede» (dal campo).
+ *
+ * Il pannello c'era — la prova qui sopra lo trovava — ma usciva NUDO: le
+ * modalità erano bottoni di sistema squadrati, incolonnati uno sull'altro, e
+ * il testo sbordava dalla card. Le sue regole cominciavano tutte con l'elenco
+ * delle due finestre che allora lo ospitavano, e dentro la card di una stanza
+ * nessuno dei due antenati c'è.
+ *
+ * Trovarlo nel documento non basta a dire che si vede: qui si chiede al
+ * browser come l'ha disegnato, ed è l'unica domanda che quel difetto sente.
+ */
+test("il pannello del clima nella stanza è vestito e sta dentro la card", async ({
+  page,
+}, testInfo) => {
+  await apri(page, testInfo);
+  await page.evaluate(() => {
+    const grezzi = eval("_RAW_STATES");
+    grezzi["climate.salone"] = {
+      entity_id: "climate.salone",
+      state: "cool",
+      attributes: {
+        friendly_name: "Condizionatore salone",
+        current_temperature: 26,
+        temperature: 24,
+        hvac_modes: ["off", "cool", "heat"],
+        supported_features: 1,
+      },
+    };
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+  });
+  await page.locator('#page-stanze [data-dm-stanza="room-salone"]').click();
+  const clima = page.locator('#page-stanze [data-dm-stanza-entita="climate.salone"]');
+  await expect(clima.locator("[data-dm-w-panel] .dm-w-chip").first()).toBeVisible();
+
+  const visto = await clima.evaluate((card) => {
+    const pannello = card.querySelector("[data-dm-w-panel]");
+    const riga = pannello.querySelector(".dm-w-panel-row");
+    const pastiglia = pannello.querySelector(".dm-w-chip");
+    const etichetta = pannello.querySelector(".dm-w-panel-lbl");
+    const cr = card.getBoundingClientRect();
+    /* Si misura la RIGA e non il pannello: la rientranza è un `padding`, e il
+     * padding non muove il riquadro dell'elemento — muove quello che ci sta
+     * dentro, che è poi quello che si vede. */
+    const pr = riga.getBoundingClientRect();
+    return {
+      riga: getComputedStyle(riga).display,
+      raggio: getComputedStyle(pastiglia).borderRadius,
+      maiuscole: getComputedStyle(etichetta).textTransform,
+      /* Il guscio delle due finestre non deve seguirlo qui: la card c'è già, e
+       * un riquadro dentro il riquadro è una cornice di troppo. */
+      bordo: getComputedStyle(pannello).borderTopWidth,
+      sx: pr.x - cr.x,
+      dx: cr.right - pr.right,
+    };
+  });
+  /* Nudo, la riga era un `div` in blocco e la pastiglia un bottone squadrato:
+   * sono esattamente le due cose che si vedevano nella foto. */
+  expect(visto.riga).toBe("flex");
+  expect(visto.raggio).toBe("999px");
+  expect(visto.maiuscole).toBe("uppercase");
+  expect(visto.bordo).toBe("0px");
+  /* E sta dentro la card, rientrato come tutto il resto invece che attaccato
+   * al bordo — dove l'angolo arrotondato lo tagliava. */
+  expect(visto.sx).toBeGreaterThanOrEqual(10);
+  expect(visto.dx).toBeGreaterThanOrEqual(10);
+});

@@ -165,11 +165,13 @@ test("ogni tessera chiede il proprio elenco, nessuna chiede quello di tutti", ()
 
 test("l'interruttore sa di quale tessera parla prima di scrivere", () => {
   const scelta = leggi("sections/widget-entity-choice-section.js");
-  // Il marchio della scheda vince sul posto del blocco, e il posto sulla
-  // linguetta: dal piu' preciso al piu' generico.
+  /* Il marchio della scheda vince su tutto; poi il gruppo della riga, per le
+   * schede che tengono piu' liste sulla stessa pagina; poi il posto del
+   * blocco, e per ultima la linguetta: dal piu' preciso al piu' generico. */
   assert.match(scelta, /export function tesseraDellaRiga\(nodo\)/);
   assert.match(scelta, /closest\?\.\(`\[\$\{MARCHIO_TESSERA\}\]`\)/);
-  assert.match(scelta, /tesseraDelBlocco\(posto\)/);
+  assert.match(scelta, /tesseraDelGruppo\(gruppo\)/);
+  assert.match(scelta, /tesseraDelBlocco\(blocco\)/);
   assert.match(scelta, /tesseraDellaScheda\(schedaAttiva\(\)\)/);
   // I blocchi si contano fra i figli diretti del corpo, come li conta il
   // guscio quando decide quale lasciare aperto.

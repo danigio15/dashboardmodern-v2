@@ -92,11 +92,19 @@ test("i due posti che disegnano la batteria passano dalla stessa regola", async 
   /* La mappa della sezione Energia... */
   assert.match(energia, /function potenzaBatteriaViva\(\)/);
   assert.match(energia, /potenzaDellaBatteria\(\s*potenzaViva\("dm\.energy_potenza_batteria"\)/);
-  /* ...e il flusso in Home, che è un altro disegno della stessa casa. Se uno
-   * dei due si dimenticasse del verso, le due mappe direbbero il contrario
-   * l'una dell'altra sulla stessa batteria. */
-  assert.match(home, /batteria: potenzaDellaBatteria\(/);
+  /* ...e la Home, che è un altro disegno della stessa casa. Se uno dei due si
+   * dimenticasse del verso, le due mappe direbbero il contrario l'una
+   * dell'altra sulla stessa batteria.
+   *
+   * In Home il verso si gira dove la RIGA NASCE, non nel modello del flusso:
+   * dal campo, «segna che la batteria copre la casa a 3.12 kW» mentre la mappa
+   * accanto la disegnava in carica. Girarlo solo nel flusso lasciava il numero
+   * grezzo alla frase della tessera, al soggetto del racconto e alla casella
+   * del popup — tre letture della stessa batteria, e una sola girata. */
+  assert.match(home, /battuta\.watts = potenzaDellaBatteria\(/);
   assert.match(home, /batteriaGirata\(readJson\(CHIAVE_VERSO_BATTERIA, \{\}\)\)/);
+  /* E una volta sola: girare due volte riporta il numero com'era. */
+  assert.equal([...home.matchAll(/potenzaDellaBatteria\(/g)].length, 1);
 });
 
 test("l'interruttore sta sotto la casella della batteria, dove ci si accorge", async () => {

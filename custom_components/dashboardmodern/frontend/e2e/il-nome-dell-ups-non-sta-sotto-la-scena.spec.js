@@ -87,6 +87,18 @@ test("il nome del gruppo si legge: sopra non c'è la scena", async ({ page }, te
 
   const risposta = await page.evaluate(() =>
     [...document.querySelectorAll("#page-ups .dm-ups-titolo")].map((titolo) => {
+      /* Si guarda un nome per volta, portandolo prima al centro dello schermo.
+       *
+       * `elementFromPoint` parla solo della finestra: di un punto che sta sotto
+       * il bordo risponde «non c'è niente», e non perché il nome sia coperto ma
+       * perché non lo sta guardando nessuno. Sul telefono i gruppi stanno in
+       * colonna — il secondo comincia oltre mille pixel più in basso di una
+       * finestra alta ottocento — e senza questo la domanda tornava vuota per
+       * il secondo gruppo, che è il caso opposto a quello della segnalazione.
+       *
+       * Al centro, e non semplicemente «dentro»: in cima e in fondo ci sono le
+       * barre che restano ferme mentre la pagina scorre, e stanno lì apposta. */
+      titolo.scrollIntoView({ block: "center", inline: "nearest" });
       const r = titolo.getBoundingClientRect();
       /* Il testo comincia a sinistra: si punta lì, non a metà di una riga che
        * può essere lunga quanto la pagina. */
@@ -94,7 +106,7 @@ test("il nome del gruppo si legge: sopra non c'è la scena", async ({ page }, te
       return {
         dentroIlPalco: Boolean(titolo.closest(".dm-ups-stage")),
         suo: sopra === titolo || titolo.contains(sopra),
-        chi: sopra ? sopra.tagName : "",
+        chi: sopra ? sopra.tagName : "fuori dallo schermo",
       };
     }),
   );

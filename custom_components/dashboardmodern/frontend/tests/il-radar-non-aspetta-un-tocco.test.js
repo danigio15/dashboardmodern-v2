@@ -74,6 +74,6 @@ test("la riga sotto la mappa si scrive anche quando il servizio tace", () => {
   /* L'inquadratura si calcola prima di sapere se il fotogramma arriva: senza,
    * lo zoom nella riga non ci sarebbe proprio nel caso che lo richiede. */
   const doveFinestra = tessere.indexOf("const finestraTessere = finestraDiTessere(");
-  const doveModello = tessere.indexOf("const modello = modelloVivo(scelto);");
+  const doveModello = tessere.indexOf("const modelli = modelliVivi(scelto);");
   assert.ok(doveFinestra > 0 && doveModello > doveFinestra);
 });

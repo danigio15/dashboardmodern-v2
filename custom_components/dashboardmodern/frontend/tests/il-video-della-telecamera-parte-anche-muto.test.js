@@ -106,10 +106,9 @@ test("il negoziato non ingoia più il rifiuto dell'autoplay", () => {
 });
 
 test("il popup chiede l'audio, le tessere no", () => {
-  assert.match(
-    SORGENTE,
-    /avviaWebRtcNativo\(clean\(entityId\), videoEl, \{[\s\S]{0,80}conAudio: true/,
-  );
+  /* Il popup pulisce l'`entity_id` una volta sola, in cima — gli serve anche
+   * per spegnere la tessera della stessa telecamera — e poi lo passa di lì. */
+  assert.match(SORGENTE, /avviaWebRtcNativo\(entity, videoEl, \{[\s\S]{0,120}conAudio: true/);
   assert.match(
     SORGENTE,
     /avviaWebRtcNativo\(entity, video, \{ attesa: attesaDelVideo\(stato\) \}\)/,

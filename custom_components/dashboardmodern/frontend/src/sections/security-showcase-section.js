@@ -46,6 +46,8 @@ import {
 import {
   CHIAVE_ANTIFURTO_SU_MISURA,
   chiamataDelModo,
+  ilCodiceApreIlModo,
+  ilModoChiedeIlCodice,
   modoDalServizio,
   modoSuMisuraAcceso,
   normalizzaModiSuMisura,
@@ -735,6 +737,17 @@ async function premiIlModoSuMisura(id) {
   }
 }
 
+/* Il nome del tasto scritto sul tastierino del guscio.
+ *
+ * Il guscio la scritta la pesca da una tabella di servizi della centrale, e
+ * per un tasto su misura non la trova: scrive «Azione». Il tasto un nome ce
+ * l'ha — l'ha battuto chi ha configurato — ed e' l'unica cosa che dice a chi
+ * ha il tastierino davanti cosa sta per far partire. */
+function nominaIlTastierino(modo) {
+  const riquadro = doc?.getElementById?.("keypad-action-name");
+  if (riquadro) riquadro.textContent = clean(modo?.nome) || clean(modo?.entita);
+}
+
 function agganciaIModiSuMisura() {
   const nome = "promptPinAndSet";
   const originale = root[nome];
@@ -745,7 +758,51 @@ function agganciaIModiSuMisura() {
      * tastierino compreso. Chiamarlo con un nome che non e' un servizio di
      * `alarm_control_panel` sarebbe l'unico modo di romperlo. */
     if (!id) return originale.apply(this, argomenti);
+    /* Un tasto col PIN passa dal guscio come tutti gli altri (#336): lui
+     * chiede a `dmAlarmCodeNeeded` — che adesso risponde anche per noi —, apre
+     * il SUO tastierino e, all'OK, chiama `callAlarmService` col codice
+     * digitato. Li' sotto lo riprendiamo. Un secondo tastierino uguale accanto
+     * al primo sarebbe due posti dove si scrive un codice e due modi di
+     * sbagliarlo. */
+    const modo = modiSuMisura().find((voce) => voce.id === id);
+    if (ilModoChiedeIlCodice(modo)) {
+      const esito = originale.apply(this, argomenti);
+      nominaIlTastierino(modo);
+      return esito;
+    }
     premiIlModoSuMisura(id);
+    return undefined;
+  }
+  Object.assign(avvolta, originale);
+  avvolta.__dmAntifurtoSuMisura = true;
+  avvolta.__dmPrevious = originale;
+  root[nome] = avvolta;
+  return true;
+}
+
+/* L'OK del tastierino, per un tasto scritto a mano (#336).
+ *
+ * Premuto OK, il guscio chiama `callAlarmService(servizio, codice)` — che sa
+ * mandare solo servizi di `alarm_control_panel` sulla centrale scritta nella
+ * mappatura. Per un tasto su misura quella chiamata non esiste: qui si
+ * intercetta, si confronta il codice digitato con quello della riga, e solo se
+ * combacia parte l'entita'.
+ *
+ * Il codice sbagliato non fa partire niente e non dice niente da qui: il
+ * tastierino del guscio si e' gia' chiuso quando questa viene chiamata, e una
+ * finestra d'errore aperta su una finestra appena chiusa e' il modo peggiore
+ * di dirlo. Non succedere e' la risposta: chi ha sbagliato riapre e riprova,
+ * che e' esattamente quello che fa la centrale vera quando Home Assistant le
+ * rifiuta il codice. */
+function agganciaIlCodiceDeiModiSuMisura() {
+  const nome = "callAlarmService";
+  const originale = root[nome];
+  if (typeof originale !== "function" || originale.__dmAntifurtoSuMisura) return false;
+  function avvolta(...argomenti) {
+    const id = modoDalServizio(argomenti[0]);
+    if (!id) return originale.apply(this, argomenti);
+    const modo = modiSuMisura().find((voce) => voce.id === id);
+    if (modo && ilCodiceApreIlModo(modo, argomenti[1])) premiIlModoSuMisura(id);
     return undefined;
   }
   Object.assign(avvolta, originale);
@@ -762,7 +819,18 @@ function agganciaIModiSuMisura() {
  * restare una sola: sta in `core/alarm-panel.js`, e qui le si apre una porta.
  * Se questi non ci sono, il runtime si comporta come si e' sempre comportato. */
 function publishAlarmHelpers() {
-  root.dmAlarmCodeNeeded = (service) => alarmCodeNeeded(alarmStateObject(), service);
+  /* Se prima di questo tasto va chiesto il codice.
+   *
+   * Per la centrale lo dice la centrale, con `code_format`. Per un tasto
+   * scritto a mano lo dice chi l'ha scritto, col PIN nella sua riga (#336):
+   * uno script un codice non lo accetta, quindi chiederlo qui e' l'unico modo
+   * di averlo. Una domanda sola per tutti e due, perche' il tastierino che si
+   * apre e' lo stesso. */
+  root.dmAlarmCodeNeeded = (service) => {
+    const id = modoDalServizio(service);
+    if (id) return ilModoChiedeIlCodice(modiSuMisura().find((voce) => voce.id === id));
+    return alarmCodeNeeded(alarmStateObject(), service);
+  };
   /* Quale tasto e' acceso, con due domande separate.
    *
    * Il ripiego su «Fuori» dentro `alarmActiveMode` serve per le centrali che
@@ -788,6 +856,7 @@ export function installSecurityShowcaseSection() {
   publishAlarmHelpers();
   installOverrides();
   agganciaIModiSuMisura();
+  agganciaIlCodiceDeiModiSuMisura();
   agganciaLaFinestraRapida();
   if (!state.listeners) {
     state.listeners = true;
@@ -804,6 +873,7 @@ export function installSecurityShowcaseSection() {
       root.addEventListener?.(eventName, () => {
         installOverrides();
         agganciaIModiSuMisura();
+        agganciaIlCodiceDeiModiSuMisura();
         agganciaLaFinestraRapida();
         renderSecurity();
       });
