@@ -148,6 +148,7 @@ import {
   rifiutiConfigurati,
 } from "../core/rifiuti-model.js";
 import { nomeDellaRiga, parolaDelQuando } from "./rifiuti-section.js";
+import { disegnoDelBidone } from "../core/disegni-rifiuti.js";
 import { CHIAVE_VMC, entitaDellaVmc, letturaVmc, vmcDisegnabili, vmcParla } from "../core/vmc-model.js";
 import { avvisiAppenaAccesi } from "../core/avvisi-che-si-aprono.js";
 import { comandiMediaMarkup, sottoDelLettore, titoloDelLettore } from "./media-player-section.js";
@@ -4576,11 +4577,27 @@ function segnoDelRitiro(riga, dalCalendario = false) {
   return clean(riga?.icona) || "♻️";
 }
 
-/** I nomi dei prossimi ritiri, ognuno col suo segno davanti. */
-function nomiColSegno(prossimi) {
-  return prossimi
-    .map((riga) => `${riga.glyph ? `${riga.glyph} ` : ""}${riga.name}`)
-    .join(" · ");
+/* E il disegno vero, dove si puo' disegnare.
+ *
+ * «Le icone non sono quelle, non mettere cose che non appartengono al nostro
+ *  catalogo.»
+ *
+ * Il segno qui sopra e' una PAROLA, e serve dove ci sta solo testo: la
+ * didascalia della tessera e la fascia «come sta la casa», che scrivono quello
+ * che ricevono e basta. Dove invece si puo' disegnare — le caselle della
+ * finestra — si disegna il bidone nostro, quello di `core/disegni-rifiuti.js`:
+ * lo stesso della pagina Rifiuti, della scheda in configurazione e del foglio
+ * con cui si sceglie il materiale.
+ *
+ * Non sono due icone per la stessa cosa: e' la stessa cosa, e la parola e' il
+ * ripiego per i posti dove un disegno non entra. Il calendario che non ha
+ * saputo dire quale materiale non si disegna: un bidone qualunque direbbe una
+ * frazione che nessuno ha letto. */
+function disegnoDelRitiro(riga, dalCalendario = false) {
+  const materiale = clean(riga?.materiale);
+  if (!materiale) return "";
+  if (dalCalendario && materiale === "altro") return "";
+  return disegnoDelBidone(materiale, clean(riga?.colore), 18);
 }
 
 function rifiutiModel(states) {
@@ -4619,8 +4636,9 @@ function rifiutiModel(states) {
     giorni: riga.giorni,
   }));
   const primo = prossimi[0] || null;
-  const rigaDi = (riga, glyph) => ({
+  const rigaDi = (riga, glyph, disegno) => ({
     glyph,
+    disegno,
     name: nomeDellaRiga(riga) || t("Calendario dei ritiri", "Collection calendar"),
     entity: riga.entity,
     value: parolaDelQuando(riga),
@@ -4628,8 +4646,16 @@ function rifiutiModel(states) {
     giorni: riga.giorni,
   });
   const rows = [
-    ...lettura.righe.map((riga) => rigaDi(riga, segnoDelRitiro(riga))),
-    ...(lettura.calendario ? [rigaDi(lettura.calendario, segnoDelRitiro(lettura.calendario, true))] : []),
+    ...lettura.righe.map((riga) => rigaDi(riga, segnoDelRitiro(riga), disegnoDelRitiro(riga))),
+    ...(lettura.calendario
+      ? [
+          rigaDi(
+            lettura.calendario,
+            segnoDelRitiro(lettura.calendario, true),
+            disegnoDelRitiro(lettura.calendario, true),
+          ),
+        ]
+      : []),
   ];
   const primaRiga = lettura.prossimi[0] || dalCalendario[0] || null;
   return {
@@ -4637,14 +4663,34 @@ function rifiutiModel(states) {
     accent: "#22c55e",
     icon: "♻️",
     label: t("Rifiuti", "Waste"),
+    /* La faccia della tessera e' il bidone del prossimo ritiro (#384).
+     *
+     * «Nel widget visualizzare l'immagine del rifiuto oltre alla descrizione.»
+     * E poi: «le icone non sono quelle, non mettere cose che non appartengono
+     * al nostro catalogo». Il disegno e' quello di `core/disegni-rifiuti.js` —
+     * lo stesso della pagina, della scheda e del foglio con cui si sceglie il
+     * materiale — e sta dove la tessera ha gia' il suo posto per una faccia,
+     * al posto del simbolo del riciclo che dice solo «questa e' la tessera dei
+     * rifiuti», cosa che dice gia' il nome.
+     *
+     * Quando il prossimo ritiro non si sa, o arriva da un calendario che non
+     * ha detto quale frazione, il disegno non c'e' e resta il simbolo di
+     * sempre: meglio dire «rifiuti» che disegnare un bidone a caso. */
+    faccia: primaRiga ? disegnoDelRitiro(primaRiga, Boolean(primaRiga.dalCalendario)) : "",
+    facciaFirma: primaRiga ? `${clean(primaRiga.materiale)}~${clean(primaRiga.quando)}` : "",
     value: primaRiga ? parolaDelQuando(primaRiga) : "—",
     /* Quando il ritiro e' domani, la tessera dice il gesto e non solo il
      * giorno (#441): «Da mettere fuori stasera» e' quello che uno deve fare
      * adesso, mentre «Domani» lascia a chi legge il passo che conta. */
+    /* La didascalia e' parole: il disegno del ritiro lo porta la faccia della
+     * tessera, qui sopra, e un'emoji al suo fianco sarebbe un'icona che nostra
+     * non e'. */
     caption: primo
       ? primo.quando === "domani"
-        ? `${t("Da mettere fuori stasera", "Put it out tonight")} · ${nomiColSegno(prossimi)}`
-        : nomiColSegno(prossimi)
+        ? `${t("Da mettere fuori stasera", "Put it out tonight")} · ${prossimi
+            .map((riga) => riga.name)
+            .join(" · ")}`
+        : prossimi.map((riga) => riga.name).join(" · ")
       : t("Nessuna data in vista", "No date in sight"),
     ring: null,
     attiva: Boolean(primo && (primo.quando === "oggi" || primo.quando === "domani")),
@@ -6125,7 +6171,10 @@ function carteDalleRighe(widget) {
   return righe
     .filter((riga) => !riga.comando && typeof riga?.on !== "boolean")
     .map((riga) => ({
-      glyph: riga.glyph || "•",
+      /* Il disegno vince sulla parola: dove una riga porta il suo disegno — i
+       * bidoni dei rifiuti — la casella lo mostra, invece dell'emoji che serve
+       * dove ci sta solo testo. */
+      glyph: riga.disegno || riga.glyph || "•",
       valore: clean(riga.value) || (riga.raw == null ? "—" : String(riga.raw)),
       etichetta: clean(riga.name),
     }));
@@ -8918,6 +8967,14 @@ body.dark-theme :is(#dm-widgets,#dm-widget-popup){
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-arte{
   width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-chip:has(.dm-tile-arte){overflow:hidden;padding:0}
+/* Un disegno nostro dentro la pastiglia — il bidone del prossimo ritiro —
+   prende la misura della pastiglia, come farebbe un'icona: e' un disegno, non
+   una fotografia, quindi non la riempie da bordo a bordo. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-chip .dm-catalogo-art{display:grid;place-items:center;line-height:0}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-chip .dm-catalogo-art svg{width:26px;height:26px;display:block}
+@media(max-width:520px){
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-chip .dm-catalogo-art svg{width:23px;height:23px}
+}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-caption{
   flex:1;min-width:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8);
   white-space:nowrap;overflow:hidden;

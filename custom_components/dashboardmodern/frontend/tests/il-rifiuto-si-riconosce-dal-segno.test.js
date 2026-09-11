@@ -1,10 +1,16 @@
-/* «Nel widget visualizzare l'immagine del rifiuto oltre alla descrizione,
- *  sarebbe una chicca.» (#384)
+/* Il rifiuto si riconosce dal suo bidone (#384).
  *
- * Un ritiro si riconosce dal segno prima che dalla parola — il barattolo, la
- * bottiglia, la mela — e la tessera il segno ce l'aveva già: ogni riga lo porta
- * nella sua casella. Nella didascalia però restavano i soli nomi, e quella è la
- * riga che si legge passando.
+ * «Nel widget visualizzare l'immagine del rifiuto oltre alla descrizione,
+ *  sarebbe una chicca.» E poi, sulla prima stesura: «le icone non sono quelle,
+ *  non mettere cose che non appartengono al nostro catalogo».
+ *
+ * L'immagine di un rifiuto è il bidone che disegniamo noi — `disegni-rifiuti.js`
+ * — quello della pagina Rifiuti, della scheda in configurazione e del foglio con
+ * cui si sceglie il materiale. Un'emoji al suo posto è un'icona d'altri.
+ *
+ * Quindi: dove si può disegnare si disegna il bidone — la faccia della tessera
+ * e le caselle della finestra — e dove ci sta solo testo restano le parole. La
+ * didascalia della tessera è testo, e infatti dice i nomi e basta.
  *
  * Le prove si fanno disegnare la tessera vera, con le due strade da cui la gente
  * ci arriva: il turno scritto a mano sul frigo (#366) e l'entità calendario.
@@ -59,45 +65,55 @@ const calendario = (messaggio, avanti) => [
   },
 ];
 
-test("la didascalia porta il segno del materiale accanto al nome", () => {
+test("la faccia della tessera è il bidone del prossimo ritiro", () => {
   const rifiuti = tessera(turno(0, [["plastica"], [], [], [], [], [], [], [], [], [], [], [], [], []]));
   assert.equal(rifiuti.value, "Oggi");
-  assert.equal(rifiuti.caption, "🧴 Plastica");
-  assert.deepEqual(rifiuti.prossimi, [
-    { name: "Plastica", glyph: "🧴", quando: "oggi", giorni: 0 },
-  ]);
+  /* Il disegno è quello nostro, non un'emoji: si riconosce dal marchio che il
+   * catalogo dei disegni scrive addosso a ogni bidone. */
+  assert.match(rifiuti.faccia, /data-dm-art="bidone-plastica"/);
+  assert.match(rifiuti.faccia, /<svg/);
+  /* La firma dice a chi ridipinge quando la faccia è cambiata davvero. */
+  assert.equal(rifiuti.facciaFirma, "plastica~oggi");
 });
 
-test("con due ritiri lo stesso giorno ognuno porta il suo", () => {
+test("la didascalia è parole: lì un disegno non ci sta", () => {
   const rifiuti = tessera(
     turno(-1, [[], [], ["carta", "organico"], [], [], [], [], [], [], [], [], [], [], []]),
   );
   /* Domani la tessera dice prima il gesto — stasera va fuori — e poi cosa. */
-  assert.equal(rifiuti.caption, "Da mettere fuori stasera · 📦 Carta e cartone · 🍎 Organico");
+  assert.equal(rifiuti.caption, "Da mettere fuori stasera · Carta e cartone · Organico");
+  assert.doesNotMatch(rifiuti.caption, /[\u{1F300}-\u{1FAFF}]/u);
 });
 
-test("il segno è quello che la riga porta già nella sua casella", () => {
-  /* Non se ne inventa un altro: due segni per la stessa cosa sono il modo in
-   * cui uno dei due, un giorno, dice un materiale diverso dall'altro. */
+test("ogni casella della finestra porta il bidone del suo materiale", () => {
   const rifiuti = tessera(
     turno(0, [["vetro"], ["indifferenziato"], [], [], [], [], [], [], [], [], [], [], [], []]),
   );
-  const segni = rifiuti.rows.map((riga) => riga.glyph);
-  assert.deepEqual(segni, ["🍾", "🗑️"]);
-  assert.equal(rifiuti.prossimi[0].glyph, segni[0]);
+  const disegni = rifiuti.rows.map((riga) => riga.disegno);
+  assert.match(disegni[0], /data-dm-art="bidone-vetro"/);
+  assert.match(disegni[1], /data-dm-art="bidone-indifferenziato"/);
+  /* La parola resta accanto al disegno, per i posti dove ci sta solo testo: la
+   * fascia «come sta la casa» scrive quello che riceve e basta. */
+  assert.deepEqual(
+    rifiuti.rows.map((riga) => riga.glyph),
+    ["🍾", "🗑️"],
+  );
 });
 
-test("il calendario porta il segno del materiale quando il messaggio lo dice", () => {
+test("il calendario porta il bidone del materiale quando il messaggio lo dice", () => {
   const rifiuti = tessera(...calendario("Vetro", 2));
-  assert.equal(rifiuti.caption, "🍾 Vetro");
-  assert.equal(rifiuti.rows[0].glyph, "🍾");
+  assert.equal(rifiuti.caption, "Vetro");
+  assert.match(rifiuti.rows[0].disegno, /data-dm-art="bidone-vetro"/);
+  assert.match(rifiuti.faccia, /data-dm-art="bidone-vetro"/);
 });
 
-test("e quando non lo dice resta il segno del calendario, non un materiale inventato", () => {
-  /* «♻️ Altro» sarebbe una risposta, e lì una risposta non c'è: il messaggio
-   * non nomina nessuna frazione. */
+test("e quando non lo dice non si disegna un bidone a caso", () => {
+  /* Un bidone qualunque direbbe una frazione che nessuno ha letto: meglio il
+   * simbolo di sempre, che dice «rifiuti» e non mente. */
   const rifiuti = tessera(...calendario("Ritiro porta a porta", 2));
-  assert.equal(rifiuti.caption, "📅 Ritiro porta a porta");
+  assert.equal(rifiuti.caption, "Ritiro porta a porta");
+  assert.equal(rifiuti.rows[0].disegno, "");
+  assert.equal(rifiuti.faccia, "");
   assert.equal(rifiuti.rows[0].glyph, "📅");
 });
 
@@ -105,17 +121,18 @@ test("la frase parlata resta senza segni: si legge, non si guarda", () => {
   const rifiuti = tessera(turno(0, [["plastica"], [], [], [], [], [], [], [], [], [], [], [], [], []]));
   const frase = fraseDellaTessera(rifiuti, IT);
   assert.match(frase, /Plastica/);
-  assert.doesNotMatch(frase, /🧴/);
+  assert.doesNotMatch(frase, /🧴|<svg/);
   // Il nome della riga non se lo porta appiccicato: il segno viaggia a parte.
   assert.equal(rifiuti.prossimi[0].name, "Plastica");
 });
 
-test("senza niente in vista la didascalia non prova a mettere un segno", () => {
+test("senza niente in vista non si disegna niente", () => {
   /* Il calendario configurato ma che non risponde: non c'è nessuna data, e
    * nemmeno nessun materiale da disegnare. */
   const rifiuti = tessera({ righe: [], calendario: "calendar.rifiuti", turno: {} }, {});
   assert.equal(rifiuti.caption, "Nessuna data in vista");
   assert.deepEqual(rifiuti.prossimi, []);
+  assert.equal(rifiuti.faccia, "");
 });
 
 /* ── e anche mentre si sceglie, ma coi bidoni nostri ───────────────────── */

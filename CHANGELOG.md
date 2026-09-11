@@ -47,24 +47,28 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   nelle altre righe non si perde.
 
 
-- **Rifiuti: nel widget il segno del materiale accanto al nome** (#384)
+- **Rifiuti: nel widget il bidone del materiale, disegnato da noi** (#384)
 
   «Nel widget visualizzare l'immagine del rifiuto oltre alla descrizione, sarebbe
-  una chicca.»
+  una chicca.» E poi, sulla prima stesura: «le icone non sono quelle».
 
   Un ritiro si riconosce dal segno prima che dalla parola — il barattolo, la
-  bottiglia, la mela — e la tessera il segno ce l'aveva già: ogni riga lo porta
-  nella sua casella. Nella didascalia però restavano i soli nomi, e quella è la
-  riga che si legge passando: «Da mettere fuori stasera · Carta e cartone ·
-  Organico» diventa **«Da mettere fuori stasera · 📦 Carta e cartone · 🍎
-  Organico»**.
+  bottiglia, la mela. Il segno però dev'essere **il nostro**: i bidoni che
+  disegniamo noi, uno per materiale, gli stessi che si scelgono nella scheda dei
+  rifiuti. Un'emoji di sistema al loro posto è un'altra cosa che assomiglia alla
+  nostra, e due cose che si assomigliano in due posti sono già un errore.
 
-  Il segno non se lo inventa: è lo stesso che la riga mostra già, perché due segni
-  per la stessa cosa sono il modo in cui uno dei due, un giorno, dice un materiale
-  diverso dall'altro. Vale per tutte e due le strade — il turno scritto a mano sul
-  frigo (#366) e l'entità calendario — e quando il messaggio del calendario **non**
-  nomina nessuna frazione resta il segno del calendario: «♻️ Altro» sarebbe una
-  risposta, e lì una risposta non c'è.
+  Adesso il bidone sta dove il disegno ci sta davvero: sulla **faccia della
+  tessera** in Home — quella che prima portava un simbolo generico — e nelle
+  **caselle del popup**, una riga per ritiro. La didascalia torna alle sole
+  parole: è testo puro, lì un disegno non entra, e riempirla di emoji sarebbe
+  stato il rattoppo di prima.
+
+  Il bidone non se lo inventa: è quello del materiale della riga, e quando il
+  messaggio del calendario **non** nomina nessuna frazione non ne disegna
+  nessuno — un bidone qualunque sarebbe una risposta, e lì una risposta non c'è.
+  Vale per tutte e due le strade, il turno scritto a mano sul frigo (#366) e
+  l'entità calendario.
 
   La frase parlata della tessera resta senza segni: si legge, non si guarda.
 
