@@ -188,7 +188,7 @@ export function gaugePosition(value, min, max) {
     const span = Math.max(Math.abs(reading), 1) * 2;
     return Math.max(0, Math.min(100, (reading / span) * 100));
   }
-  const margin = (high - low) || 1;
+  const margin = high - low || 1;
   const from = low - margin;
   const to = high + margin;
   return Math.max(0, Math.min(100, ((reading - from) / (to - from)) * 100));
@@ -211,15 +211,18 @@ function qualityGauge(kind, label, unit, value, min, max) {
   const position = gaugePosition(reading, min, max) ?? 50;
   const low = num(min);
   const high = num(max);
-  const margin = low != null && high != null && high > low ? (high - low) || 1 : null;
-  const bandFrom = margin == null ? 25 : ((low - (low - margin)) / ((high + margin) - (low - margin))) * 100;
-  const bandTo = margin == null ? 75 : ((high - (low - margin)) / ((high + margin) - (low - margin))) * 100;
+  const margin = low != null && high != null && high > low ? high - low || 1 : null;
+  const bandFrom =
+    margin == null ? 25 : ((low - (low - margin)) / (high + margin - (low - margin))) * 100;
+  const bandTo =
+    margin == null ? 75 : ((high - (low - margin)) / (high + margin - (low - margin))) * 100;
   const verdictCopy = {
     ok: t("nella norma", "in range"),
     low: t("troppo basso", "too low"),
     high: t("troppo alto", "too high"),
   };
-  const range = low != null && high != null ? `${low} – ${high}` : t("nessuna soglia", "no threshold");
+  const range =
+    low != null && high != null ? `${low} – ${high}` : t("nessuna soglia", "no threshold");
   return `<div class="dm-gauge" data-dm-gauge="${esc(kind)}" data-verdict="${verdict}">
     <div class="dm-gauge-head">
       <span class="dm-gauge-label">${esc(label)}</span>
@@ -250,9 +253,12 @@ function syncGauge(gauge, reading, min, max, unit = "") {
   if (pin) pin.style.left = `${(gaugePosition(reading, min, max) ?? 50).toFixed(1)}%`;
   const note = gauge.querySelector("[data-dm-gauge-verdict]");
   if (note) {
-    note.textContent = verdict === "ok"
-      ? t("nella norma", "in range")
-      : verdict === "low" ? t("troppo basso", "too low") : t("troppo alto", "too high");
+    note.textContent =
+      verdict === "ok"
+        ? t("nella norma", "in range")
+        : verdict === "low"
+          ? t("troppo basso", "too low")
+          : t("troppo alto", "too high");
   }
 }
 
@@ -292,8 +298,12 @@ function poolSceneMarkup(config) {
       <span class="dm-pool-ladder"><i></i><i></i><i></i></span>
       <span class="dm-pool-ring"></span>
     </div>
-    ${config.tempEnt ? `<div class="dm-pool-readout"><span class="dm-pool-readout-value" data-dm-pool-temp>—</span>
-      <span class="dm-pool-readout-label">${esc(t("Temperatura acqua", "Water temperature"))}</span></div>` : ""}
+    ${
+      config.tempEnt
+        ? `<div class="dm-pool-readout"><span class="dm-pool-readout-value" data-dm-pool-temp>—</span>
+      <span class="dm-pool-readout-label">${esc(t("Temperatura acqua", "Water temperature"))}</span></div>`
+        : ""
+    }
     <div class="dm-pool-flags" data-dm-pool-flags></div>
   </section>`;
 }
@@ -303,12 +313,23 @@ function poolMarkup(config) {
     config.pumpEnt ? poolTile("pump", "🌀", t("Pompa", "Pump")) : "",
     config.heatEnt ? poolTile("heat", "🔥", t("Riscaldamento", "Heating")) : "",
     config.lightEnt ? poolTile("light", "💡", t("Luce", "Light")) : "",
-  ].filter(Boolean).join("");
+  ]
+    .filter(Boolean)
+    .join("");
 
   const quality = [
     qualityGauge("ph", "pH", "", entityNumber(config.phEnt), config.phMin, config.phMax),
-    qualityGauge("cl", t("Cloro / Redox", "Chlorine / Redox"), "", entityNumber(config.clEnt), config.clMin, config.clMax),
-  ].filter(Boolean).join("");
+    qualityGauge(
+      "cl",
+      t("Cloro / Redox", "Chlorine / Redox"),
+      "",
+      entityNumber(config.clEnt),
+      config.clMin,
+      config.clMax,
+    ),
+  ]
+    .filter(Boolean)
+    .join("");
 
   const filtration = config.pumpEnt
     ? `<article class="dm-pool-card dm-pool-filtration" data-dm-pool-filtration>
@@ -347,10 +368,16 @@ function poolMarkup(config) {
 
 function poolSignature(config) {
   return [
-    clean(config.tempEnt), clean(config.pumpEnt), clean(config.heatEnt), clean(config.lightEnt),
+    clean(config.tempEnt),
+    clean(config.pumpEnt),
+    clean(config.heatEnt),
+    clean(config.lightEnt),
     entityNumber(config.phEnt) == null ? "" : "ph",
     entityNumber(config.clEnt) == null ? "" : "cl",
-    clean(config.phMin), clean(config.phMax), clean(config.clMin), clean(config.clMax),
+    clean(config.phMin),
+    clean(config.phMax),
+    clean(config.clMin),
+    clean(config.clMax),
   ].join("|");
 }
 
@@ -380,10 +407,18 @@ function syncPoolValues(host, config, index) {
   const flags = host.querySelector("[data-dm-pool-flags]");
   if (flags) {
     const chips = [
-      pumping ? `<span class="dm-pool-flag dm-flow">${esc(t("Acqua in circolo", "Water circulating"))}</span>` : "",
-      heating ? `<span class="dm-pool-flag dm-heat">${esc(t("Riscaldamento attivo", "Heating on"))}</span>` : "",
-      lighting ? `<span class="dm-pool-flag dm-light">${esc(t("Luce accesa", "Light on"))}</span>` : "",
-    ].filter(Boolean).join("");
+      pumping
+        ? `<span class="dm-pool-flag dm-flow">${esc(t("Acqua in circolo", "Water circulating"))}</span>`
+        : "",
+      heating
+        ? `<span class="dm-pool-flag dm-heat">${esc(t("Riscaldamento attivo", "Heating on"))}</span>`
+        : "",
+      lighting
+        ? `<span class="dm-pool-flag dm-light">${esc(t("Luce accesa", "Light on"))}</span>`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("");
     scriviSeCambia(flags, chips);
   }
 
@@ -413,8 +448,12 @@ function syncPoolValues(host, config, index) {
     const note = filtration.querySelector("[data-dm-filter-note]");
     if (note) {
       const parts = [
-        config.autoHours ? t("Durata automatica: temperatura / 2", "Automatic duration: temperature / 2") : "",
-        config.enabled && config.filterStart ? `${t("Avvio programmato", "Scheduled start")} ${clean(config.filterStart)}` : "",
+        config.autoHours
+          ? t("Durata automatica: temperatura / 2", "Automatic duration: temperature / 2")
+          : "",
+        config.enabled && config.filterStart
+          ? `${t("Avvio programmato", "Scheduled start")} ${clean(config.filterStart)}`
+          : "",
       ].filter(Boolean);
       const summary = `${t("Oggi", "Today")} ${doneHours}h ${t("su", "of")} ${target}h`;
       note.textContent = [summary, ...parts].join(" · ");
@@ -488,7 +527,14 @@ function renderPool() {
   if (!pools.length) {
     if (state.poolSignature !== "empty" || !wrap.querySelector(".dm-scene-empty")) {
       state.poolSignature = "empty";
-      wrap.innerHTML = emptyState("🏊", t("Nessuna piscina configurata", "No pool configured"), t("Aggiungi le entità della piscina dall'editor per vedere la vasca.", "Add the pool entities from the editor to see the basin."));
+      wrap.innerHTML = emptyState(
+        "🏊",
+        t("Nessuna piscina configurata", "No pool configured"),
+        t(
+          "Aggiungi le entità della piscina dall'editor per vedere la vasca.",
+          "Add the pool entities from the editor to see the basin.",
+        ),
+      );
     }
     return;
   }
@@ -636,12 +682,17 @@ function zoneCardMarkup(zone, index) {
 
 function irrigationSignature(config) {
   const soil = soilMoisture(config);
-  return config.zones
-    .map((zone, index) => `${index}:${zoneName(zone)}:${clean(zone.entity)}:${zoneMinutes(zone)}:${clean(zone.room)}`)
-    .join("|")
-    // Il misuratore del terreno entra nel disegno quando il sensore comincia a
-    // rispondere: la firma deve accorgersene, o resterebbe fuori per sempre.
-    .concat(`|soil:${soil.entity}:${soil.reading != null}`);
+  return (
+    config.zones
+      .map(
+        (zone, index) =>
+          `${index}:${zoneName(zone)}:${clean(zone.entity)}:${zoneMinutes(zone)}:${clean(zone.room)}`,
+      )
+      .join("|")
+      // Il misuratore del terreno entra nel disegno quando il sensore comincia a
+      // rispondere: la firma deve accorgersene, o resterebbe fuori per sempre.
+      .concat(`|soil:${soil.entity}:${soil.reading != null}`)
+  );
 }
 
 function runningZoneIndex() {
@@ -689,10 +740,14 @@ function syncIrrigationValues(host, grid, config) {
     const chips = [];
     if (weather) {
       const temperature = num(weather.attributes?.temperature);
-      chips.push(`<span class="dm-irr-meta-chip">⛅ ${esc(weather.state)}${temperature == null ? "" : ` · ${temperature}°`}</span>`);
+      chips.push(
+        `<span class="dm-irr-meta-chip">⛅ ${esc(weather.state)}${temperature == null ? "" : ` · ${temperature}°`}</span>`,
+      );
     }
     if (rain != null) {
-      chips.push(`<span class="dm-irr-meta-chip" data-alert="${String(rain >= threshold)}">🌧️ ${t("pioggia", "rain")} ${Math.round(rain)}% · ${t("soglia", "threshold")} ${threshold}%</span>`);
+      chips.push(
+        `<span class="dm-irr-meta-chip" data-alert="${String(rain >= threshold)}">🌧️ ${t("pioggia", "rain")} ${Math.round(rain)}% · ${t("soglia", "threshold")} ${threshold}%</span>`,
+      );
     }
     /* Quanta ne e' caduta davvero (#478).
      *
@@ -707,9 +762,7 @@ function syncIrrigationValues(host, grid, config) {
     const pioggia = pioggiaDiOggi(states);
     if (pioggia) {
       const quanta =
-        pioggia.oggi === null
-          ? ""
-          : ` · ${t("oggi", "today")} ${pioggia.oggi.toFixed(1)} mm`;
+        pioggia.oggi === null ? "" : ` · ${t("oggi", "today")} ${pioggia.oggi.toFixed(1)} mm`;
       const parola =
         pioggia.chiave === "piove"
           ? t("sta piovendo", "raining now")
@@ -780,7 +833,14 @@ function renderIrrigation() {
   if (!config.zones.length) {
     if (state.irrigationSignature !== "empty" || !head.querySelector(".dm-scene-empty")) {
       state.irrigationSignature = "empty";
-      head.innerHTML = emptyState("🌱", t("Nessuna zona configurata", "No zone configured"), t("Aggiungi le zone di irrigazione dall'editor per vedere il prato.", "Add the irrigation zones from the editor to see the lawn."));
+      head.innerHTML = emptyState(
+        "🌱",
+        t("Nessuna zona configurata", "No zone configured"),
+        t(
+          "Aggiungi le zone di irrigazione dall'editor per vedere il prato.",
+          "Add the irrigation zones from the editor to see the lawn.",
+        ),
+      );
       grid.innerHTML = "";
     }
     return;
@@ -882,11 +942,15 @@ function installListeners() {
     }
   });
 
-  doc.addEventListener("click", (event) => {
-    if (event.target?.closest?.('.tab[data-tab="piscina"],.tab[data-tab="irrigazione"]')) {
-      root.queueMicrotask?.(schedule);
-    }
-  }, true);
+  doc.addEventListener(
+    "click",
+    (event) => {
+      if (event.target?.closest?.('.tab[data-tab="piscina"],.tab[data-tab="irrigazione"]')) {
+        root.queueMicrotask?.(schedule);
+      }
+    },
+    true,
+  );
 
   for (const eventName of [
     "dashboardmodern:legacy-ready",
@@ -895,11 +959,14 @@ function installListeners() {
     "dashboardmodern:state-changed",
     "dashboardmodern:persistence-restored",
     "dashboardmodern:config-reset",
-  ]) root.addEventListener?.(eventName, schedule);
+  ])
+    root.addEventListener?.(eventName, schedule);
 }
 
 function installStyles() {
-  installStyle("dm-pool-irrigation-scene-style", `
+  installStyle(
+    "dm-pool-irrigation-scene-style",
+    `
     /* Le schede delle piscine: le stesse dell'Energia, che stanno in cima alla
        loro pagina e si scorrono di lato quando le vasche sono tante. */
     .dm-pool-tabs{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 0 12px;padding:4px;scrollbar-width:none}
@@ -1251,11 +1318,30 @@ function installStyles() {
     .dm-irr-meta-chip{padding:5px 11px;border-radius:12px;background:var(--surface-2,#f1f5f9);color:var(--text,#0f172a);font-size:12px;font-weight:750}
     .dm-irr-meta-chip[data-alert="true"]{background:rgba(245,158,11,.16);color:#b45309}
     .dm-irr-skip{padding:9px 12px;border-radius:12px;background:rgba(245,158,11,.14);color:#b45309;font-size:12.5px;font-weight:800}
-    /* I tasti si allargano fino a un limite, poi vanno a capo: in colonna sul
-       telefono, in fila e di misura umana sul monitor grande. Con la griglia a
-       colonne uguali, su un ventisette erano tre tasti da mezzo metro. */
-    .dm-irr-actions{display:flex;flex-wrap:wrap;gap:8px}
-    .dm-irr-actions>.dm-btn{flex:1 1 146px;min-width:0;max-width:300px}
+    /* I tasti del programma, tutti della stessa misura, che vadano a capo o no.
+     *
+     * «Problema sempre presente sia su schermo 27 pollici che da iphone» (#479),
+     * dopo che la correzione precedente aveva rimpicciolito la pagina. La
+     * pagina non c'entrava: il guaio erano questi tre tasti, e ce l'avevano
+     * addosso.
+     *
+     * Erano in flex-wrap con "flex: 1 1 146px", cioe' «parti da 146 e cresci
+     * per riempire la riga». Su una riga sola la crescita si ferma a 300 e
+     * avanza un vuoto in coda; quando invece i tre vanno a capo due piu' uno —
+     * ed e' quello che succede su un telefono — il terzo si ritrova DA SOLO su
+     * una riga da riempire, e cresce fino a 300 mentre i due sopra stanno a
+     * 146. Un tasto largo il doppio degli altri, sotto di loro: e' il layout
+     * sbagliato della foto, in tutte e due le misure di schermo.
+     *
+     * Con la griglia le colonne le decide la griglia, non quanti tasti sono
+     * rimasti sull'ultima riga: auto-fit ne mette quante ce ne stanno, e minmax
+     * le tiene fra una misura leggibile e una che non diventa mai un tasto da
+     * mezzo metro — che era il difetto della versione ancora prima, quella a
+     * colonne uguali senza tetto. */
+    .dm-irr-actions{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(146px,220px));
+      gap:8px;justify-content:start}
+    .dm-irr-actions>.dm-btn{width:100%;min-width:0;max-width:none}
     .dm-irr-overflow{margin:0;color:var(--text-dim,#64748b);font-size:12px;font-weight:700;text-align:center}
 
     .dm-irr-card{box-sizing:border-box;display:grid;gap:9px;padding:14px;border:1px solid var(--card-border,#dbe4ee);border-radius:20px;background:var(--card-bg,#fff);box-shadow:var(--shadow-sculpted,0 6px 18px rgba(15,23,42,.07));transition:border-color .25s ease,box-shadow .25s ease,transform .25s ease}
@@ -1336,7 +1422,7 @@ function installStyles() {
       .dm-lawn{height:clamp(250px,62vw,320px);border-radius:24px}
       .dm-lawn-tree{display:none}
       .dm-zone-tag em{max-width:6em}
-      .dm-irr-actions>.dm-btn{flex-basis:112px}
+      .dm-irr-actions{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}
       #page-irrigazione #irr-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))!important}
     }
 
@@ -1356,7 +1442,8 @@ function installStyles() {
       .dm-lawn-blades i,.dm-zone-fan,.dm-zone-mist,.dm-zone-wet,.dm-zone-spray i,.dm-zone-splashes i{animation:none!important}
       .dm-zone[data-state="on"] .dm-zone-spray i{opacity:.9;transform:translate(0,-3em)}
     }
-  `);
+  `,
+  );
 }
 
 /* ── il sensore del terreno nel pannello di configurazione ───────────────── */
@@ -1454,11 +1541,13 @@ function casellaOrari() {
 }
 
 function salvaGliOrari(holder) {
-  const righe = [...holder.querySelectorAll("[data-dm-irr-ora]:not(.dm-irr-ora-testa)")].map((riga) => ({
-    ora: clean(riga.querySelector('[data-campo="ora"]')?.value),
-    minuti: num(riga.querySelector('[data-campo="minuti"]')?.value),
-    seSottoA: num(riga.querySelector('[data-campo="seSottoA"]')?.value),
-  }));
+  const righe = [...holder.querySelectorAll("[data-dm-irr-ora]:not(.dm-irr-ora-testa)")].map(
+    (riga) => ({
+      ora: clean(riga.querySelector('[data-campo="ora"]')?.value),
+      minuti: num(riga.querySelector('[data-campo="minuti"]')?.value),
+      seSottoA: num(riga.querySelector('[data-campo="seSottoA"]')?.value),
+    }),
+  );
   scriviGliOrari(righe);
 }
 
@@ -1501,7 +1590,8 @@ function disegnaLeRighe(holder, righe = orariSalvati()) {
     ];
     for (const [selettore, valore] of valori) {
       const campo = riga.querySelector(selettore);
-      if (campo && doc.activeElement !== campo && campo.value !== String(valore)) campo.value = String(valore);
+      if (campo && doc.activeElement !== campo && campo.value !== String(valore))
+        campo.value = String(valore);
     }
   });
 }
@@ -1532,7 +1622,9 @@ function ensureSoilFields() {
    * successivo del suo campo, e un holder infilato in mezzo la separa per
    * sempre dalla riga (la veste uniforme cerca la lente proprio li'). Se il
    * campo non ha una riga sua, ci si mette dopo la lente. */
-  const lente = rain.nextElementSibling?.matches?.(".dm-entity-picker") ? rain.nextElementSibling : null;
+  const lente = rain.nextElementSibling?.matches?.(".dm-entity-picker")
+    ? rain.nextElementSibling
+    : null;
   const ancora = rain.closest("label, .ed-slot, .dm-entity-picker-row") || lente || rain;
   let holder = body.querySelector("[data-dm-irr-soil-fields]");
   if (!holder) {
@@ -1668,7 +1760,8 @@ function installProgramGate() {
             pioggia.chiave === "piove"
               ? t("sta piovendo", "raining now")
               : t("ha gia' piovuto abbastanza", "enough rain already");
-          if (root.CD_IRR) root.CD_IRR.skip = `☔ ${parola} — ${t("programma saltato", "program skipped")}`;
+          if (root.CD_IRR)
+            root.CD_IRR.skip = `☔ ${parola} — ${t("programma saltato", "program skipped")}`;
           try {
             root.renderIrrigazione?.();
           } catch (_error) {}
@@ -1778,7 +1871,8 @@ function segnaLaCorsa(orario, giorno) {
     salvate[orario.chiave] = giorno;
     // Le giornate vecchie non dicono piu' niente: resta solo l'oggi, e la
     // chiave non cresce di un rigo al giorno per sempre.
-    for (const chiave of Object.keys(salvate)) if (salvate[chiave] !== giorno) delete salvate[chiave];
+    for (const chiave of Object.keys(salvate))
+      if (salvate[chiave] !== giorno) delete salvate[chiave];
     root.localStorage?.setItem?.(ORARI_RUN_KEY, JSON.stringify(salvate));
   } catch (_error) {}
 }

@@ -9,6 +9,42 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Irrigazione: i tre tasti del programma non erano della stessa misura** (#479)
+
+  «Problema sempre presente sia su schermo 27 pollici che da iphone», dopo che la
+  correzione precedente aveva rimpicciolito la pagina. La pagina non c'entrava:
+  il guaio era nei tre tasti, e ce l'avevano addosso.
+
+  Erano impostati per crescere e riempire la riga, fino a un tetto. Su una riga
+  sola la crescita si ferma al tetto e avanza un vuoto in coda; quando invece i
+  tre vanno a capo due più uno — ed è quello che succede su un telefono — il
+  terzo resta **da solo** su una riga da riempire e cresce fino al tetto, mentre
+  i due sopra restano alla misura minima. Un tasto largo il doppio degli altri,
+  sotto di loro.
+
+  Adesso le colonne le decide la griglia, non quanti tasti sono rimasti
+  sull'ultima riga: tutti della stessa misura, con un minimo leggibile sul
+  telefono e un tetto che non li fa mai diventare tasti da mezzo metro.
+
+- **Rifiuti: il sensore con l'elenco dei ritiri si legge anche scritto in una riga** (#443)
+
+  «Purtroppo anche dopo l'aggiornamento ancora non legge il sensore.»
+
+  L'elenco la plancia lo sapeva già leggere, ma solo dalla casella in fondo,
+  quella del calendario. Chi ha **un** sensore per tutta la raccolta — quello che
+  porta tutti i ritiri negli attributi — lo scrive dove c'è scritto «Sensore o
+  calendario del ritiro», cioè in una riga: è la casella che si incontra per
+  prima e dice proprio il suo nome.
+
+  Lì quel sensore veniva letto come una riga qualunque: si cercava una data nel
+  suo stato, non c'era, e restava un trattino muto. Il suo elenco non lo guardava
+  nessuno.
+
+  Adesso lo si guarda, e solo quando serve: una riga da cui una data esce resta
+  la riga che è — lì il materiale l'ha scelto chi configura e la data c'è. Una
+  riga da cui non esce niente, prima di rassegnarsi al trattino, chiede al
+  sensore se per caso porta un elenco.
+
 - **Wallbox: l'anno leggeva l'aiutante invece del sensore da cui è fatto**
 
   «Ma non è assolutamente vero, nel database i dati ci sono.» E infatti ci sono.

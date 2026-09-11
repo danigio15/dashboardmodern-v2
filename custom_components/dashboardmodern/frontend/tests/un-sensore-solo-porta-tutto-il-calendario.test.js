@@ -226,3 +226,94 @@ test("un sensore col materiale dedotto zittisce il calendario su quel materiale"
   /* Il vetro invece il sensore non ce l'ha, e il calendario lo porta. */
   assert.ok(materiali(lettura.righe).includes("vetro"));
 });
+
+/* «Purtroppo anche dopo l'aggiornamento ancora non legge il sensore» (#443),
+ * con `sensor.savno_conegliano_prossimi_ritiri` nella foto.
+ *
+ * L'elenco la plancia lo sapeva già leggere — ma solo dalla casella in fondo,
+ * quella del calendario. Chi ha UN sensore per tutta la raccolta lo scrive dove
+ * c'è scritto «Sensore o calendario del ritiro», cioè in una riga: è la casella
+ * che si incontra per prima, e dice proprio il suo nome.
+ *
+ * Lì quel sensore veniva letto come una riga qualunque — si cercava una data
+ * nel suo stato, non c'era, e restava un trattino muto — mentre il suo elenco,
+ * con dentro tutti i ritiri, non lo guardava nessuno.
+ */
+test("un sensore con l'elenco messo in una riga viene letto lo stesso", () => {
+  const stati = {
+    "sensor.savno_conegliano_prossimi_ritiri": {
+      state: "Prossimi ritiri",
+      attributes: {
+        friendly_name: "SAVNO Conegliano prossimi ritiri",
+        prossimi_ritiri: [
+          { date: "2026-09-12", type: "Secco" },
+          { date: "2026-09-14", type: "Plastica e lattine" },
+          { date: "2026-09-16", type: "Organico" },
+        ],
+      },
+    },
+  };
+  const lettura = letturaRifiuti(
+    { righe: [{ entity: "sensor.savno_conegliano_prossimi_ritiri" }] },
+    stati,
+    (value) => value,
+    Date.parse("2026-09-11T08:00:00"),
+  );
+  const materiali = lettura.righe.map((riga) => riga.materiale);
+  // «Secco» è il nome che usa il comune per l'indifferenziato: lo traduce
+  // `materialeDalNome`, come per gli eventi del calendario.
+  assert.ok(materiali.includes("indifferenziato"), "il secco esce dall'elenco");
+  assert.ok(materiali.includes("plastica"));
+  assert.ok(materiali.includes("organico"));
+  assert.equal(
+    lettura.righe.filter((riga) => riga.muto).length,
+    0,
+    "e la riga non resta il trattino muto di prima",
+  );
+});
+
+test("una riga da cui una data esce davvero resta la riga che è", () => {
+  /* Lì il materiale l'ha scelto chi configura e la data c'è: non si va a
+   * cercare nessun elenco, e nessuno si ritrova bidoni che non aveva messo. */
+  const stati = {
+    "sensor.plastica": {
+      state: "2026-09-14",
+      attributes: {
+        friendly_name: "Plastica",
+        prossimi_ritiri: [{ date: "2026-09-12", type: "Secco" }],
+      },
+    },
+  };
+  const lettura = letturaRifiuti(
+    { righe: [{ entity: "sensor.plastica", materiale: "plastica" }] },
+    stati,
+    (value) => value,
+    Date.parse("2026-09-11T08:00:00"),
+  );
+  assert.deepEqual(
+    lettura.righe.map((riga) => riga.materiale),
+    ["plastica"],
+  );
+});
+
+test("lo stesso materiale non esce due volte da due elenchi", () => {
+  /* Quello scritto in una riga l'ha scelto chi configura, e comanda su quello
+   * della casella in fondo. */
+  const elenco = (nome) => ({
+    state: "Prossimi ritiri",
+    attributes: {
+      friendly_name: nome,
+      prossimi_ritiri: [{ date: "2026-09-12", type: "Secco" }],
+    },
+  });
+  const lettura = letturaRifiuti(
+    {
+      righe: [{ entity: "sensor.in_riga" }],
+      calendario: "sensor.in_fondo",
+    },
+    { "sensor.in_riga": elenco("In riga"), "sensor.in_fondo": elenco("In fondo") },
+    (value) => value,
+    Date.parse("2026-09-11T08:00:00"),
+  );
+  assert.equal(lettura.righe.filter((riga) => riga.materiale === "indifferenziato").length, 1);
+});
