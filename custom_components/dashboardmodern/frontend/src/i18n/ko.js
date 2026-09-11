@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — 설정됨",
+  "Player controls": "플레이어 제어",
   "\" and its loads?": "\" 그룹과 그 부하를 삭제할까요?",
   "\"Long-lived access tokens\"": "\"장기 액세스 토큰\"",
   "\"Room - Detail\"": "\"방 - 상세\"",

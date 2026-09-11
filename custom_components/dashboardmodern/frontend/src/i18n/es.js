@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — configurada",
+  "Player controls": "Controles del reproductor",
   "\" and its loads?": "\" y sus cargas?",
   "\"Long-lived access tokens\"": "\"Tokens de acceso de larga duración\"",
   "\"Room - Detail\"": "\"Habitación - Detalle\"",

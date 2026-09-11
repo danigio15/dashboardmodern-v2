@@ -21,6 +21,7 @@
  * ripartire — e non `toggle`, che spegnerebbe la cassa.
  */
 import { allStates, clean, doc, installStyle, root, t } from "./shared.js";
+import { apriIlLettore, letturaDiUnLettore } from "./media-player-section.js";
 
 const KEY = "__DASHBOARDMODERN_MEDIA_AZIONI__";
 const STYLE_ID = "dm-media-azioni-style";
@@ -59,6 +60,28 @@ export function eUnLettore(azione) {
   return entitaDellAzione(azione).startsWith("media_player.");
 }
 
+/* Cosa scrivere sul tasto, oltre al nome dell'apparecchio (#460).
+ *
+ * «Il lettore che ho messo fra le Azioni rapide mostra solo la copertina di
+ * sfondo, il simbolo della cassa e il nome: dovrebbe dire il brano e
+ * l'artista.»
+ *
+ * Le due righe compaiono solo quando c'è qualcosa da dire. Senza brano il
+ * titolo sarebbe la parola di stato — «Spento» — e la riga sotto sarebbe
+ * l'entità: due righe che ripetono quello che il tasto dice già, su un tasto
+ * grande come un pollice. Quando non c'è niente in riproduzione il tasto resta
+ * quello di sempre.
+ *
+ * È una funzione pura apposta: cosa c'è scritto sul tasto si prova senza un
+ * documento davanti.
+ */
+export function scrittaDelTasto(riga) {
+  const titolo = clean(riga?.titolo) || clean(riga?.sorgente) || clean(riga?.applicazione);
+  if (!titolo) return { titolo: "", sotto: "" };
+  const sotto = [riga?.artista, riga?.album].map(clean).filter(Boolean).join(" · ");
+  return { titolo, sotto };
+}
+
 /* ── la copertina addosso al tasto ────────────────────────────────────── */
 
 export function vestiLeAzioni() {
@@ -76,10 +99,12 @@ export function vestiLeAzioni() {
         delete tasto.dataset.dmQaMedia;
         delete tasto.dataset.dmQaArte;
         tasto.style.removeProperty("--dm-qa-arte");
+        spogliaIlTasto(tasto);
       }
       return;
     }
-    const stato = states?.[entitaDellAzione(azione)] || null;
+    const entity = entitaDellAzione(azione);
+    const stato = states?.[entity] || null;
     const copertina = clean(stato?.attributes?.entity_picture);
     const suona = clean(stato?.state).toLowerCase() === "playing";
     tasto.dataset.dmQaMedia = copertina ? "arte" : "spoglio";
@@ -92,9 +117,72 @@ export function vestiLeAzioni() {
       if (copertina) tasto.style.setProperty("--dm-qa-arte", `url("${copertina}")`);
       else tasto.style.removeProperty("--dm-qa-arte");
     }
+    scriviIlBrano(tasto, entity, states);
+    metteIPuntini(tasto, entity);
     vestiti += 1;
   });
   return vestiti;
+}
+
+/* Un tasto che non è più un lettore torna a essere un tasto: quello che gli
+ * avevamo attaccato se ne va con lui. Succede davvero — basta cambiare
+ * l'azione al suo posto nell'elenco. */
+function spogliaIlTasto(tasto) {
+  tasto.querySelector(":scope > .dm-qa-media-testo")?.remove();
+  tasto.querySelector(":scope > .dm-qa-media-menu")?.remove();
+}
+
+/* Le due righe, scritte solo quando cambiano.
+ *
+ * Da fermi non si scrive niente: è la regola che ha risolto il campo che non
+ * si lasciava compilare (#494) e il mini PC che si scaldava (#223). Un tasto
+ * che si riscrive addosso dodici volte al secondo è lo stesso difetto in un
+ * altro punto. */
+function scriviIlBrano(tasto, entity, states) {
+  const { titolo, sotto } = scrittaDelTasto(letturaDiUnLettore(entity, states));
+  let blocco = tasto.querySelector(":scope > .dm-qa-media-testo");
+  if (!titolo) {
+    blocco?.remove();
+    return false;
+  }
+  if (!blocco) {
+    blocco = doc.createElement("span");
+    blocco.className = "dm-qa-media-testo";
+    blocco.innerHTML = '<b class="dm-qa-media-titolo"></b><small class="dm-qa-media-sotto"></small>';
+    tasto.append(blocco);
+  }
+  const riga = blocco.querySelector(".dm-qa-media-titolo");
+  const seconda = blocco.querySelector(".dm-qa-media-sotto");
+  if (riga && riga.textContent !== titolo) riga.textContent = titolo;
+  if (seconda && seconda.textContent !== sotto) seconda.textContent = sotto;
+  if (seconda) seconda.hidden = !sotto;
+  return true;
+}
+
+/* I tre puntini: dentro non c'è un elenco, ci sono i comandi. Toccare il tasto
+ * mette in pausa o fa ripartire — il gesto corto, quello che si vuole nove
+ * volte su dieci; i puntini aprono la finestra con tutto il resto. */
+function metteIPuntini(tasto, entity) {
+  let puntini = tasto.querySelector(":scope > .dm-qa-media-menu");
+  if (!puntini) {
+    puntini = doc.createElement("button");
+    puntini.type = "button";
+    puntini.className = "dm-qa-media-menu";
+    puntini.textContent = "⋮";
+    /* Il tasto del vassoio è un `div` con il suo `onclick`: senza fermare qui
+     * il tocco, i puntini metterebbero in pausa E aprirebbero la finestra. */
+    puntini.addEventListener("click", (evento) => {
+      evento.stopPropagation();
+      evento.preventDefault();
+      apriIlLettore(clean(puntini.dataset.dmQaMenu));
+    });
+    tasto.append(puntini);
+  }
+  if (puntini.dataset.dmQaMenu !== entity) puntini.dataset.dmQaMenu = entity;
+  const etichetta = t("Comandi del lettore", "Player controls");
+  if (puntini.getAttribute("aria-label") !== etichetta)
+    puntini.setAttribute("aria-label", etichetta);
+  return true;
 }
 
 /* ── l'offerta nella tendina della configurazione ─────────────────────── */
@@ -210,6 +298,40 @@ function installStyles() {
         box-shadow:none!important;filter:none!important;color:#f8fafc!important}
       .qa-btn[data-dm-qa-media="arte"] .icon::after{display:none!important}
       .qa-btn[data-dm-qa-media]{position:relative}
+      /* Il brano e chi lo suona, sotto il nome dell'apparecchio (#460).
+         Due righe corte, quella di sotto più piccola e più spenta: è la stessa
+         coppia che usa il resto della plancia — la cosa, e poi il suo
+         qualificatore. Su una copertina il testo è già chiaro, perché il velo
+         del tasto lo tiene leggibile. */
+      .qa-btn .dm-qa-media-testo{
+        display:flex;flex-direction:column;align-items:center;gap:1px;
+        width:100%;min-width:0;margin-top:-4px;
+        text-transform:none;letter-spacing:.1px;line-height:1.25}
+      .qa-btn .dm-qa-media-titolo{
+        display:block;max-width:100%;font-size:12px;font-weight:800;
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .qa-btn .dm-qa-media-sotto{
+        display:block;max-width:100%;font-size:10.5px;font-weight:600;opacity:.74;
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      /* I tre puntini, in alto a destra: aprono la finestra con tutti i
+         comandi del lettore. Non sono un secondo tasto per la stessa cosa —
+         toccare il tasto mette in pausa, che è un altro gesto. */
+      .qa-btn .dm-qa-media-menu{
+        position:absolute;top:4px;right:4px;z-index:3;
+        display:grid;place-items:center;width:30px;height:30px;padding:0;
+        border:0;background:transparent;cursor:pointer;
+        font:inherit;font-size:17px;font-weight:900;line-height:1;letter-spacing:0;
+        color:inherit;opacity:.66}
+      .qa-btn .dm-qa-media-menu:hover{opacity:1}
+      .qa-btn .dm-qa-media-menu:focus-visible{
+        outline:2px solid var(--accent,#0ea5e9);outline-offset:2px;border-radius:9px}
+      .qa-btn[data-dm-qa-media="arte"] .dm-qa-media-menu{color:#f8fafc;opacity:.86}
+      /* Con la copertina addosso, il disco di smalto col simbolo della cassa
+         non dice più niente che la fotografia non dica meglio: è un quadrato di
+         colore in mezzo alla copertina. «Remove the speaker icon». */
+      .qa-btn[data-dm-qa-media="arte"] .icon,
+      html body #page-home .dm-vassoio #qa-grid .qa-btn[data-dm-qa-media="arte"] .icon{
+        display:none!important}
       /* Il puntino che dice «sta suonando»: piccolo, in un angolo, fermo.
          Un'onda che pulsa su ogni tasto sarebbe la stessa animazione infinita
          che si e' appena tolta da dietro le finestre. */

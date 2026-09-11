@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — 已配置",
+  "Player controls": "播放器控制",
   "\" and its loads?": "”及其负载吗？",
   "\"Long-lived access tokens\"": "“长期访问令牌”",
   "\"Room - Detail\"": "“房间 - 细节”",

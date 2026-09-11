@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — konfiguriert",
+  "Player controls": "Player-Steuerung",
   "\" and its loads?": "\" samt seiner Verbraucher löschen?",
   "\"Long-lived access tokens\"": "\"Langlebige Zugriffstokens\"",
   "\"Room - Detail\"": "\"Raum - Detail\"",

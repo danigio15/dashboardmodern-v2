@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — مُهيّأة",
+  "Player controls": "عناصر التحكم بالمشغّل",
   "\" and its loads?": "\" وأحماله؟",
   "\"Long-lived access tokens\"": "\"رموز الوصول طويلة الأمد\"",
   "\"Room - Detail\"": "\"الغرفة - التفصيل\"",

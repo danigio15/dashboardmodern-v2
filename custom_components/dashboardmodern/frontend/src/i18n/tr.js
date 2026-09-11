@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — yapılandırıldı",
+  "Player controls": "Oynatıcı denetimleri",
   "\" and its loads?": "\" grubu ve yükleri silinsin mi?",
   "\"Long-lived access tokens\"": "\"Uzun ömürlü erişim jetonları\"",
   "\"Room - Detail\"": "\"Oda - Ayrıntı\"",

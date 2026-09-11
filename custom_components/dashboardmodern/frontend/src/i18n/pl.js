@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — skonfigurowana",
+  "Player controls": "Sterowanie odtwarzaczem",
   "\" and its loads?": "\" wraz z jej odbiornikami?",
   "\"Long-lived access tokens\"": "\"Tokeny dostępu o długiej ważności\"",
   "\"Room - Detail\"": "\"Pokój - Szczegół\"",

@@ -20,6 +20,7 @@
 import {
   CHIAVE_MEDIA,
   comandoDelLettore,
+  letturaDelLettore,
   lettureDeiLettori,
   lettoriConfigurati,
   orologio,
@@ -43,7 +44,7 @@ import {
 
 const KEY = "__DASHBOARDMODERN_MEDIA_PLAYER__";
 const STYLE_ID = "dm-media-player-style";
-const state = (root[KEY] ||= { installed: false, frame: 0, firma: "", battito: 0 });
+const state = (root[KEY] ||= { installed: false, frame: 0, firma: "", battito: 0, aperto: "" });
 
 export const MEDIA_TAB = "media";
 export const PAGINA_MEDIA = "page-media";
@@ -305,6 +306,40 @@ function lettureAccantoMarkup(riga) {
     .join("")}</div>`;
 }
 
+/* Cosa deve cambiare perche' una card si rifaccia.
+ *
+ * Sta in una funzione sola perche' le card disegnate sono due: quelle della
+ * pagina Musica e quella dentro la finestra di un lettore solo (#460). Due
+ * elenchi di cose da guardare diventerebbero due elenchi diversi al primo
+ * campo aggiunto, e una delle due card resterebbe indietro. */
+function firmaDelLettore(riga) {
+  return [
+    riga.entity,
+    riga.nome,
+    riga.stato,
+    riga.titolo,
+    riga.artista,
+    riga.album,
+    riga.sorgente,
+    riga.sorgenti.join("~"),
+    riga.mutato,
+    Math.round((riga.volume ?? 0) * 100),
+    Math.round(riga.durata ?? 0),
+    Boolean(riga.copertina),
+    Object.values(riga.puo).join(""),
+    /* Quello che sta accanto (#451): i comandi con la loro scelta, le letture
+     * col loro numero. La card e' piccola e si rifa' intera, come gia' fa
+     * quando cambia il brano. */
+    (riga.comandi || [])
+      .map(
+        (voce) =>
+          `${voce.entity}:${voce.name}:${voce.available}:${voce.acceso}:${voce.scelta}:${voce.opzioni.join("/")}`,
+      )
+      .join("+"),
+    (riga.letture || []).map((lettura) => `${lettura.entity}:${lettura.testo}`).join("+"),
+  ].join("|");
+}
+
 function cardMarkup(riga) {
   /* «Ha una copertina» sta scritto sulla card e non si deduce con `:has()`:
    * quella regola sui WebView di qualche telefono non c'e', e la card sarebbe
@@ -361,14 +396,17 @@ function ferma() {
 }
 
 function batti(righe) {
-  const serve = paginaAperta() && righe.some((riga) => riga.suona && posizioneOra(riga));
+  const aperta = state.aperto ? letturaDiUnLettore(state.aperto) : null;
+  const serve =
+    (paginaAperta() && righe.some((riga) => riga.suona && posizioneOra(riga))) ||
+    Boolean(aperta?.suona && posizioneOra(aperta));
   if (!serve) {
     ferma();
     return;
   }
   if (state.battito) return;
   state.battito = root.setInterval?.(() => {
-    if (!paginaAperta()) {
+    if (!paginaAperta() && !state.aperto) {
       ferma();
       return;
     }
@@ -377,12 +415,27 @@ function batti(righe) {
 }
 
 function avanzaIlTempo() {
-  const nodo = doc?.querySelector?.(`#${PAGINA_MEDIA} .dm-mp-wrap`);
-  if (!nodo) return;
-  for (const riga of letture()) {
+  /* Le card disegnate sono in due posti: la pagina Musica e la finestra di un
+   * lettore solo. La barra del tempo avanza in tutti e due, o nella finestra
+   * resterebbe ferma su un brano che invece va avanti. */
+  const dove = [
+    doc?.querySelector?.(`#${PAGINA_MEDIA} .dm-mp-wrap`),
+    doc?.getElementById?.(POPUP_ID),
+  ].filter(Boolean);
+  if (!dove.length) return;
+  for (const riga of letture()) avanzaLaBarra(dove, riga);
+  if (state.aperto) {
+    const aperta = letturaDiUnLettore(state.aperto);
+    if (aperta) avanzaLaBarra(dove, aperta);
+  }
+}
+
+function avanzaLaBarra(dove, riga) {
+  const punto = posizioneOra(riga);
+  if (!punto) return;
+  for (const nodo of dove) {
     const card = nodo.querySelector(`[data-dm-mp-card="${CSS.escape(riga.entity)}"]`);
-    const punto = posizioneOra(riga);
-    if (!card || !punto) continue;
+    if (!card) continue;
     const ora = card.querySelector("[data-dm-mp-ora]");
     const avanza = card.querySelector("[data-dm-mp-avanza]");
     const scritto = orologio(punto.secondi);
@@ -417,33 +470,7 @@ export function renderMediaPlayer() {
   });
   const nodo = pagina.querySelector(".dm-mp-wrap");
   if (!nodo) return false;
-  const firma = [
-    activeLocale(),
-    ...righe.map((riga) =>
-      [
-        riga.entity,
-        riga.nome,
-        riga.stato,
-        riga.titolo,
-        riga.artista,
-        riga.album,
-        riga.sorgente,
-        riga.sorgenti.join("~"),
-        riga.mutato,
-        Math.round((riga.volume ?? 0) * 100),
-        Math.round(riga.durata ?? 0),
-        Boolean(riga.copertina),
-        Object.values(riga.puo).join(""),
-        /* Quello che sta accanto (#451): i comandi con la loro scelta, le
-         * letture col loro numero. La card è piccola e si rifà intera, come
-         * già fa quando cambia il brano. */
-        (riga.comandi || [])
-          .map((voce) => `${voce.entity}:${voce.name}:${voce.available}:${voce.acceso}:${voce.scelta}:${voce.opzioni.join("/")}`)
-          .join("+"),
-        (riga.letture || []).map((lettura) => `${lettura.entity}:${lettura.testo}`).join("+"),
-      ].join("|"),
-    ),
-  ].join("§");
+  const firma = [activeLocale(), ...righe.map(firmaDelLettore)].join("§");
   if (state.firma !== firma || !nodo.querySelector(".dm-mp-card")) {
     state.firma = firma;
     nodo.innerHTML = righe.length
@@ -455,6 +482,106 @@ export function renderMediaPlayer() {
   posaLeCopertine(nodo, righe);
   avanzaIlTempo();
   batti(righe);
+  return true;
+}
+
+/* ── la finestra di un lettore solo (#460) ───────────────────────
+ *
+ * «Il lettore che ho messo fra le Azioni rapide mostra solo la copertina di
+ * sfondo, il simbolo della cassa in mezzo e il nome dell'apparecchio. Dovrebbe
+ * dire il brano, l'artista, e avere i tre puntini in alto a destra che aprono
+ * una finestra con tutti i comandi.»
+ *
+ * I tre puntini aprono questa. E dentro non c'è un secondo lettore disegnato da
+ * capo: c'è la STESSA card della pagina Musica, con i suoi comandi, il suo
+ * volume, la sua sorgente e quello che l'integrazione pubblica accanto. Il
+ * disegno è uno solo e chi lo ascolta è il gestore che sta sul documento,
+ * quindi i tasti funzionano qui come funzionano di là — che è la ragione per
+ * cui quel gestore sta sul documento e non sulla pagina.
+ */
+const POPUP_ID = "dm-mp-popup";
+
+/**
+ * La lettura di un lettore solo.
+ *
+ * Se quel lettore è fra quelli configurati si usa la sua voce — così la card
+ * porta anche i comandi e le letture che gli sono stati messi accanto (#451);
+ * se non lo è, si legge lo stesso, con quello che Home Assistant dice di lui.
+ */
+export function letturaDiUnLettore(entity, states = allStates()) {
+  const cercato = clean(entity);
+  if (!cercato) return null;
+  const risolvi = root.resolveEntity || ((valore) => valore);
+  const scritta = (valore) => {
+    try {
+      return clean(risolvi(valore) || valore);
+    } catch (_errore) {
+      return clean(valore);
+    }
+  };
+  const voce = lettoriConfigurati(configurazione()).find(
+    (riga) => scritta(riga.entity) === cercato,
+  );
+  return letturaDelLettore(voce || { entity: cercato }, states, risolvi);
+}
+
+function popupDelLettore() {
+  if (!doc?.body) return null;
+  const gia = doc.getElementById(POPUP_ID);
+  if (gia) return gia;
+  const host = doc.createElement("div");
+  host.id = POPUP_ID;
+  host.hidden = true;
+  /* Fuori dalla card si chiude, come in tutte le altre finestre della
+   * plancia: il tocco sul fondo è il gesto che tutti provano per primo. */
+  host.addEventListener("click", (evento) => {
+    if (evento.target === host || evento.target?.closest?.("[data-dm-mp-chiudi]"))
+      chiudiIlLettore();
+  });
+  doc.body.append(host);
+  return host;
+}
+
+/** Apre la finestra di un lettore. Torna `false` se non c'è niente da aprire. */
+export function apriIlLettore(entity) {
+  const riga = letturaDiUnLettore(entity);
+  if (!riga) return false;
+  state.aperto = riga.entity;
+  return disegnaIlLettoreAperto();
+}
+
+/** Richiude la finestra. Torna `false` se non era aperta. */
+export function chiudiIlLettore() {
+  if (!state.aperto) return false;
+  state.aperto = "";
+  const host = doc?.getElementById?.(POPUP_ID);
+  if (host) {
+    host.hidden = true;
+    host.innerHTML = "";
+    delete host.dataset.dmMpFirma;
+  }
+  return true;
+}
+
+/* Si ridisegna solo quando cambia qualcosa: la finestra resta aperta mentre il
+ * brano va avanti, e riscriverla a ogni giro di stati vorrebbe dire strapparla
+ * di sotto al dito di chi sta muovendo il volume. */
+function disegnaIlLettoreAperto() {
+  if (!state.aperto) return false;
+  const riga = letturaDiUnLettore(state.aperto);
+  const host = popupDelLettore();
+  if (!host || !riga) return chiudiIlLettore();
+  const firma = `${activeLocale()}§${firmaDelLettore(riga)}`;
+  if (host.dataset.dmMpFirma !== firma || !host.querySelector(".dm-mp-card")) {
+    host.dataset.dmMpFirma = firma;
+    host.innerHTML = `<div class="dm-mp-popup-box" role="dialog" aria-modal="true">
+      <button type="button" class="dm-mp-popup-chiudi" data-dm-mp-chiudi
+        aria-label="${esc(t("Chiudi", "Close"))}">✕</button>
+      ${cardMarkup(riga)}
+    </div>`;
+  }
+  if (host.hidden) host.hidden = false;
+  posaLeCopertine(host, [riga]);
   return true;
 }
 
@@ -473,8 +600,15 @@ async function chiamaHa(dominio, servizio, payload) {
   }
 }
 
+/* Il lettore che sta sotto un tasto.
+ *
+ * Fra quelli configurati se c'e'; altrimenti si legge lo stesso. Dalla
+ * finestra di un lettore solo (#460) si comanda anche una cassa messa fra le
+ * Azioni rapide che nella scheda Musica non c'e', e li' dentro «non lo
+ * conosco» finiva per voler dire «e' spento»: il tasto centrale chiamava
+ * `turn_on` su una cassa che stava suonando, e il muto invertiva il nulla. */
 function letturaDi(entity) {
-  return letture().find((riga) => riga.entity === entity) || null;
+  return letture().find((riga) => riga.entity === entity) || letturaDiUnLettore(entity);
 }
 
 /* Il comando accanto a cui appartiene quell'entità, come sta adesso. */
@@ -557,6 +691,11 @@ function schedule() {
       state.frame = 0;
       try {
         renderMediaPlayer();
+        /* La finestra di un lettore solo si ridisegna qui e non dentro
+         * `renderMediaPlayer`: quella esce presto quando non c'e' nessun
+         * lettore configurato, e un lettore messo fra le Azioni rapide puo'
+         * benissimo non esserlo. */
+        disegnaIlLettoreAperto();
       } catch (errore) {
         root.console?.warn?.("[DashboardModern] media player", errore);
       }
@@ -686,6 +825,32 @@ function installStyles() {
         flex:1 1 auto;min-width:0;padding:7px 10px;border-radius:11px;font-size:12px;font-weight:700;
         color:var(--text,#0f172a);
         background:var(--card-background-color,#fff);border:1px solid var(--card-border,#e2e8f0)}
+      /* La finestra di un lettore solo (#460): il fondo sfocato e la card in
+         mezzo, come le altre finestre della plancia. Dentro non c'e' niente di
+         nuovo da vestire — e' la card della pagina Musica. */
+      /* Chiusa vuol dire chiusa: un display:grid scritto su un identificativo
+         batte la regola del browser che nasconde quello che porta l'attributo
+         «hidden», e la finestra richiusa restava un velo a tutto schermo davanti
+         alla plancia — invisibile e impenetrabile. Lo dice la prova che la
+         richiude toccando fuori. */
+      #dm-mp-popup[hidden]{display:none!important}
+      #dm-mp-popup{
+        position:fixed;inset:0;z-index:2600;display:grid;place-items:center;
+        padding:18px;background:rgba(2,6,23,.62);
+        backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+      #dm-mp-popup .dm-mp-popup-box{
+        position:relative;width:min(560px,100%);max-height:88vh;overflow:auto}
+      #dm-mp-popup .dm-mp-card{width:100%}
+      #dm-mp-popup .dm-mp-popup-chiudi{
+        position:absolute;top:10px;right:10px;z-index:3;
+        display:grid;place-items:center;width:34px;height:34px;padding:0;
+        border-radius:50%;cursor:pointer;font:inherit;font-size:15px;font-weight:900;
+        color:var(--text,#0f172a);background:var(--card-background-color,#fff);
+        border:1px solid var(--card-border,#e2e8f0);
+        box-shadow:0 8px 20px -12px rgba(2,6,23,.6)}
+      #dm-mp-popup .dm-mp-card[data-arte="true"]+.dm-mp-popup-chiudi,
+      #dm-mp-popup .dm-mp-popup-box:has(.dm-mp-card[data-arte="true"]) .dm-mp-popup-chiudi{
+        color:#f8fafc;background:rgba(15,23,42,.62);border-color:rgba(248,250,252,.28)}
       @media(max-width:560px){
         .dm-mp-card{grid-template-columns:auto minmax(0,1fr);gap:12px;padding:13px}
         .dm-mp-arte-box,.dm-mp-arte{width:82px;height:82px;flex-basis:82px}
@@ -716,6 +881,9 @@ export function installMediaPlayer() {
    * deve correre dietro a una pagina che nessuno sta guardando. */
   doc.addEventListener("click", (event) => {
     if (event.target?.closest?.(".tab[data-tab]")) root.queueMicrotask?.(schedule);
+  });
+  doc.addEventListener("keydown", (evento) => {
+    if (evento.key === "Escape") chiudiIlLettore();
   });
   root.addEventListener?.("pagehide", ferma);
   schedule();

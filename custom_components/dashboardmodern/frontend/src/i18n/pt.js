@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — configurada",
+  "Player controls": "Comandos do leitor",
   "\" and its loads?": "\" e as suas cargas?",
   "\"Long-lived access tokens\"": "\"Tokens de acesso de longa duração\"",
   "\"Room - Detail\"": "\"Divisão - Detalhe\"",

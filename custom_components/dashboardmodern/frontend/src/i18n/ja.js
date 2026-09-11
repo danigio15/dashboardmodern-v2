@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — 設定済み",
+  "Player controls": "プレーヤーの操作",
   "\" and its loads?": "」とその負荷を削除しますか？",
   "\"Long-lived access tokens\"": "「長期アクセストークン」",
   "\"Room - Detail\"": "「部屋 - 詳細」",

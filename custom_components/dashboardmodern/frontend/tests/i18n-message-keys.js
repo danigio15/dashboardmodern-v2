@@ -2345,6 +2345,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Platform",
   "Play",
   "Player",
+  "Player controls",
   "playing",
   "Playing",
   "Plug-in hybrid",

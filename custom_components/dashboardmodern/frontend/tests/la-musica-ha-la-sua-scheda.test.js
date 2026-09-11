@@ -230,10 +230,17 @@ test("la voce nella barra c'è solo se un lettore c'è, e si può spegnere", () 
   assert.match(pagina, /sezioni\[MEDIA_TAB\] === false/);
 });
 
-test("il battito del tempo vive solo mentre la pagina è davanti e qualcosa suona", () => {
+test("il battito del tempo vive solo mentre una card è davanti e qualcosa suona", () => {
+  /* Le card disegnate sono due: la pagina Musica, e la finestra di un lettore
+   * solo che aprono i tre puntini delle Azioni rapide (#460). Il battito serve
+   * per tutte e due — nella finestra la barra resterebbe ferma su un brano che
+   * va avanti — e per nessun'altra: una pagina che nessuno guarda non deve far
+   * girare un timer al secondo. */
   const pagina = leggi("sections/media-player-section.js");
-  assert.match(pagina, /const serve = paginaAperta\(\) && righe\.some\(\(riga\) => riga\.suona/);
+  assert.match(pagina, /paginaAperta\(\) && righe\.some\(\(riga\) => riga\.suona/);
+  assert.match(pagina, /Boolean\(aperta\?\.suona && posizioneOra\(aperta\)\)/);
   assert.match(pagina, /if \(!serve\) \{\s*ferma\(\);/);
+  assert.match(pagina, /if \(!paginaAperta\(\) && !state\.aperto\) \{\s*ferma\(\);/);
   assert.match(pagina, /clearInterval/);
 });
 

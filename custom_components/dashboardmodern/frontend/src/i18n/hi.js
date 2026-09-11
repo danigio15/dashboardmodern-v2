@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — कॉन्फ़िगर किया गया",
+  "Player controls": "प्लेयर नियंत्रण",
   "\" and its loads?": "\" और उसके लोड हटाएँ?",
   "\"Long-lived access tokens\"": "\"लंबी अवधि के एक्सेस टोकन\"",
   "\"Room - Detail\"": "\"कमरा - विवरण\"",

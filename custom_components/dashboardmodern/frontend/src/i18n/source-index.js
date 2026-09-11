@@ -1007,6 +1007,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Com'è disegnata": "How it looks",
   "Comanda su tutto: giorno, mese, anno, storico e mesi precedenti si ricavano da qui con Recorder. Con questo campo pieno i campi di periodo non vengono letti.": "This one wins: day, month, year, history and previous months are all derived from here through Recorder. While it is set, the period fields are not read.",
   "Comandi": "Controls",
+  "Comandi del lettore": "Player controls",
   "Comandi e categorie": "Commands and categories",
   "comando": "control",
   "Comando inviato…": "Command sent…",
