@@ -692,8 +692,11 @@ const TAB_DI = Object.freeze({
   /* Stessa storia dei lettori (#405): «se cliccato rimanda alla home della
    * dashboard». La pagina Musica ce l'hanno, ed e' li' che si comanda. */
   media: "media",
-  /* Le telecamere stanno nella pagina Sicurezza, non in Home: toccarne una
-   * qui riportava alla Home, cioe' in nessun posto utile. */
+  /* Le telecamere adesso si aprono da sole, sopra la stanza (#503): questa
+   * riga resta come ripiego per quando il guscio non sa aprirne una — una
+   * telecamera cancellata dalla configurazione, per dire. La Sicurezza e'
+   * comunque meglio della Home, che era dove si finiva prima: li' non c'e'
+   * nessuna telecamera. */
   telecamere: "security",
   carichi: "energy",
   robot: "robot",
@@ -908,6 +911,55 @@ function apriLaVoce(entity) {
   return true;
 }
 
+/* La telecamera di questa entita' fra quelle configurate (#503).
+ *
+ * Torna l'indice oltre alla riga perche' il guscio nomina le telecamere con
+ * `camSlug(cam, i)`, e quell'`i` e' la posizione nella lista: senza, per una
+ * telecamera senza entita' il nome verrebbe fuori diverso da quello che il
+ * guscio ha scritto sulla sua scheda, e la finestra si aprirebbe vuota. */
+export function telecameraDellEntita(entity, lista) {
+  const cercata = clean(entity);
+  if (!cercata.startsWith("camera.")) return null;
+  const righe = Array.isArray(lista) ? lista : [];
+  const indice = righe.findIndex(
+    (riga) => clean(riga?.entity || riga?.camera_entity) === cercata,
+  );
+  return indice < 0 ? null : { indice, riga: righe[indice] };
+}
+
+/* Una telecamera della stanza si apre da sola (#503).
+ *
+ * «Se vado su stanze e c'è una telecamera e ci clicco sopra dovrebbe aprire
+ * solo quella e non puntare sulla scheda dove ci sono tutte le telecamere. Se
+ * poi torno indietro non torna sulla stanza dov'ero.»
+ *
+ * Le due metà sono la stessa cosa: portare nella Sicurezza vuol dire uscire
+ * dalla stanza, e chi esce poi deve ritrovarla. La finestra della singola
+ * telecamera il guscio la apre già dalla scheda Telecamere — qui non se ne
+ * disegna una seconda, si chiede la sua — e una finestra sopra la stanza la
+ * stanza non la fa sparire: si chiude, e si è ancora lì.
+ *
+ * Se il guscio non c'è, o la telecamera in configurazione non c'è, non si
+ * inventa niente: torna `false` e il tocco riprende la strada di prima. */
+function apriLaTelecamera(entity) {
+  if (typeof root.apriCamera !== "function" || typeof root.camSlug !== "function") return false;
+  let lista = [];
+  try {
+    lista = root.getCameras?.() || [];
+  } catch (_errore) {
+    return false;
+  }
+  const trovata = telecameraDellEntita(entity, lista);
+  if (!trovata) return false;
+  try {
+    const nome = clean(trovata.riga?.name) || clean(entity).split(".")[1];
+    root.apriCamera(root.camSlug(trovata.riga, trovata.indice), nome.toUpperCase());
+    return true;
+  } catch (_errore) {
+    return false;
+  }
+}
+
 function handleClick(event) {
   /* Il tocco su un'apertura è di chi le disegna: qui si sta soltanto in
    * disparte, come già si fa per l'interruttore dentro la riga. Senza questo
@@ -957,9 +1009,12 @@ function handleClick(event) {
   if (event.target?.closest?.("[data-dm-mp],[data-dm-w-panel]")) return;
   const vai = event.target?.closest?.("[data-dm-stanza-vai]");
   if (vai) {
+    const entita = clean(vai.getAttribute("data-dm-stanza-entita"));
+    /* La telecamera si apre sopra la stanza, senza cambiare pagina (#503). */
+    if (apriLaTelecamera(entita)) return;
     const tab = doc?.querySelector?.(`.tab[data-tab="${vai.getAttribute("data-dm-stanza-vai")}"]`);
     tab?.click?.();
-    apriLaVoce(clean(vai.getAttribute("data-dm-stanza-entita")));
+    apriLaVoce(entita);
   }
 }
 
