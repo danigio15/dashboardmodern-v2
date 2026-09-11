@@ -5,6 +5,165 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.21
+
+### Aggiunto
+
+- **La plancia dice cosa c'è da aggiornare** (#498)
+
+  «Sarebbe bello un avviso in plancia quando ci sono aggiornamenti da fare.»
+  Home Assistant le entità di aggiornamento ce le ha già — una per ogni
+  integrazione, per HACS, per il sistema — e stanno negli stati come tutto il
+  resto. Nessuno le guardava. Adesso la Home ha la sua tessera: conta quelle
+  accese, nomina la prima e dice a che versione va.
+
+- **Le stanze si vedono in plancia, e si sceglie quali** (#493)
+
+  Una fila di stanze in Home, con dentro la temperatura, l'umidità e quante
+  cose sono accese; un tocco porta **dentro** la stanza, che è dove si comanda
+  tutto. Quali si vedono lo sceglie chi ha la casa, nella scheda Plancia: una
+  casa di dodici stanze non le vuole tutte. Nessuna spuntata vuol dire nessun
+  blocco — una plancia non deve riempirsi da sola di roba che nessuno ha
+  chiesto.
+
+- **L'intestazione col meteo si sposta come gli altri blocchi** (#492)
+
+  Il riquadro col meteo e l'ora era l'unica cosa della Home inchiodata dov'era.
+  Adesso è un blocco come gli altri, con la sua riga e le sue due frecce:
+  finché sta per primo resta attaccato al nome della casa, e da qualunque altro
+  posto scende in pagina e si mette in fila.
+
+- **Le pastiglie di stato si possono spegnere** (#491)
+
+  La riga in cima alla Home — caldaia accesa, antifurto inserito — ha il suo
+  interruttore nella scheda Plancia. Si spegne sapendo cosa si spegne, che è
+  diverso dal poterla mandare in fondo: un avviso in fondo non è più un avviso.
+
+- **Le sezioni che uno si fa arrivano anche in plancia** (#473)
+
+  «Ho motore acqua e valvole apertura chiusura acqua, come le gestisco?» Le
+  sezioni proprie esistevano da un pezzo, ma restavano nella loro pagina:
+  adesso ognuna può avere la sua tessera in Home, con quante righe ha e le
+  prime in evidenza.
+
+- **Le entità che uno si aggiunge arrivano nelle stanze, e le automazioni
+  partono** (#504)
+
+  La scheda «Entità mie» la stanza la chiedeva già, ma quella scelta non usciva
+  da quella scheda: un'automazione messa in cucina non compariva in nessuna
+  stanza. Adesso arriva, col nome e l'icona che le ha dato chi l'ha aggiunta. E
+  quello che si fa partire — un'automazione, uno script, una scena, un tasto —
+  nella stanza ha il suo tasto, invece di essere una riga che manda in Home.
+
+- **L'elettrodomestico ha le sue letture, col nome che si vuole** (#471)
+
+  Oltre ai campi fissi, una lista di entità in più da mostrare nella card e nel
+  dettaglio: quelle che l'integrazione pubblica e la card non conosceva.
+
+- **Il clima dice acceso o spento dai watt** (#490)
+
+  Una soglia di consumo sotto la quale il termostato è fermo anche se dichiara
+  di essere acceso: zero è una soglia scritta, non una soglia mancante.
+
+- **L'avviso di arieggiare si vede senza entrare nella sezione** (#500)
+
+  La tessera Finestre in Home diventa rossa e scrive quale stanza chiede aria e
+  a che umidità sta. Se ce n'è più d'una nomina quella che supera la soglia di
+  più, e conta le altre accanto. Rossa **solo** quando c'è da fare: una tessera
+  che avvisa sempre non avvisa più.
+
+### Corretto
+
+- **Le telecamere tornano a dire cosa sanno fare** (#502, seguito della #418)
+
+  Riguardava **ogni** telecamera su Home Assistant dalla 2025.6 in poi. La
+  strada del video si sceglieva leggendo l'attributo `frontend_stream_type`,
+  che Home Assistant ha tolto in quella versione: chi legge un attributo che
+  non c'è più conclude che la telecamera non sa trasmettere, e si finiva sul
+  proxy dei fotogrammi e poi sulle istantanee. L'anteprima si vedeva, la live
+  no. Adesso si chiede `camera/capabilities`, com'è la finestra di Home
+  Assistant a fare, con l'attributo vecchio e `supported_features` come
+  riserve.
+
+- **Il riquadro del video non si sfonda col fermo immagine dietro**
+
+  «Continuo a vedere sotto un caricamento e non vedo live.» Una nostra regola
+  toglieva la posizione assoluta ai figli del riquadro: il video restava senza
+  altezza e il velo cadeva in fondo a striscia. La regola non serviva — i piani
+  li dà già il guscio.
+
+- **La telecamera della stanza si apre da sola, e la stanza resta** (#503)
+
+  Toccarne una portava nella Sicurezza, dove ci sono tutte, e tornando indietro
+  la stanza di partenza non si ritrovava. Adesso si apre la finestra di quella
+  sola, sopra la stanza: non si esce affatto.
+
+- **La plancia predefinita si apre** (#154, decima segnalazione)
+
+  La stessa plancia funzionava dalla barra laterale e dava «Errore di
+  configurazione» come dashboard predefinita. Le due strade non usano lo stesso
+  codice: la seconda passa da una card, e la card si pubblica chiamando il
+  frontend — che a quel punto poteva non essere ancora in piedi. Adesso la
+  dipendenza è dichiarata, la pubblicazione aspetta il frontend, e se fallisce
+  lo scrive nel registro invece di tacere.
+
+- **La plancia che non si registra dice perché** (#499)
+
+  Quando la dashboard d'appoggio non nasce, adesso il registro lo dice: prima
+  rinunciava in silenzio, e da fuori non c'era niente da guardare.
+
+- **La tessera delle Porte apre «Apri porte», non la Sicurezza** (#501)
+
+  Le porte sono uscite dalla Sicurezza con la #275; la tavola che dice a quale
+  sezione porta ogni tessera era rimasta indietro. Con la stessa correzione sono
+  arrivate le sei tessere che una pagina ce l'avevano e il tasto non lo
+  mostravano affatto — varchi, presenza, batterie, citofono, stampanti, le
+  macchine di casa — e il tasto adesso si rifà a ogni giro, così una sezione che
+  nasce dopo l'apertura della finestra lo fa comparire.
+
+- **L'interruttore di un elettrodomestico non si indovina fra dieci** (#463)
+
+  «La lavatrice è costantemente accesa quando non lo è. L'ho inserita usando
+  l'integrazione, non ho prese smart.» Il tasto d'accensione lo sceglieva il
+  collegamento fra i dieci interruttori che una lavatrice connessa pubblica, e
+  bastava un punteggio positivo: un'opzione lasciata accesa non si spegne mai.
+  Adesso, fra tanti, si sceglie solo con una prova — il nome del dispositivo o
+  una parola che vuol dire accendere. Con un interruttore solo, la presa smart,
+  si prende come prima.
+
+- **Il lettore fra le Azioni rapide dice il brano** (#460)
+
+  Il tasto mostrava solo la copertina e il nome dell'apparecchio. Adesso dice
+  titolo e artista, e i tre puntini aprono la finestra con tutti i comandi.
+
+- **«Entità porta» si trova** (#471)
+
+  Il campo c'era, ma dentro una fisarmonica chiusa il cui titolo non lo
+  nominava. Adesso lo nomina.
+
+- **Il secondo tasto dell'antifurto si lascia scrivere** (#494, dopo #431)
+
+  La prova che c'era premeva «+» e guardava le righe comparire. Nessuno aveva
+  mai provato il gesto per cui i tasti esistono: scriverci dentro e salvare.
+
+- **Le sezioni non escono più dallo schermo di un telefono stretto** (#483)
+
+  Luci, Finestre e Clima si aprivano più larghe dello schermo.
+
+- **La barra in fondo si veste con la tavolozza scelta** (#495)
+
+  Nel tema Grafite restava dell'altro colore: il suo fondo lo fissava il foglio
+  storico, con un selettore più specifico di quelli dei moduli.
+
+- **L'avviso delle statistiche dice cosa ha visto** (#485)
+
+  Elencava le due condizioni — `state_class` e unità kWh — e lasciava indovinare
+  quale mancasse: chi ne controllava una la trovava giusta e concludeva che
+  l'avviso avesse torto. Adesso nomina solo quella che non va, e quando vanno
+  bene tutt'e due lo dice — vuol dire che le statistiche non coprono ancora il
+  periodo chiesto. Nel farlo si è sistemata la frase, che conteneva del codice
+  ed era intraducibile in tutte e tredici le lingue.
+
 ## 1.4.20
 
 ### Tolto
