@@ -215,6 +215,7 @@ import { EVENTO_PIATTAFORME, piattaformeConosciute } from "./di-chi-e-unentita-s
  * si leggono da li': la tessera e la pagina devono contare le stesse righe. */
 import { serverPerDispositivo } from "./macchine-e-rete-section.js";
 import {
+  APERTURE_TAB,
   configuredSecurityDoors,
   iconaPortaMarkup,
   parolaDelGesto,
@@ -6978,10 +6979,31 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   clima: "clima",
   tapparelle: "tapparelle",
   sicurezza: "security",
-  /* Le porte e i cancelli si configurano e si aprono nella Sicurezza: e' la
-   * sezione che li contiene davvero, anche se in Home hanno tessera loro. */
-  porte: "security",
+  /* Le porte e i cancelli hanno la loro pagina da quando sono usciti dalla
+   * Sicurezza (#275): «Apri porte». Questa riga era rimasta indietro, e il
+   * tasto «Apri sezione» della tessera portava ancora nella Sicurezza — cioe'
+   * in una pagina dove quelle porte non ci sono piu' (#501).
+   *
+   * Il nome della voce si chiede alla sezione che la crea: scritto a mano qui,
+   * sarebbe la stessa riga rimasta indietro un'altra volta. E se la sezione e'
+   * spenta o non ha aperture da comandare, la sua voce sta nascosta e il tasto
+   * non compare — che e' meglio di un tasto che porta altrove. */
+  porte: APERTURE_TAB,
   telecamere: "security",
+  /* Le tessere che una pagina ce l'hanno da un pezzo, e qui non erano mai
+   * arrivate: il tasto «Apri sezione» non compariva affatto, e chi guardava i
+   * varchi o le batterie dalla finestra doveva cercarsi la voce nella barra.
+   * Il nome della voce lo dichiara la sezione che la crea, e che qui sia
+   * scritto lo stesso nome lo tiene una prova — la stessa che ha trovato le
+   * porte rimaste indietro. */
+  varchi: "varchi",
+  presenza: "presenza",
+  batterie: "batterie",
+  citofono: "citofono",
+  stampanti: "stampanti",
+  /* Le macchine di casa e la rete contano le stesse integrazioni della pagina
+   * Server: e' quella la loro pagina, la stessa del mini PC. */
+  macchine: "server",
   energia: "energy",
   elettrodomestici: "appliances-main",
   temperatura: "temp",
@@ -7023,16 +7045,26 @@ function bricioleDelWidget(widget) {
   return bricioleDellaSezione(widget.key, t).join(" · ") || clean(widget.caption);
 }
 
-function detailMarkup(widget, states) {
-  const vaiAllaSezione = voceDellaSezione(widget.key)
-    ? `<footer class="dm-w-piede">
+/* Il piede della finestra: il tasto che porta alla sezione, quando c'e' dove
+ * andare. Sta in una funzione sua perche' non si disegna una volta sola —
+ * `sincronizzaPopup` lo rifa' a ogni giro, e il perche' e' scritto li'. */
+function firmaDelPiede(widget) {
+  return `${widget.key}|${clean(widget.impianto)}`;
+}
+
+function piedeDellaSezione(widget) {
+  if (!voceDellaSezione(widget.key)) return "";
+  return `<footer class="dm-w-piede" data-dm-piede="${esc(firmaDelPiede(widget))}">
         <button type="button" class="dm-w-vai" data-dm-w-sezione="${esc(widget.key)}"${
           widget.impianto ? ` data-dm-w-impianto="${esc(widget.impianto)}"` : ""
         }>
           ${esc(t("Apri sezione", "Open section"))} <span aria-hidden="true">→</span>
         </button>
-      </footer>`
-    : "";
+      </footer>`;
+}
+
+function detailMarkup(widget, states) {
+  const vaiAllaSezione = piedeDellaSezione(widget);
   return `<article class="dm-widget-detail" data-dm-widget-detail="${widget.key}"
       style="--dm-widget-accent:${widget.accent}">
       <header class="dm-w-head">
@@ -7454,6 +7486,23 @@ export function renderHomeWidgets() {
         const briciole = bricioleDelWidget(widget);
         if (captionDetail && captionDetail.textContent !== briciole)
           captionDetail.textContent = briciole;
+        /* Il tasto «Apri sezione» si rifa' a ogni giro, non solo all'apertura.
+         *
+         * La voce di una sezione la crea il suo modulo, e puo' nascere DOPO
+         * che la tessera e' stata aperta — su un telefono, dove la plancia
+         * parte piu' adagio, capita davvero: il tasto non c'era, e non
+         * compariva piu' finche' non si chiudeva e si riapriva la finestra.
+         * Vale anche al contrario: una sezione spenta mentre la finestra e'
+         * aperta deve portarsi via il tasto, invece di lasciarlo li' a
+         * promettere una pagina che non c'e' piu'. */
+        const scheda = doc.querySelector("#dm-widget-popup [data-dm-widget-detail]");
+        if (scheda) {
+          const vuole = piedeDellaSezione(widget);
+          const piede = scheda.querySelector(":scope > .dm-w-piede");
+          if (!vuole) piede?.remove();
+          else if (!piede) scheda.insertAdjacentHTML("beforeend", vuole);
+          else if (piede.dataset.dmPiede !== firmaDelPiede(widget)) piede.outerHTML = vuole;
+        }
         const body = doc.querySelector("#dm-widget-popup .dm-w-body");
         const markup = detailBody(widget, states);
         const scritto = state.corpo.chiave === widget.key && state.corpo.markup === markup;
