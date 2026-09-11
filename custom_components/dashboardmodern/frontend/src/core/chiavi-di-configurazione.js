@@ -174,16 +174,10 @@
  * nome, icona, entita' da chiamare. E' roba della casa, non dello schermo:
  * l'antifurto configurato sul tablet deve funzionare anche dal telefono.
  *
- * La revisione 38 aggiunge il flusso dell'energia in Home (`cd_flusso_home`,
- * #415): «sulla home, accanto magari alle card delle persone, un'immagine con
- * il flusso dal fotovoltaico alla casa, dalla casa alle batterie, dalla casa
- * all'auto». Vederlo o no e' una scelta sulla casa, come l'ordine dei blocchi
- * che gli sta accanto.
- *
- * E gli animali di casa (`cd_animali`, #358): i loro nomi, le loro foto e le
- * entita' della ciotola, della lettiera, dell'acqua, della porta col microchip
- * e del collare. Anche questa e' roba della casa: il gatto configurato sul
- * tablet deve esistere anche sul telefono.
+ * La revisione 38 aggiunge gli animali di casa (`cd_animali`, #358): i loro
+ * nomi, le loro foto e le entita' della ciotola, della lettiera, dell'acqua,
+ * della porta col microchip e del collare. Anche questa e' roba della casa: il
+ * gatto configurato sul tablet deve esistere anche sul telefono.
  *
  * La revisione 39 aggiunge chi resta fuori dal grafico delle Temperature
  * (`cd_grafico_stanze`, #433): «poter togliere dal grafico alcune
@@ -253,8 +247,6 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_widgets",
   // In che ordine stanno i blocchi della Home: persone, widget, azioni, dispositivi.
   "cd_home_blocchi",
-  // Se il flusso dell'energia si vede in Home (#415).
-  "cd_flusso_home",
   // La riga sotto il meteo (#356): quali pastiglie si vedono, e da quale
   // contatto arriva la posta (#357).
   "cd_barra_casa",

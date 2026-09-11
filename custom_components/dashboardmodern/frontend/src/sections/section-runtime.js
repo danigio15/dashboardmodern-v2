@@ -52,7 +52,6 @@ import { installTelecameraWebRtc } from "./telecamera-webrtc-section.js";
 import { installConnectionRecoverySection } from "./connection-recovery-section.js";
 import { installAlarmModesEditorSection } from "./alarm-modes-editor-section.js";
 import { installAntifurtoSuMisuraEditorSection } from "./antifurto-su-misura-editor-section.js";
-import { installFlussoDiCasaSection } from "./flusso-di-casa-section.js";
 import { installQuickClimateEditorSection } from "./quick-climate-editor-section.js";
 import { installVmcEditor } from "./vmc-editor-section.js";
 import { installAssistSection } from "./assist-section.js";
@@ -914,7 +913,6 @@ export function installSectionRuntime() {
      * accetta: si installa dopo di lei, che quella risposta la pubblica. */
     installAlarmModesEditorSection();
     installAntifurtoSuMisuraEditorSection();
-    installFlussoDiCasaSection();
     installClimateThermalSection();
     /* Le voci termiche del popup Caldo: dopo chi disegna il popup, cosi' il
      * pannello passa di mano una volta sola. */

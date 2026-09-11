@@ -1022,18 +1022,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // si riscrive: `core/alarm-panel.js` li aggiunge ai tasti della centrale, e
   // la pagina, la tessera della Home e la finestra rapida del banner li
   // disegnano senza sapere da dove arrivano.
-  // 303 col flusso dell'energia in Home (#415, #416): «sarebbe veramente
-  // perfetta se sulla home, accanto magari alle card delle persone, potessimo
-  // mettere un'immagine con il flusso dal fotovoltaico alla casa, dalla casa
-  // alle batterie, dalla casa all'auto». La mappa della sezione Energia vive
-  // attaccata al documento storico e da li' non esce; il CONTO invece e' puro
-  // — `core/energy-flow-truth.js` — e `core/flusso-di-casa.js` gli mette sopra
-  // l'unico arco che manca, la casa che carica l'auto.
-  // `sections/flusso-di-casa-section.js` lo disegna come un blocco della Home,
-  // che si sposta nell'ordine e si spegne dalla scheda Home. Due mappe della
-  // stessa casa che dicono cose diverse sarebbero peggio di una mappa sola:
-  // qui sono d'accordo perche' fanno lo stesso conto, non perche' qualcuno le
-  // ha allineate a mano.
+  // La 303 aveva portato il flusso dell'energia in Home (#415, #416): una card
+  // accanto alle persone, col suo conto puro e il suo disegno. E' stata tolta
+  // — «non mi piace e non c'entra nulla con il resto» — e con lei i suoi due
+  // moduli, la sua chiave e il suo interruttore: la mappa dei flussi resta una
+  // sola, quella della sezione Energia.
   // 305 con le telecamere che si vedono subito: «vanno riviste completamente
   // le connessioni che avvengono con le telecamere, sono lentissime e non
   // carica immediatamente immagine». Il guscio prova le strade in fila —

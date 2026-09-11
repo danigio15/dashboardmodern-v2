@@ -135,11 +135,11 @@ test("togliere una chiave non alza la revisione", async () => {
    * l'antifurto se l'e' fatto con gli script la fila dei tasti se la descrive —
    * nome, icona, entita' da premere — ed e' l'antifurto della casa: inserirlo
    * dal tablet e non poterlo inserire dal telefono sarebbe il difetto piu'
-   * grave di tutti quelli di questo elenco. E la 38 col flusso dell'energia in
-   * Home (#415, #416, `cd_flusso_home`): «sulla home, accanto magari alle card
-   * delle persone, un'immagine con il flusso dal fotovoltaico alla casa, dalla
-   * casa alle batterie, dalla casa all'auto». Vederlo o no e' una scelta sulla
-   * casa, come l'ordine dei blocchi che gli sta accanto. E la 39 con chi resta
+   * grave di tutti quelli di questo elenco. La 38 aveva portato il flusso
+   * dell'energia in Home (`cd_flusso_home`): quella card e' stata tolta —
+   * «non mi piace e non c'entra nulla con il resto» — e la sua chiave con
+   * lei, senza alzare la revisione, che e' quello che questa prova difende.
+   * E la 39 con chi resta
    * fuori dal grafico delle Temperature (#433, `cd_grafico_stanze`): «poter
    * togliere dal grafico alcune entita'/stanze cliccandoci sopra in modo tale
    * che diventi piu' leggibile la variazione. Nel mio caso il vano tecnico».
@@ -186,10 +186,6 @@ test("togliere una chiave non alza la revisione", async () => {
     "il cancello è uno solo, e la cassetta della posta pure",
   );
   assert.ok(
-    CONFIG_KEYS.includes("cd_flusso_home"),
-    "il flusso in Home si sceglie per la casa, non per lo schermo",
-  );
-  assert.ok(
     CONFIG_KEYS.includes("cd_presenza"),
     "i rilevatori di presenza si correggono per la casa, non per lo schermo",
   );
@@ -211,7 +207,7 @@ test("togliere una chiave non alza la revisione", async () => {
   );
   assert.ok(CONFIG_KEYS.includes("cd_macchine"), "le macchine devono viaggiare con la casa");
   assert.ok(CONFIG_KEYS.includes("cd_assist"), "Assist deve viaggiare con la casa");
-  for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
+  for (const chiave of ["cd_ev_image", "cd_ev_image_plugged", "cd_flusso_home"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 
   // Un salvataggio alla revisione corrente e' completo: quello che non c'e'

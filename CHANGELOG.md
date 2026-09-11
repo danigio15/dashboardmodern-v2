@@ -7,6 +7,23 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non ancora rilasciato
 
+### Tolto
+
+- **La card del flusso dell'energia in Home**
+
+  «Eliminami sto flusso sia da codice che dalla sezione config, non mi piace e
+  non c'entra nulla con il resto.»
+
+  Era la card accanto alle persone col fotovoltaico, la rete, la batteria, la
+  casa e l'auto (#415, #416). Se n'è andata tutta: il disegno, il conto che le
+  stava sotto, il suo interruttore in **Config › Home**, la sua chiave di
+  configurazione, le prove e le traduzioni. La mappa dei flussi resta **una
+  sola**, quella della sezione Energia, che è dove uno la cerca.
+
+  La chiave `cd_flusso_home` esce dall'elenco di quelle che viaggiano con la
+  casa senza alzarne la revisione: una chiave tolta non deve far rifare il
+  travaso a nessuno.
+
 ### Aggiunto
 
 - **Rifiuti: nel widget il segno del materiale accanto al nome** (#384)
