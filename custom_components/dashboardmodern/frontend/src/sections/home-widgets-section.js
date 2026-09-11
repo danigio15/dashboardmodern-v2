@@ -165,6 +165,12 @@ import {
   isRelayEntity,
   relayCoverCommands,
 } from "../core/cover-kind.js";
+import {
+  CHIAVE_SOGLIA_UMIDITA,
+  finestreDaArieggiare,
+  sogliaDellaFinestra,
+  stanzaDiUnaFinestra,
+} from "../core/arieggiare.js";
 import { azioniDellaPorta } from "../core/security-door-model.js";
 import { humidityEntry } from "../core/room-overview.js";
 import { CHIAVE_VARCHI, contoDeiVarchi, varchiDiCasa } from "../core/varchi-di-casa.js";
@@ -1136,6 +1142,10 @@ function coversModel(states) {
       return {
         soloSensore: Boolean(soloSensore),
         entity,
+        /* La riga si porta dietro la sua configurazione: la stanza e la soglia
+         * dell'umidita' stanno scritte li', e cercarle una seconda volta per
+         * entita' vorrebbe dire rifare il giro che qui e' gia' fatto. */
+        config: item,
         name: etichetta,
         open,
         invertita: girata,
@@ -1175,7 +1185,48 @@ function coversModel(states) {
    * la regola sta tutta in `contoDelleAperture`, che e' pura e si prova con i
    * numeri invece che rileggendo queste righe. */
   const { alzate, aperte, soloMotori, insieme, contate } = contoDelleAperture(rows);
+  /* «L'avviso di arieggiare funziona ma e' presente solo se entri nella
+   * sezione, andrebbe messo a livello di widget» (#500).
+   *
+   * Il consiglio c'era gia' e funzionava: quello che mancava era che si
+   * vedesse da fuori. Un avviso che si scopre soltanto entrando nella stanza
+   * dove sta scritto non ha avvisato nessuno.
+   *
+   * La regola non si rifa': e' quella del nucleo, la stessa che disegna la
+   * riga sotto la card. Qui si vanno solo a prendere i numeri — l'umidita'
+   * della stanza a cui la finestra appartiene, la soglia sua o quella di casa,
+   * e se l'anta e' gia' aperta, che e' il caso in cui aprire non si consiglia
+   * perche' sta gia' arieggiando. */
+  const stanzeDiCasa = root.getStanze?.() || readJson("cd_stanze", []);
+  const sogliaDiCasa = readJson(CHIAVE_SOGLIA_UMIDITA, null);
+  /* I numeri si passano com'e' li scrive Home Assistant: a leggerli e a
+   * scartare «unavailable» ci pensa il nucleo, che sa anche la virgola. */
+  const umiditaFuori = stateOf(states, "dm.home_meteo_umidita")?.state ?? null;
+  const daArieggiare = finestreDaArieggiare(
+    rows.map((riga) => {
+      const stanza = stanzaDiUnaFinestra(riga.config, stanzeDiCasa);
+      return {
+        nome: riga.name,
+        stanza: clean(stanza?.name),
+        dentro: stateOf(states, stanza?.hum)?.state ?? null,
+        soglia: sogliaDellaFinestra(riga.config, sogliaDiCasa),
+        fuori: umiditaFuori,
+        aperta: riga.open,
+      };
+    }),
+  );
   const didascalia = () => {
+    /* Quando c'e' da arieggiare lo dice la didascalia, al posto del conto: e'
+     * l'unica cosa della tessera su cui si puo' fare qualcosa adesso. */
+    if (daArieggiare.length) {
+      const prima = daArieggiare[0];
+      const dove = prima.stanza || prima.nome;
+      /* Le altre si contano con un segno, non con una frase: una chiave di
+       * traduzione con dentro un numero non e' una chiave, e' codice che
+       * cambia a ogni lettura del sensore. */
+      const quante = daArieggiare.length > 1 ? ` · +${daArieggiare.length - 1}` : "";
+      return `${t("Arieggia", "Air out")}: ${dove} ${Math.round(prima.esito.dentro)}%${quante}`;
+    }
     if (soloMotori) return nomiAccesi(alzate, () => true, t("Tutte abbassate", "All down"));
     /* Le finestre aperte si NOMINANO, una per una.
      *
@@ -1199,6 +1250,11 @@ function coversModel(states) {
     value: String(contate.length),
     caption: didascalia(),
     ring: Math.round((contate.length / insieme.length) * 100),
+    /* Rosso solo quando c'e' da fare: una tessera che avvisa sempre non
+     * avvisa. Le finestre aperte sono uno stato, non un avviso — quello lo
+     * dicono i Varchi. */
+    alert: daArieggiare.length > 0,
+    arieggia: daArieggiare,
     rows,
     /* Le aperture escono col modello, come le luci accese: chi le conta senza
      * disegnarle legge questo campo invece di rifiltrare le righe per conto

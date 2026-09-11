@@ -294,6 +294,7 @@ export default Object.freeze({
   "Air conditioning and heating": "التكييف والتدفئة",
   "Air fryer": "قلاية هوائية",
   "Air into the house": "الهواء إلى المنزل",
+  "Air out": "تهوية",
   "Air out above (%)": "هوِّ فوق (%)",
   "Air quality": "جودة الهواء",
   "Alarm": "الإنذار",

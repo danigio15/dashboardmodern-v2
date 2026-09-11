@@ -294,6 +294,7 @@ export default Object.freeze({
   "Air conditioning and heating": "냉방과 난방",
   "Air fryer": "에어프라이어",
   "Air into the house": "집으로 들어오는 공기",
+  "Air out": "환기",
   "Air out above (%)": "이 값을 넘으면 환기 (%)",
   "Air quality": "공기질",
   "Alarm": "경보",

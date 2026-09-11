@@ -294,6 +294,7 @@ export default Object.freeze({
   "Air conditioning and heating": "एयर कंडीशनिंग और तापन",
   "Air fryer": "एयर फ़्रायर",
   "Air into the house": "घर में आती हवा",
+  "Air out": "हवा आने दें",
   "Air out above (%)": "इससे ऊपर हवा दें (%)",
   "Air quality": "वायु गुणवत्ता",
   "Alarm": "अलार्म",

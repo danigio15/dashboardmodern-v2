@@ -566,6 +566,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Air conditioning and heating",
   "Air fryer",
   "Air into the house",
+  "Air out",
   "Air out above (%)",
   "Air quality",
   "alarm",

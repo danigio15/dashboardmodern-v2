@@ -294,6 +294,7 @@ export default Object.freeze({
   "Air conditioning and heating": "Soğutma ve ısıtma",
   "Air fryer": "Airfryer",
   "Air into the house": "Eve giren hava",
+  "Air out": "Havalandır",
   "Air out above (%)": "Şu değerin üstünde havalandır (%)",
   "Air quality": "Hava kalitesi",
   "Alarm": "Alarm",

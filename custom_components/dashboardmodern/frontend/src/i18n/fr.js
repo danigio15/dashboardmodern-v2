@@ -294,6 +294,7 @@ export default Object.freeze({
   "Air conditioning and heating": "Climatisation et chauffage",
   "Air fryer": "Friteuse à air",
   "Air into the house": "Air vers la maison",
+  "Air out": "Aérer",
   "Air out above (%)": "Aérer au-dessus de (%)",
   "Air quality": "Qualité de l'air",
   "Alarm": "Alarme",

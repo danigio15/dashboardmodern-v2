@@ -26,6 +26,7 @@ import {
   cosaMancaPerArieggiare,
   sogliaDellUmidita,
   sogliaDellaFinestra,
+  stanzaDiUnaFinestra,
 } from "../core/arieggiare.js";
 import {
   CHIAVE_SOGLIA_CHIUSA,
@@ -221,16 +222,13 @@ function misura(riferimento, states) {
   return grezzo;
 }
 
-/* La stanza di una finestra: quella scritta sulla sua riga, per id o per nome. */
+/* La stanza di una finestra: quella scritta sulla sua riga, per id o per nome.
+ *
+ * Chi la cerca sta nel nucleo: la stessa domanda se la fa la tessera della
+ * Home, che da qui non puo' importare — la sezione importa gia' lei — e due
+ * risposte alla stessa domanda prima o poi si allontanano. */
 function stanzaDellaFinestra(cover) {
-  const cercato = clean(cover?.room_id || cover?.roomId || cover?.room);
-  if (!cercato) return null;
-  const stanze = section("rooms", readJson("cd_stanze", []));
-  if (!Array.isArray(stanze)) return null;
-  return (
-    stanze.find((stanza) => clean(stanza?.id) === cercato || clean(stanza?.name) === cercato) ||
-    null
-  );
+  return stanzaDiUnaFinestra(cover, section("rooms", readJson("cd_stanze", [])));
 }
 
 export function consiglioDellaFinestra(cover, states = allStates(), { aperta = null } = {}) {

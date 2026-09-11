@@ -294,6 +294,7 @@ export default Object.freeze({
   "Air conditioning and heating": "制冷与供暖",
   "Air fryer": "空气炸锅",
   "Air into the house": "送进屋里的空气",
+  "Air out": "通风",
   "Air out above (%)": "超过此值时通风 (%)",
   "Air quality": "空气质量",
   "Alarm": "报警",

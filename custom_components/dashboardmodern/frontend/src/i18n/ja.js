@@ -294,6 +294,7 @@ export default Object.freeze({
   "Air conditioning and heating": "冷房と暖房",
   "Air fryer": "ノンフライヤー",
   "Air into the house": "家に入る空気",
+  "Air out": "換気する",
   "Air out above (%)": "この値を超えたら換気 (%)",
   "Air quality": "空気の質",
   "Alarm": "警報",

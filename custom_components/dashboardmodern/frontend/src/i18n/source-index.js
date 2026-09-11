@@ -668,6 +668,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Aria in casa": "Air into the house",
   "Aria pulita": "Air clear",
   "Aria secca": "Dry air",
+  "Arieggia": "Air out",
   "Arieggia sopra il (%)": "Air out above (%)",
   "Armamento Notturno": "Arm Night",
   "Armamento Totale": "Arm Away",
