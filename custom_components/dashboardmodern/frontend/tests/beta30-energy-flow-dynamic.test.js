@@ -359,6 +359,30 @@ test("the flow lines animate on every screen, reduced motion included", () => {
   assert.match(flow, /animation-play-state:running!important/);
 });
 
+test("a connector with nothing flowing is not drawn at all", () => {
+  /* «Nello sfondo si vedono le linee tratteggiate che vanno da un cerchio
+   * all'altro: le linee devono comparire solo quando c'è il flow colorato che
+   * va verso il cerchio.»
+   *
+   * The grey rails used to draw the whole topology all the time, with the
+   * coloured dash running over the live ones. But the stage says one thing —
+   * where energy is going right now — and an idle rail next to a live one
+   * reads the same at a glance. */
+  configure({
+    loads: [load("auto", 0, { name: "Auto" })],
+    states: { "sensor.auto_power": { state: "3200" } },
+  });
+  const css = globalThis.document.head
+    .descendants()
+    .map((node) => node.textContent)
+    .join("\n");
+  assert.match(css, /\.dm-energy-flow-idle\{opacity:0!important/);
+  assert.doesNotMatch(css, /\.dm-energy-flow-idle\{opacity:\.30!important/);
+  // The shell also draws its own load lines, which the stage never colours:
+  // there the switch is the plain "active" class it has always used.
+  assert.match(css, /\.flow-line:not\(\.active\):not\(\.dm-energy-flow-active\)\{opacity:0!important\}/);
+});
+
 test("an emoji icon still goes straight into the bubble", () => {
   configure({
     loads: [load("auto", 0, { name: "Auto", icon: "🚗" })],

@@ -9,6 +9,24 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Flusso energia: le linee tratteggiate si vedono solo dove l'energia passa**
+
+  «Nello sfondo si vedono le linee tratteggiate che vanno da un cerchio
+  all'altro: le linee devono comparire solo quando c'è il flow colorato che va
+  verso il cerchio.»
+
+  Le rotaie grigie erano la mappa dell'impianto — tutti i collegamenti possibili,
+  disegnati sempre — e sopra ci scorreva il tratteggio colorato di quelli vivi.
+  Ma la scena dice una cosa sola: **dove sta passando l'energia adesso**. Una
+  rotaia spenta è un collegamento che non porta niente disegnato accanto a uno
+  che porta, e a colpo d'occhio sono la stessa cosa: il solare che va in rete
+  sembrava disegnato anche a mezzanotte, e la casa sembrava collegata al boiler
+  spento.
+
+  Adesso si vede quello che scorre, e basta. Il posto del collegamento resta dov'è
+  — il tratteggio ricompare nello stesso punto appena il ramo riparte, con la
+  stessa dissolvenza di mezzo secondo con cui prima si accendeva.
+
 - **Auto: «vedo ancora le 5 entità»** (#348)
 
   La tessera toglieva già i profili gemelli — stessa mappatura, stesso sensore
