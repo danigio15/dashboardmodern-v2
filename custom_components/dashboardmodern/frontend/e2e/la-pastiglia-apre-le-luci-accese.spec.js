@@ -68,7 +68,10 @@ test("la pastiglia apre l'elenco delle sole accese", async ({ page }, testInfo) 
   await pastiglia.click();
 
   const elenco = page.locator("#dm-casa-popup");
-  await expect(elenco).toHaveClass(/show/);
+  /* Aperta o chiusa lo dice `hidden`, come nelle altre finestre dei widget:
+     questa finestra si e' vestita come loro, e con loro condivide il modo di
+     aprirsi. Prima era una classe `show` sua, di nessun altro. */
+  await expect(elenco).toBeVisible();
   await expect(elenco.locator(".dm-casa-voce")).toHaveCount(2);
   const testo = (await elenco.locator(".dm-casa-voce").allTextContents()).join(" | ");
   expect(testo).toContain("cucina");
@@ -102,7 +105,7 @@ test("dall'elenco si spegne, e quando non resta niente si chiude", async ({ page
   await expect(elenco.locator(".dm-casa-voce")).toHaveCount(1);
   await elenco.locator(".dm-casa-spegni").first().click();
   /* Spenta l'ultima, la domanda «cosa e' rimasto acceso» ha avuto risposta. */
-  await expect(elenco).not.toHaveClass(/show/);
+  await expect(elenco).toBeHidden();
 
   const chiamate = await page.evaluate(() => window.__chiamate);
   expect(chiamate).toEqual([

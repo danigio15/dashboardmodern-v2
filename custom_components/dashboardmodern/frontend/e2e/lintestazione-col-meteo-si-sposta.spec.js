@@ -163,7 +163,10 @@ test("il riquadro col meteo scende in pagina, e resta piccolo", async ({ page },
 
   await expect
     .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("cd_home_blocchi") || "null")))
-    .toEqual(["persone", "meteo", "widget", "azioni", "stanze", "dispositivi"]);
+    /* L'intestazione e' il primo blocco della fila, e resta dov'e': qui si
+       muove «persone», e quello che si controlla e' che salga sopra il meteo
+       senza che nessun altro blocco cambi posto. */
+    .toEqual(["intestazione", "persone", "meteo", "widget", "azioni", "stanze", "dispositivi"]);
 
   /* E la Home lo mostra: sceso in pagina, sotto le persone, ancora uno solo. */
   await page.evaluate(() => document.getElementById("editor-modal")?.classList.remove("show"));
