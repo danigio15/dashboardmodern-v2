@@ -89,6 +89,26 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   ad aprirsi e resta scegliibile come plancia predefinita; quello che sparisce è
   il suo doppione nella barra. E nel registro resta scritto che è successo.
 
+- **Auto: un minimo con la virgola non si arrotonda fuori dai suoi limiti**
+
+  Rilievo della revisione, verificato prima di correggerlo. Le cifre dopo la
+  virgola si prendevano dal passo diradato, che è sempre più grosso e spesso
+  intero: un limite da 0,25 a 100 col passo di 0,25 si dirada a cinque, le
+  cifre diventavano zero, e il minimo si scriveva «0» — un valore sotto il
+  minimo, che Home Assistant rifiuta. Adesso le cifre vengono dai numeri
+  dell'entità, e gli zeri in coda si tolgono: «0,25» resta «0,25» e «5» resta
+  «5».
+
+- **Sicurezza: «Salva zone» non resuscita una centrale cancellata**
+
+  Rilievo della revisione, verificato prima di correggerlo, e aperto da questa
+  stessa versione: il blocco delle zone della centrale sola non ha la casella
+  dell'entità, e ripiegava sulla riga salvata. Chi svuotava la casella
+  «Centrale allarme» se la vedeva tornare al primo salvataggio delle zone,
+  perché l'elenco a una riga la teneva da parte. Adesso, per la centrale in
+  pagina, si legge la mappatura viva — vuota compresa: cancellare vuol dire
+  cancellare.
+
 - **Sicurezza: cambiando area non si perdono le zone delle altre**
 
   Il passaggio da un'area all'altra riscriveva l'elenco con tre campi scelti a

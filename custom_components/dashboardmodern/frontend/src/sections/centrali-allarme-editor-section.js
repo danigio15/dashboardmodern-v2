@@ -300,10 +300,27 @@ function leggiRiga(riga, voce) {
     const accese = pastiglie.filter((nodo) => nodo.dataset.on === "true");
     return elencoDiEntita(accese.map((nodo) => nodo.dataset.areaVoce));
   };
+  /* L'entita' da scrivere: quella nella casella, se la casella c'e'.
+   *
+   * Se non c'e' e' il blocco delle zone della centrale sola, e allora si legge
+   * la mappatura VIVA — vuota compresa. Qui si ripiegava sulla riga salvata, e
+   * la riga salvata resuscitava un'entita' cancellata: chi svuota la casella
+   * «Centrale allarme» del guscio la vede tornare al primo «Salva zone»,
+   * perche' l'elenco a una riga se la teneva da parte e noi la riscrivevamo
+   * negli override. Cancellare vuol dire cancellare.
+   *
+   * Solo per quella «in pagina adesso»: in un elenco a piu' aree la mappatura
+   * viva e' la SUA, e prestarla alle altre vorrebbe dire dare a ognuna
+   * l'entita' della vicina. */
+  const suaEntita = () => {
+    if (entita) return clean(entita.value);
+    if (voce?.corrente) return clean(readJson("cd_entity_overrides", {})[RIF_CENTRALE]);
+    return entitaDellaCentrale(voce);
+  };
   const prossima = {
     ...voce,
     nome: nome ? clean(nome.value) : clean(voce?.nome),
-    caselle: { [RIF_CENTRALE]: entita ? clean(entita.value) : entitaDellaCentrale(voce) },
+    caselle: { [RIF_CENTRALE]: suaEntita() },
   };
   for (const campo of [CAMPO_ZONE, CAMPO_INGRESSI]) {
     const elenco = scelte(campo);

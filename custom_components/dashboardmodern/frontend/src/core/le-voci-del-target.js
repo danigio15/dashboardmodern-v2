@@ -43,6 +43,23 @@ function vocePerOpzione(opzione) {
   return { valore, testo: /^\d+(?:[.,]\d+)?$/.test(valore) ? `${valore}%` : valore };
 }
 
+/* Quante cifre dopo la virgola porta questo numero, come lo scrive JavaScript.
+ *
+ * La forma esponenziale — `1e-7` — non ha una virgola da contare, e un limite
+ * di carica non arriva mai li': si risponde zero invece di leggere «e-7» come
+ * se fossero decimali. */
+function quanteCifre(numero) {
+  const scritto = String(numero);
+  if (scritto.includes("e") || scritto.includes("E") || !scritto.includes(".")) return 0;
+  return scritto.split(".")[1].length;
+}
+
+/* «5,00» e' cinque, e si scrive «5». Gli zeri in coda non dicono niente in
+ * piu' e riempiono la tendina di decimali che nessuno ha chiesto. */
+function senzaZeriInCoda(scritto) {
+  return scritto.includes(".") ? scritto.replace(/\.?0+$/, "") : scritto;
+}
+
 /* Da dove parte la scala diradata: dal primo valore tondo, non dal minimo.
  *
  * «Non esiste 91% e 96%, da dove li stai pescando.» Da qui: un limite che va
@@ -81,12 +98,23 @@ function vociDaiNumeri(attributi) {
     mio = suo * quante;
     if ((max - min) / mio <= QUANTE_AL_MASSIMO) break;
   }
-  /* I decimali del passo dicono con quante cifre si scrive: un passo di 0,5
-   * scrive «57,5», un passo intero scrive «60». */
-  const cifre = String(mio).includes(".") ? String(mio).split(".")[1].length : 0;
+  /* Con quante cifre si scrive: quelle che servono ai numeri DELL'ENTITA' —
+   * il suo passo, il suo minimo, il suo massimo — non quelle del passo
+   * diradato.
+   *
+   * Il passo diradato e' sempre piu' grosso, e spesso intero: prendendo le
+   * cifre da lui, un limite che va da 0,25 a 100 col passo di 0,25 si dirada
+   * a cinque, le cifre diventano zero, e il minimo si scriveva «0» — un
+   * valore SOTTO il minimo, che Home Assistant rifiuta. Dire «gli estremi ci
+   * sono sempre» e poi arrotondarne uno fuori dai suoi limiti e' peggio che
+   * non averlo messo.
+   *
+   * Gli zeri in coda si tolgono, cosi' le cifre servono a chi ne ha bisogno
+   * senza far diventare «5» un «5,00» per tutti gli altri. */
+  const cifre = Math.max(...[suo, min, max].map(quanteCifre));
   const voci = [];
   const aggiungi = (valore) => {
-    const scritto = valore.toFixed(cifre);
+    const scritto = senzaZeriInCoda(valore.toFixed(cifre));
     if (voci.some((voce) => voce.valore === scritto)) return;
     voci.push({ valore: scritto, testo: `${scritto}%` });
   };

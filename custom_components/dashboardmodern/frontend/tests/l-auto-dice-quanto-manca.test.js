@@ -179,6 +179,32 @@ test("una scala tonda che l'entità non accetta non si inventa", () => {
   assert.equal(valori[valori.length - 1], "93");
 });
 
+/* Le cifre vengono dai numeri dell'entita', non dal passo diradato.
+ *
+ * Il passo diradato e' sempre piu' grosso e spesso intero: prendendo le cifre
+ * da lui, un limite da 0,25 a 100 col passo di 0,25 si dirada a cinque, le
+ * cifre diventano zero, e il minimo si scriveva «0» — un valore SOTTO il
+ * minimo, che Home Assistant rifiuta. Rilievo della revisione, verificato:
+ * usciva davvero «0». */
+test("un minimo con la virgola non si arrotonda fuori dai suoi limiti", () => {
+  const { voci } = vociDelTarget({ state: "50", attributes: { min: 0.25, max: 100, step: 0.25 } });
+  const valori = voci.map((voce) => voce.valore);
+  assert.equal(valori[0], "0.25", `il minimo dichiarato e' 0,25: ${valori.slice(0, 3).join(",")}`);
+  for (const valore of valori) assert.ok(Number(valore) >= 0.25, `${valore} sta sotto il minimo`);
+  /* E gli altri scalini non si portano dietro decimali che non servono: «5»,
+     non «5,00». */
+  assert.ok(valori.includes("5") && valori.includes("100"), valori.join(","));
+});
+
+test("un passo con la virgola scrive i suoi mezzi, e il resto interi", () => {
+  const { voci } = vociDelTarget({ state: "57.5", attributes: { min: 55, max: 100, step: 2.5 } });
+  const valori = voci.map((voce) => voce.valore);
+  assert.equal(valori[0], "55");
+  assert.ok(valori.includes("57.5"), valori.join(","));
+  assert.ok(valori.includes("60"), "un intero resta intero");
+  assert.equal(valori[valori.length - 1], "100");
+});
+
 test("un'entità che non dice niente lascia stare la tendina del guscio", () => {
   for (const stato of [null, { state: "80" }, { state: "80", attributes: {} }]) {
     const esito = vociDelTarget(stato);

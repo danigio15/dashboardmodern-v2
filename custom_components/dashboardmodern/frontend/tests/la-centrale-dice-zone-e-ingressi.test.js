@@ -158,6 +158,29 @@ test("le zone si scelgono anche senza una seconda area", () => {
   assert.doesNotMatch(scheda, /writeJsonIfChanged\(CHIAVE_CENTRALI, \[\]\);/);
 });
 
+/* «Salva zone» non resuscita una centrale cancellata.
+ *
+ * Rilievo della revisione, verificato. Il blocco delle zone della centrale
+ * sola non ha la casella dell'entita', e `leggiRiga` ripiegava sulla riga
+ * salvata: chi svuota la casella «Centrale allarme» del guscio se la vedeva
+ * tornare al primo «Salva zone», perche' l'elenco a una riga la teneva da
+ * parte e il salvataggio la riscriveva negli override. E' la riga a una sola
+ * che ha aperto il buco — prima, senza elenco, non c'era niente da cui
+ * resuscitarla. */
+test("il salvataggio delle sole zone non riscrive un'entità cancellata", () => {
+  const scheda = sorgente("src/sections/centrali-allarme-editor-section.js");
+  /* Senza casella nel documento si legge la mappatura viva, vuota compresa. */
+  assert.match(
+    scheda,
+    /if \(voce\?\.corrente\) return clean\(readJson\("cd_entity_overrides", \{\}\)\[RIF_CENTRALE\]\);/,
+  );
+  assert.match(scheda, /caselle: \{ \[RIF_CENTRALE\]: suaEntita\(\) \}/);
+  /* E solo per quella in pagina adesso: in un elenco a piu' aree la mappatura
+     viva e' la sua, e prestarla alle altre darebbe a ognuna l'entita' della
+     vicina. */
+  assert.match(scheda, /return entitaDellaCentrale\(voce\);/);
+});
+
 /* Passare da un'area all'altra non le spoglia delle sue zone.
  *
  * `passaAllAreaAllarme` riscriveva l'elenco con tre campi — `id`, `nome`,
