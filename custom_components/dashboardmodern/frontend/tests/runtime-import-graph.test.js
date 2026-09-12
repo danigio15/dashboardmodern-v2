@@ -1218,8 +1218,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // gli altri, e una striscia alta trenta pixel in mezzo a delle card e' un
   // avanzo. Due file — le previsioni che si provano senza socket, e il
   // vestito.
+  // 350 con le due file dell'Auto: le voci che la tendina del limite accetta
+  // — quelle dell'entita', non sei numeri di serie — e il tempo che manca
+  // alla fine della carica, che il guscio non contava mai perche' chiedeva la
+  // lettera esatta della norma a colonnine che parlano altri dialetti.
   assert.ok(
-    relative.length <= 348,
+    relative.length <= 350,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
