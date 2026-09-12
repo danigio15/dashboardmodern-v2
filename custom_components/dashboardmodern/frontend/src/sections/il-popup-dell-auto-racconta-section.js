@@ -175,6 +175,12 @@ function umanizzaCaselle() {
   }
 }
 
+/* Si riscrive anche a pagina chiusa, ed e' voluto: la pagina dell'Auto si apre
+ * senza che arrivi nessuna notizia dalla casa — e' un cambio di linguetta — e
+ * un giro che si fermasse davanti alla pagina nascosta la lascerebbe con le
+ * parole del guscio finche' la casa non muove qualcosa. Costa due domande al
+ * documento e quattro letture di stato, dentro un disegno che ne fa centinaia.
+ */
 function rivesti() {
   try {
     scriviIlTempo();

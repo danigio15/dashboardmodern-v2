@@ -7,7 +7,88 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## 1.4.23
 
+### Aggiunto
+
+- **Il meteo sceso in pagina diventa una card**
+
+  «Nel caso in cui il meteo viene spostato da sotto all'intestazione crea una
+  card più bella: la striscia così piccola e sottile non mi piace.»
+
+  Nell'intestazione la striscia resta com'è, ed è giusta lì: sta sotto il nome
+  della casa, accanto all'orologio, e il suo mestiere è non prendere spazio. Ma
+  il riquadro può scendere in pagina, e lì è un blocco come le persone, le
+  tessere e le stanze: una riga alta trenta pixel in mezzo a delle card non è
+  discreta, è un avanzo.
+
+  Sceso in pagina adesso è una card: il segno del tempo grande, i gradi, la
+  condizione, la massima e la minima di oggi; l'ora e la data in alto a destra;
+  le misure in pastiglie larghe uguali — e due che una striscia non aveva
+  spazio di dire, la pressione che il meteo pubblica già fra i suoi attributi e
+  il tramonto che lo dice il sole; sotto un filo, i quattro giorni che vengono.
+
+- **La capacità della batteria della vettura, nella scheda Auto**
+
+  Serve a una cosa sola e la fa bene: dire quanto manca alla fine della carica.
+  Il guscio assumeva settanta kilowattora per tutte le auto del mondo, e su una
+  batteria da quaranta il tempo usciva quasi doppio. Lasciandola vuota restano
+  i settanta di prima, detti invece che nascosti.
+
+### Modificato
+
+- **La barra sotto il meteo: la pastiglia apre l'elenco di cosa è acceso**
+
+  «Devi cambiare popup dei dispositivi accesi che sono nella barra sotto al
+  menu. Devi mostrare solo quelli accesi e non una replica del popup widget.»
+
+  La pastiglia inoltrava il tocco alla tessera: «2 LUCI ACCESE» apriva il popup
+  delle luci, che le mostra tutte — accese e spente, per zone, coi cursori. Chi
+  tocca una pastiglia che dice DUE vuole quelle due, ed è il motivo per cui la
+  tocca.
+
+  Adesso le pastiglie che contano aprono una finestra loro con dentro solo
+  quello che è acceso, e da lì si spegne: il servizio giusto per ogni dominio —
+  una tapparella si chiude, una cassa si mette in pausa, un contatto sull'anta
+  non si comanda affatto. Spenta l'ultima, la finestra si chiude. Le pastiglie
+  che raccontano una cosa sola — il ritiro dei rifiuti, l'antifurto, le quattro
+  misure — continuano ad aprire la loro tessera.
+
 ### Corretto
+
+- **Auto: il tempo di fine carica non si calcolava mai**
+
+  «Sezione ev non calcola il tempo di fine»: la casella diceva IN ATTESA con
+  1,61 kW che passavano nel cavo. Il guscio il conto lo sa fare, ma la domanda
+  «sta caricando?» se la rispondeva con una riga sola — la lettera C o D della
+  norma, maiuscola ed esatta — e una colonnina che dice «charging», un
+  `binary_sensor` che dice «on», evcc che dice «charging_solar» per quella riga
+  non stanno caricando. E la potenza la leggeva come numero nudo: una colonnina
+  che pubblica kW diceva 1,61, e 1,61 watt non sono una carica.
+
+  Adesso la lettera la dà il nucleo della ricarica, che parla tutti i dialetti,
+  e la potenza si legge nell'unità che l'entità dichiara.
+
+- **Auto: i kWh della sessione non uscivano, o uscivano mille volte tanto**
+
+  «Non mostra i kwh della sessione pur avendo configurato entità.» Il guscio
+  stampava lo stato e ci appiccicava «kWh» qualunque unità dichiarasse il
+  contatore — un sensore in wattora diceva «1610 kWh» — e quando l'entità non
+  rispondeva restava un trattino muto, che non dice se manca la casella o manca
+  la risposta. La conversione è quella dell'Energia, una sola in tutta la
+  plancia; il perché del trattino sta nel titolo della casella.
+
+- **Auto: il menù della percentuale non era quello dell'entità**
+
+  «Menu di scelta percentuale non è quello dell'entità: per questo va in errore
+  e non mi cambia la percentuale.» La tendina si riempiva con sei valori di
+  serie — 50, 60, 70, 80, 90, 100 — ogni volta che i min/max dell'entità non
+  stavano in venticinque passi: un limite da 0 a 100 col passo di 1 ci cadeva
+  sempre. E scrivendoli si metteva anche il cartello che al guscio dice «ci ho
+  già pensato io», quindi le opzioni vere non arrivavano più.
+
+  Adesso le voci vengono dall'entità — le sue `options`, o i suoi min, max e
+  passo diradato a un multiplo del suo — e quando l'entità non dice niente non
+  si inventa niente.
+
 
 - **L'avviso della plancia predefinita accusava il modo YAML senza guardare**
 
