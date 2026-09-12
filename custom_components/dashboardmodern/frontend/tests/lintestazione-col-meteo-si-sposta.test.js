@@ -35,6 +35,7 @@ import {
   ilMeteoStaInTestata,
 } from "../src/core/ordine-dei-blocchi.js";
 import { CONFIG_KEYS } from "../src/core/chiavi-di-configurazione.js";
+import { haOggettoWidget } from "../src/core/oggetti-widget.js";
 
 const leggi = (nome) => readFileSync(new URL(`../src/${nome}`, import.meta.url), "utf8");
 
@@ -100,8 +101,13 @@ test("chi mette in fila i blocchi sa che il meteo e' uno di loro", () => {
     sorgente,
     /if \(nome === BLOCCO_DEL_METEO\)\s*\n\s*return \[dentro\(doc\.querySelector\("\.dm-testata-riga"\)\)\]\.filter\(Boolean\);/,
   );
-  /* E ha un nome nella scheda: una riga senza etichetta non si sposta. */
-  assert.match(sorgente, /meteo: \["\u{1F324}️", t\("Intestazione col meteo", "Weather header"\)\]/u);
+  /* E ha un nome nella scheda: una riga senza etichetta non si sposta. Il
+   * simbolo accanto al nome non e' piu' un'emoji di sistema — «non voglio
+   * vedere icone che non sono nostre» — ma il sole dietro la nuvola del
+   * catalogo, che e' l'oggetto chiamato «meteo» come il blocco. */
+  assert.match(sorgente, /meteo: t\("Intestazione col meteo", "Weather header"\)/);
+  assert.match(sorgente, /const disegnoDelBlocco = \(nome\) =>\s*\n?\s*oggettoWidget\(/);
+  assert.ok(haOggettoWidget("meteo"), "il blocco del meteo deve avere il suo oggetto");
   /* Alla freccia il riquadro cambia casa PRIMA che si rimetta in fila: dopo,
    * sarebbe una fila con un blocco in meno, e lo si vedrebbe muoversi solo al
    * prossimo giro di stati. */

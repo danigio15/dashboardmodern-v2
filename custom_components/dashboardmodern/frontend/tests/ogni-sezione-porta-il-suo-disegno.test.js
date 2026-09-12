@@ -92,3 +92,30 @@ test("quello che le due tabelle promettono, il catalogo lo sa disegnare", () => 
     for (const [voce, disegno] of Object.entries(tavola))
       assert.ok(haOggettoWidget(disegno), `${nome}[${voce}] promette «${disegno}», che non esiste`);
 });
+
+/* Avere il disegno non basta: bisogna anche METTERLO, e metterlo quando la voce
+ * nasce.
+ *
+ * Le voci che aggiungono i moduli — Stanze, Luci, Prese, Robot, le telecamere,
+ * le porte — nascono nel fotogramma dopo `render`, e col simbolo scritto a mano
+ * da chi le ha create. A rimpiazzarlo col disegno era solo l'aggancio su
+ * `cdApplyNavVis`: una funzione del guscio, che al momento in cui questo modulo
+ * si installa puo' non esserci ancora. Quando non c'era, l'aggancio non si
+ * faceva — e non si riprovava mai piu': la barra restava col simbolo del
+ * telefono, e chi guarda vede «icone che non sono nostre» su una plancia il cui
+ * catalogo li aveva tutti.
+ */
+test("il disegno si rimette dove la barra si rifà, non solo se il guscio è già pronto", () => {
+  const barra = sorgente("../src/sections/navigation-section.js");
+  /* Insieme al filtro, che e' la cosa che gia' succedeva al momento giusto:
+   * subito dopo `render` e in fondo allo stesso fotogramma. */
+  assert.match(barra, /applicaLaVisibilita\(\);\s*\n\s*disegniNellaBarra\(\);\s*\n\s*filtraNelFotogramma\(\);/);
+  assert.match(barra, /state\.filtroInCoda = false;\s*\n\s*applicaLaVisibilita\(\);\s*\n\s*disegniNellaBarra\(\);/);
+  /* E gli agganci al guscio si riprovano quando il guscio dichiara di esserci:
+   * tutt'e due si rifiutano di avvolgere due volte la stessa funzione, quindi
+   * riprovare non costa niente. */
+  assert.match(
+    barra,
+    /for \(const evento of \["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready"\]\)\s*\n\s*root\.addEventListener\?\.\(evento, \(\) => \{\s*\n\s*accodaDopo\("cdApplyNavOrder"\);\s*\n\s*accodaDopo\("cdApplyNavVis"\);\s*\n\s*filtraDopo\("render"\);/,
+  );
+});

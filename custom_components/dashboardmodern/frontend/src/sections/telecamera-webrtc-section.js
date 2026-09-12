@@ -19,6 +19,7 @@
  * niente e per quando il video non parte. La regola sta in
  * `core/telecamera-webrtc.js`; qui ci sono il socket e il DOM.
  */
+import { attesaDelFlusso } from "../core/strategie-telecamera.js";
 import {
   attesaDelVideo,
   candidatoDaEvento,
@@ -514,8 +515,25 @@ async function avviaPerIlPopup(entityId, videoEl) {
    * apre sopra di lei, quindi nessuno la sta guardando — e per una telecamera
    * che regge un flusso solo, due sono uno di troppo. */
   spegniSessione(entity, { pausa: false });
+  /* Il tempo e' quello che la strategia ha dato a QUESTA strada, non un numero
+   * scritto qui.
+   *
+   * Qui c'erano quindici secondi fissi, e il guscio intanto ne concedeva
+   * dieci a una telecamera di casa e venticinque a una in cloud: il negoziato
+   * e il velo «Connessione WebRTC…» andavano ognuno per conto suo. Da una
+   * parte cinque secondi di velo in piu' prima che la fila passasse alla
+   * strada dopo — il guscio aspetta che questa funzione torni PRIMA di
+   * guardare il suo cronometro, quindi quei secondi li paga chi guarda. Dall
+   * altra, peggio: a un'Arlo o a una Ring la trattativa veniva interrotta al
+   * quindicesimo secondo, dieci prima della fine del tempo che il guscio le
+   * aveva dato — cioe' proprio alle telecamere che di tempo hanno bisogno si
+   * toglieva la strada che avrebbe funzionato.
+   *
+   * `attesaDelFlusso` e' lo stesso conto che fa la strategia per la strada
+   * nativa: un tempo solo, e questa funzione lo rispetta invece di averne
+   * uno suo. */
   const sessione = await avviaWebRtcNativo(entity, videoEl, {
-    attesa: 15000,
+    attesa: attesaDelFlusso(allStates()?.[entity]),
     conAudio: true,
     quandoSiPuoChiudere: (chiudi) => {
       chiudiIlNegoziatoDelPopup = chiudi;

@@ -24,7 +24,17 @@ import {
   idDellaStanza,
   stanzeInPlancia,
 } from "../core/stanze-in-plancia.js";
-import { allStates, clean, doc, esc, installStyle, readJson, root, t } from "./shared.js";
+import {
+  allStates,
+  clean,
+  doc,
+  esc,
+  iconGlyphHtml,
+  installStyle,
+  readJson,
+  root,
+  t,
+} from "./shared.js";
 import { apriLaStanza, roomPages } from "./rooms-page-section.js";
 
 const KEY = "__DASHBOARDMODERN_STANZE_IN_PLANCIA__";
@@ -39,14 +49,15 @@ export function stanzeScelte() {
 
 /* Il disegno della stanza, dal catalogo di casa: è lo stesso che la stanza
  * porta nella sua pagina e nel Clima, e prenderne un altro qui vorrebbe dire
- * la stessa stanza con due facce. */
+ * la stessa stanza con due facce.
+ *
+ * Il ripiego non e' il token. Qui si tornava a mani vuote quando il motore non
+ * rispondeva, e chi chiamava scriveva al suo posto `pagina.icon`: una stanza
+ * con l'icona scelta dal catalogo mdi si ritrovava «mdi:sofa» stampato come
+ * parola dentro la card. Il ripiego adesso e' un simbolo, ed e' `iconGlyphHtml`
+ * a sceglierlo — la stessa regola di tutta la plancia, scritta una volta. */
 function disegnoDellaStanza(icona) {
-  if (!clean(icona)) return "";
-  try {
-    return root.DashboardModernIconEngine?.markup?.("room", clean(icona), { size: 34 }) || "";
-  } catch (_error) {
-    return "";
-  }
+  return iconGlyphHtml(icona, { size: 34, kind: "room", fallback: "🛋️" });
 }
 
 const numero = (entity, states) => {
@@ -91,7 +102,7 @@ function cardMarkup(pagina, states) {
   const acceso = accese > 0;
   return `<button type="button" class="dm-stanza-plancia" data-dm-stanza-plancia="${esc(pagina.id)}"
       data-accesa="${acceso}" aria-label="${esc(pagina.name)}">
-    <span class="dm-stanza-plancia-ic" aria-hidden="true">${disegno || esc(pagina.icon || "🛋️")}</span>
+    <span class="dm-stanza-plancia-ic" aria-hidden="true">${disegno}</span>
     <span class="dm-stanza-plancia-testo">
       <b>${esc(pagina.name)}</b>
       <small>${esc(misure)}</small>

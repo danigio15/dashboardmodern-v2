@@ -494,22 +494,30 @@ function schedaAperta() {
 
 /* I nomi delle voci. Sono gli stessi delle tessere che le raccontano — chi
  * legge «Finestre» nella scheda ritrova «Finestre» in Home — e la posta e' la
- * sola che una tessera non ce l'ha. */
+ * sola che una tessera non ce l'ha.
+ *
+ * Qui c'erano anche le emoji, ed erano le stesse che la barra mostrava quando
+ * il catalogo non aveva il disegno: «icone barra sotto al menu non sono del
+ * nostro catalogo». Adesso il disegno ce l'hanno tutte — la posta, l'umidita'
+ * e le due della pioggia sono arrivate col catalogo — e questa tabella torna a
+ * fare la cosa che sa fare: i nomi. Il disegno lo chiede chi disegna, allo
+ * stesso catalogo da cui lo chiedono le pastiglie: due elenchi della stessa
+ * barra con due facce diverse sarebbero la stessa cosa detta due volte. */
 const NOMI_DELLE_VOCI = () => ({
-  posta: ["📬", t("Posta", "Mail")],
-  rifiuti: ["♻️", t("Rifiuti", "Waste")],
-  sicurezza: ["🛡️", t("Sicurezza", "Security")],
-  porte: ["🚪", t("Porte", "Doors")],
-  varchi: ["🚪", t("Varchi", "Openings")],
-  luci: ["💡", t("Luci", "Lights")],
-  tapparelle: ["🪟", t("Finestre", "Windows")],
-  clima: ["❄️", t("Clima", "Climate")],
-  prese: ["🔌", t("Prese", "Sockets")],
-  media: ["🔊", t("Musica", "Media")],
-  temperatura: ["🌡️", t("Temperatura", "Temperature")],
-  umidita: ["💧", t("Umidità", "Humidity")],
-  pioggia: ["🌧️", t("Pioggia adesso", "Rain now")],
-  pioggiaOggi: ["☔", t("Pioggia di oggi", "Rain today")],
+  posta: t("Posta", "Mail"),
+  rifiuti: t("Rifiuti", "Waste"),
+  sicurezza: t("Sicurezza", "Security"),
+  porte: t("Porte", "Doors"),
+  varchi: t("Varchi", "Openings"),
+  luci: t("Luci", "Lights"),
+  tapparelle: t("Finestre", "Windows"),
+  clima: t("Clima", "Climate"),
+  prese: t("Prese", "Sockets"),
+  media: t("Musica", "Media"),
+  temperatura: t("Temperatura", "Temperature"),
+  umidita: t("Umidità", "Humidity"),
+  pioggia: t("Pioggia adesso", "Rain now"),
+  pioggiaOggi: t("Pioggia di oggi", "Rain today"),
 });
 
 /* Una casella per un sensore della barra: le due misure hanno la stessa forma
@@ -528,9 +536,9 @@ function pannelloMarkup() {
   const config = configurazione();
   const nomi = NOMI_DELLE_VOCI();
   const righe = VOCI_DELLA_BARRA.map((voce) => {
-    const [icona, etichetta] = nomi[voce.chiave] || ["", voce.chiave];
+    const etichetta = nomi[voce.chiave] || voce.chiave;
     return `<label class="ed-row dm-casa-ed-riga">
-      <span class="dm-casa-ed-ic" aria-hidden="true">${icona}</span>
+      <span class="dm-casa-ed-ic" aria-hidden="true">${oggettoWidget(voce.chiave)}</span>
       <span class="ed-row-main"><strong class="ed-row-new">${esc(etichetta)}</strong></span>
       <input type="checkbox" data-dm-casa-voce="${esc(voce.chiave)}"${
         config.voci[voce.chiave] ? " checked" : ""
@@ -819,6 +827,7 @@ function stile() {
     #ed-body .dm-casa-ed-list{display:grid;gap:6px;margin-bottom:12px}
     #ed-body .dm-casa-ed-riga{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important;cursor:pointer}
     #ed-body .dm-casa-ed-ic{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px;font-size:17px}
+    #ed-body .dm-casa-ed-ic .dm-oggetto{width:24px;height:24px;display:block}
     #ed-body .dm-casa-ed-campo{display:block;margin-bottom:12px}
   `;
 }

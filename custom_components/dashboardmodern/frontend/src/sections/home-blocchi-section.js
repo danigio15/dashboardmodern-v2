@@ -16,6 +16,7 @@
  * resto della plancia, e qui vale doppio perche' spostare nodi costa
  * impaginazione.
  */
+import { oggettoWidget } from "../core/oggetti-widget.js";
 import { spostaNellElenco } from "../core/ordine-a-mano.js";
 import {
   BLOCCHI_DELLA_HOME,
@@ -41,6 +42,7 @@ import {
   clean,
   doc,
   esc,
+  iconGlyphHtml,
   installStyle,
   onEditorRedraw,
   readJson,
@@ -179,13 +181,23 @@ const SCHEDA_HOME = "sez0";
  * scelgono e si ordinano fra loro; le persone e le azioni rapide pure. Qui si
  * mettono in fila i blocchi. */
 const NOMI_DEI_BLOCCHI = () => ({
-  meteo: ["🌤️", t("Intestazione col meteo", "Weather header")],
-  persone: ["👥", t("Persone", "People")],
-  widget: ["🧩", t("Widget", "Widgets")],
-  azioni: ["⚡", t("Azioni rapide", "Quick actions")],
-  stanze: ["🛋️", t("Stanze", "Rooms")],
-  dispositivi: ["📟", t("Dispositivi", "Devices")],
+  meteo: t("Intestazione col meteo", "Weather header"),
+  persone: t("Persone", "People"),
+  widget: t("Widget", "Widgets"),
+  azioni: t("Azioni rapide", "Quick actions"),
+  stanze: t("Stanze", "Rooms"),
+  dispositivi: t("Dispositivi", "Devices"),
 });
+
+/* Quale disegno di casa porta ogni blocco.
+ *
+ * Quasi tutti si chiamano gia' come il proprio oggetto — persone, widget,
+ * azioni, stanze — e per quelli non c'e' niente da scrivere. Gli altri due
+ * sono i soliti due nomi: il riquadro in cima si chiama «meteo» e i
+ * dispositivi sono gli elettrodomestici della griglia. */
+const OGGETTO_DEL_BLOCCO = Object.freeze({ dispositivi: "elettrodomestici" });
+
+const disegnoDelBlocco = (nome) => oggettoWidget(OGGETTO_DEL_BLOCCO[nome] || nome);
 
 function schedaAperta() {
   return clean(doc?.querySelector?.(".ed-tab.active")?.dataset?.tab);
@@ -196,9 +208,9 @@ function pannelloMarkup() {
   const fila = ordineSalvato();
   const righe = fila
     .map((nome, indice) => {
-      const [icona, etichetta] = nomi[nome] || ["", nome];
+      const etichetta = nomi[nome] || nome;
       return `<div class="ed-row dm-blocco-row" data-blocco="${esc(nome)}">
-        <span class="dm-blocco-icona" aria-hidden="true">${icona}</span>
+        <span class="dm-blocco-icona" aria-hidden="true">${disegnoDelBlocco(nome)}</span>
         <span class="ed-row-main"><strong class="ed-row-new">${esc(etichetta)}</strong></span>
         <button type="button" class="ed-del dm-blocco-move" data-blocco-su aria-label="${esc(
           t("Più in alto", "Move up"),
@@ -272,7 +284,11 @@ function stanzeMarkup() {
       if (!id) return "";
       const accesa = laStanzaSiVede(scelte, stanza);
       return `<label class="ed-row dm-blocco-stanza">
-        <span class="dm-blocco-icona" aria-hidden="true">${esc(clean(stanza.icon) || "\u{1F6CB}\uFE0F")}</span>
+        <span class="dm-blocco-icona" aria-hidden="true">${iconGlyphHtml(stanza.icon, {
+          size: 22,
+          kind: "room",
+          fallback: "\u{1F6CB}\uFE0F",
+        })}</span>
         <span class="ed-row-main"><strong class="ed-row-new">${esc(clean(stanza.name) || id)}</strong></span>
         <span class="dm-blocco-switch"><input type="checkbox" data-dm-stanza-plancia-scelta="${esc(id)}"${
           accesa ? " checked" : ""
@@ -384,6 +400,9 @@ function stile() {
     #ed-body .dm-blocco-list{display:grid;gap:6px;margin-bottom:14px}
     #ed-body .dm-blocco-row{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important}
     #ed-body .dm-blocco-icona{font-size:17px;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px}
+    #ed-body .dm-blocco-icona .dm-oggetto{width:24px;height:24px;display:block}
+    #ed-body .dm-blocco-icona .dm-icon-engine-glyph{display:inline-flex;align-items:center;justify-content:center}
+    #ed-body .dm-blocco-icona svg{max-width:100%;max-height:100%}
     #ed-body .dm-blocco-move[disabled]{opacity:.3;pointer-events:none}
     #ed-body .dm-blocco-pastiglie,
     #ed-body .dm-blocco-stanza{display:flex!important;align-items:center;gap:12px;padding:10px 12px!important}
