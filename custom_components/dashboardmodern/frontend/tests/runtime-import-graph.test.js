@@ -1222,8 +1222,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // — quelle dell'entita', non sei numeri di serie — e il tempo che manca
   // alla fine della carica, che il guscio non contava mai perche' chiedeva la
   // lettera esatta della norma a colonnine che parlano altri dialetti.
+  // 352 con la soglia di potenza (#508): la regola di quando la casa sta
+  // tirando troppo — e su quale dei due carichi si misura, casa o rete — e il
+  // posto dove la si scrive, dentro le impostazioni dell'Energia. Due file,
+  // perche' la regola dev'essere provabile senza aprire una scheda: la tessera
+  // in Home la legge da sola, e non passa di qui.
   assert.ok(
-    relative.length <= 350,
+    relative.length <= 352,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

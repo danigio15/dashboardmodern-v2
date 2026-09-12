@@ -89,6 +89,13 @@ import {
   normalizzaUps,
 } from "../core/ups-model.js";
 import {
+  LIVELLO_QUIETE,
+  SOGLIA_POTENZA_KEY,
+  SORGENTE_RETE,
+  coloreDelLivello,
+  livelloDellaPotenza,
+} from "../core/la-soglia-della-potenza.js";
+import {
   TESSERA_PER_IMPIANTO,
   TESSERE_IMPIANTI_KEY,
   comeSiVedeLEnergia,
@@ -1702,18 +1709,56 @@ function didascaliaDiOggi(oggi) {
   return altre.length ? `${testa} · ${altre.join(" · ")}` : testa;
 }
 
+/* Il verdetto della soglia su queste letture (#508).
+ *
+ * La regola sta in `core/la-soglia-della-potenza.js` e i numeri sono quelli
+ * che la tessera ha gia' in mano: leggere i sensori una seconda volta qui
+ * vorrebbe dire una tessera che si colora su una corrente e ne scrive
+ * un'altra. La rete si pesca dalle righe, dove sta gia' col suo segno. */
+function sovraccaricoDellaTessera(rows, house) {
+  return livelloDellaPotenza(readJson(SOGLIA_POTENZA_KEY, {}), {
+    casa: house,
+    rete: rows.find((riga) => riga.group === "grid")?.watts ?? null,
+  });
+}
+
+/* Come si dice, in testa alla didascalia, che si sta tirando troppo.
+ *
+ * Il colore da solo dice «qualcosa non va» e non dice cosa: la parola dice su
+ * quale dei due carichi — casa o rete — e oltre quale numero, che e' la
+ * differenza fra una tessera arancione e una tessera che si capisce. */
+function paroleDelSovraccarico(verdetto) {
+  if (verdetto.livello === LIVELLO_QUIETE) return "";
+  const dove =
+    verdetto.sorgente === SORGENTE_RETE ? t("dalla rete", "from the grid") : t("in casa", "at home");
+  return `⚠️ ${t("Sovraccarico", "Overload")} ${dove} · ${formatWatts(verdetto.watt)} / ${formatWatts(verdetto.limite)}`;
+}
+
 function tesseraEnergia(rows, house, today, { key = "energia", label, impianto = "", oggi } = {}) {
   if (house == null && !rows.length) return null;
+  const verdetto = sovraccaricoDellaTessera(rows, house);
+  const avviso = paroleDelSovraccarico(verdetto);
   return {
     key,
-    accent: "#f97316",
+    /* Sopra la soglia la tessera cambia colore, e il colore E' la risposta
+     * alla segnalazione: ambra «occhio», rosso «adesso salta». Sotto la
+     * soglia — e senza soglia scritta — resta l'arancione di sempre, cosi'
+     * chi non ha chiesto niente non si accorge che questa riga e' cambiata. */
+    accent: coloreDelLivello(verdetto.livello) || "#f97316",
+    /* L'avviso e' cio' che fa muovere la pastiglia e accende la tessera: e'
+     * lo stesso segnale con cui una porta aperta si fa notare. */
+    alert: verdetto.livello !== LIVELLO_QUIETE,
     icon: "⚡",
     label: label || t("Energia", "Energy"),
     /* Di quale impianto parla: la sua finestra porta alla sezione aperta su
      * di lui, non su quello che era rimasto acceso (#286, dal campo). */
     impianto: clean(impianto),
     value: formatWatts(house),
-    caption: didascaliaDiOggi(oggi || (today == null ? {} : { house: today })),
+    /* Il sovraccarico va in testa, prima dei numeri del giorno: la didascalia
+     * scorre, e cio' che si legge senza aspettare e' l'inizio. */
+    caption: [avviso, didascaliaDiOggi(oggi || (today == null ? {} : { house: today }))]
+      .filter(Boolean)
+      .join(" · "),
     ring: null,
     rows,
     today,

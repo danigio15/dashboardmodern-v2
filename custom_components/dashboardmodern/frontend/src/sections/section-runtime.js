@@ -105,6 +105,7 @@ import { installRobotSection } from "./robot-section.js";
 import { installAnimaliSection } from "./animali-section.js";
 import { installPreseSection } from "./prese-section.js";
 import { installEnergyPlantsSection } from "./energy-plants-section.js";
+import { installLaSogliaDellaPotenza } from "./la-soglia-della-potenza-section.js";
 import { installRoomAssignSection } from "./room-assign-section.js";
 import { installRoomsPageSection } from "./rooms-page-section.js";
 import { installStanzeInPlancia } from "./stanze-in-plancia-section.js";
@@ -1035,6 +1036,10 @@ export function installSectionRuntime() {
     /* Le linguette degli impianti leggono la sezione Energia e le si
      * posano sopra: si installano dopo di lei. */
     installEnergyPlantsSection();
+    /* La soglia di potenza (#508) sta nelle impostazioni dell'Energia e legge
+     * le letture che fa il ponte dei widget: si installa dopo l'una e dopo
+     * l'altro, cosi' la sua scheda trova il pannello gia' in piedi. */
+    installLaSogliaDellaPotenza();
     installEditorEntrySection();
     installMediaPickerSection();
     /* Le persone leggono `cd_people` e basta; il loro editor usa il selettore

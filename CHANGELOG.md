@@ -26,6 +26,32 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   spazio di dire, la pressione che il meteo pubblica già fra i suoi attributi e
   il tramonto che lo dice il sole; sotto un filo, i quattro giorni che vengono.
 
+- **Energia: una soglia di potenza che colora la tessera**
+
+  «Possibilità di avere un campo dove inserire un valore massimo di potenza che
+  fa colorare di color ambra o rosso la card per capire un sovraccarico.»
+
+  Una tessera che dice «4,8 kW» non dice niente finché non si sa quanto è
+  tanto: tre chilowatt sono la sera di una casa con l'induzione accesa, e sono
+  il distacco del contatore in una casa da tre. Il numero che separa le due
+  cose lo sa solo chi abita lì, quindi adesso lo scrive lui — in ⚡ Energia →
+  Impostazioni, accanto al costo del kWh.
+
+  Due numeri e non uno: ambra è «occhio», rossa è «adesso salta». Chi ne vuole
+  uno solo ne scrive uno solo, e il campo lasciato vuoto non colora niente. E
+  si sceglie su cosa misurarli, perché le due domande sono diverse: il **carico
+  di casa** è quanto stanno consumando gli apparecchi, ed è la domanda di chi
+  ha il fotovoltaico — la casa può tirare sei chilowatt col contatore quasi
+  fermo, perché li sta facendo il sole; il **carico di rete** è quanto passa
+  dal contatore, ed è la domanda di chi teme il distacco, perché il limite del
+  contratto sta lì. Della rete si guarda solo il prelievo: sei chilowatt
+  regalati alla rete non sono un sovraccarico, sono una bella giornata.
+
+  Sopra la soglia la tessera cambia colore e scrive in testa quale carico è
+  scattato e oltre quale numero; la pagina Energia, sull'istantanea, dice la
+  stessa cosa con una striscia. Chi non ha scritto niente non si accorge che
+  qualcosa è cambiato.
+
 - **La capacità della batteria della vettura, nella scheda Auto**
 
   Serve a una cosa sola e la fa bene: dire quanto manca alla fine della carica.

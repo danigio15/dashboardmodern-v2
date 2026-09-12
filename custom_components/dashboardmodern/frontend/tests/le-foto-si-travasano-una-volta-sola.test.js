@@ -192,7 +192,16 @@ test("togliere una chiave non alza la revisione", async () => {
    * house», e «it should also be possible to choose which rooms or areas
    * appear». Quali stanze uno vuole davanti è una scelta della casa: chi
    * sceglie il giardino e il garage dal computer li ritrova sul telefono. */
-  assert.equal(CONFIG_KEYS_REVISION, 48);
+  /* E la 49 con la soglia di potenza (#508, `cd_energia_soglia`): «un campo
+   * dove inserire un valore massimo di potenza che fa colorare di color ambra
+   * o rosso la card per capire un sovraccarico». Il limite del contratto — o
+   * il consumo che si vuole tenere d'occhio — è un fatto dell'impianto: chi lo
+   * scrive dal computer deve ritrovare la tessera colorata sul telefono. */
+  assert.equal(CONFIG_KEYS_REVISION, 49);
+  assert.ok(
+    CONFIG_KEYS.includes("cd_energia_soglia"),
+    "la soglia di potenza è dell'impianto, non del vetro da cui la si è scritta",
+  );
   assert.ok(
     CONFIG_KEYS.includes("cd_home_pastiglie"),
     "le pastiglie si spengono per la casa, non per il vetro da cui le si guarda",
