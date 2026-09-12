@@ -44,6 +44,13 @@ import {
   overridesPerCentrale,
 } from "../core/alarm-panel.js";
 import {
+  ceQualcosaDaMostrare,
+  ingressiDellaCentrale,
+  zoneDellaCentrale,
+} from "../core/le-zone-della-centrale.js";
+import { CHIAVE_PRESENZA, contoDellaPresenza, presenzaDiCasa } from "../core/presenza-in-casa.js";
+import { CHIAVE_VARCHI, contoDeiVarchi, varchiDiCasa } from "../core/varchi-di-casa.js";
+import {
   CHIAVE_ANTIFURTO_SU_MISURA,
   chiamataDelModo,
   ilCodiceApreIlModo,
@@ -111,6 +118,19 @@ const copy = () => ({
     custom: { label: t("Parziale", "Partial"), hint: t("Con esclusioni", "With bypass") },
     disarm: { label: t("Sblocca", "Disarm"), hint: t("Disinserisci", "Turn off") },
   },
+  /* Il vocabolario della centrale (#511): quello che la plancia chiama presenza
+   * e varco, sul pannello si chiama zona e ingresso. */
+  zoneTitolo: t("Zone e ingressi", "Zones and entry points"),
+  zone: t("Zone", "Zones"),
+  ingressi: t("Ingressi", "Entry points"),
+  zoneSommario: (attive, totale) =>
+    attive
+      ? `${attive}/${totale} ${t("in allarme", "triggered")}`
+      : `${totale} ${t("in quiete", "quiet")}`,
+  ingressiSommario: (aperti, totale) =>
+    aperti
+      ? `${aperti}/${totale} ${t("aperti", "open")}`
+      : `${totale} ${t("chiusi", "closed")}`,
   cctv: t("Videosorveglianza", "Video surveillance"),
   rec: "REC",
   live: "LIVE",
@@ -270,6 +290,104 @@ function syncAree(shell, labels) {
   }
   const markup = filaDelleAree(lista, labels);
   if (fila.innerHTML !== markup) fila.innerHTML = markup;
+  return true;
+}
+
+/* ── le zone e gli ingressi della centrale (#511) ──────────────────────────
+ *
+ * «Tutti i miei sensori di presenza sono riferiti alla centrale: magari
+ * aprendo Sicurezza, dove leggo zone — sarebbero i sensori di presenza — e dove
+ * leggo ingressi — sarebbero i varchi mappati dalla centrale.»
+ *
+ * E' il vocabolario di chi una centrale ce l'ha davvero: quello che la plancia
+ * chiama «presenza» sul pannello si chiama zona, quello che chiama «varco» si
+ * chiama ingresso. Le due pagine restano dove sono; qui le stesse righe si
+ * rivedono dalla parte della Sicurezza, che e' il posto da cui si guarda prima
+ * di inserire l'antifurto.
+ *
+ * Le righe non si rifanno: sono quelle che la Presenza e i Varchi costruiscono
+ * gia', con gli stessi nomi e gli stessi stati. Chi appartiene a questa
+ * centrale lo dice `core/le-zone-della-centrale.js`, e la sua regola e' quella
+ * che fa funzionare la cosa senza configurare niente: una centrale che non ha
+ * dichiarato le sue zone le ha tutte. */
+function righeDellaPresenza() {
+  return presenzaDiCasa(allStates(), readJson(CHIAVE_PRESENZA, {}), (entity) =>
+    clean(allStates()?.[entity]?.attributes?.friendly_name),
+  );
+}
+
+function righeDeiVarchi() {
+  return varchiDiCasa(
+    allStates(),
+    readJson(CHIAVE_VARCHI, {}),
+    readJson("cd_stati_invertiti", []),
+    (entity) => clean(allStates()?.[entity]?.attributes?.friendly_name),
+  );
+}
+
+function pastigliaDellaZona(riga) {
+  /* Attivo, libero, muto: gli stessi tre stati della pagina Presenza, con gli
+   * stessi colori. Uno che non risponde non e' «libero» — contarlo libero
+   * sarebbe la bugia tranquillizzante che quella pagina evita gia'. */
+  const come = riga.stato === "attivo" ? "attiva" : riga.stato === "libero" ? "libera" : "muta";
+  return `<span class="dm-sec-zona" data-stato="${esc(come)}" title="${esc(riga.entity)}">
+    <i aria-hidden="true">${riga.glifo}</i><b>${esc(riga.name)}</b></span>`;
+}
+
+function pastigliaDellIngresso(riga) {
+  const come = riga.stato === "aperto" ? "aperto" : riga.stato === "chiuso" ? "chiuso" : "muto";
+  return `<span class="dm-sec-zona" data-stato="${esc(come)}" title="${esc(riga.entity)}">
+    <i aria-hidden="true">${riga.glifo}</i><b>${esc(riga.name)}</b></span>`;
+}
+
+function riquadroDelleZone(zone, ingressi, labels) {
+  const conto = contoDellaPresenza(zone);
+  const varchi = contoDeiVarchi(ingressi);
+  const fila = (titolo, sommario, pastiglie) =>
+    pastiglie
+      ? `<div class="dm-sec-zone-fila">
+          <div class="dm-sec-zone-cap"><strong>${esc(titolo)}</strong><span>${esc(sommario)}</span></div>
+          <div class="dm-sec-zone-righe">${pastiglie}</div>
+        </div>`
+      : "";
+  return `<div class="dm-sec-zone-head">
+      <span class="dm-sec-zone-ic" aria-hidden="true">${ICONS.shield}</span>
+      <h3>${esc(labels.zoneTitolo)}</h3>
+    </div>
+    ${fila(
+      labels.zone,
+      labels.zoneSommario(conto.attivi, conto.totale),
+      zone.map(pastigliaDellaZona).join(""),
+    )}
+    ${fila(
+      labels.ingressi,
+      labels.ingressiSommario(varchi.aperti, ingressi.length),
+      ingressi.map(pastigliaDellIngresso).join(""),
+    )}`;
+}
+
+function syncZone(shell, labels) {
+  const stage = shell.querySelector("#alarm-stage");
+  if (!stage) return false;
+  const lista = centraliDiCasa();
+  const centrale = lista.find((riga) => riga.corrente === true) || lista[0] || {};
+  const zone = zoneDellaCentrale(righeDellaPresenza(), centrale);
+  const ingressi = ingressiDellaCentrale(righeDeiVarchi(), centrale);
+  let riquadro = shell.querySelector("[data-dm-sec-zone]");
+  /* Senza niente da dire il riquadro non c'e': un titolo «Zone» sopra il vuoto
+   * non dice che non ci sono zone, sembra che la pagina si sia rotta. */
+  if (!ceQualcosaDaMostrare(zone, ingressi)) {
+    riquadro?.remove();
+    return false;
+  }
+  if (!riquadro) {
+    riquadro = doc.createElement("section");
+    riquadro.className = "dm-sec-zone";
+    riquadro.dataset.dmSecZone = "true";
+    stage.after(riquadro);
+  }
+  const markup = riquadroDelleZone(zone, ingressi, labels);
+  if (riquadro.innerHTML !== markup) riquadro.innerHTML = markup;
   return true;
 }
 
@@ -598,6 +716,9 @@ export function renderSecurity() {
   syncModes(shell, labels);
   /* E la fila delle aree, quando ce n'è più d'una. */
   syncAree(shell, labels);
+  /* Le zone e gli ingressi della centrale (#511): le stesse righe della
+   * Presenza e dei Varchi, chiamate col nome che hanno sul pannello. */
+  syncZone(shell, labels);
 
   const models = cameraModels();
   // A rebuilt wall is a wall of empty <img> elements: whatever frame the live
@@ -1044,6 +1165,33 @@ function securityCss() {
 /* Le aree (#285): la fila sopra il quadrante, con lo stato di ognuna.
    Con due aree si vuole sapere se l'altra è inserita senza passare di là. */
 .dm-sec-aree{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+/* Le zone e gli ingressi della centrale (#511): stessa carta delle altre
+   sezioni della pagina, e le pastiglie col colore del loro stato — lo stesso
+   rosso delle aperture, lo stesso verde della quiete. Le righe scorrono se non
+   ci stanno: una casa con trenta sensori non deve allungare la pagina. */
+.dm-sec-zone{margin:0 0 16px;padding:14px 16px;border-radius:20px;border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff)}
+.dm-sec-zone-head{display:flex;align-items:center;gap:9px;margin:0 0 10px}
+.dm-sec-zone-head h3{margin:0;font-size:13px;font-weight:900;letter-spacing:.8px;text-transform:uppercase}
+.dm-sec-zone-ic{display:inline-flex;width:22px;height:22px;opacity:.7}
+.dm-sec-zone-ic svg{width:100%;height:100%}
+.dm-sec-zone-fila{display:grid;gap:6px;margin:0 0 10px}
+.dm-sec-zone-fila:last-child{margin-bottom:0}
+.dm-sec-zone-cap{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.dm-sec-zone-cap strong{font-size:11.5px;font-weight:900;letter-spacing:.7px;text-transform:uppercase}
+.dm-sec-zone-cap span{font-size:11px;font-weight:700;color:var(--secondary-text-color,#94a3b8)}
+.dm-sec-zone-righe{display:flex;gap:7px;flex-wrap:wrap}
+.dm-sec-zona{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;font-size:11.5px;font-weight:800;border:1px solid var(--card-border,#e2e8f0);background:var(--card-background-color,#fff)}
+.dm-sec-zona i{font-style:normal;line-height:1;display:inline-flex}
+.dm-sec-zona i svg{width:15px;height:15px}
+.dm-sec-zona[data-stato="attiva"],.dm-sec-zona[data-stato="aperto"]{
+  border-color:color-mix(in srgb,#dc2626 42%,transparent);
+  background:color-mix(in srgb,#dc2626 13%,var(--card-bg,#fff));color:#b91c1c}
+.dm-sec-zona[data-stato="libera"],.dm-sec-zona[data-stato="chiuso"]{
+  border-color:color-mix(in srgb,#16a34a 38%,transparent);
+  background:color-mix(in srgb,#16a34a 11%,var(--card-bg,#fff));color:#15803d}
+/* Chi non risponde non e' verde: contarlo a posto sarebbe la bugia
+   tranquillizzante che le due pagine evitano gia' nel loro conto. */
+.dm-sec-zona[data-stato="muta"],.dm-sec-zona[data-stato="muto"]{opacity:.6}
 .dm-sec-area{
   flex:1 1 140px;display:flex;flex-direction:column;gap:2px;align-items:flex-start;
   padding:9px 13px;border-radius:14px;font:inherit;text-align:left;cursor:pointer;

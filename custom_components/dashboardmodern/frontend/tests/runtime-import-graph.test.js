@@ -1230,8 +1230,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 353 con l'elenco di cio' che un apparecchio non vuole mostrare (#512): un
   // file solo, perche' e' una domanda sola — «questa entita' si vede?» — e la
   // fanno la finestra e la scheda, che esistono gia' tutte e due.
+  // 354 con le zone e gli ingressi della centrale (#511): un file solo, perche'
+  // le righe non sono nuove — sono quelle della Presenza e dei Varchi — e qui
+  // si decide soltanto quali appartengono a quest'area.
   assert.ok(
-    relative.length <= 353,
+    relative.length <= 354,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

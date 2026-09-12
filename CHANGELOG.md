@@ -52,6 +52,24 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   stessa cosa con una striscia. Chi non ha scritto niente non si accorge che
   qualcosa è cambiato.
 
+- **Sicurezza: le zone e gli ingressi della centrale**
+
+  «Tutti i miei sensori di presenza sono riferiti alla centrale: magari aprendo
+  Sicurezza, dove leggo zone — sarebbero i sensori di presenza — e dove leggo
+  ingressi — sarebbero i varchi mappati dalla centrale.»
+
+  È il vocabolario di chi una centrale ce l'ha davvero: quello che la plancia
+  chiama «presenza» sul pannello si chiama **zona**, quello che chiama «varco»
+  si chiama **ingresso**. Le due pagine restano dove sono; nella Sicurezza, sotto
+  il quadrante, le stesse righe si rivedono con quel nome — perché è lì che uno
+  guarda prima di inserire l'antifurto.
+
+  Non nasce nessun elenco nuovo: i nomi, gli stati e i colori sono quelli della
+  Presenza e dei Varchi, così le due pagine non possono dire numeri diversi
+  sulla stessa casa. Chi ha una centrale sola non configura niente — un'area che
+  non dichiara le sue zone le ha tutte. Con più aree, ognuna sceglie le sue nella
+  scheda Sicurezza.
+
 - **Elettrodomestici: scegliere cosa mostrare nella finestra**
 
   «Negli elettrodomestici poter gestire, esempio negli stati o nei comandi,
