@@ -77,12 +77,16 @@ export function oraDiFineCarica(testo, adesso = Date.now()) {
 
 /** Quanto manca, adesso, con quello che la casa sa dire. */
 export function quantoManca() {
+  const codice = codiceDellaRicaricaAdesso();
   return tempoDellaRicarica({
-    codice: codiceDellaRicaricaAdesso(),
+    codice,
     soc: numero(liveState("dm.ev_batteria_auto")?.state),
     target: numero(liveState("dm.ev_target_soc")?.state),
     kilowatt: kilowattDellaColonnina(),
-    capacita: capacitaDellAutoInUso(),
+    /* La capacita' si chiede solo quando serve, cioe' quando c'e' un conto da
+     * fare: leggerla vuol dire rileggere i profili delle auto, e questo giro
+     * passa a ogni disegno del guscio. Ferma, il numero non lo usa nessuno. */
+    capacita: codice === "C" ? capacitaDellAutoInUso() : undefined,
   });
 }
 
