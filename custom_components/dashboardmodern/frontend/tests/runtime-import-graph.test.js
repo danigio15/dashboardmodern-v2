@@ -1210,8 +1210,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // gia' con le sue entita' `update.`, e qui si leggono e si mettono in fila.
   // Niente da configurare: un elenco scritto a mano invecchierebbe al primo
   // add-on installato.
+  // 346 con il modo in cui si spegne quello che e' rimasto acceso: l'elenco
+  // che si apre dalla barra sotto il meteo deve saperlo, e non e' sempre
+  // «spegni» — una tapparella si chiude, una cassa si mette in pausa, un
+  // contatto sull'anta non si comanda affatto.
   assert.ok(
-    relative.length <= 345,
+    relative.length <= 346,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

@@ -253,10 +253,18 @@ export function pastiglieDellaCasa(modelli, { barra, posta, misure } = {}) {
       icona: pulito(modello.icon),
       tinta: pulito(modello.accent),
       conto,
-      /* I nomi di cio' che e' acceso: la pastiglia non li scrive — non ci
-       * starebbero — ma li mette nel titolo, che e' quello che legge chi si
-       * ferma sopra col dito o chi ascolta il lettore di schermo. */
-      nomi: righe.map((riga) => pulito(riga?.name)).filter(Boolean),
+      /* Cio' che e' acceso, una voce per riga: il nome e l'entita'.
+       *
+       * Il nome finisce nel titolo della pastiglia — non ci starebbe dentro —
+       * e serve a chi si ferma sopra col dito o ascolta il lettore di schermo.
+       * L'entita' serve all'elenco che si apre toccandola: «devi mostrare solo
+       * quelli accesi e non una replica del popup widget». Le due cose vengono
+       * dalla stessa riga e viaggiano insieme: due elenchi della stessa
+       * lampadina — uno di nomi, uno di entita' — sarebbero due elenchi da
+       * tenere allineati. */
+      voci: righe
+        .map((riga) => ({ entity: pulito(riga?.entity), name: pulito(riga?.name) }))
+        .filter((voce) => voce.name || voce.entity),
     });
   }
   return fuori;
