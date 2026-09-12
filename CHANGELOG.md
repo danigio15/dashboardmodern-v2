@@ -233,6 +233,35 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   Adesso il nome va a capo e si legge intero, nella scheda della sezione, nella
   finestra della tessera e nell'elenco di cosa è acceso della barra.
 
+- **La plancia torna fra le plance sulle Home Assistant nuove**
+
+  «Esce nella sidebar ma fra le plance non c'è», su Home Assistant 2026.8, e
+  reinstallare tutto da zero non cambiava niente. Non era un residuo: era un
+  campo che non esiste più.
+
+  La plancia nella barra laterale è un pannello, e quello lo registriamo noi.
+  Per essere *scegliibile come predefinita* serve invece una dashboard Lovelace
+  vera, e per crearla serve la collezione delle dashboard. Fin qui la si
+  prendeva da `hass.data["lovelace"]["dashboards_collection"]` — un nome che
+  nel codice di Home Assistant portava scritto accanto «questo si può togliere
+  quando si toglie l'integrazione mappa». È stato tolto: oggi quel dato è un
+  oggetto con quattro campi, e la collezione non è fra quelli. Senza collezione
+  la dashboard di appoggio non nasceva, e l'avviso in Riparazioni accusava del
+  modo YAML una casa che il modo YAML non ha.
+
+  Adesso la collezione si cerca in tre posti, dal più diretto al più
+  sospettoso: quel nome, per le versioni che ancora lo hanno; il padrone dei
+  comandi `lovelace/dashboards/*`, che è dove Home Assistant la consegna oggi —
+  ed è la collezione *vera*, non una seconda copia che scriverebbe sullo stesso
+  magazzino all'insaputa della prima; e infine quello che gli oggetti sanno
+  fare. Il modo Lovelace, allo stesso modo, non si indovina più da un campo:
+  lo dichiara la plancia di serie.
+
+  Le prove che c'erano non potevano accorgersene, perché girano sulla Lovelace
+  della versione che la CI installa, che quel campo ce l'ha ancora. Quella
+  nuova prende gli oggetti veri di quell'avvio e li rimette nella forma di
+  oggi.
+
 ## 1.4.22
 
 ### Corretto
