@@ -32,8 +32,9 @@ import { APPLIANCE_BINDING_FIELDS } from "../core/device-model.js";
  * elettrodomestici, lettori — vedono senza sapere niente l'una dell'altra. */
 import { comandiVicini, elencoComandi, genereDelComando } from "../core/comandi-accanto.js";
 import { elencoLetture, eUnaLettura, lettureVicine } from "../core/letture-accanto.js";
+import { elencoNascoste } from "../core/le-voci-nascoste.js";
 import { nomeAccantoAlDispositivo } from "../core/nome-accanto-al-dispositivo.js";
-import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
+import { apriMenuIntegrazioni, entitaDelDispositivo } from "./appliance-integration-section.js";
 import { CAMPI_SCELTI } from "../core/energy-loads-config.js";
 import {
   eDiUnAltroApparecchio,
@@ -730,6 +731,132 @@ function bindingMarkup(device = {}) {
   </section>`;
 }
 
+/* ── cosa mostrare e cosa no (#512) ────────────────────────────────────────
+ *
+ * «Negli elettrodomestici poter gestire, esempio negli stati o nei comandi,
+ * cosa visualizzare o meno: ci sono cose che magari vengono rilevate ma alla
+ * fine graficamente uno puo' non interessare.»
+ *
+ * Collegare un'integrazione porta dentro tutto quello che il dispositivo
+ * pubblica, e un dispositivo moderno pubblica molto: la lavatrice dichiara il
+ * programma e i giri, ma anche il numero di serie e tre diagnostiche. Qui si
+ * spengono, una per una.
+ *
+ * Si scrive cio' che si NASCONDE e non cio' che si mostra: un apparecchio
+ * senza questo campo mostra tutto — com'era prima — e un'entita' nuova che
+ * l'integrazione pubblica domani compare da sola, invece di restare invisibile
+ * perche' non era in un elenco scritto ieri. La regola sta in
+ * `core/le-voci-nascoste.js`; qui c'e' solo il modo di premerla. */
+
+/* Tutto quello che questa finestra potrebbe mostrare, senza ripetizioni: le
+ * caselle a nome fisso, le letture e i comandi scelti a mano, e le entita' del
+ * dispositivo collegato. E' lo stesso insieme che la finestra percorre — se ne
+ * elencasse uno piu' corto, ci sarebbe roba che non si puo' spegnere. */
+function vociDellApparecchio(values) {
+  const viste = new Set();
+  const elenco = [];
+  const aggiungi = (voce) => {
+    const id = clean(voce);
+    if (!id || !id.includes(".") || viste.has(id)) return;
+    viste.add(id);
+    elenco.push(id);
+  };
+  for (const casella of CASELLE_DELLA_FINESTRA) aggiungi(values[casella]);
+  for (const entity of elencoLetture(values.letture)) aggiungi(entity);
+  for (const entity of elencoComandi(values.comandi)) aggiungi(entity);
+  /* Il catalogo di ADESSO, non solo quello di quando si e' collegato.
+   *
+   * `device_entities` e' uno scatto: fotografa il dispositivo il giorno che lo
+   * si e' scelto. La finestra dell'apparecchio invece chiede il catalogo vivo,
+   * quindi una diagnostica o un comando pubblicati dall'integrazione un mese
+   * dopo li' compaiono da soli — ed e' proprio il comportamento che si voleva
+   * — ma in questo elenco non c'erano: l'unica voce che non si poteva
+   * nascondere era quella appena arrivata, e per farla comparire qui bisognava
+   * scollegare e ricollegare il dispositivo. Le due liste si uniscono, e lo
+   * scatto resta perche' il catalogo vivo puo' non essere ancora arrivato. */
+  for (const voce of entitaDelDispositivo(clean(values.device_id)) || [])
+    aggiungi(voce?.entity_id);
+  for (const entity of bindingSnapshot(values)) aggiungi(entity);
+  return elenco;
+}
+
+/* Le caselle a nome fisso che la finestra dell'apparecchio disegna. Non e'
+ * l'elenco di tutti i campi della scheda: la soglia di standby e il prezzo del
+ * kWh sono numeri, non entita', e non c'e' niente da nascondere. */
+const CASELLE_DELLA_FINESTRA = Object.freeze([
+  "control_entity",
+  "power_entity",
+  "state_entity",
+  "remaining_entity",
+  "temperature_entity",
+  "temperature_entity_2",
+  "door_entity",
+  /* `alert_entity`, col nome che porta nel modello e nella scheda. Qui c'era
+   * scritto `alarm_entity`, che non esiste da nessun'altra parte: il sensore
+   * di anomalia configurato a mano non compariva fra le voci da nascondere, e
+   * l'unica cosa che non si poteva spegnere era proprio quella. */
+  "alert_entity",
+  "daily_energy_entity",
+  "monthly_energy_entity",
+]);
+
+function nascosteMarkup(device) {
+  return `<section class="ed-slot dm-appl-nascoste" data-appl-nascoste>
+    <span class="ed-slot-lbl">${t("Cosa mostrare nella finestra", "What to show in the window")}</span>
+    <input type="hidden" name="nascoste" value="${esc(elencoNascoste(device[NASCOSTE_CAMPO]).join(","))}">
+    <div class="dm-appl-cmd-chips" data-appl-nascoste-voci></div>
+    <small>${t(
+      "Un tocco spegne una voce: resta configurata e smette di comparire nella finestra dell'apparecchio — fra le misure, fra gli stati e fra i comandi insieme, perché è la stessa entità. Di serie si vede tutto, e quello che l'integrazione pubblica domani compare da solo.",
+      "One tap turns an item off: it stays configured and stops showing in the appliance window — among the readings, the states and the controls at once, because it is the same entity. Everything shows by default, and whatever the integration publishes tomorrow shows up on its own.",
+    )}</small>
+  </section>`;
+}
+
+const NASCOSTE_CAMPO = "nascoste";
+
+function disegnaNascoste(modal, form) {
+  const blocco = modal.querySelector("[data-appl-nascoste]");
+  if (!blocco) return;
+  const states = allStates();
+  const values = Object.fromEntries(new FormData(form).entries());
+  const nascoste = new Set(elencoNascoste(values.nascoste));
+  const voci = vociDellApparecchio(values);
+  const apparecchio = apparecchioDelleLetture(values, elencoLetture(values.letture));
+  const cassetto = blocco.querySelector("[data-appl-nascoste-voci]");
+  if (!cassetto) return;
+  cassetto.innerHTML = voci.length
+    ? voci
+        .map((entity) => {
+          const spenta = nascoste.has(entity);
+          return `<button type="button" class="dm-appl-cmd-chip dm-appl-nascosta" data-appl-nascosta="${esc(entity)}"
+            data-on="${spenta ? "false" : "true"}" aria-pressed="${spenta ? "false" : "true"}"
+            title="${esc(entity)}"><span>${esc(nomeAccantoAlDispositivo(entity, apparecchio, states))}</span><i aria-hidden="true">${spenta ? "🚫" : "👁"}</i></button>`;
+        })
+        .join("")
+    : `<small class="dm-appl-cmd-vuoto">${esc(t("Niente da scegliere: l'apparecchio non ha ancora entità.", "Nothing to choose: the appliance has no entities yet."))}</small>`;
+}
+
+function wireNascoste(modal, form) {
+  const blocco = modal.querySelector("[data-appl-nascoste]");
+  if (!blocco) return;
+  const nascosto = form.elements.nascoste;
+  blocco.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-appl-nascosta]");
+    if (!chip) return;
+    event.preventDefault();
+    const entity = clean(chip.dataset.applNascosta);
+    const nascoste = new Set(elencoNascoste(nascosto.value));
+    /* Il tocco ribalta: si vede → si nasconde, si nasconde → si vede. Niente
+     * si salva finche' non si preme il tasto della scheda, come per gli altri
+     * comandi e le altre letture. */
+    if (nascoste.has(entity)) nascoste.delete(entity);
+    else nascoste.add(entity);
+    nascosto.value = [...nascoste].join(",");
+    disegnaNascoste(modal, form);
+  });
+  disegnaNascoste(modal, form);
+}
+
 function bindingSnapshot(values) {
   try {
     const parsed = JSON.parse(values.device_entities || "[]");
@@ -776,6 +903,9 @@ function paintBinding(modal, form, note = "") {
    * fascia. */
   disegnaComandi(modal, form);
   disegnaLetture(modal, form);
+  /* E cambia anche cosa si puo' spegnere (#512): le entita' del dispositivo
+   * sono fra le voci, e collegarne uno nuovo ne porta altre. */
+  disegnaNascoste(modal, form);
 }
 
 function wireBinding(modal, form, device) {
@@ -882,6 +1012,7 @@ export function openApplianceEditor(index) {
       </section>
       ${comandiExtraMarkup(device)}
       ${lettureExtraMarkup(device)}
+      ${nascosteMarkup(device)}
       ${cardFieldsMarkup(device)}
       <output data-error></output>
       <footer><button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button><button type="submit" class="ed-save-btn">💾 ${t("Salva modifiche", "Save changes")}</button></footer>
@@ -894,6 +1025,7 @@ export function openApplianceEditor(index) {
   wireBinding(modal, form, device);
   wireComandi(modal, form);
   wireLetture(modal, form);
+  wireNascoste(modal, form);
   modal.querySelector("[data-type-trigger]")?.addEventListener("click", () => {
     openTypePicker({
       selected: form.elements.icon.value,
@@ -1009,6 +1141,12 @@ export function openApplianceEditor(index) {
     const letture = elencoLetture(values.letture);
     if (letture.length) next.letture = letture;
     else delete next.letture;
+    /* Cosa non si vuole vedere (#512), con la stessa regola: un elenco vuoto
+     * non e' una configurazione, e il campo se ne va — cosi' un apparecchio a
+     * cui non si e' spento niente resta esattamente com'era. */
+    const nascoste = elencoNascoste(values.nascoste);
+    if (nascoste.length) next[NASCOSTE_CAMPO] = nascoste;
+    else delete next[NASCOSTE_CAMPO];
     if (next.threshold_standby === "") delete next.threshold_standby;
     for (const key of [
       "cycle_minutes",
@@ -1074,6 +1212,12 @@ function installStyles() {
        stessa cosa: un elenco di entita' che l'apparecchio sa premere. */
     .dm-appl-comandi,
     .dm-appl-letture{display:grid!important;gap:6px!important;margin-top:14px!important}
+    /* Cosa mostrare e cosa no (#512): le stesse pastiglie delle letture, con
+       due stati invece di un tasto per toglierle. Spenta resta leggibile —
+       serve poterla riaccendere — ma si vede da lontano che e' spenta. */
+    .dm-appl-nascoste{display:grid!important;gap:6px!important;margin-top:14px!important}
+    .dm-appl-nascosta[data-on="false"]{opacity:.5;text-decoration:line-through}
+    .dm-appl-nascosta[data-on="false"] i{text-decoration:none;display:inline-block}
     .dm-appl-comandi .ed-form-row,
     .dm-appl-letture .ed-form-row{display:flex!important;gap:8px!important;min-width:0!important}
     .dm-appl-comandi .ed-form-row>input,

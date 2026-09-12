@@ -1210,8 +1210,31 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // gia' con le sue entita' `update.`, e qui si leggono e si mettono in fila.
   // Niente da configurare: un elenco scritto a mano invecchierebbe al primo
   // add-on installato.
+  // 346 con il modo in cui si spegne quello che e' rimasto acceso: l'elenco
+  // che si apre dalla barra sotto il meteo deve saperlo, e non e' sempre
+  // «spegni» — una tapparella si chiude, una cassa si mette in pausa, un
+  // contatto sull'anta non si comanda affatto.
+  // 348 con la card del meteo: il riquadro sceso in pagina e' un blocco come
+  // gli altri, e una striscia alta trenta pixel in mezzo a delle card e' un
+  // avanzo. Due file — le previsioni che si provano senza socket, e il
+  // vestito.
+  // 350 con le due file dell'Auto: le voci che la tendina del limite accetta
+  // — quelle dell'entita', non sei numeri di serie — e il tempo che manca
+  // alla fine della carica, che il guscio non contava mai perche' chiedeva la
+  // lettera esatta della norma a colonnine che parlano altri dialetti.
+  // 352 con la soglia di potenza (#508): la regola di quando la casa sta
+  // tirando troppo — e su quale dei due carichi si misura, casa o rete — e il
+  // posto dove la si scrive, dentro le impostazioni dell'Energia. Due file,
+  // perche' la regola dev'essere provabile senza aprire una scheda: la tessera
+  // in Home la legge da sola, e non passa di qui.
+  // 353 con l'elenco di cio' che un apparecchio non vuole mostrare (#512): un
+  // file solo, perche' e' una domanda sola — «questa entita' si vede?» — e la
+  // fanno la finestra e la scheda, che esistono gia' tutte e due.
+  // 354 con le zone e gli ingressi della centrale (#511): un file solo, perche'
+  // le righe non sono nuove — sono quelle della Presenza e dei Varchi — e qui
+  // si decide soltanto quali appartengono a quest'area.
   assert.ok(
-    relative.length <= 345,
+    relative.length <= 354,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

@@ -173,7 +173,7 @@ test("una lettura scelta a mano si vede una volta sola, non due", () => {
   assert.match(blocco, /const scelteDaLeggere = new Set\(elencoLetture\(appliance\?\.letture\)\);/);
   assert.match(
     blocco,
-    /const letture = nuove\(gruppi\.readings\)\.filter\(\(voce\) => !scelteDaLeggere\.has\(voce\.entity\)\);/,
+    /const letture = viste\(nuove\(gruppi\.readings\)\)\.filter\(\s*\(voce\) => !scelteDaLeggere\.has\(voce\.entity\),\s*\);/,
   );
   /* E toglierle da lì non le fa sparire del tutto: se non resta altro da dire,
    * la finestra si apre lo stesso perché «Altre letture» ha ancora le sue. */

@@ -83,6 +83,7 @@ import { installAzioniRapideVassoio } from "./azioni-rapide-vassoio-section.js";
 import { installAzioniServizioGiusto } from "./azioni-servizio-giusto-section.js";
 import { installFoglioDelGuscio } from "./foglio-del-guscio-section.js";
 import { installStrisceDiLinguette } from "./le-strisce-di-linguette-section.js";
+import { installLaCardDelMeteo } from "./la-card-del-meteo-section.js";
 import { installWeatherInMasthead } from "./weather-in-masthead-section.js";
 import { installShutterSceneSection } from "./shutter-scene-section.js";
 import { installClimatePowerSection } from "./climate-power-section.js";
@@ -104,6 +105,7 @@ import { installRobotSection } from "./robot-section.js";
 import { installAnimaliSection } from "./animali-section.js";
 import { installPreseSection } from "./prese-section.js";
 import { installEnergyPlantsSection } from "./energy-plants-section.js";
+import { installLaSogliaDellaPotenza } from "./la-soglia-della-potenza-section.js";
 import { installRoomAssignSection } from "./room-assign-section.js";
 import { installRoomsPageSection } from "./rooms-page-section.js";
 import { installStanzeInPlancia } from "./stanze-in-plancia-section.js";
@@ -1000,6 +1002,10 @@ export function installSectionRuntime() {
      * dopo le intestazioni di pagina, che dell'intestazione della plancia non
      * si occupano, ma e' li' che si va a cercarle. */
     installWeatherInMasthead();
+    /* E quando il riquadro scende in pagina diventa una card: si installa dopo
+     * chi lo possiede, perche' la card e' il suo vestito da fuori — il
+     * riquadro resta uno solo, e chi lo sposta resta uno solo. */
+    installLaCardDelMeteo();
     /* Le azioni rapide entrano nel loro ripiano: si installa dopo chi disegna
      * la Home, perche' il ripiano si mette attorno a una griglia che deve
      * gia' esistere. */
@@ -1030,6 +1036,10 @@ export function installSectionRuntime() {
     /* Le linguette degli impianti leggono la sezione Energia e le si
      * posano sopra: si installano dopo di lei. */
     installEnergyPlantsSection();
+    /* La soglia di potenza (#508) sta nelle impostazioni dell'Energia e legge
+     * le letture che fa il ponte dei widget: si installa dopo l'una e dopo
+     * l'altro, cosi' la sua scheda trova il pannello gia' in piedi. */
+    installLaSogliaDellaPotenza();
     installEditorEntrySection();
     installMediaPickerSection();
     /* Le persone leggono `cd_people` e basta; il loro editor usa il selettore

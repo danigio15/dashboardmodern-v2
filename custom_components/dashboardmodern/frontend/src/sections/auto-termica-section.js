@@ -24,6 +24,7 @@
  * guarda di un'auto ferma in garage: se e' chiusa, se il motore gira, quanto
  * puo' fare. Un'ibrida tiene tutti e due i quadri, perche' li ha tutti e due.
  */
+import { CAPACITA_DI_SERIE } from "../core/il-tempo-della-ricarica.js";
 import {
   CASELLE_TERMICHE,
   RIFERIMENTI_TERMICI,
@@ -32,10 +33,14 @@ import {
   ruoteDellAuto,
 } from "../core/auto-termica.js";
 import {
+  CAPACITA_DI_CASA_KEY,
   MOTORE_DI_CASA_KEY,
   TIPI_MOTORE,
+  VEHICLE_CAPACITY_FIELD,
   VEHICLE_KEY_FIELD,
+  capacitaDellaBatteria,
   motoreDellaVettura,
+  siRicarica,
   tipoMotore,
   updateVehicle,
 } from "../core/vehicle-model.js";
@@ -84,6 +89,11 @@ const ARC_LENGTH = 2 * Math.PI * ARC_RADIUS;
  * cosi' nessun salvataggio puo' portarsela via. */
 export function motoreDiCasa() {
   return tipoMotore(readJson(MOTORE_DI_CASA_KEY, ""));
+}
+
+/** La capacita' scritta per la plancia, o `null` se non c'e'. */
+export function capacitaDiCasa() {
+  return capacitaDellaBatteria({ [VEHICLE_CAPACITY_FIELD]: readJson(CAPACITA_DI_CASA_KEY, "") });
 }
 
 export function motoreInPagina() {
@@ -340,7 +350,107 @@ export function ensureTendinaMotore() {
     riga.after(casella);
   }
   sincronizzaTendina();
+  ensureCasellaCapacita(casella);
   return true;
+}
+
+/* ── la capacita' della batteria ──────────────────────────────────────── */
+
+/* «Sezione EV non calcola il tempo di fine.»
+ *
+ * Il conto del tempo che manca ha bisogno di due cose: quanta potenza passa
+ * nel cavo — quella la dice la colonnina — e quanti kilowattora tiene la
+ * batteria, che non la dice nessuno. Il guscio ne assumeva settanta per tutte
+ * le auto del mondo: su una batteria da quaranta il tempo usciva quasi
+ * doppio, su una da cento quasi meta'.
+ *
+ * La casella sta qui, accanto alla tendina del motore, e non e' un caso: sono
+ * le due cose che si sanno della VETTURA e non delle sue entita', si scrivono
+ * nello stesso posto e si salvano per la stessa strada. Si vede solo per le
+ * auto che si ricaricano — a una a benzina la batteria di trazione non
+ * interessa — e lasciarla vuota non rompe niente: restano i settanta di
+ * prima, detti invece che nascosti. */
+function ensureCasellaCapacita(dopo) {
+  const { auto, casa } = diChiParlaLaTendina();
+  const visibile = casa || !auto || siRicarica(auto);
+  let casella = doc.querySelector("#ed-body [data-ev-kwh-riga]");
+  if (!visibile) {
+    casella?.remove();
+    return false;
+  }
+  if (!casella) {
+    casella = doc.createElement("label");
+    casella.className = "ed-slot dm-termica-kwh";
+    casella.dataset.evKwhRiga = "true";
+    casella.innerHTML = `<span class="ed-slot-lbl">${esc(
+      t("Capacità della batteria (kWh)", "Battery capacity (kWh)"),
+    )}</span>
+      <input class="ed-input" type="number" min="1" max="300" step="0.1" inputmode="decimal"
+        data-ev-kwh placeholder="${esc(String(CAPACITA_DI_SERIE))}" autocomplete="off">
+      <small>${esc(
+        t(
+          "Serve solo a dire quanto manca alla fine della carica: dalla percentuale che manca e dalla potenza della colonnina. Lasciandola vuota si contano 70 kWh, che è quello che la plancia ha sempre assunto — con una batteria diversa il tempo esce sbagliato in proporzione.",
+          "It is only used to say how long is left to charge: from the missing percentage and the charger's power. Left empty it counts 70 kWh, which is what the dashboard has always assumed — with a different battery the time comes out wrong in proportion.",
+        ),
+      )}</small>`;
+    dopo.after(casella);
+  }
+  sincronizzaCapacita(casella);
+  return true;
+}
+
+/* Come la tendina: si riallinea solo quando cambia l'auto di cui si parla, o
+ * un campo che si sta scrivendo si cancellerebbe sotto le dita. */
+function sincronizzaCapacita(casella) {
+  const campo = casella?.querySelector("[data-ev-kwh]");
+  if (!campo) return false;
+  const { chiave, auto, casa } = diChiParlaLaTendina();
+  if (campo.dataset.dmPer === chiave) return true;
+  campo.dataset.dmPer = chiave;
+  /* Senza vettura la casella non e' muta: legge quella della plancia, che e'
+   * il posto in cui la scrive chi non ha profili. */
+  campo.value = auto
+    ? clean(auto[VEHICLE_CAPACITY_FIELD])
+    : clean(readJson(CAPACITA_DI_CASA_KEY, ""));
+  return true;
+}
+
+/**
+ * Scrive la capacita' dove appartiene. Vuoto vuol dire «non la so».
+ *
+ * Sulla vettura aperta, se c'e'. Senza vettura sulla plancia: la casella si
+ * vede anche li' — chi ha una macchina sola e le sue mappature non ha nessun
+ * profilo da aprire — e prima si rifiutava di salvare, quindi si ripuliva da
+ * sola e il tempo di fine carica restava sui settanta assunti.
+ */
+export function scriviLaCapacita(valore) {
+  const { auto } = diChiParlaLaTendina();
+  const scritto = clean(valore).replace(",", ".");
+  const numero = Number(scritto);
+  /* Un numero che non sta in piedi non si salva e non cancella quello che
+   * c'era: chi sta ancora scrivendo «4» di «48» non deve perdere niente. */
+  const nuovo = scritto === "" ? "" : Number.isFinite(numero) && numero > 0 ? scritto : null;
+  if (nuovo === null) return false;
+  if (!auto) {
+    writeJsonIfChanged(CAPACITA_DI_CASA_KEY, nuovo);
+    return true;
+  }
+  const uid = clean(auto[VEHICLE_KEY_FIELD]);
+  if (!uid) return false;
+  if (clean(auto[VEHICLE_CAPACITY_FIELD]) === nuovo) return true;
+  salvaAuto(updateVehicle(profiles(), uid, { [VEHICLE_CAPACITY_FIELD]: nuovo }));
+  return true;
+}
+
+/**
+ * Quanti kilowattora tiene la batteria dell'auto in uso.
+ *
+ * La vettura se l'ha dichiarata, altrimenti quella della plancia, altrimenti i
+ * settanta di serie — che restano l'assunzione di sempre, detta invece che
+ * nascosta.
+ */
+export function capacitaDellAutoInUso() {
+  return capacitaDellaBatteria(activeVehicle() || {}) ?? capacitaDiCasa() ?? CAPACITA_DI_SERIE;
 }
 
 /* ── il quadro nella pagina ───────────────────────────────────────────── */
@@ -630,6 +740,15 @@ function onClick(event) {
 /* La scelta del motore si scrive quando si fa, non quando si preme un tasto
  * (#326): e' l'unico modo perche' nessun salvataggio possa portarsela via. */
 function onChange(event) {
+  const campo = event.target?.closest?.("#ed-body [data-ev-kwh]");
+  if (campo) {
+    try {
+      scriviLaCapacita(campo.value);
+    } catch (error) {
+      root.console?.warn?.("[DashboardModern] capacità della batteria", error);
+    }
+    return;
+  }
   const select = event.target?.closest?.("#ed-body select[data-ev-tipo]");
   if (!select) return;
   try {

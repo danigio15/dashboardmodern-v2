@@ -225,7 +225,18 @@
  * areas of the house», e «it should also be possible to choose which rooms or
  * areas appear». Quali stanze uno vuole davanti e' una scelta della casa: chi
  * sceglie il giardino e il garage dal computer li ritrova sul telefono. */
-export const CONFIG_KEYS_REVISION = 48;
+/* La revisione 49 aggiunge la soglia di potenza (`cd_energia_soglia`, #508):
+ * «un campo dove inserire un valore massimo di potenza che fa colorare di
+ * color ambra o rosso la card per capire un sovraccarico». Quanto puo' tirare
+ * la casa — o quanto puo' passare dal contatore — e' un fatto dell'impianto,
+ * non del vetro da cui lo si e' scritto: senza stare qui, chi imposta la
+ * soglia dal computer troverebbe la tessera muta sul telefono. */
+/* La revisione 50 aggiunge la capacita' della batteria di chi non ha profili
+ * auto (`cd_ev_kwh`): la casella si vedeva anche senza vettura, ma non aveva
+ * dove salvarsi e si ripuliva da sola. Va con `cd_ev_motore`, che e' l'altra
+ * cosa che si sa dell'auto di casa e non delle sue entita': quanti kilowattora
+ * tiene la batteria non cambia col vetro da cui lo si scrive. */
+export const CONFIG_KEYS_REVISION = 50;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -314,6 +325,11 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_centrale_scelta",
   // Come si vede l'energia in Home con più impianti: somma o una per impianto (#286).
   "cd_energia_tessere",
+  /* Oltre quanti watt la tessera Energia si colora, e su quale dei due carichi
+   * — casa o rete — si misura (#508). E' il limite del contratto o il consumo
+   * che si vuole tenere d'occhio: vale per la casa, non per il tablet da cui
+   * lo si e' scritto. */
+  "cd_energia_soglia",
   // Se il tocco su un'apertura chiede conferma (#275).
   "cd_porte_conferma",
   "cd_ups",
@@ -345,6 +361,10 @@ export const CONFIG_KEYS = Object.freeze([
    * fa sul telefono deve ritrovarla sul computer, o la pagina Auto racconta
    * due macchine diverse a seconda di dove la si guarda. */
   "cd_ev_motore",
+  /* E la capacita' della batteria della stessa auto, per la stessa ragione: il
+   * tempo di fine carica si conta da lei, e un numero scritto sul computer che
+   * sul telefono non c'e' fa uscire due tempi diversi per la stessa carica. */
+  "cd_ev_kwh",
   /* `cd_ev_image` e `cd_ev_image_plugged` non stanno piu' qui.
    *
    * Sono le due caselle da cui il disegno legge la foto dell'auto attiva: non

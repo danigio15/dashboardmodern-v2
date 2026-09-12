@@ -73,7 +73,13 @@ test.describe("EV page redesign", () => {
 
     // The rows next to the ring are filled by the legacy value classes.
     await expect(page.locator(".dm-evv-row-val.v-ev-pow")).toHaveText("7.4 kW");
-    await expect(page.locator(".dm-evv-row-val.v-ev-remain")).toHaveText("1h 25m");
+    /* Il tempo che manca non lo scrive piu' il guscio: da quando la sezione
+       Auto lo conta da se' — la lettera della ricarica, la potenza nella sua
+       unita', la batteria della vettura — quel nodo ha un padrone nostro, e
+       con questa casa senza entita' dell'auto dice «IN ATTESA». Qui si tiene
+       fermo l'AGGANCIO: la riga accanto all'anello c'e' e porta la sua
+       classe. Chi ci scriva dentro lo prova la sua prova. */
+    await expect(page.locator(".dm-evv-row-val.v-ev-remain")).toHaveCount(1);
   });
 
   test("the page follows the colour of the active EVCC mode", async ({ page }, testInfo) => {

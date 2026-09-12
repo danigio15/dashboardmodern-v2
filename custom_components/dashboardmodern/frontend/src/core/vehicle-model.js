@@ -50,6 +50,21 @@ export const VEHICLE_OVERRIDES_FIELD = "ov";
  * cio' che fa ogni configurazione esistente. */
 export const VEHICLE_PHOTO_FIELDS = Object.freeze({ idle: "img", plugged: "imgPlugged" });
 
+/* Quanti kilowattora tiene la batteria.
+ *
+ * Serve a una cosa sola e la fa bene: dire quanto manca alla fine della
+ * carica. Il guscio dava settanta a tutte le auto del mondo — su una batteria
+ * da quaranta il tempo usciva quasi doppio — e settanta resta il valore che si
+ * assume quando la vettura non l'ha dichiarato, perche' cambiarlo di nascosto
+ * farebbe ballare il tempo a chi non ha toccato niente. */
+export const VEHICLE_CAPACITY_FIELD = "kwh";
+
+/** La capacita' dichiarata, o `null` quando non c'e' o non e' un numero. */
+export function capacitaDellaBatteria(car = {}) {
+  const letto = Number(clean(car?.[VEHICLE_CAPACITY_FIELD]).replace(",", "."));
+  return Number.isFinite(letto) && letto > 0 ? letto : null;
+}
+
 /* Tutto cio' che appartiene a un'auto, oltre alla mappatura.
  *
  * Serviva un elenco perche' il runtime risalvava il profilo sostituendolo con
@@ -65,6 +80,7 @@ export const VEHICLE_FIELDS = Object.freeze([
   "model",
   "icon",
   "tipo",
+  VEHICLE_CAPACITY_FIELD,
   VEHICLE_PHOTO_FIELDS.idle,
   VEHICLE_PHOTO_FIELDS.plugged,
 ]);
@@ -105,6 +121,17 @@ export function tipoMotore(valore) {
  * starci una benzina e un'elettrica e una risposta sola per tutte e due
  * sarebbe falsa per una delle due. */
 export const MOTORE_DI_CASA_KEY = "cd_ev_motore";
+
+/* E la capacita' della batteria, per la stessa casa.
+ *
+ * La casella si vedeva anche senza profili — e' il caso di chi ha una macchina
+ * sola e le sue `dm.ev_*` e non ha mai creato una vettura — ma il salvataggio
+ * chiedeva un profilo su cui scrivere e se ne tornava a mani vuote: il campo
+ * si ripuliva sotto le dita e il tempo di fine carica restava sui settanta
+ * assunti. Qui la capacita' ha il suo posto anche quando il garage e' vuoto,
+ * accanto al motore e con la stessa regola: vale solo quando profili non ce
+ * ne sono, perche' con dei profili comanda la vettura. */
+export const CAPACITA_DI_CASA_KEY = "cd_ev_kwh";
 
 /**
  * Che motore ha l'auto di cui si sta parlando.
@@ -169,6 +196,7 @@ export function normalizeVehicle(input = {}, index = 0) {
     model: clean(source.model),
     icon: clean(source.icon),
     tipo: tipoMotore(source.tipo),
+    [VEHICLE_CAPACITY_FIELD]: clean(source[VEHICLE_CAPACITY_FIELD]),
     [VEHICLE_OVERRIDES_FIELD]: Object.fromEntries(
       Object.entries(overrides)
         .map(([chiave, valore]) => [clean(chiave), clean(valore)])

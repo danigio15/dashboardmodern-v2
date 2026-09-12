@@ -23,6 +23,8 @@
  * legge i valori, e lo fa dalle stesse caselle che legge la foto.
  */
 import { cavoDalloStato, codiceDellaRicarica } from "../core/stato-della-ricarica.js";
+import { inKilowatt } from "../core/il-tempo-della-ricarica.js";
+import { voceDiAdesso, vociDelTarget } from "../core/le-voci-del-target.js";
 import { ragioneDelRifiuto } from "../core/vehicle-model.js";
 import { liveState } from "./ev-section.js";
 import { clean, doc, root, t, wrapFunction } from "./shared.js";
@@ -57,12 +59,26 @@ function cavoDichiarato() {
   return cavoDalloStato(liveState("dm.ev_cavo_collegato")?.state);
 }
 
-function potenzaDellaColonnina() {
+/* La potenza che passa nel cavo, in kilowatt.
+ *
+ * L'unita' la dichiara l'entita', e conta: qui si leggeva il numero nudo e lo
+ * si passava al nucleo come se fossero watt. Una colonnina che pubblica kW —
+ * evcc lo fa — diceva «1.61», e 1,61 watt non sono una carica: la pastiglia e
+ * il tempo di fine restavano fermi con l'auto attaccata che caricava
+ * davvero. */
+export function kilowattDellaColonnina() {
   for (const ref of ["dm.ev_potenza_wallbox", "dm.ev_charge_power"]) {
-    const letta = Number(liveState(ref)?.state);
-    if (Number.isFinite(letta)) return letta;
+    const stato = liveState(ref);
+    const kilowatt = inKilowatt(stato?.state, stato?.attributes?.unit_of_measurement);
+    if (kilowatt !== null) return kilowatt;
   }
   return null;
+}
+
+/** La stessa potenza in watt: e' cosi' che la chiede il nucleo della ricarica. */
+function potenzaDellaColonnina() {
+  const kilowatt = kilowattDellaColonnina();
+  return kilowatt === null ? null : kilowatt * 1000;
 }
 
 /* Se la plancia ha ALMENO UNA fonte da cui sapere della ricarica. E' un fatto
@@ -77,16 +93,28 @@ function sorgenteDellaRicarica() {
   ].some((ref) => Boolean(entitaDi(ref)));
 }
 
-export function paintStatoRicarica(scope = doc) {
-  if (!scope?.querySelectorAll) return "";
+/* La lettera della ricarica adesso, qualunque dialetto parli la colonnina.
+ *
+ * La leggono in due: la pastiglia, che ci scrive la parola, e il tempo di fine
+ * carica, che senza sapere se sta caricando non puo' contare niente — ed e'
+ * esattamente il difetto per cui la casella diceva IN ATTESA con 1,61 kW nel
+ * cavo. Una lettura sola, un verdetto solo. */
+export function codiceDellaRicaricaAdesso() {
   const grezzo = clean(liveState("dm.ev_stato_ricarica")?.state);
-  /* Le lettere le legge gia' il guscio, con le stesse parole: niente da rifare. */
   if (/^[abcdf]$/i.test(grezzo)) return grezzo.toUpperCase().replace("D", "C");
-  const codice = codiceDellaRicarica({
+  return codiceDellaRicarica({
     stato: grezzo,
     collegata: cavoDichiarato(),
     potenza: potenzaDellaColonnina(),
   });
+}
+
+export function paintStatoRicarica(scope = doc) {
+  if (!scope?.querySelectorAll) return "";
+  const grezzo = clean(liveState("dm.ev_stato_ricarica")?.state);
+  const codice = codiceDellaRicaricaAdesso();
+  /* Le lettere le legge gia' il guscio, con le stesse parole: niente da rifare. */
+  if (/^[abcdf]$/i.test(grezzo)) return codice;
   if (!codice) {
     /* Niente da cui ricavare una lettera. Se e' perche' nessuna entita' della
      * ricarica e' mappata, la pastiglia sparisce: il pallino verde col
@@ -118,7 +146,6 @@ export function paintStatoRicarica(scope = doc) {
 
 const COMANDABILI = new Set(["select", "input_select", "number", "input_number"]);
 const TENDINE_DEL_TARGET = Object.freeze(["sel-target-soc", "sel-target-soc-popup"]);
-const VOCI_DI_SERIE = Object.freeze([50, 60, 70, 80, 90, 100]);
 const MUTO = /^(unknown|unavailable|none|)$/i;
 
 function entitaDi(ref) {
@@ -136,45 +163,45 @@ export function targetDiSolaLettura() {
   return Boolean(entita) && !COMANDABILI.has(entita.split(".")[0]);
 }
 
-function vociDelNumero(stato, attuale) {
-  const attributi = stato?.attributes || {};
-  const min = Number(attributi.min);
-  const max = Number(attributi.max);
-  const passo = Number(attributi.step) || 5;
-  const voci = new Set();
-  if (Number.isFinite(min) && Number.isFinite(max) && max > min && (max - min) / passo <= 25) {
-    for (let v = min; v <= max + 1e-9; v += passo) voci.add(Math.round(v));
-  } else for (const v of VOCI_DI_SERIE) voci.add(v);
-  voci.add(attuale);
-  return [...voci].sort((a, b) => a - b);
-}
-
+/* Le voci della tendina sono quelle dell'entita', sempre.
+ *
+ * «Menu di scelta percentuale non e' quello dell'entita', per questo va in
+ * errore e non mi cambia la percentuale.» Qui c'erano sei valori di serie —
+ * 50, 60, 70, 80, 90, 100 — usati come ripiego ogni volta che i min/max
+ * dell'entita' non stavano in venticinque passi: un limite che va da 0 a 100
+ * col passo di 1 ci cadeva sempre. E il ripiego non era innocuo: scrivendolo
+ * si metteva anche il cartello `populated`, che al guscio dice «ci ho gia'
+ * pensato io» e gli impedisce per sempre di riempire la tendina con le
+ * opzioni vere quando arrivano. Sei valori inventati, stampati sopra
+ * l'elenco dell'entita', e ogni scelta fuori da quello vero rifiutata.
+ *
+ * Adesso l'elenco viene dall'entita' — le sue `options`, o i suoi min, max e
+ * passo — e quando l'entita' non dice niente non si inventa niente: la
+ * tendina resta com'e', e il cartello non si mette, cosi' il guscio puo'
+ * ancora fare la sua parte. */
 function assicuraLeVoci(select, stato) {
-  const valore = clean(stato?.state);
-  if (!valore || MUTO.test(valore)) return;
-  /* Una tendina con le sue `options` la riempie il guscio. */
-  if (Array.isArray(stato?.attributes?.options) && stato.attributes.options.length) return;
-  const numero = Number(valore);
-  if (!Number.isFinite(numero)) return;
-  const attuale = Math.round(numero);
-  /* Le voci si rifanno dai min/max/step dell'entita' ogni volta che non sono
-   * gia' quelle: il guscio mette le sue cinque di serie, e con lo stato a 80
-   * — che c'e' fra le cinque — si restava senza il 55 o il 75 (osservazione
-   * della review). */
-  const volute = vociDelNumero(stato, attuale).map(String);
+  const { voci, padrone } = vociDelTarget(stato);
+  if (!padrone) return;
+  const volute = voci.map((voce) => voce.valore);
   const presenti = [...select.options].map((voce) => voce.value);
-  if (presenti.join(",") !== volute.join(",")) {
+  if (presenti.join("\u0000") !== volute.join("\u0000")) {
     select.replaceChildren(
-      ...volute.map((v) => {
-        const voce = doc.createElement("option");
-        voce.value = v;
-        voce.textContent = `${v}%`;
-        return voce;
+      ...voci.map((voce) => {
+        const opzione = doc.createElement("option");
+        opzione.value = voce.valore;
+        opzione.textContent = voce.testo;
+        return opzione;
       }),
     );
     select.dataset.populated = "true";
   }
-  if (select.value !== String(attuale)) select.value = String(attuale);
+  const valore = clean(stato?.state);
+  if (!valore || MUTO.test(valore)) return;
+  /* La voce di adesso si sceglie per valore, non per stringa: «95.0» e «95»
+   * sono lo stesso limite, e sceglierla per uguaglianza di parola lasciava la
+   * tendina sulla prima voce — cioe' su un numero che nessuno ha scelto. */
+  const scelta = voceDiAdesso(voci, valore);
+  if (scelta && select.value !== scelta) select.value = scelta;
 }
 
 export function paintTarget() {

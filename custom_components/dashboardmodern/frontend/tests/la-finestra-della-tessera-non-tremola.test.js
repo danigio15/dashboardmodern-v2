@@ -19,6 +19,15 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+
+/* I selettori dicono due finestre e non una.
+ *
+ * La veste — velo, card, intestazione, corpo che scorre — e' di «una finestra
+ * della plancia», non della sola tessera aperta: la vuole anche l'elenco di
+ * cosa e' acceso che la barra sotto il meteo apre. Scritta due volte sarebbe
+ * due vesti che si scollano alla prima ritoccata, quindi il foglio le nomina
+ * tutte e due. Le prove qui sotto guardano le stesse regole, col selettore
+ * largo. */
 import { readFileSync } from "node:fs";
 
 const SORGENTE = readFileSync(
@@ -31,11 +40,11 @@ test("lo sfocato sta su un elemento suo, non sulla finestra che contiene la card
    * gli sta dentro ci viene dipinto insieme: la card non deve starci. */
   assert.match(
     SORGENTE,
-    /#dm-widget-popup::before\{[\s\S]{0,220}backdrop-filter:blur\(20px\)/,
+    /:is\(#dm-widget-popup,#dm-casa-popup\)::before\{[\s\S]{0,220}backdrop-filter:blur\(20px\)/,
     "il velo sfocato deve essere il ::before",
   );
   /* E la finestra stessa non sfoca più niente. */
-  const regola = SORGENTE.match(/\n#dm-widget-popup\{[^}]*\}/)?.[0] || "";
+  const regola = SORGENTE.match(/\n:is\(#dm-widget-popup,#dm-casa-popup\)\{[^}]*\}/)?.[0] || "";
   assert.ok(regola, "la regola della finestra deve esistere");
   assert.doesNotMatch(regola, /backdrop-filter/, "la finestra non sfoca: sfoca il suo velo");
   assert.match(regola, /background:transparent/);
@@ -46,14 +55,14 @@ test("la card sta sopra il velo, che adesso è un fratello posizionato", () => {
    * card — statica — finirebbe sotto la sfocatura. */
   assert.match(
     SORGENTE,
-    /#dm-widget-popup \.dm-widget-detail\{[\s\S]{0,900}position:relative;z-index:1/,
+    /:is\(#dm-widget-popup,#dm-casa-popup\) \.dm-widget-detail\{[\s\S]{0,900}position:relative;z-index:1/,
   );
 });
 
 test("il velo scuro segue la finestra anche col tema scuro", () => {
   /* Lo sfondo si è spostato sul ::before: se la regola del tema scuro fosse
    * rimasta sull'elemento, di notte il velo sarebbe tornato chiaro. */
-  assert.match(SORGENTE, /html\[data-theme="dark"\] #dm-widget-popup::before\{background:/);
+  assert.match(SORGENTE, /html\[data-theme="dark"\] :is\(#dm-widget-popup,#dm-casa-popup\)::before\{background:/);
 });
 
 test("dietro un velo non si muove niente, e riparte tutto alla chiusura", async () => {

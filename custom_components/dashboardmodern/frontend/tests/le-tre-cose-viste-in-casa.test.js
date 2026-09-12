@@ -116,11 +116,17 @@ test("i watt si contano leggendo l'unita', non solo il numero", async () => {
 
   // E la tessera legge da li', non piu' dal numero nudo.
   const ponte = leggi("sections/home-widgets-section.js");
-  assert.match(ponte, /import \{ wattsFromState \} from "\.\.\/core\/signed-energy\.js"/);
+  /* Accanto a `wattsFromState` c'e' adesso `applySignedSources`: la potenza
+     non e' sempre nella casella `power`, e le card devono partire dalla
+     stessa risoluzione del flusso. */
+  assert.match(
+    ponte,
+    /import \{ applySignedSources, wattsFromState \} from "\.\.\/core\/signed-energy\.js"/,
+  );
   /* La riga di lettura adesso appartiene a UN impianto — la Home può mostrarne
    * più d'uno (#286) — ma la regola è la stessa: i watt passano da `wattsOf`,
    * mai dal numero nudo. */
-  assert.match(ponte, /watts: wattsOf\(states, clean\(impianto\?\.\[group\]\?\.\[field\]\)/);
+  assert.match(ponte, /watts: wattsOf\(states, clean\(risolto\?\.\[group\]\?\.\[field\]\)/);
   assert.doesNotMatch(ponte, /watts: Number\(/);
   // Anche il flusso, che guardava solo il kW e prendeva un MW per un watt.
   const flusso = leggi("sections/energy-flow-section.js");

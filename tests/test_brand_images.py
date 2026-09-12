@@ -117,6 +117,16 @@ def test_il_nome_dell_integrazione_e_uno_solo() -> None:
     cartella sul disco. Il nome pero' compariva in due forme — «Dashboard
     Modern V2» nel manifest, «DashboardModern v2` in HACS e nel codice — e in
     Home Assistant si leggeva un nome, in HACS un altro.
+
+    Il nome unico e' quello CON lo spazio, e lo spazio non e' un gusto: il
+    campo «Aggiungi integrazione» di Home Assistant cerca i caratteri scritti
+    IN ORDINE dentro il nome. Con «DashboardModern v2» attaccato, chi scrive
+    «Dashboard Modern» — che e' come lo leggono tutti, ed e' come lo scriviamo
+    noi nelle istruzioni — non trova niente: dopo «dashboard» lo spazio
+    dovrebbe comparire prima di una «m», e li' c'e' solo quello di «v2».
+    «ciao ho scaricato da hacs, ma Impostazioni -> Dispositivi e servizi ->
+    Aggiungi integrazione -> Dashboard Modern V2 nn la trovo, come mai?»
+    Con lo spazio funzionano tutte e due le scritture, attaccata e staccata.
     """
     import json
 
@@ -125,7 +135,7 @@ def test_il_nome_dell_integrazione_e_uno_solo() -> None:
     hacs = json.loads((ROOT / "hacs.json").read_text())
     const = (componente / "const.py").read_text()
 
-    atteso = "DashboardModern v2"
+    atteso = "Dashboard Modern v2"
     assert manifest["name"] == atteso
     assert hacs["name"] == atteso
     assert f'NAME = "{atteso}"' in const

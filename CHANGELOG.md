@@ -7,7 +7,181 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## 1.4.23
 
+### Aggiunto
+
+- **Il meteo sceso in pagina diventa una card**
+
+  «Nel caso in cui il meteo viene spostato da sotto all'intestazione crea una
+  card più bella: la striscia così piccola e sottile non mi piace.»
+
+  Nell'intestazione la striscia resta com'è, ed è giusta lì: sta sotto il nome
+  della casa, accanto all'orologio, e il suo mestiere è non prendere spazio. Ma
+  il riquadro può scendere in pagina, e lì è un blocco come le persone, le
+  tessere e le stanze: una riga alta trenta pixel in mezzo a delle card non è
+  discreta, è un avanzo.
+
+  Sceso in pagina adesso è una card: il segno del tempo grande, i gradi, la
+  condizione, la massima e la minima di oggi; l'ora e la data in alto a destra;
+  le misure in pastiglie larghe uguali — e due che una striscia non aveva
+  spazio di dire, la pressione che il meteo pubblica già fra i suoi attributi e
+  il tramonto che lo dice il sole; sotto un filo, i quattro giorni che vengono.
+
+- **Energia: una soglia di potenza che colora la tessera**
+
+  «Possibilità di avere un campo dove inserire un valore massimo di potenza che
+  fa colorare di color ambra o rosso la card per capire un sovraccarico.»
+
+  Una tessera che dice «4,8 kW» non dice niente finché non si sa quanto è
+  tanto: tre chilowatt sono la sera di una casa con l'induzione accesa, e sono
+  il distacco del contatore in una casa da tre. Il numero che separa le due
+  cose lo sa solo chi abita lì, quindi adesso lo scrive lui — in ⚡ Energia →
+  Impostazioni, accanto al costo del kWh.
+
+  Due numeri e non uno: ambra è «occhio», rossa è «adesso salta». Chi ne vuole
+  uno solo ne scrive uno solo, e il campo lasciato vuoto non colora niente. E
+  si sceglie su cosa misurarli, perché le due domande sono diverse: il **carico
+  di casa** è quanto stanno consumando gli apparecchi, ed è la domanda di chi
+  ha il fotovoltaico — la casa può tirare sei chilowatt col contatore quasi
+  fermo, perché li sta facendo il sole; il **carico di rete** è quanto passa
+  dal contatore, ed è la domanda di chi teme il distacco, perché il limite del
+  contratto sta lì. Della rete si guarda solo il prelievo: sei chilowatt
+  regalati alla rete non sono un sovraccarico, sono una bella giornata.
+
+  Sopra la soglia la tessera cambia colore e scrive in testa quale carico è
+  scattato e oltre quale numero; la pagina Energia, sull'istantanea, dice la
+  stessa cosa con una striscia. Chi non ha scritto niente non si accorge che
+  qualcosa è cambiato.
+
+- **Home: si sposta anche l'intestazione, hamburger compreso**
+
+  «Prevedi di spostare anche intestazione della home, quindi la prima sezione
+  compresa di hamburger.»
+
+  Il riordino della Home muoveva tutto tranne la striscia in cima — quella col
+  menù, il nome della casa e la pastiglia della connessione. Adesso è un blocco
+  come gli altri, ed è il primo: chi non tocca niente non vede cambiare un
+  pixel. Spostandola più in basso scende dentro la pagina e si mette in fila.
+
+  Con una regola che non è un dettaglio: **la striscia scende solo nella Home.**
+  Non è sua — la usano anche Energia, Clima, Sicurezza — e lasciarla in mezzo
+  alla pagina significherebbe che su ogni altra sezione l'hamburger non c'è
+  più. Uscendo dalla Home torna al suo posto da sola.
+
+- **Sicurezza: le zone e gli ingressi della centrale**
+
+  «Tutti i miei sensori di presenza sono riferiti alla centrale: magari aprendo
+  Sicurezza, dove leggo zone — sarebbero i sensori di presenza — e dove leggo
+  ingressi — sarebbero i varchi mappati dalla centrale.»
+
+  È il vocabolario di chi una centrale ce l'ha davvero: quello che la plancia
+  chiama «presenza» sul pannello si chiama **zona**, quello che chiama «varco»
+  si chiama **ingresso**. Le due pagine restano dove sono; nella Sicurezza, sotto
+  il quadrante, le stesse righe si rivedono con quel nome — perché è lì che uno
+  guarda prima di inserire l'antifurto.
+
+  Non nasce nessun elenco nuovo: i nomi, gli stati e i colori sono quelli della
+  Presenza e dei Varchi, così le due pagine non possono dire numeri diversi
+  sulla stessa casa. Chi ha una centrale sola non configura niente — un'area che
+  non dichiara le sue zone le ha tutte. Con più aree, ognuna sceglie le sue nella
+  scheda Sicurezza.
+
+- **Elettrodomestici: scegliere cosa mostrare nella finestra**
+
+  «Negli elettrodomestici poter gestire, esempio negli stati o nei comandi,
+  cosa visualizzare o meno: ci sono cose che magari vengono rilevate ma alla
+  fine graficamente uno può non interessare.»
+
+  Collegare un'integrazione porta dentro tutto quello che il dispositivo
+  pubblica, e un dispositivo moderno pubblica molto: la lavatrice dichiara il
+  programma e i giri, ma anche il numero di serie, la versione del firmware e
+  tre diagnostiche. Rilevarle è giusto — sono davvero sue — mostrarle tutte no.
+
+  Nella scheda dell'apparecchio c'è adesso **Cosa mostrare nella finestra**: le
+  voci dell'apparecchio, una per una, e un tocco le spegne. Restano
+  configurate; smettono di comparire. E spariscono da tutte le file insieme —
+  fra le misure, fra gli stati e fra i comandi — perché è la stessa entità:
+  toglierla da una sola avrebbe fatto sparire la scritta lasciando il bottone.
+
+  Si scrive quello che si nasconde, non quello che si mostra: chi non tocca
+  niente vede esattamente quello che vedeva prima, e un'entità nuova che
+  l'integrazione pubblica domani compare da sola invece di restare invisibile
+  perché non era in un elenco scritto ieri.
+
+- **La capacità della batteria della vettura, nella scheda Auto**
+
+  Serve a una cosa sola e la fa bene: dire quanto manca alla fine della carica.
+  Il guscio assumeva settanta kilowattora per tutte le auto del mondo, e su una
+  batteria da quaranta il tempo usciva quasi doppio. Lasciandola vuota restano
+  i settanta di prima, detti invece che nascosti.
+
+### Modificato
+
+- **La barra sotto il meteo: la pastiglia apre l'elenco di cosa è acceso**
+
+  «Devi cambiare popup dei dispositivi accesi che sono nella barra sotto al
+  menu. Devi mostrare solo quelli accesi e non una replica del popup widget.»
+
+  La pastiglia inoltrava il tocco alla tessera: «2 LUCI ACCESE» apriva il popup
+  delle luci, che le mostra tutte — accese e spente, per zone, coi cursori. Chi
+  tocca una pastiglia che dice DUE vuole quelle due, ed è il motivo per cui la
+  tocca.
+
+  Adesso le pastiglie che contano aprono una finestra loro con dentro solo
+  quello che è acceso, e da lì si spegne: il servizio giusto per ogni dominio —
+  una tapparella si chiude, una cassa si mette in pausa, un contatto sull'anta
+  non si comanda affatto. Spenta l'ultima, la finestra si chiude. Le pastiglie
+  che raccontano una cosa sola — il ritiro dei rifiuti, l'antifurto, le quattro
+  misure — continuano ad aprire la loro tessera.
+
+- **La tessera «Porte» si chiama «Apri porte»**
+
+  «Questa dove dice Porte credo sia più corretto dire Apri Porte o Comandi
+  Porte: alla fine dentro ci si aggiunge i comandi che sbloccano qualcosa.»
+
+  «Porte» diceva cosa c'è dentro, non cosa fa — e quello che c'è dentro sono i
+  comandi che aprono. Una tessera chiamata come la cosa che sorveglia si
+  confondeva con i Varchi, che le porte le guardano davvero. «Apri porte» era
+  già il nome della pagina che quella tessera apre: erano due nomi per lo
+  stesso posto, adesso è uno. Cambia anche la pastiglia nella barra sotto il
+  meteo e la voce con cui si spegne la tessera.
+
 ### Corretto
+
+- **Auto: il tempo di fine carica non si calcolava mai**
+
+  «Sezione ev non calcola il tempo di fine»: la casella diceva IN ATTESA con
+  1,61 kW che passavano nel cavo. Il guscio il conto lo sa fare, ma la domanda
+  «sta caricando?» se la rispondeva con una riga sola — la lettera C o D della
+  norma, maiuscola ed esatta — e una colonnina che dice «charging», un
+  `binary_sensor` che dice «on», evcc che dice «charging_solar» per quella riga
+  non stanno caricando. E la potenza la leggeva come numero nudo: una colonnina
+  che pubblica kW diceva 1,61, e 1,61 watt non sono una carica.
+
+  Adesso la lettera la dà il nucleo della ricarica, che parla tutti i dialetti,
+  e la potenza si legge nell'unità che l'entità dichiara.
+
+- **Auto: i kWh della sessione non uscivano, o uscivano mille volte tanto**
+
+  «Non mostra i kwh della sessione pur avendo configurato entità.» Il guscio
+  stampava lo stato e ci appiccicava «kWh» qualunque unità dichiarasse il
+  contatore — un sensore in wattora diceva «1610 kWh» — e quando l'entità non
+  rispondeva restava un trattino muto, che non dice se manca la casella o manca
+  la risposta. La conversione è quella dell'Energia, una sola in tutta la
+  plancia; il perché del trattino sta nel titolo della casella.
+
+- **Auto: il menù della percentuale non era quello dell'entità**
+
+  «Menu di scelta percentuale non è quello dell'entità: per questo va in errore
+  e non mi cambia la percentuale.» La tendina si riempiva con sei valori di
+  serie — 50, 60, 70, 80, 90, 100 — ogni volta che i min/max dell'entità non
+  stavano in venticinque passi: un limite da 0 a 100 col passo di 1 ci cadeva
+  sempre. E scrivendoli si metteva anche il cartello che al guscio dice «ci ho
+  già pensato io», quindi le opzioni vere non arrivavano più.
+
+  Adesso le voci vengono dall'entità — le sue `options`, o i suoi min, max e
+  passo diradato a un multiplo del suo — e quando l'entità non dice niente non
+  si inventa niente.
+
 
 - **L'avviso della plancia predefinita accusava il modo YAML senza guardare**
 
@@ -30,6 +204,130 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   l'elenco. E la collezione non si cerca più solo per nome: si cerca anche per
   quello che sa fare — elencare le plance e crearne una — così un nome che
   cambia non diventa un'accusa sbagliata.
+
+- **Rifiuti: dei tre giorni dell'organico se ne vedeva uno solo**
+
+  «Giovedì e sabato non compaiono.» Chi nel calendario di casa ha l'organico il
+  martedì, il giovedì e il sabato vedeva in plancia il solo martedì: le altre
+  due sere non erano più in basso nell'elenco, proprio non c'erano.
+
+  L'elenco teneva un ritiro per materiale, alla sua prima occasione. Sembrava
+  una regola di buon senso — «plastica fra due giorni» e «plastica fra nove»
+  sono la stessa notizia detta due volte — finché non la si è vista addosso a
+  un calendario vero: applicata dentro la settimana toglieva proprio le sere
+  che servono, perché la domanda dei rifiuti è «stasera cosa metto fuori», e si
+  fa una sera per volta.
+
+  Adesso dentro la settimana esce ogni ritiro, anche quando lo stesso materiale
+  passa più volte; dalla settimana dopo in avanti, dove il turno sta solo
+  ricominciando, il materiale già annunciato non si ripete.
+
+- **I nomi degli elettrodomestici non si tagliano più**
+
+  «Non entrano i nomi»: nella finestra e nella sezione la scheda scriveva
+  «Condizionato…» e «Lavastoviglie Bosch cu…». Il nome aveva già la riga tutta
+  per sé, ma era una riga sola: quello che non ci stava finiva in tre puntini —
+  ed è proprio la coda che distingue il condizionatore della camera da quello
+  del soggiorno.
+
+  Adesso il nome va a capo e si legge intero, nella scheda della sezione, nella
+  finestra della tessera e nell'elenco di cosa è acceso della barra.
+
+- **La plancia torna fra le plance sulle Home Assistant nuove**
+
+  «Esce nella sidebar ma fra le plance non c'è», su Home Assistant 2026.8, e
+  reinstallare tutto da zero non cambiava niente. Non era un residuo: era un
+  campo che non esiste più.
+
+  La plancia nella barra laterale è un pannello, e quello lo registriamo noi.
+  Per essere *scegliibile come predefinita* serve invece una dashboard Lovelace
+  vera, e per crearla serve la collezione delle dashboard. Fin qui la si
+  prendeva da `hass.data["lovelace"]["dashboards_collection"]` — un nome che
+  nel codice di Home Assistant portava scritto accanto «questo si può togliere
+  quando si toglie l'integrazione mappa». È stato tolto: oggi quel dato è un
+  oggetto con quattro campi, e la collezione non è fra quelli. Senza collezione
+  la dashboard di appoggio non nasceva, e l'avviso in Riparazioni accusava del
+  modo YAML una casa che il modo YAML non ha.
+
+  Adesso la collezione si cerca in tre posti, dal più diretto al più
+  sospettoso: quel nome, per le versioni che ancora lo hanno; il padrone dei
+  comandi `lovelace/dashboards/*`, che è dove Home Assistant la consegna oggi —
+  ed è la collezione *vera*, non una seconda copia che scriverebbe sullo stesso
+  magazzino all'insaputa della prima; e infine quello che gli oggetti sanno
+  fare. Il modo Lovelace, allo stesso modo, non si indovina più da un campo:
+  lo dichiara la plancia di serie.
+
+  Le prove che c'erano non potevano accorgersene, perché girano sulla Lovelace
+  della versione che la CI installa, che quel campo ce l'ha ancora. Quella
+  nuova prende gli oggetti veri di quell'avvio e li rimette nella forma di
+  oggi.
+
+- **Sicurezza: un sensore che non risponde non è più «in quiete»**
+
+  I sommari delle zone e degli ingressi contavano sul totale: con quattro zone
+  tutte scollegate la card scriveva «4 in quiete» e «4 chiusi». Le pastiglie
+  sotto lo dicevano già — un sensore muto è smorto, non verde — ma la riga
+  sopra presentava come sorvegliata una centrale che non stava guardando
+  niente. I contatori tengono i liberi, i chiusi e i muti proprio per questo, e
+  adesso sono quelli che si leggono: chi non risponde ha la sua voce.
+
+- **Sicurezza: le zone scelte non si perdono più al primo ridisegno**
+
+  La scelta delle zone e degli ingressi si salvava e poi tornava «tutte». Il
+  motivo non era il salvataggio: la lettura canonica delle aree passava per una
+  normalizzazione che riscriveva ogni riga con tre campi soli — nome, id e
+  mappatura — e le zone se ne andavano in silenzio. Una riga senza zone, nel
+  modello, vuol dire «tutte», quindi il filtro sembrava rotto mentre rotta era
+  la lettura. Chi ha campi suoi adesso li dichiara, e quella normalizzazione li
+  porta di là senza interpretarli. In più: spegnere tutte le pastiglie non si
+  può dire — sarebbe identico a lasciarle tutte accese — e adesso spegnendo
+  l'ultima si torna a «tutte», che è ciò che viene salvato.
+
+- **Energia: con due impianti la soglia guarda la casa, non mezza casa**
+
+  Con una tessera per impianto la soglia veniva valutata su un impianto per
+  volta: due misuratori che tirano 2 kW l'uno restavano in quiete sotto una
+  soglia di 3,3 kW, mentre la pagina Energia — che somma — diceva giustamente
+  che la casa ne stava tirando 4. Il numero che si scrive dice «oltre qui salta
+  il contatore», e il contatore è uno: adesso il verdetto è uno, quello della
+  casa, e ogni tessera dice la stessa cosa.
+
+- **Meteo: una previsione vuota non diventa più 0°**
+
+  Un provider che per la massima o la minima di un giorno pubblica un valore
+  nullo si vedeva disegnato come `0°`, perché zero è quello che esce
+  convertendo il nulla in numero. Una gelata inventata è peggio di mezza
+  forbice che manca. E cambiando l'entità del meteo in sessione le previsioni
+  non restano più quelle di prima per mezz'ora: il riposo è per entità.
+
+- **Auto: la capacità della batteria si salva anche senza profilo vettura**
+
+  La casella si vede anche per chi ha una macchina sola e le sue mappature
+  senza aver creato un profilo — ed è giusto che si veda — ma il salvataggio
+  cercava un profilo su cui scrivere e se ne tornava a mani vuote: il campo si
+  ripuliva sotto le dita e il tempo di fine carica restava sui 70 kWh assunti.
+  Adesso ha il suo posto anche lì, accanto al motore dichiarato per la plancia.
+  E la tendina della percentuale tiene sempre il valore che c'è davvero: con un
+  limite da 0 a 100 a passo 1 le voci si diradano di cinque in cinque, e un
+  target messo a 83 da un'automazione finiva fuori elenco — la plancia scriveva
+  «0%» dove Home Assistant diceva 83.
+
+- **Elettrodomestici: si può nascondere anche l'allarme, e ciò che arriva dopo**
+
+  L'elenco di «Cosa mostrare nella finestra» chiedeva un campo con un nome che
+  nel modello non esiste, e l'unica voce che non si poteva spegnere era proprio
+  il sensore di anomalia. E costruiva le scelte dalla fotografia del
+  dispositivo scattata il giorno del collegamento: una diagnostica pubblicata
+  dall'integrazione un mese dopo compariva nella finestra — come deve — ma non
+  in quell'elenco, e per nasconderla bisognava scollegare e ricollegare. Adesso
+  legge anche il catalogo di adesso.
+
+- **Home: il meteo non scende più a rimorchio dell'intestazione**
+
+  Con un ordine come «meteo, persone, intestazione» il riquadro del meteo
+  restava figlio della testata mentre la testata scendeva in pagina sotto le
+  persone, e ci finiva insieme: in un posto che l'ordine non aveva chiesto per
+  lui. Restare in testata vuol dire che la testata è ancora su.
 
 ## 1.4.22
 

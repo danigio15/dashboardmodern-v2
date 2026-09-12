@@ -33,9 +33,19 @@ import {
   overridesPerCentrale,
 } from "../core/alarm-panel.js";
 import {
+  CAMPO_INGRESSI,
+  CAMPO_ZONE,
+  elencoDiEntita,
+  ingressiScritti,
+  zoneScritte,
+} from "../core/le-zone-della-centrale.js";
+import { CHIAVE_PRESENZA, presenzaDiCasa } from "../core/presenza-in-casa.js";
+import { CHIAVE_VARCHI, varchiDiCasa } from "../core/varchi-di-casa.js";
+import {
   clean,
   doc,
   esc,
+  allStates,
   installStyle,
   onEditorRedraw,
   readJson,
@@ -70,11 +80,23 @@ function casellaDelGuscio() {
 }
 
 function salva(lista, scelta) {
-  const righe = (Array.isArray(lista) ? lista : []).map((riga) => ({
-    id: clean(riga?.id),
-    nome: clean(riga?.nome),
-    caselle: { [RIF_CENTRALE]: clean(riga?.caselle?.[RIF_CENTRALE]) },
-  }));
+  const righe = (Array.isArray(lista) ? lista : []).map((riga) => {
+    const scritta = {
+      id: clean(riga?.id),
+      nome: clean(riga?.nome),
+      caselle: { [RIF_CENTRALE]: clean(riga?.caselle?.[RIF_CENTRALE]) },
+    };
+    /* Le zone e gli ingressi (#511) sopravvivono al salvataggio. Questa
+     * funzione riscriveva la riga da zero con tre campi soli: un campo che non
+     * conosceva se ne andava in silenzio, ed e' il modo in cui una scelta
+     * appena fatta sparisce al salvataggio successivo. Un elenco vuoto resta
+     * fuori: vuoto vuol dire «tutte», e scriverlo sarebbe dire un'altra cosa. */
+    for (const campo of [CAMPO_ZONE, CAMPO_INGRESSI]) {
+      const elenco = elencoDiEntita(riga?.[campo]);
+      if (elenco.length) scritta[campo] = elenco;
+    }
+    return scritta;
+  });
   writeJsonIfChanged(CHIAVE_CENTRALI, righe);
   const quale = clean(scelta) || clean(righe[0]?.id);
   const accesa = righe.find((riga) => riga.id === quale) || righe[0] || null;
@@ -91,6 +113,82 @@ function salva(lista, scelta) {
   try {
     root.render?.();
   } catch (_error) {}
+}
+
+/* ── le zone e gli ingressi di un'area (#511) ──────────────────────────────
+ *
+ * «Tutti i miei sensori di presenza sono riferiti alla centrale: aprendo
+ * Sicurezza, dove leggo zone e dove leggo ingressi.»
+ *
+ * Le righe sono quelle della Presenza e dei Varchi, gia' configurate altrove:
+ * qui si dice soltanto quali sono di QUESTA area. Vale la regola del modello —
+ * un'area che non dichiara niente le ha tutte — quindi chi ha una centrale
+ * sola non passa mai di qui, e infatti questo blocco compare solo quando le
+ * aree sono piu' d'una: con una sola non c'e' niente da separare. */
+function nomiDellaPresenza() {
+  const states = allStates();
+  return presenzaDiCasa(states, readJson(CHIAVE_PRESENZA, {}), (entity) =>
+    clean(states?.[entity]?.attributes?.friendly_name),
+  );
+}
+
+function nomiDeiVarchi() {
+  const states = allStates();
+  return varchiDiCasa(
+    states,
+    readJson(CHIAVE_VARCHI, {}),
+    readJson("cd_stati_invertiti", []),
+    (entity) => clean(states?.[entity]?.attributes?.friendly_name),
+  );
+}
+
+function pastiglieDaScegliere(righe, scelte, campo) {
+  const dentro = new Set(scelte);
+  /* Un elenco vuoto vuol dire «tutte»: le pastiglie si accendono tutte, cosi'
+   * si vede com'e' adesso invece di una fila spenta sotto una pagina piena. */
+  const tutte = dentro.size === 0;
+  return righe
+    .map(
+      (riga) => `<button type="button" class="dm-area-voce" data-area-voce="${esc(riga.entity)}"
+        data-area-campo="${esc(campo)}" data-on="${tutte || dentro.has(riga.entity)}"
+        aria-pressed="${tutte || dentro.has(riga.entity)}" title="${esc(riga.entity)}">
+        <i aria-hidden="true">${riga.glifo}</i><span>${esc(riga.name)}</span></button>`,
+    )
+    .join("");
+}
+
+function zoneMarkup(voce) {
+  const presenza = nomiDellaPresenza();
+  const varchi = nomiDeiVarchi();
+  if (!presenza.length && !varchi.length) return "";
+  const fila = (etichetta, righe, scelte, campo, nota) =>
+    righe.length
+      ? `<div class="ed-slot dm-area-voci">
+          <span class="ed-slot-lbl">${esc(etichetta)}</span>
+          <div class="dm-area-voci-righe">${pastiglieDaScegliere(righe, scelte, campo)}</div>
+          <small>${esc(nota)}</small>
+        </div>`
+      : "";
+  return `${fila(
+    t("Zone di quest'area", "Zones of this area"),
+    presenza,
+    zoneScritte(voce),
+    CAMPO_ZONE,
+    t(
+      "I sensori di presenza che appartengono a questa centrale. Non toccare niente vuol dire «tutti»: con una sola area è quello che serve, e la pagina Sicurezza li mostra sotto «Zone».",
+      "The presence sensors that belong to this panel. Touching nothing means “all of them”: with a single area that is what you want, and the Security page lists them under “Zones”.",
+    ),
+  )}
+  ${fila(
+    t("Ingressi di quest'area", "Entry points of this area"),
+    varchi,
+    ingressiScritti(voce),
+    CAMPO_INGRESSI,
+    t(
+      "I contatti di porte e finestre che questa centrale sorveglia. Compaiono nella pagina Sicurezza sotto «Ingressi», con lo stesso nome e lo stesso stato che hanno nei Varchi.",
+      "The door and window contacts this panel watches. They show on the Security page under “Entry points”, with the same name and the same state they have under Openings.",
+    ),
+  )}`;
 }
 
 function rigaMarkup(voce, indice) {
@@ -120,6 +218,7 @@ function rigaMarkup(voce, indice) {
       <label class="ed-slot dm-todo-ed-field"><span class="ed-slot-lbl">${t("Centrale allarme", "Alarm panel")}</span>
         <span class="ed-form-row"><input id="${id}" class="ed-input mono" data-area-entity value="${esc(entita)}" placeholder="alarm_control_panel.zona_notte" autocomplete="off" spellcheck="false"><button type="button" class="dm-entity-picker" data-area-pick="${id}" aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>
         <small>${esc(t("Un'entità alarm_control_panel.*: la pagina legge da lei gli inserimenti che accetta e ci manda i comandi.", "An alarm_control_panel.* entity: the page reads the arming modes it accepts from it and sends the commands to it."))}</small></label>
+      ${zoneMarkup(voce)}
       <output class="dm-todo-ed-error" data-area-error></output>
       <button type="button" class="ed-save-btn" data-area-save>💾 ${esc(t("Salva area", "Save area"))}</button>
     </div>
@@ -157,11 +256,49 @@ function corpoMarkup() {
 function leggiRiga(riga, voce) {
   const nome = riga.querySelector("[data-area-nome]");
   const entita = riga.querySelector("[data-area-entity]");
-  return {
+  const scelte = (campo) => {
+    const pastiglie = [...riga.querySelectorAll(`[data-area-campo="${campo}"]`)];
+    if (!pastiglie.length) return elencoDiEntita(voce?.[campo]);
+    const accese = pastiglie.filter((nodo) => nodo.dataset.on === "true");
+    /* Tutte accese vuol dire «non l'ho detto», e si scrive lasciando vuoto:
+     * e' quello che fa valere la regola del modello anche domani, quando
+     * arrivera' un sensore in piu' — sarebbe rimasto fuori da un elenco
+     * scritto oggi con dentro tutti i nomi di oggi. */
+    if (accese.length === pastiglie.length) return [];
+    return elencoDiEntita(accese.map((nodo) => nodo.dataset.areaVoce));
+  };
+  const prossima = {
     ...voce,
     nome: nome ? clean(nome.value) : clean(voce?.nome),
     caselle: { [RIF_CENTRALE]: entita ? clean(entita.value) : entitaDellaCentrale(voce) },
   };
+  for (const campo of [CAMPO_ZONE, CAMPO_INGRESSI]) {
+    const elenco = scelte(campo);
+    if (elenco.length) prossima[campo] = elenco;
+    else delete prossima[campo];
+  }
+  return prossima;
+}
+
+/* Tutte spente non e' una cosa che si possa dire.
+ *
+ * Nel modello «non ho scelto niente» vuol dire «tutte» — ed e' quella regola
+ * che fa comparire da sola la zona che la centrale pubblichera' domani. Ma
+ * allora una fila tutta spenta si salva identica a una fila tutta accesa: due
+ * intenzioni opposte nello stesso posto, e chi aveva spento tutto riapriva
+ * l'area e la ritrovava tutta accesa senza spiegazione. Spegnendo l'ultima si
+ * torna a «tutte», e le pastiglie lo dicono subito invece di far scoprire il
+ * salto al ridisegno dopo. */
+function tutteSeNessuna(voce) {
+  const campo = clean(voce.dataset.areaCampo);
+  const riga = voce.closest("[data-area-index]");
+  if (!campo || !riga) return;
+  const pastiglie = [...riga.querySelectorAll(`[data-area-campo="${CSS.escape(campo)}"]`)];
+  if (pastiglie.some((nodo) => nodo.dataset.on === "true")) return;
+  for (const nodo of pastiglie) {
+    nodo.dataset.on = "true";
+    nodo.setAttribute("aria-pressed", "true");
+  }
 }
 
 const accesa = (lista) => clean(lista.find((riga) => riga?.corrente)?.id);
@@ -205,7 +342,7 @@ function onClick(event) {
     event.preventDefault();
     const lista = centrali();
     const prima = lista.length
-      ? lista.map((riga) => ({ id: riga.id, nome: riga.nome, caselle: riga.caselle }))
+      ? lista.map((riga) => ({ ...riga }))
       : [
           {
             id: PRIMA_CENTRALE,
@@ -219,6 +356,18 @@ function onClick(event) {
       clean(root.localStorage?.getItem?.(CHIAVE_CENTRALE_SCELTA)) || prima[0].id,
     );
     ridisegna();
+    return;
+  }
+  const voce = event.target.closest("[data-area-voce]");
+  if (voce) {
+    event.preventDefault();
+    /* Si accende e si spegne, e basta: niente si salva finche' non si preme
+     * «Salva area», come per il nome e per l'entita' accanto. Non si ridisegna
+     * nemmeno — il ridisegno rilegge quello che c'e' su disco, e si porterebbe
+     * via il tocco appena dato. */
+    voce.dataset.on = voce.dataset.on === "true" ? "false" : "true";
+    voce.setAttribute("aria-pressed", voce.dataset.on);
+    tutteSeNessuna(voce);
     return;
   }
   const pick = event.target.closest("[data-area-pick]");
@@ -291,7 +440,23 @@ function onClick(event) {
 }
 
 function installStyles() {
-  installStyle("dm-centrali-editor", `#ed-body .${BLOCCO}{margin-top:10px}`);
+  installStyle(
+    "dm-centrali-editor",
+    `#ed-body .${BLOCCO}{margin-top:10px}
+    /* Le pastiglie delle zone e degli ingressi (#511): accesa vuol dire «e' di
+       quest'area». Spenta resta leggibile, perche' serve poterla riaccendere. */
+    #ed-body .dm-area-voci{display:grid;gap:6px;margin-top:12px}
+    #ed-body .dm-area-voci-righe{display:flex;gap:7px;flex-wrap:wrap}
+    #ed-body .dm-area-voce{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;
+      border-radius:999px;font:inherit;font-size:11.5px;font-weight:800;cursor:pointer;
+      border:1px solid var(--card-border,#e2e8f0);background:var(--card-background-color,#fff);
+      color:inherit}
+    #ed-body .dm-area-voce i{font-style:normal;line-height:1;display:inline-flex}
+    #ed-body .dm-area-voce i svg{width:15px;height:15px}
+    #ed-body .dm-area-voce[data-on="true"]{border-color:var(--primary-color,#0ea5e9);
+      box-shadow:0 0 0 1px var(--primary-color,#0ea5e9) inset}
+    #ed-body .dm-area-voce[data-on="false"]{opacity:.5}`,
+  );
 }
 
 /* La scheda Sicurezza non finisce di disegnarsi in un colpo solo: le righe

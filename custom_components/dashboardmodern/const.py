@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 DOMAIN = "dashboardmodern"
-NAME = "DashboardModern v2"
+NAME = "Dashboard Modern v2"
 
 # Where the releases are published, and where the update entity goes looking.
 REPOSITORY = "danigio15/dashboardmodern-v2"

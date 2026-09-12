@@ -26,6 +26,7 @@ import {
   normalizzaModiSuMisura,
   tastiSuMisura,
 } from "./antifurto-su-misura.js";
+import { CAMPO_INGRESSI, CAMPO_ZONE } from "./le-zone-della-centrale.js";
 import { corrente, elencoConCorrente, nomeProgressivo, overridesPerScelto } from "./piu-di-uno.js";
 
 /* I bit di alarm_control_panel, come li definisce Home Assistant. */
@@ -268,8 +269,12 @@ export const PRIMA_CENTRALE = "centrale";
 const REFS_CENTRALE = Object.freeze([RIF_CENTRALE]);
 
 /** Le centrali di casa, con segnata quella che si sta guardando. */
+/* I campi che sono dell'area e non dell'elenco: le sue zone e i suoi ingressi
+ * (#511). Dichiarati qui perché è qui che si sa che esistono. */
+const SUOI_CENTRALE = Object.freeze([CAMPO_ZONE, CAMPO_INGRESSI]);
+
 export function centraliAllarme(stored, overrides = {}, scelta = "") {
-  return elencoConCorrente(stored, overrides, scelta, REFS_CENTRALE, PRIMA_CENTRALE);
+  return elencoConCorrente(stored, overrides, scelta, REFS_CENTRALE, PRIMA_CENTRALE, SUOI_CENTRALE);
 }
 
 /** L'entità di una centrale dell'elenco. */

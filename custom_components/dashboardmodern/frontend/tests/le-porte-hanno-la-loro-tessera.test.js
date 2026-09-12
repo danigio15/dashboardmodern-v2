@@ -181,7 +181,10 @@ test("la tessera esiste, porta in «Apri porte» e si può ordinare e spegnere",
    * di ribatterlo: e' il modo di non restare indietro un'altra volta. */
   assert.match(PONTE, /porte: APERTURE_TAB,/);
   assert.doesNotMatch(PONTE, /porte: "security",/);
-  assert.match(EDITOR, /\["porte", "🚪", t\("Porte", "Doors"\)\]/);
+  /* «Apri porte» e non «Porte» (#513): la voce con cui si spegne la tessera si
+   * chiama come la tessera, o il config e la Home direbbero due nomi per la
+   * stessa cosa. */
+  assert.match(EDITOR, /\["porte", "🚪", t\("Apri porte", "Openers"\)\]/);
 });
 
 /* La fascia sotto il meteo legge questo campo, e senza non ha niente da dire

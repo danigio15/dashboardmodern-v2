@@ -878,30 +878,105 @@ def _dentro_a_lovelace(dati: Any) -> list[str]:
         return sorted(nome for nome in dir(dati) if not nome.startswith("_"))
 
 
+def _manici_del_websocket(hass: HomeAssistant) -> dict[str, Any]:
+    """I comandi websocket registrati, per nome.
+
+    La chiave sotto cui stanno la dichiara il componente stesso: si legge da
+    lui se e' gia' caricato — e quando un'integrazione gira, lo e' — invece di
+    riscriverla a mano. L'import non si fa: chiederlo a `sys.modules` non porta
+    dentro niente, e dentro al loop un import che tocca il disco e' un blocco.
+    """
+    import sys
+
+    modulo = sys.modules.get("homeassistant.components.websocket_api")
+    chiave = getattr(modulo, "DOMAIN", "websocket_api")
+    manici = hass.data.get(chiave)
+    return manici if isinstance(manici, dict) else {}
+
+
+def _collezione_dal_websocket(hass: HomeAssistant, risorse: Any) -> Any:
+    """La collezione delle plance, presa da chi la espone sul websocket.
+
+    Il posto da cui la prendevamo non c'e' piu'.
+    `hass.data["lovelace"]` era un dizionario, e dentro ci stava anche
+    `dashboards_collection`; da quando e' un oggetto tipizzato porta quattro
+    campi — le risorse, il loro modo, le plance e quelle scritte in YAML — e la
+    collezione NON e' fra quelli: nel codice di Lovelace e' una variabile
+    locale dell'avvio, che nessuno mette piu' da parte.
+
+    Da fuori si vedeva cosi': la plancia compariva nella barra laterale — quel
+    pannello lo registriamo noi — e fra le plance no, perche' la dashboard di
+    appoggio non nasceva. «Esce nella sidebar ma fra le plance non c'e'»
+    (#507), su Home Assistant 2026.8, e reinstallare non cambiava niente
+    perche' non era un residuo: era quel campo, che non esiste.
+
+    La collezione, pero', resta raggiungibile: Lovelace la consegna a chi
+    pubblica i comandi `lovelace/dashboards/*`, e quell'oggetto la tiene in
+    `storage_collection`. Il comando che elenca e' registrato cosi' com'e' —
+    un metodo legato, non una funzione avvolta — quindi da li' si risale al
+    suo padrone, e dal padrone alla collezione vera: la stessa che usa Home
+    Assistant, non una seconda copia che scriverebbe sullo stesso magazzino
+    all'insaputa della prima.
+    """
+    manici = _manici_del_websocket(hass)
+    for comando in ("lovelace/dashboards/list", "lovelace/dashboards/subscribe"):
+        voce = manici.get(comando)
+        manico = voce[0] if isinstance(voce, tuple) and voce else voce
+        padrone = getattr(manico, "__self__", None)
+        candidato = getattr(padrone, "storage_collection", None)
+        if _pare_una_collezione(candidato, risorse):
+            return candidato
+    return None
+
+
+def _modo_di_lovelace(dati: Any, plance: Any) -> str:
+    """Il modo con cui Lovelace tiene le plance: «storage» oppure «yaml».
+
+    Anche `mode` era un campo del dizionario, e non c'e' piu'. Chiederlo dove
+    non c'e' vuol dire non saperlo mai, e un modo sconosciuto finisce in un
+    avviso che non dice niente. Ma il modo ogni plancia lo dichiara da se': la
+    plancia senza indirizzo (`None`) e' quella di serie, e il suo `mode` dice
+    se le viste vengono dal magazzino o da un file scritto a mano.
+    """
+    modo = _campo(dati, "mode")
+    if modo:
+        return str(modo)
+    if isinstance(plance, dict):
+        return str(getattr(plance.get(None), "mode", "") or "")
+    return ""
+
+
 def _plance_di_lovelace(hass: HomeAssistant) -> tuple[Any, Any, str, list[str]]:
     """La collezione delle plance, le plance, il modo, e cosa c'era da guardare.
 
     La collezione si cercava per nome — `dashboards_collection` — e quando non
     si trovava si concludeva «Lovelace e' in modo YAML». Sono due cose diverse,
     e la seconda non discende dalla prima: quel nome, nel codice di Home
-    Assistant, porta scritto accanto «This can be removed when the map
-    integration is removed». E' un avanzo dichiarato tale. Il giorno che sparisce
-    o cambia, la plancia accusa di modo YAML una casa che il modo YAML non ce
-    l'ha — e chi legge va a cercare in `configuration.yaml` una riga che non c'e'.
+    Assistant, portava scritto accanto «This can be removed when the map
+    integration is removed». Era un avanzo dichiarato tale, ed e' andata proprio
+    cosi': il giorno che e' sparito la plancia ha accusato di modo YAML una casa
+    che il modo YAML non ce l'ha, e chi leggeva andava a cercare in
+    `configuration.yaml` una riga che non c'era (#507).
 
-    Quindi si cerca anche per quello che l'oggetto SA FARE: una collezione di
-    plance sa elencarle, crearne una e aggiornarla, e non e' quella delle
-    risorse. E il modo si legge dove Lovelace lo scrive, invece di indovinarlo.
+    Quindi la si cerca in tre posti, dal piu' diretto al piu' sospettoso:
+    il nome, dove la Lovelace vecchia la teneva; il padrone dei comandi
+    `lovelace/dashboards/*`, dove la Lovelace di oggi la consegna; e infine
+    quello che gli oggetti SANNO FARE — una collezione di plance sa elencarle e
+    crearne una, e non e' quella delle risorse. Il modo, lui, non si indovina:
+    lo dichiara la plancia di serie.
     """
     dati = hass.data.get("lovelace")
     if dati is None:
         return None, None, "", []
-    modo = str(_campo(dati, "mode") or "")
     plance = _campo(dati, "dashboards")
     risorse = _campo(dati, "resources")
+    modo = _modo_di_lovelace(dati, plance)
     collezione = _campo(dati, "dashboards_collection")
     if collezione is None:
-        # Il nome non c'e' piu': si guarda chi, li' dentro, sa fare il mestiere.
+        # Il nome non c'e' piu': la si chiede a chi la usa sul websocket.
+        collezione = _collezione_dal_websocket(hass, risorse)
+    if collezione is None:
+        # E se nemmeno li': si guarda chi, li' dentro, sa fare il mestiere.
         try:
             valori = list(
                 dati.values() if isinstance(dati, dict) else vars(dati).values()

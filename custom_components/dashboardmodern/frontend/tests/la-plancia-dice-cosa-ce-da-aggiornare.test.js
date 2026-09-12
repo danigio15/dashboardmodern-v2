@@ -24,7 +24,7 @@ const stato = (entity_id, state, attributes = {}) => ({ entity_id, state, attrib
 
 const CASA = {
   "update.dashboardmodern_v2": stato("update.dashboardmodern_v2", "on", {
-    title: "DashboardModern v2",
+    title: "Dashboard Modern v2",
     installed_version: "1.4.20",
     latest_version: "1.4.21",
   }),
@@ -63,7 +63,7 @@ test("la plancia va davanti, gli altri in ordine", () => {
   const fila = aggiornamentiDaFare(CASA);
   assert.deepEqual(
     fila.map((voce) => voce.nome),
-    ["DashboardModern v2", "Home Assistant Core", "Mosquitto broker"],
+    ["Dashboard Modern v2", "Home Assistant Core", "Mosquitto broker"],
   );
   assert.equal(fila[0].nostra, true);
   assert.equal(fila[1].nostra, false);

@@ -39,14 +39,31 @@ export function caselleDi(overrides, refs) {
   return fuori;
 }
 
-/** Una voce dell'elenco, ripulita. `primo` è l'id che tocca alla prima. */
-export function normalizzaVoce(stored, indice, refs, primo) {
+/**
+ * Una voce dell'elenco, ripulita. `primo` è l'id che tocca alla prima.
+ *
+ * `suoi` sono i campi che appartengono a quel tipo di cosa e non a questo
+ * modulo — le zone e gli ingressi di un'area d'allarme, per dirne due.
+ *
+ * Passano di qui perché questa è la sola lettura: la riga usciva riscritta con
+ * tre campi, e un campo che questo modulo non conosceva se ne andava in
+ * silenzio. Le zone di una centrale (#511) ci sono cadute dentro per intero —
+ * salvate, e poi perse al primo ridisegno, perché la card leggeva una riga
+ * senza zone e «nessuna zona dichiarata» nel modello vuol dire «tutte». Il
+ * filtro appariva rotto; rotta era la lettura. Chi ha campi suoi adesso li
+ * dichiara, e questo modulo li porta di là senza interpretarli.
+ */
+export function normalizzaVoce(stored, indice, refs, primo, suoi = []) {
   const dato = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
-  return {
+  const fuori = {
     id: pulito(dato.id) || (indice === 0 ? primo : `${primo}-${indice + 1}`),
     nome: pulito(dato.nome || dato.name),
     caselle: caselleDi(dato.caselle, refs),
   };
+  for (const campo of suoi || []) {
+    if (dato[campo] !== undefined) fuori[campo] = dato[campo];
+  }
+  return fuori;
 }
 
 /**
@@ -57,14 +74,14 @@ export function normalizzaVoce(stored, indice, refs, primo) {
  * mappature — che valgono più della sua copia in lista, perché sono quelle che
  * la pagina legge davvero e quelle che il rilevamento automatico riscrive.
  */
-export function elencoConCorrente(stored, overrides, scelta, refs, primo) {
+export function elencoConCorrente(stored, overrides, scelta, refs, primo, suoi = []) {
   const attuali = caselleDi(overrides, refs);
   const righe = Array.isArray(stored) ? stored : [];
   if (!righe.length) {
     if (!Object.keys(attuali).length) return [];
     return [{ id: primo, nome: "", caselle: attuali, corrente: true }];
   }
-  const lista = righe.map((riga, indice) => normalizzaVoce(riga, indice, refs, primo));
+  const lista = righe.map((riga, indice) => normalizzaVoce(riga, indice, refs, primo, suoi));
   const quale = lista.some((riga) => riga.id === pulito(scelta)) ? pulito(scelta) : lista[0].id;
   return lista.map((riga) => ({
     ...riga,

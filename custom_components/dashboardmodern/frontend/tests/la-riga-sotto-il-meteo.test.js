@@ -24,7 +24,11 @@ import {
 const luci = (accese, spente = 0) => ({
   key: "luci",
   icon: "💡",
-  on: Array.from({ length: accese }, (_, i) => ({ name: `Luce ${i + 1}`, on: true })),
+  on: Array.from({ length: accese }, (_, i) => ({
+    entity: `light.luce_${i + 1}`,
+    name: `Luce ${i + 1}`,
+    on: true,
+  })),
   rows: Array.from({ length: accese + spente }, (_, i) => ({ name: `Luce ${i + 1}` })),
 });
 
@@ -77,8 +81,13 @@ test("quello che e' acceso si conta dal modello della tessera, non a mano", () =
       ["tapparelle", 2],
     ],
   );
-  // I nomi viaggiano con la pastiglia: sono quelli che finiscono nel titolo.
-  assert.deepEqual(pastiglie[0].nomi, ["Luce 1", "Luce 2", "Luce 3"]);
+  /* Le voci viaggiano con la pastiglia: il nome finisce nel titolo, l'entita'
+     nell'elenco che si apre toccandola. */
+  assert.deepEqual(pastiglie[0].voci, [
+    { entity: "light.luce_1", name: "Luce 1" },
+    { entity: "light.luce_2", name: "Luce 2" },
+    { entity: "light.luce_3", name: "Luce 3" },
+  ]);
   assert.equal(pastiglie[0].icona, "💡");
 });
 
@@ -252,7 +261,10 @@ test("tre varchi aperti diventano una pastiglia, e i nomi finiscono nel titolo",
   assert.equal(varco.chiave, "varchi");
   assert.equal(varco.conto, 3);
   assert.equal(varco.tessera, "varchi", "toccandola si apre la tessera che racconta il resto");
-  assert.deepEqual(varco.nomi, ["Varco 1", "Varco 2", "Varco 3"]);
+  assert.deepEqual(
+    varco.voci.map((voce) => voce.name),
+    ["Varco 1", "Varco 2", "Varco 3"],
+  );
 });
 
 test("due porte aperte diventano una pastiglia", () => {
@@ -260,7 +272,10 @@ test("due porte aperte diventano una pastiglia", () => {
   assert.equal(pastiglie.length, 1);
   assert.equal(pastiglie[0].chiave, "porte");
   assert.equal(pastiglie[0].conto, 2);
-  assert.deepEqual(pastiglie[0].nomi, ["Porta 1", "Porta 2"]);
+  assert.deepEqual(pastiglie[0].voci, [
+    { entity: "lock.porta_1", name: "Porta 1" },
+    { entity: "lock.porta_2", name: "Porta 2" },
+  ]);
 });
 
 test("a casa chiusa le due pastiglie non ci sono", () => {

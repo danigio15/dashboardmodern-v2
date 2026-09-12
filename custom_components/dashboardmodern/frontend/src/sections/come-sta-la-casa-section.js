@@ -30,6 +30,7 @@ import {
   pastiglieDellaCasa,
   postaRitirata,
 } from "../core/come-sta-la-casa.js";
+import { comandoPerSpegnere } from "../core/come-si-spegne.js";
 import { durataDellaDeriva, spazioDaPercorrere } from "../core/la-fascia-deriva.js";
 import { haOggettoWidget, oggettoWidget } from "../core/oggetti-widget.js";
 import { windowOpenFromState } from "../core/shutter-window.js";
@@ -51,7 +52,7 @@ import {
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_COME_STA_LA_CASA__";
-const state = (root[KEY] ||= { installed: false, firma: "" });
+const state = (root[KEY] ||= { installed: false, firma: "", pastiglie: [], elenco: "" });
 
 /** Quali voci si vedono, e da quale contatto arriva la posta. */
 export const CHIAVE_BARRA = "cd_barra_casa";
@@ -189,6 +190,16 @@ function parolaDelConto(chiave, conto) {
   return uno ? t("in riproduzione", "playing") : t("in riproduzione", "playing");
 }
 
+/* Cosa e' acceso, dietro una pastiglia che conta.
+ *
+ * Le voci arrivano dal modello della tessera — sono le stesse righe che la
+ * tessera conta — e le portano solo le pastiglie che dicono un numero: la
+ * posta, il ritiro dei rifiuti, l'antifurto e le quattro misure raccontano una
+ * cosa sola, e una cosa sola non e' un elenco. */
+function vociDellaPastiglia(pastiglia) {
+  return Array.isArray(pastiglia?.voci) ? pastiglia.voci : [];
+}
+
 /**
  * Le due righe di una voce, e cosa dice per esteso a chi si ferma.
  *
@@ -247,7 +258,10 @@ function paroleDellaPastiglia(pastiglia) {
   }
   const parola = parolaDelConto(pastiglia.chiave, pastiglia.conto);
   const testa = String(pastiglia.conto);
-  const nomi = (pastiglia.nomi || []).join(" · ");
+  const nomi = vociDellaPastiglia(pastiglia)
+    .map((voce) => voce.name)
+    .filter(Boolean)
+    .join(" · ");
   const disteso = `${testa} ${parola}`;
   return { testa, coda: parola, titolo: nomi ? `${disteso}: ${nomi}` : disteso };
 }
@@ -436,6 +450,10 @@ export function disegnaComeStaLaCasa(modelli, states) {
     posta,
     misure: leMisureAdesso(config, states || {}),
   });
+  /* Quello che la barra sa adesso lo sa anche l'elenco aperto: e' lo stesso
+   * conto, e rifarlo per conto suo vorrebbe dire due conti sulla stessa casa. */
+  state.pastiglie = pastiglie;
+  disegnaLElenco();
   const riga = pastiglie.length ? ospite() : doc.getElementById("dm-casa-riga");
   if (!riga) return false;
   if (!pastiglie.length) {
@@ -453,6 +471,217 @@ export function disegnaComeStaLaCasa(modelli, states) {
    * fascia piena. */
   tieniLaFasciaInMovimento(riga);
   return true;
+}
+
+/* ── l'elenco di cosa e' acceso ─────────────────────────────────────────── */
+
+/* «Devi cambiare popup dei dispositivi accesi che sono nella barra sotto al
+ * menu. Devi mostrare solo quelli accesi e non una replica del popup widget.»
+ *
+ * La pastiglia apriva la tessera: «2 LUCI ACCESE» faceva aprire il popup delle
+ * luci, che le mostra tutte — accese e spente, in zone, con i cursori. Da una
+ * pastiglia che dice DUE ci si aspetta quelle due, e infatti e' il motivo per
+ * cui uno la tocca: «quali sono rimaste accese?».
+ *
+ * Questa finestra e' sua. Non passa dal `#details-modal` del guscio: quello
+ * ha un tipo attivo (`currentPopupType`) che il giro di disegno del guscio
+ * ridisegna da solo a ogni notizia, e un elenco nostro dentro casa sua
+ * sarebbe cancellato al primo cambio di stato. Il vestito pero' e' lo stesso —
+ * le classi del guscio, quelle che vestono tutte le altre finestre — cosi'
+ * questa e' una finestra della plancia e non una finestra a parte.
+ */
+const POPUP = "dm-casa-popup";
+
+/* Le pastiglie che un elenco ce l'hanno. Le altre — posta, rifiuti,
+ * antifurto, le misure — raccontano una cosa sola e continuano ad aprire la
+ * loro tessera, che e' dove quella cosa si guarda per esteso. */
+function haUnElenco(pastiglia) {
+  return vociDellaPastiglia(pastiglia).length > 0;
+}
+
+function pastigliaDiChiave(chiave) {
+  const cercata = clean(chiave);
+  return (state.pastiglie || []).find((voce) => clean(voce?.chiave) === cercata) || null;
+}
+
+/* La finestra, una sola e sempre la stessa: nasce al primo elenco e da li' in
+ * poi si riempie e si mostra. */
+function finestra() {
+  let nodo = doc.getElementById(POPUP);
+  if (nodo) return nodo;
+  nodo = doc.createElement("div");
+  nodo.id = POPUP;
+  nodo.hidden = true;
+  /* La veste e' quella delle altre finestre della plancia — l'intestazione col
+   * disegno, il titolo e il tasto che chiude, il corpo che scorre sotto — e non
+   * si riscrive qui: le regole stanno nel foglio del ponte dei widget, che le
+   * dichiara per «una finestra della plancia» e non per la sua soltanto.
+   * Riscriverle sarebbe due vesti che si scollano alla prima ritoccata.
+   *
+   * Quello che cambia e' cio' che c'e' dentro: qui non c'e' la tessera aperta,
+   * ci sono le cose accese e i tasti per spegnerle — «devi mostrare solo quelli
+   * accesi e non una replica del popup widget». */
+  nodo.innerHTML = `<article class="dm-widget-detail" data-dm-casa-scheda>
+      <header class="dm-w-head">
+        <button type="button" class="dm-w-close" data-dm-casa-chiudi aria-label="${esc(t("Chiudi", "Close"))}"><span aria-hidden="true">✕</span> ${esc(t("Chiudi", "Close"))}</button>
+        <span class="dm-w-head-ic" aria-hidden="true" data-dm-casa-faccia></span>
+        <strong data-dm-casa-titolo></strong>
+        <small data-dm-casa-sotto></small>
+      </header>
+      <div class="dm-w-body dm-casa-elenco" data-dm-casa-elenco></div>
+    </article>`;
+  doc.body.append(nodo);
+  return nodo;
+}
+
+/* Com'e' adesso quella voce, in parole: quello che dice Home Assistant, che e'
+ * la sola risposta vera. Una voce che non risponde piu' lo dice. */
+function statoDellaVoce(entity, states) {
+  const id = clean(entity);
+  if (!id) return "";
+  const risolta = clean(root.resolveEntity?.(id) || id);
+  const stato = states?.[risolta] || states?.[id];
+  const grezzo = clean(stato?.state);
+  if (!grezzo || /^(unknown|unavailable)$/i.test(grezzo))
+    return t("non risponde", "not responding");
+  return grezzo;
+}
+
+function rigaDellElenco(voce, states) {
+  const entita = clean(voce?.entity);
+  const nome = clean(voce?.name) || entita;
+  const comando = comandoPerSpegnere(entita);
+  const parole = {
+    spegni: t("Spegni", "Turn off"),
+    chiudi: t("Chiudi", "Close"),
+    pausa: t("Pausa", "Pause"),
+  };
+  const tasto = comando
+    ? `<button type="button" class="dm-casa-spegni" data-dm-casa-spegni="${esc(entita)}">${esc(
+        parole[comando.parola] || parole.spegni,
+      )}</button>`
+    : "";
+  return `<div class="detail-row dm-casa-voce">
+      <div class="d-info">
+        <div class="d-name">${esc(nome)}</div>
+        <div class="d-state"><span class="dm-casa-id">${esc(entita)}</span> · <b>${esc(
+          statoDellaVoce(entita, states),
+        )}</b></div>
+      </div>${tasto}</div>`;
+}
+
+/** Riempie l'elenco aperto con quello che e' acceso adesso. */
+export function disegnaLElenco() {
+  const chiave = clean(state.elenco);
+  if (!chiave) return false;
+  const nodo = doc?.getElementById?.(POPUP);
+  if (!nodo || nodo.hidden) return false;
+  const pastiglia = pastigliaDiChiave(chiave);
+  const voci = vociDellaPastiglia(pastiglia);
+  const titolo = nodo.querySelector("[data-dm-casa-titolo]");
+  const elenco = nodo.querySelector("[data-dm-casa-elenco]");
+  const faccia = nodo.querySelector("[data-dm-casa-faccia]");
+  const sotto = nodo.querySelector("[data-dm-casa-sotto]");
+  if (!titolo || !elenco) return false;
+  /* Il disegno e' quello della pastiglia che si e' toccata, che e' quello
+   * della sua tessera: chi ha toccato la lampadina la ritrova in cima. */
+  if (faccia && pastiglia) {
+    const disegno = facciaDellaPastiglia(pastiglia);
+    if (faccia.innerHTML !== disegno) faccia.innerHTML = disegno;
+  }
+  /* E l'accento: la finestra prende il colore della cosa che racconta, come
+   * fa la tessera aperta. */
+  const tinta = clean(pastiglia?.tinta) || "#0ea5e9";
+  const scheda = nodo.querySelector("[data-dm-casa-scheda]");
+  if (scheda && scheda.style.getPropertyValue("--dm-widget-accent") !== tinta)
+    scheda.style.setProperty("--dm-widget-accent", tinta);
+  /* Il titolo e' quello che dice la pastiglia: «2 luci accese». Chi ha toccato
+   * quella frase deve ritrovarla in cima, o non sa di aver aperto lei. */
+  const { testa, coda } = pastiglia
+    ? paroleDellaPastiglia(pastiglia)
+    : { testa: "", coda: t("niente di acceso", "nothing on") };
+  const parole = `${testa} ${coda}`.trim().toUpperCase();
+  if (titolo.textContent !== parole) titolo.textContent = parole;
+  const states = allStates() || {};
+  /* Quando l'ultima si spegne l'elenco non resta aperto a dire il vuoto: la
+   * domanda «cosa e' rimasto acceso» ha avuto la sua risposta. */
+  if (!voci.length) {
+    chiudiLElenco();
+    return false;
+  }
+  if (sotto) {
+    const briciola =
+      voci.length === 1
+        ? t("1 acceso · tocca per spegnere", "1 on · tap to turn off")
+        : `${voci.length} ${t("accesi · tocca per spegnere", "on · tap to turn off")}`;
+    if (sotto.textContent !== briciola) sotto.textContent = briciola;
+  }
+  const disegno = voci.map((voce) => rigaDellElenco(voce, states)).join("");
+  if (elenco.innerHTML !== disegno) elenco.innerHTML = disegno;
+  return true;
+}
+
+export function apriLElenco(chiave) {
+  const pastiglia = pastigliaDiChiave(chiave);
+  if (!haUnElenco(pastiglia)) return false;
+  state.elenco = clean(chiave);
+  finestra().hidden = false;
+  /* Dietro non si scorre, come per la finestra delle tessere: e' la stessa
+   * classe, e la mette e la toglie chi apre. */
+  doc?.documentElement?.classList?.add("dm-widget-popup-open");
+  disegnaLElenco();
+  try {
+    root.navigator?.vibrate?.(10);
+  } catch (_errore) {}
+  return true;
+}
+
+export function chiudiLElenco() {
+  state.elenco = "";
+  const nodo = doc?.getElementById?.(POPUP);
+  if (nodo) nodo.hidden = true;
+  doc?.documentElement?.classList?.remove("dm-widget-popup-open");
+  return true;
+}
+
+/* Spegnere dall'elenco: il servizio giusto per quel dominio, e nient'altro.
+ * La riga sparisce da sola al giro dopo — quando Home Assistant dice che si e'
+ * spenta — e non appena la si tocca: dire «spenta» prima che lo sia vorrebbe
+ * dire dire una cosa che magari non succede. */
+function spegni(entita) {
+  const comando = comandoPerSpegnere(entita);
+  if (!comando || typeof root.dmCallHaService !== "function") return false;
+  try {
+    root.navigator?.vibrate?.(10);
+  } catch (_errore) {}
+  Promise.resolve(
+    root.dmCallHaService(comando.dominio, comando.servizio, { entity_id: entita }),
+  ).catch((errore) => {
+    try {
+      root.edToast?.(
+        `${t("Home Assistant ha rifiutato", "Home Assistant refused")}: ${clean(
+          errore?.message || errore,
+        )}`,
+      );
+    } catch (_ignora) {}
+  });
+  return true;
+}
+
+function onClickElenco(event) {
+  const nodo = doc?.getElementById?.(POPUP);
+  if (!nodo || nodo.hidden) return;
+  const dentro = event.target?.closest?.(`#${POPUP}`);
+  if (!dentro) return;
+  if (event.target.closest("[data-dm-casa-chiudi]") || event.target === nodo) {
+    event.preventDefault();
+    chiudiLElenco();
+    return;
+  }
+  const tasto = event.target.closest("[data-dm-casa-spegni]");
+  if (!tasto) return;
+  event.preventDefault();
+  spegni(clean(tasto.dataset.dmCasaSpegni));
 }
 
 /* ── il tocco ───────────────────────────────────────────────────────────── */
@@ -477,6 +706,12 @@ function onClick(event) {
       doc.getElementById("dm-casa-riga")?.remove();
     return;
   }
+  /* Una pastiglia che conta apre l'elenco di quello che conta, non la tessera:
+   * chi tocca «2 luci accese» vuole quelle due. Le altre — il ritiro,
+   * l'antifurto, le misure — dicono una cosa sola, e quella cosa si guarda per
+   * esteso nella sua tessera, come prima. */
+  const chiave = clean(pastiglia.dataset.dmCasa);
+  if (apriLElenco(chiave)) return;
   const tessera = clean(pastiglia.dataset.tessera);
   if (tessera) doc.querySelector(`#dm-widgets [data-dm-widget="${CSS.escape(tessera)}"]`)?.click();
 }
@@ -507,7 +742,7 @@ const NOMI_DELLE_VOCI = () => ({
   posta: t("Posta", "Mail"),
   rifiuti: t("Rifiuti", "Waste"),
   sicurezza: t("Sicurezza", "Security"),
-  porte: t("Porte", "Doors"),
+  porte: t("Apri porte", "Openers"),
   varchi: t("Varchi", "Openings"),
   luci: t("Luci", "Lights"),
   tapparelle: t("Finestre", "Windows"),
@@ -823,6 +1058,31 @@ function stile() {
     html[data-theme="dark"] .dm-casa-pastiglia[data-avviso="true"] .dm-casa-coda{color:#f87171}
     html[data-theme="dark"] .dm-casa-pastiglia[data-dm-casa="posta"] .dm-casa-testa{color:#bfdbfe}
     html[data-theme="dark"] .dm-casa-pastiglia[data-dm-casa="posta"] .dm-casa-coda{color:#93c5fd}
+    /* L'elenco di cosa e' acceso: la finestra e' vestita con le classi del
+       guscio — «modal-wrapper», «modal-card», «detail-row» — e qui si scrive
+       solo quello che e' suo: la riga, il tasto che spegne, l'entita' in
+       piccolo sotto il nome. */
+    #dm-casa-popup .dm-casa-elenco{display:grid;gap:8px}
+    #dm-casa-popup .dm-casa-voce{display:flex;align-items:center;gap:10px}
+    #dm-casa-popup .dm-casa-voce .d-info{min-width:0;flex:1;overflow:hidden}
+    /* Il nome per intero, anche a capo: «non entrano i nomi». Una riga sola
+       con i puntini toglieva proprio la parte che distingue una lampada
+       dall'altra, e qui il nome e' l'unica cosa che si legge. */
+    #dm-casa-popup .dm-casa-voce .d-name{
+      overflow-wrap:anywhere;font-size:14px;font-weight:800}
+    #dm-casa-popup .dm-casa-id{
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
+      color:var(--text-dim,#64748b)}
+    #dm-casa-popup .dm-casa-voce .d-state{font-size:11px;color:var(--text-dim,#64748b)}
+    #dm-casa-popup .dm-casa-voce .d-state b{font-weight:900;color:#f59e0b}
+    #dm-casa-popup .dm-casa-spegni{
+      flex:0 0 auto;border:0;cursor:pointer;padding:9px 14px;border-radius:11px;
+      font:inherit;font-size:11px;font-weight:900;letter-spacing:.06em;
+      text-transform:uppercase;
+      background:rgba(225,29,72,.14);color:#e11d48}
+    #dm-casa-popup .dm-casa-spegni:active{transform:scale(.96)}
+    html[data-theme="dark"] #dm-casa-popup .dm-casa-spegni{
+      background:rgba(248,113,113,.18);color:#fca5a5}
     #ed-body .dm-casa-ed{display:block;margin-top:18px}
     #ed-body .dm-casa-ed-list{display:grid;gap:6px;margin-bottom:12px}
     #ed-body .dm-casa-ed-riga{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important;cursor:pointer}
@@ -837,7 +1097,11 @@ export function installComeStaLaCasa() {
   state.installed = true;
   installStyle("dm-come-sta-la-casa", stile());
   doc.addEventListener("click", onClick);
+  doc.addEventListener("click", onClickElenco);
   doc.addEventListener("click", onClickPannello);
+  doc.addEventListener("keydown", (evento) => {
+    if (evento.key === "Escape" && state.elenco) chiudiLElenco();
+  });
   onEditorRedraw("__dmComeStaLaCasa", () => ensurePannelloDellaBarra());
   return true;
 }
