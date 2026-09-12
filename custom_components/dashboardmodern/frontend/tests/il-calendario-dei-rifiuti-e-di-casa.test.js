@@ -85,6 +85,59 @@ test("ogni materiale esce una volta sola, alla sua prima occasione", () => {
   assert.equal(ritiriDalTurno(TURNO, MERCOLEDI)[0].quando, "domani");
 });
 
+/* Lunedì 7 settembre 2026, sera: il turno apre proprio oggi. */
+const LUNEDI = new Date("2026-09-07T20:00:00").getTime();
+
+/* Organico il martedì, il giovedì e il sabato: tre sere a settimana, che è
+ * il caso di chi ha segnalato la #514. */
+const TRE_VOLTE = {
+  inizio: "2026-09-07",
+  giorni: [
+    [], // lun — settimana 1
+    ["organico"], // mar
+    [],
+    ["organico"], // gio
+    [],
+    ["organico"], // sab
+    [],
+    [], // lun — settimana 2
+    ["organico"], // mar
+    [],
+    ["organico"], // gio
+    [],
+    ["organico"], // sab
+    [],
+  ],
+};
+
+test("in settimana si vede OGNI ritiro, anche dello stesso materiale (#514)", () => {
+  /* «Giovedì e sabato non compaiono»: l'elenco teneva un solo ritiro per
+   * materiale, e le due sere dopo la prima sparivano dalla plancia. La
+   * domanda dei rifiuti è «stasera cosa metto fuori», e si fa una sera per
+   * volta. */
+  const ritiri = ritiriDalTurno(TRE_VOLTE, LUNEDI);
+  assert.deepEqual(
+    ritiri.map((riga) => [riga.materiale, riga.giorni]),
+    [
+      ["organico", 1],
+      ["organico", 3],
+      ["organico", 5],
+    ],
+  );
+  /* Tre righe, tre chiavi: chi disegna per chiave non ne perde nessuna. */
+  assert.equal(new Set(ritiri.map((riga) => riga.id)).size, 3);
+});
+
+test("la settimana dopo non ripete quello che ha già detto", () => {
+  /* Lì il turno sta solo ricominciando: «organico fra otto giorni» sotto
+   * «organico fra uno» è la stessa notizia detta due volte. */
+  const ritiri = ritiriDalTurno(TRE_VOLTE, LUNEDI);
+  assert.equal(
+    ritiri.every((riga) => riga.giorni < 7),
+    true,
+  );
+});
+
 test("le righe del turno arrivano come quelle di un sensore", () => {
   /* Chi disegna non deve sapere da dove viene una riga: la pagina, la tessera
    * e il widget mostrano il turno senza una riga di codice in più. */

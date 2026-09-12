@@ -205,6 +205,23 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   quello che sa fare — elencare le plance e crearne una — così un nome che
   cambia non diventa un'accusa sbagliata.
 
+- **Rifiuti: dei tre giorni dell'organico se ne vedeva uno solo**
+
+  «Giovedì e sabato non compaiono.» Chi nel calendario di casa ha l'organico il
+  martedì, il giovedì e il sabato vedeva in plancia il solo martedì: le altre
+  due sere non erano più in basso nell'elenco, proprio non c'erano.
+
+  L'elenco teneva un ritiro per materiale, alla sua prima occasione. Sembrava
+  una regola di buon senso — «plastica fra due giorni» e «plastica fra nove»
+  sono la stessa notizia detta due volte — finché non la si è vista addosso a
+  un calendario vero: applicata dentro la settimana toglieva proprio le sere
+  che servono, perché la domanda dei rifiuti è «stasera cosa metto fuori», e si
+  fa una sera per volta.
+
+  Adesso dentro la settimana esce ogni ritiro, anche quando lo stesso materiale
+  passa più volte; dalla settimana dopo in avanti, dove il turno sta solo
+  ricominciando, il materiale già annunciato non si ripete.
+
 ## 1.4.22
 
 ### Corretto
