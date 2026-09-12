@@ -22,6 +22,7 @@ import {
   SORGENTE_RETE,
   livelloDellaPotenza,
   sogliaDellaPotenza,
+  sogliaScritta,
 } from "../core/la-soglia-della-potenza.js";
 import { intlLocale } from "../core/i18n.js";
 import { formatWatts as wattScritti } from "../core/subload-popup-model.js";
@@ -52,11 +53,6 @@ const state = (root[KEY] ||= { installed: false, frame: 0 });
 /** La soglia salvata, gia' in forma. */
 export function sogliaDiCasa() {
   return sogliaDellaPotenza(readJson(SOGLIA_POTENZA_KEY, {}));
-}
-
-/** Il verdetto di adesso, sulle letture che la plancia sta gia' facendo. */
-export function sovraccaricoDiAdesso() {
-  return livelloDellaPotenza(sogliaDiCasa(), lettureDiCasa());
 }
 
 function salva(soglia) {
@@ -106,7 +102,10 @@ function rigaDiAdesso(sorgente) {
   const letture = lettureDiCasa();
   const verdetto = livelloDellaPotenza({ sorgente }, letture);
   if (verdetto.watt === null)
-    return t("Adesso non c'è una lettura per questo carico.", "There is no reading for this load right now.");
+    return t(
+      "Adesso non c'è una lettura per questo carico.",
+      "There is no reading for this load right now.",
+    );
   return `${t("Adesso", "Right now")}: ${formatWatts(verdetto.watt)}`;
 }
 
@@ -189,13 +188,26 @@ function ensureScheda() {
 function ensureStriscia() {
   const vista = doc?.getElementById?.("view-ist");
   if (!vista) return;
-  /* Le letture di casa costano: sono quattro impianti per quattro gruppi, e
-   * questa funzione passa a ogni cambio di stato — in una casa vera piu' volte
-   * al secondo. Farle per una pagina che nessuno sta guardando e' il genere di
-   * lavoro che scalda il mini PC senza cambiare un pixel. */
+  /* Chi non ha scritto la soglia non paga niente.
+   *
+   * Questa funzione passa a ogni cambio di stato — in una casa vera piu' volte
+   * al secondo — e le letture di casa costano: quattro gruppi per ogni
+   * impianto, piu' il giro delle sorgenti del giorno. Senza soglia scritta non
+   * c'e' niente da disegnare, quindi non c'e' niente da leggere: la domanda da
+   * fare per prima e' la sola che non costa. Farla dopo voleva dire misurare
+   * l'intera casa settanta volte per scoprire ogni volta che non si colora
+   * nulla — e sulla pagina Energia, dove l'Energia sta gia' lavorando, quel
+   * lavoro in piu' si sente. */
+  const soglia = sogliaDiCasa();
+  const disegnata = vista.querySelector("#dm-soglia-striscia");
+  if (!sogliaScritta(soglia)) {
+    disegnata?.remove();
+    return;
+  }
+  /* E nemmeno per una pagina che nessuno sta guardando. */
   if (!paginaVisibile("page-energy")) return;
-  const verdetto = sovraccaricoDiAdesso();
-  let striscia = vista.querySelector("#dm-soglia-striscia");
+  const verdetto = livelloDellaPotenza(soglia, lettureDiCasa());
+  let striscia = disegnata;
   if (verdetto.livello === LIVELLO_QUIETE) {
     striscia?.remove();
     return;
