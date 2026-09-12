@@ -3540,6 +3540,7 @@ export default Object.freeze({
   "Instant values are shown meanwhile.": "Пока показываются мгновенные значения.",
   "Home Assistant does not have this entity": "В Home Assistant нет этой сущности",
   "Home Assistant refused": "Home Assistant отклонил запрос",
+  "Sunset": "Закат",
   "both fine: statistics do not cover the requested period yet": "обе в порядке: статистика ещё не покрывает запрошенный период",
   "state_class is": "state_class —",
   "it needs total or total_increasing": "нужен total или total_increasing",

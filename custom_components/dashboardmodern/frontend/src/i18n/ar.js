@@ -3540,6 +3540,7 @@ export default Object.freeze({
   "Instant values are shown meanwhile.": "في هذه الأثناء تُعرض القيم اللحظية.",
   "Home Assistant does not have this entity": "لا يملك Home Assistant هذا الكيان",
   "Home Assistant refused": "رفض Home Assistant",
+  "Sunset": "الغروب",
   "both fine: statistics do not cover the requested period yet": "كلاهما سليم: الإحصاءات لا تغطي الفترة المطلوبة بعد",
   "state_class is": "‏state_class هي",
   "it needs total or total_increasing": "يلزم total أو total_increasing",

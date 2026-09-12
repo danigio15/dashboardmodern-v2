@@ -1214,8 +1214,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // che si apre dalla barra sotto il meteo deve saperlo, e non e' sempre
   // «spegni» — una tapparella si chiude, una cassa si mette in pausa, un
   // contatto sull'anta non si comanda affatto.
+  // 348 con la card del meteo: il riquadro sceso in pagina e' un blocco come
+  // gli altri, e una striscia alta trenta pixel in mezzo a delle card e' un
+  // avanzo. Due file — le previsioni che si provano senza socket, e il
+  // vestito.
   assert.ok(
-    relative.length <= 346,
+    relative.length <= 348,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

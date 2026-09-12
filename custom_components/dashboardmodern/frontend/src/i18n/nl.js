@@ -3540,6 +3540,7 @@ export default Object.freeze({
   "Instant values are shown meanwhile.": "Ondertussen worden de momentwaarden getoond.",
   "Home Assistant does not have this entity": "Home Assistant kent deze entiteit niet",
   "Home Assistant refused": "Home Assistant heeft geweigerd",
+  "Sunset": "Zonsondergang",
   "both fine: statistics do not cover the requested period yet": "allebei goed: de statistieken dekken de gevraagde periode nog niet",
   "state_class is": "state_class staat op",
   "it needs total or total_increasing": "er is total of total_increasing nodig",

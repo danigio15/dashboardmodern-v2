@@ -3540,6 +3540,7 @@ export default Object.freeze({
   "Instant values are shown meanwhile.": "그동안은 순시값을 보여줍니다.",
   "Home Assistant does not have this entity": "Home Assistant에 이 엔티티가 없습니다",
   "Home Assistant refused": "Home Assistant가 거부했습니다",
+  "Sunset": "일몰",
   "both fine: statistics do not cover the requested period yet": "둘 다 괜찮습니다: 통계가 아직 요청한 기간에 미치지 못합니다",
   "state_class is": "state_class는",
   "it needs total or total_increasing": "total 또는 total_increasing이 필요합니다",

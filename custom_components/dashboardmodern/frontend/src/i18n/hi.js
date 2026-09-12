@@ -3540,6 +3540,7 @@ export default Object.freeze({
   "Instant values are shown meanwhile.": "तब तक तात्कालिक मान दिखाए जा रहे हैं।",
   "Home Assistant does not have this entity": "Home Assistant के पास यह एंटिटी नहीं है",
   "Home Assistant refused": "Home Assistant ने अस्वीकार कर दिया",
+  "Sunset": "सूर्यास्त",
   "both fine: statistics do not cover the requested period yet": "दोनों ठीक हैं: आँकड़े अभी माँगी गई अवधि तक नहीं पहुँचते",
   "state_class is": "state_class है",
   "it needs total or total_increasing": "total या total_increasing चाहिए",

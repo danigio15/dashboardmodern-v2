@@ -3540,6 +3540,7 @@ export default Object.freeze({
   "Instant values are shown meanwhile.": "在此期间显示瞬时值。",
   "Home Assistant does not have this entity": "Home Assistant 没有这个实体",
   "Home Assistant refused": "Home Assistant 拒绝了该请求",
+  "Sunset": "日落",
   "both fine: statistics do not cover the requested period yet": "两项都没问题：统计数据还没有覆盖所请求的时间段",
   "state_class is": "state_class 是",
   "it needs total or total_increasing": "需要 total 或 total_increasing",

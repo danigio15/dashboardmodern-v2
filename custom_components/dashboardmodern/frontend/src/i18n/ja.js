@@ -3540,6 +3540,7 @@ export default Object.freeze({
   "Instant values are shown meanwhile.": "それまでは瞬時値を表示します。",
   "Home Assistant does not have this entity": "Home Assistant にこのエンティティがありません",
   "Home Assistant refused": "Home Assistant が拒否しました",
+  "Sunset": "日の入り",
   "both fine: statistics do not cover the requested period yet": "どちらも問題ありません。統計がまだ対象の期間に届いていません",
   "state_class is": "state_class は",
   "it needs total or total_increasing": "total か total_increasing が必要です",

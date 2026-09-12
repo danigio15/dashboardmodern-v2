@@ -3297,6 +3297,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Totale misurato": "Measured total",
   "Tracce:": "Tracks:",
   "tramite una presa smart.": "appliances via a smart plug.",
+  "Tramonto": "Sunset",
   "Tranquillo": "Calm",
   "Trascina per spostare · rotella o pizzico per ingrandire": "Drag to move · wheel or pinch to zoom",
   "Tre gesti, e basta: ＋ Nuova auto apre una scheda vuota, la ✏️ apre un'auto già salvata, l'interruttore la accende o la spegne nella sezione EV. Sotto si compila nome, marca, modello, entità e le due foto — e il salvataggio è uno solo: dice se sta creando o modificando, e in fondo alla sezione porta le stesse parole. Quale auto guardare si sceglie dalle linguette della sezione, non da qui.": "Three gestures, no more: ＋ New car opens an empty card, the ✏️ opens a car you already saved, the switch turns it on or off in the EV section. Below you fill in name, brand, model, entities and both photos — and there is a single save: it says whether it is creating or editing, and the one at the bottom of the section carries the same words. Which car you look at is picked from the section's own tabs, not from here.",

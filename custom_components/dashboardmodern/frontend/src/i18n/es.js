@@ -3540,6 +3540,7 @@ export default Object.freeze({
   "Instant values are shown meanwhile.": "Mientras tanto se muestran los valores instantáneos.",
   "Home Assistant does not have this entity": "Home Assistant no tiene esta entidad",
   "Home Assistant refused": "Home Assistant lo ha rechazado",
+  "Sunset": "Puesta de sol",
   "both fine: statistics do not cover the requested period yet": "las dos están bien: las estadísticas aún no cubren el periodo pedido",
   "state_class is": "state_class es",
   "it needs total or total_increasing": "hace falta total o total_increasing",

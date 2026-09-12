@@ -3540,6 +3540,7 @@ export default Object.freeze({
   "Instant values are shown meanwhile.": "Bu arada anlık değerler gösteriliyor.",
   "Home Assistant does not have this entity": "Home Assistant’ta bu varlık yok",
   "Home Assistant refused": "Home Assistant reddetti",
+  "Sunset": "Gün batımı",
   "both fine: statistics do not cover the requested period yet": "ikisi de uygun: istatistikler istenen dönemi henüz kapsamıyor",
   "state_class is": "state_class şu:",
   "it needs total or total_increasing": "total ya da total_increasing gerekiyor",

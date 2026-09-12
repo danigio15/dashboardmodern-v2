@@ -2884,6 +2884,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Summer mode",
   "Sun",
   "Sunglasses",
+  "Sunset",
   "Superhero",
   "Supervillain",
   "Supply",
