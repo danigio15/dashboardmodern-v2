@@ -9116,7 +9116,7 @@ html[data-theme="dark"] :is(#dm-widget-popup,#dm-casa-popup) .dm-widget-detail .
 :is(#dm-widget-popup,#dm-casa-popup) .dm-w-appl-chip[data-on="true"] .dm-w-appl-nome::after{content:"";display:inline-block;width:5px;height:5px;margin-left:6px;border-radius:50%;background:#16a34a;vertical-align:middle}
 :is(#dm-widget-popup,#dm-casa-popup) .dm-w-appl-art{display:grid;place-items:center;width:30px;height:30px;flex:0 0 30px;color:#0ea5e9}
 :is(#dm-widget-popup,#dm-casa-popup) .dm-w-appl-art svg{width:26px;height:26px}
-:is(#dm-widget-popup,#dm-casa-popup) .dm-w-appl-nome{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;font-weight:850}
+:is(#dm-widget-popup,#dm-casa-popup) .dm-w-appl-nome{min-width:0;overflow-wrap:anywhere;font-size:12.5px;font-weight:850}
 :is(#dm-widget-popup,#dm-casa-popup) .dm-w-appl-watt{flex:0 0 auto;font-size:11px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--text-dim,#64748b)}
 :is(#dm-widget-popup,#dm-casa-popup) .dm-w-appl-invito{margin:0 4px;font-size:12px;font-weight:700;color:var(--text-dim,#64748b)}
 :is(#dm-widget-popup,#dm-casa-popup) .dm-w-appl-card{display:block;gap:0;padding:0}

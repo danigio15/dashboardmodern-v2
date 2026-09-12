@@ -222,6 +222,17 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   passa più volte; dalla settimana dopo in avanti, dove il turno sta solo
   ricominciando, il materiale già annunciato non si ripete.
 
+- **I nomi degli elettrodomestici non si tagliano più**
+
+  «Non entrano i nomi»: nella finestra e nella sezione la scheda scriveva
+  «Condizionato…» e «Lavastoviglie Bosch cu…». Il nome aveva già la riga tutta
+  per sé, ma era una riga sola: quello che non ci stava finiva in tre puntini —
+  ed è proprio la coda che distingue il condizionatore della camera da quello
+  del soggiorno.
+
+  Adesso il nome va a capo e si legge intero, nella scheda della sezione, nella
+  finestra della tessera e nell'elenco di cosa è acceso della barra.
+
 ## 1.4.22
 
 ### Corretto

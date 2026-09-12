@@ -1065,9 +1065,11 @@ function stile() {
     #dm-casa-popup .dm-casa-elenco{display:grid;gap:8px}
     #dm-casa-popup .dm-casa-voce{display:flex;align-items:center;gap:10px}
     #dm-casa-popup .dm-casa-voce .d-info{min-width:0;flex:1;overflow:hidden}
+    /* Il nome per intero, anche a capo: «non entrano i nomi». Una riga sola
+       con i puntini toglieva proprio la parte che distingue una lampada
+       dall'altra, e qui il nome e' l'unica cosa che si legge. */
     #dm-casa-popup .dm-casa-voce .d-name{
-      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-      font-size:14px;font-weight:800}
+      overflow-wrap:anywhere;font-size:14px;font-weight:800}
     #dm-casa-popup .dm-casa-id{
       font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
       color:var(--text-dim,#64748b)}

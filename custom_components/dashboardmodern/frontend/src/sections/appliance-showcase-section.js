@@ -1300,8 +1300,18 @@ function showcaseCss() {
  * della vecchia scheda alta imponeva 20 pixel col peso massimo, e per
  * ultimo un foglio di rifiniture ne imponeva 15: usciva 15, con il corpo
  * di uno e la spaziatura di un altro. Nessuno aveva scelto quel nome li'.
- * Adesso sono i valori che si vedevano, scritti dove nasce la scheda. */
-.dm-ap-name{min-width:0;font-size:15px;font-weight:950;letter-spacing:-.15px;line-height:1.12;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ * Adesso sono i valori che si vedevano, scritti dove nasce la scheda.
+ *
+ * E il nome non si taglia: va a capo.
+ *
+ * Dal campo, sulla finestra degli elettrodomestici: «non entrano i nomi» —
+ * «Condizionato...». La riga era sua per intero (vedi qui sotto), ma restava
+ * una riga sola: un nome piu' lungo della scheda perdeva la coda, ed e'
+ * proprio la coda che distingue il condizionatore della camera da quello del
+ * soggiorno. Puntini che nascondono l'unica parola utile non sono una
+ * soluzione: qui il nome prende la seconda riga, e la scheda cresce di
+ * quel tanto. */
+.dm-ap-name{min-width:0;font-size:15px;font-weight:950;letter-spacing:-.15px;line-height:1.12;overflow-wrap:anywhere}
 .dm-ap-room{font-size:10px;font-weight:750;color:var(--dm-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 /* Il nome ha la riga per se'.
  *
