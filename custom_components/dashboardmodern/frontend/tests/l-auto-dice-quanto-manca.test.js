@@ -176,10 +176,12 @@ test("la capacità si scrive nella scheda Auto, accanto al motore", () => {
 
 test("chi conta il tempo legge la capacità dell'auto in uso", () => {
   const sorgente = leggi("sections/il-popup-dell-auto-racconta-section.js");
-  assert.match(sorgente, /capacita: capacitaDellAutoInUso\(\)/);
+  /* La capacita' si chiede solo con la lettera C: leggerla vuol dire rileggere
+     i profili delle auto, e questo giro passa a ogni disegno del guscio. */
+  assert.match(sorgente, /capacita: codice === "C" \? capacitaDellAutoInUso\(\) : undefined/);
   /* La lettera e la potenza vengono da chi le legge già per la pastiglia: una
      lettura sola, un verdetto solo. */
-  assert.match(sorgente, /codice: codiceDellaRicaricaAdesso\(\)/);
+  assert.match(sorgente, /const codice = codiceDellaRicaricaAdesso\(\);/);
   assert.match(sorgente, /kilowatt: kilowattDellaColonnina\(\)/);
   /* E l'energia della sessione passa dalla conversione dell'Energia, che è
      una sola in tutta la plancia. */

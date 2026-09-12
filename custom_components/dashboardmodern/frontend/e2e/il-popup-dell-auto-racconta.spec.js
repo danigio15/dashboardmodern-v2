@@ -1,14 +1,26 @@
-/* Il popup dell'Auto sul documento vero: l'ora accanto al tempo e i codici
- * in parole (la frase d'analisi sta nel popup widget, non qui).
+/* Il popup dell'Auto sul documento vero: quanto manca, l'ora a cui si arriva,
+ * e i codici in parole (la frase d'analisi sta nel popup widget, non qui).
  *
- * Il guscio scrive «2H 15M RIM.» e riscrive quel nodo a ogni giro: il
- * modulo deve rimettere l'ora ogni volta, leggendola da quel testo — la
- * formula resta una sola. E dove il codice del cavo arriva in un dialetto
- * che il guscio non conosce («c» minuscolo), la casella lo riceve in
- * parole.
+ * Il tempo che manca lo conta la sezione: il guscio lo sbagliava — chiedeva la
+ * lettera esatta della norma a colonnine che parlano altri dialetti, e leggeva
+ * la potenza come numero nudo — e adesso il numero e l'ora li scrive chi sa
+ * contarli. Il guscio pero' quel nodo continua a riscriverlo a ogni giro: il
+ * modulo deve riprendersi la casella ogni volta. E dove il codice del cavo
+ * arriva in un dialetto che il guscio non conosce («c» minuscolo), la casella
+ * lo riceve in parole.
  */
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+
+/* Le caselle della casa: con una vettura sola la plancia legge la mappatura
+   canonica — e' quella che «Usa» copia dal profilo — quindi la prova la scrive
+   come farebbe lui. */
+const MAPPA = {
+  "dm.ev_batteria_auto": "sensor.leap_soc",
+  "dm.ev_stato_ricarica": "sensor.leap_stato",
+  "dm.ev_potenza_wallbox": "sensor.leap_w",
+  "dm.ev_target_soc": "sensor.leap_target",
+};
 
 const SEME = {
   schema_version: 4,
@@ -26,29 +38,33 @@ const SEME = {
     ev: [
       {
         name: "B10",
-        ov: {
-          "dm.ev_batteria_auto": "sensor.leap_soc",
-          "dm.ev_stato_ricarica": "sensor.leap_stato",
-          "dm.ev_potenza_wallbox": "sensor.leap_w",
-        },
+        ov: { ...MAPPA },
       },
     ],
-    entityOverrides: {},
+    entityOverrides: { ...MAPPA },
   },
   visibility: { home: true },
 };
 
+/* Sessanta per cento, limite a ottanta, sette kilowatt nel cavo: sulla
+   batteria di serie — settanta kilowattora, quella che si assume finche' la
+   vettura non dichiara la sua — mancano 14 kWh, cioe' due ore tonde. */
 const STATI = {
   "sensor.leap_soc": {
     entity_id: "sensor.leap_soc",
-    state: "53",
+    state: "60",
     attributes: { unit_of_measurement: "%" },
   },
   "sensor.leap_stato": { entity_id: "sensor.leap_stato", state: "C", attributes: {} },
   "sensor.leap_w": {
     entity_id: "sensor.leap_w",
-    state: "1610",
+    state: "7000",
     attributes: { unit_of_measurement: "W" },
+  },
+  "sensor.leap_target": {
+    entity_id: "sensor.leap_target",
+    state: "80",
+    attributes: { unit_of_measurement: "%" },
   },
 };
 
@@ -56,31 +72,36 @@ test("l'ora accanto al tempo, e torna dopo ogni riscrittura", async ({ page }, t
   test.setTimeout(150_000);
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
-  await page.evaluate((stati) => {
-    window.__HASS__ = { states: { ...(window.__HASS__?.states || {}), ...stati } };
-    const raw = window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null");
-    if (raw) Object.assign(raw, stati);
-    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
-  }, STATI);
+  await page.evaluate(
+    ({ stati, mappa }) => {
+      localStorage.setItem("cd_entity_overrides", JSON.stringify(mappa));
+      window.cdApplyCanonicalOverrides?.(mappa);
+      window.__HASS__ = { states: { ...(window.__HASS__?.states || {}), ...stati } };
+      const raw = window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null");
+      if (raw) Object.assign(raw, stati);
+      window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+    },
+    { stati: STATI, mappa: MAPPA },
+  );
   await page.waitForTimeout(1200);
 
-  /* Il guscio scrive il tempo che manca: il modulo ci mette l'ora. */
+  /* Il tempo lo conta la sezione, e accanto ci mette l'ora dell'orologio. */
   const tempo = page.locator("#v-ev-remain-popup");
-  await page.evaluate(() => {
-    document.getElementById("v-ev-remain-popup").textContent = "2H 15M RIM.";
-  });
-  await expect(tempo).toContainText("verso le", { timeout: 10000 });
+  await expect(tempo).toContainText("2H 0M RIM.", { timeout: 10000 });
+  await expect(tempo).toContainText("verso le");
 
   /* La frase d'analisi NON sta qui: «l'analisi non va nel popup auto ma nel
    * popup widget» — la' c'e' gia', e questo popup non ne fa una copia. */
   await expect(page.locator("#ev-popup [data-dm-ev-frase]")).toHaveCount(0);
 
-  /* Il guscio riscrive il nodo al giro dopo: l'ora torna da sola. */
+  /* Il guscio riscrive quel nodo a ogni giro, con le sue parole: al giro dopo
+   * la casella torna nostra, numero e ora. */
   await page.evaluate(() => {
-    document.getElementById("v-ev-remain-popup").textContent = "1H 05M RIM.";
+    document.getElementById("v-ev-remain-popup").textContent = "IN ATTESA";
+    window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
   });
-  await expect(tempo).toContainText("verso le", { timeout: 10000 });
-  await expect(tempo).toContainText("1H 05M");
+  await expect(tempo).toContainText("2H 0M RIM.", { timeout: 10000 });
+  await expect(tempo).toContainText("verso le");
 });
 
 test("il codice del cavo che il guscio non conosce esce in parole", async ({ page }, testInfo) => {

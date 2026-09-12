@@ -97,7 +97,7 @@ async def test_una_voce_fa_un_dispositivo_solo(
         next(voce.entity_id for voce in sopra if voce.domain == "update")
     )
     assert avviso is not None
-    assert avviso.attributes["title"] == "DashboardModern v2"
+    assert avviso.attributes["title"] == "Dashboard Modern v2"
     assert avviso.attributes["friendly_name"] == "Casa 3.0"
 
 
@@ -125,7 +125,7 @@ async def test_la_scheda_vecchia_se_ne_va_a_chi_aggiorna(
     vecchia = registro.async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, DISPOSITIVO_VECCHIO)},
-        name="DashboardModern v2",
+        name="Dashboard Modern v2",
         manufacturer="DashboardModern",
     )
     assert registro.async_get_device(identifiers={(DOMAIN, DISPOSITIVO_VECCHIO)})
@@ -175,7 +175,7 @@ async def test_chi_ha_spento_l_avviso_non_resta_con_la_scheda_vuota(
     vecchia = registro.async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, DISPOSITIVO_VECCHIO)},
-        name="DashboardModern v2",
+        name="Dashboard Modern v2",
     )
     entita = er.async_get(hass)
     entita.async_get_or_create(

@@ -225,7 +225,7 @@ import {
   iconaPortaMarkup,
   parolaDelGesto,
 } from "./security-doors-section.js";
-import { wattsFromState } from "../core/signed-energy.js";
+import { applySignedSources, wattsFromState } from "../core/signed-energy.js";
 import {
   contactEntity,
   inferriataEntity,
@@ -1548,13 +1548,31 @@ function oggiDellImpianto(states, impianto, primo) {
  * scritte nel loro gruppo. Senza questa distinzione il secondo impianto, coi
  * campi vuoti, avrebbe letto le entità del primo e detto gli stessi numeri. */
 function lettureDellImpianto(states, impianto, primo) {
+  /* La potenza non e' sempre nella casella `power` (#435).
+   *
+   * Chi ha dichiarato un sensore unico col segno, o DUE sensori uno per verso
+   * — la coppia carica/scarica della batteria, prelievo/immissione della rete
+   * — la casella di sempre ce l'ha vuota, o ce l'ha con dentro un verso solo.
+   * La mappa del flusso lo sapeva e passava da `applySignedSources`; queste
+   * righe no, e leggevano il campo grezzo: con una coppia il numero era quello
+   * del verso FERMO. Dal campo, con la casa a 725 W e il sole a 485: la bolla
+   * della batteria diceva «▲ 236 W» — il conto torna — e la casella accanto
+   * diceva «0 W», perche' leggeva il sensore della carica mentre la batteria
+   * si scaricava. Due letture della stessa corrente, due numeri.
+   *
+   * Le letture ricavate le pubblica `energy-signed-section` sugli stati, e le
+   * pubblica per il PRIMO impianto — il primo livello del documento Energia E'
+   * il primo impianto. Per gli altri si legge quello che c'e' scritto, come
+   * prima: prendere gli id ricavati vorrebbe dire mostrare la batteria di casa
+   * dentro la casa dell'altro. */
+  const risolto = primo ? applySignedSources(impianto || {}) : impianto;
   const readings = ENERGY_SLOTS.map(([group, field, slot]) => ({
     group,
-    watts: wattsOf(states, clean(impianto?.[group]?.[field]) || (primo ? slot : "")),
+    watts: wattsOf(states, clean(risolto?.[group]?.[field]) || (primo ? slot : "")),
   }));
   const soc = numOf(
     states,
-    clean(impianto?.battery?.soc) || (primo ? "dm.energy_stato_carica_batteria" : ""),
+    clean(risolto?.battery?.soc) || (primo ? "dm.energy_stato_carica_batteria" : ""),
   );
   /* La batteria entra qui gia' nella convenzione di casa: positivo = scarica.
    *
@@ -1587,7 +1605,7 @@ function lettureDellImpianto(states, impianto, primo) {
     if (batteria) batteria.soc = soc;
     else rows.push({ group: "battery", watts: null, soc });
   }
-  const oggi = oggiDellImpianto(states, impianto, primo);
+  const oggi = oggiDellImpianto(states, risolto, primo);
   return {
     rows,
     house: readings.find((row) => row.group === "house")?.watts ?? null,
