@@ -152,15 +152,23 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     salvataggio delle opzioni, per dirne una — scarica e riavvia la stessa
     plancia, che si riprende l'avviso da se': svegliare anche le altre sarebbe
     lavoro per niente.
+
+    E quando a essere tolta e' l'ULTIMA, la card si toglie da Lovelace. La sua
+    riga fra le risorse sta sul disco: chi disinstalla l'integrazione, senza
+    questo, si ritroverebbe ogni dashboard di casa a chiedere a ogni apertura
+    un modulo che non c'e' piu'.
     """
-    if not _primary_entry(hass, entry):
-        return
     restanti = [
         candidata
         for candidata in hass.config_entries.async_entries(entry.domain)
         if candidata.entry_id != entry.entry_id
     ]
     if not restanti:
+        from .frontend import async_dimentica_la_card
+
+        await async_dimentica_la_card(hass)
+        return
+    if not _primary_entry(hass, entry):
         return
     erede = min(restanti, key=lambda candidata: candidata.entry_id)
     hass.config_entries.async_schedule_reload(erede.entry_id)

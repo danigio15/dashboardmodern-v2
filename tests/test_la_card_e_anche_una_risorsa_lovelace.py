@@ -131,3 +131,51 @@ async def test_senza_lovelace_non_si_rompe_niente(hass: HomeAssistant) -> None:
 
     pannelli = hass.data.get(ha_frontend.DATA_PANELS, {})
     assert "dashboardmodern" in pannelli
+
+
+@pytest.mark.asyncio
+async def test_l_ultima_plancia_tolta_si_porta_via_la_card(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+) -> None:
+    """Una risorsa che punta a un 404 non deve restare in casa di nessuno.
+
+    La riga fra le risorse sta sul DISCO, e non se ne va spegnendo
+    l'integrazione: chi disinstalla DashboardModern si ritroverebbe ogni
+    dashboard a chiedere, a ogni apertura, un modulo che non c'è più.
+    """
+    assert await async_setup_component(hass, "lovelace", {})
+    entry = _voce(hass)
+
+    await fe.async_register_frontend(hass, entry.entry_id)
+    await hass.async_block_till_done()
+    assert len(_risorse(hass)) == 1
+
+    await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert _risorse(hass) == []
+
+
+@pytest.mark.asyncio
+async def test_togliere_una_plancia_su_due_lascia_la_card(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+) -> None:
+    """Chi resta la card la usa ancora: si toglie solo quando non resta nessuno."""
+    assert await async_setup_component(hass, "lovelace", {})
+    prima = _voce(hass)
+    seconda = MockConfigEntry(
+        domain=DOMAIN, entry_id="1234567890abcdef", title="Taverna"
+    )
+    seconda.add_to_hass(hass)
+
+    await fe.async_register_frontend(hass, prima.entry_id)
+    await fe.async_register_frontend(hass, seconda.entry_id)
+    await hass.async_block_till_done()
+    assert len(_risorse(hass)) == 1
+
+    await hass.config_entries.async_remove(prima.entry_id)
+    await hass.async_block_till_done()
+
+    assert len(_risorse(hass)) == 1

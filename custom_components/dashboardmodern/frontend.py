@@ -369,6 +369,12 @@ async def _ensure_static_registered(
     domain_data[DATA_STATIC_REGISTERED] = static_url_path
 
 
+# Il percorso della card, senza la firma: e' quello che resta uguale fra un
+# aggiornamento e l'altro, ed e' con quello che la si riconosce fra le risorse
+# di Lovelace — dove la firma della riga scritta ieri non e' quella di oggi.
+PERCORSO_DELLA_CARD = f"{STATIC_URL_PATH}/dashboard-card.js"
+
+
 def _dashboard_card_module_url(asset_version: str) -> str:
     """L'indirizzo con cui il frontend carica la card, e perche' non e' versionato.
 
@@ -387,7 +393,7 @@ def _dashboard_card_module_url(asset_version: str) -> str:
     firma nuova e non riusa quella in cache. La card ricava da se' la sua base
     per il resto degli asset, quindi non le cambia niente.
     """
-    return f"{STATIC_URL_PATH}/dashboard-card.js?v={asset_version}"
+    return f"{PERCORSO_DELLA_CARD}?v={asset_version}"
 
 
 def _ensure_dashboard_card_registered(
@@ -472,6 +478,19 @@ def _risorse_di_lovelace(hass: HomeAssistant) -> Any:
     return risorse
 
 
+def _la_nostra_risorsa(voci: Any) -> dict[str, Any] | None:
+    """La riga della card fra le risorse di Lovelace, qualunque firma porti."""
+    return next(
+        (
+            voce
+            for voce in (voci or [])
+            if isinstance(voce, dict)
+            and str(voce.get("url") or "").split("?", 1)[0] == PERCORSO_DELLA_CARD
+        ),
+        None,
+    )
+
+
 async def _ensure_card_resource_registered(
     hass: HomeAssistant, module_url: str
 ) -> bool:
@@ -528,16 +547,7 @@ async def _ensure_card_resource_registered(
         if not getattr(risorse, "loaded", False):
             await risorse.async_load()
             risorse.loaded = True
-        senza_firma = module_url.split("?", 1)[0]
-        nostra = next(
-            (
-                voce
-                for voce in (elenca() or [])
-                if isinstance(voce, dict)
-                and str(voce.get("url") or "").split("?", 1)[0] == senza_firma
-            ),
-            None,
-        )
+        nostra = _la_nostra_risorsa(elenca())
         if nostra is None:
             await crea({"res_type": "module", "url": module_url})
             _LOGGER.info(
@@ -1073,6 +1083,61 @@ async def async_ripara_dashboard_compagna(hass: HomeAssistant, entry_id: str) ->
             exc_info=True,
         )
         return False
+
+
+async def async_dimentica_la_card(hass: HomeAssistant) -> bool:
+    """Toglie la card da Lovelace quando l'ultima plancia se ne va.
+
+    La risorsa di Lovelace sta sul DISCO, e non se ne va spegnendo
+    l'integrazione: chi toglie DashboardModern si ritroverebbe OGNI dashboard
+    di casa a chiedere, a ogni apertura, un modulo che non c'e' piu' — un 404
+    per volta — e una riga di troppo nell'elenco delle risorse, da cancellare a
+    mano sapendo che esiste. Il modulo scritto nell'avvio della pagina invece
+    vive in memoria e sparisce al riavvio; si toglie lo stesso, cosi' non resta
+    nemmeno fino a li'.
+
+    Si chiama quando la voce viene tolta DAVVERO e non ne resta nessun'altra.
+    Scaricare una plancia non e' toglierla: un riavvio di Home Assistant scarica
+    tutto, e una pulizia allo scarico vorrebbe dire ripubblicare la card a ogni
+    avvio come se fosse nuova.
+    """
+    tolta = False
+    domain_data: dict[str, Any] = hass.data.setdefault(DOMAIN, {})
+    module_url = domain_data.pop(DATA_DASHBOARD_CARD_REGISTERED, None)
+    if module_url:
+        try:
+            from homeassistant.components import frontend
+
+            frontend.remove_extra_js_url(hass, module_url)
+            tolta = True
+        except Exception:  # noqa: BLE001 - un modulo di troppo se ne va al riavvio
+            _LOGGER.debug("Non ho potuto togliere %s dai moduli extra", module_url)
+
+    risorse = _risorse_di_lovelace(hass)
+    elenca = getattr(risorse, "async_items", None)
+    cancella = getattr(risorse, "async_delete_item", None)
+    if risorse is None or elenca is None or cancella is None:
+        return tolta
+    try:
+        if not getattr(risorse, "loaded", False):
+            await risorse.async_load()
+            risorse.loaded = True
+        nostra = _la_nostra_risorsa(elenca())
+        if nostra is None:
+            return tolta
+        await cancella(nostra["id"])
+        _LOGGER.info(
+            "Ho tolto la card %s dalle risorse di Lovelace: non resta nessuna plancia",
+            nostra.get("url"),
+        )
+        return True
+    except Exception:  # noqa: BLE001 - una riga di troppo non rompe niente
+        _LOGGER.warning(
+            "Non sono riuscito a togliere la card dalle risorse di Lovelace: "
+            "la riga resta nell'elenco e va cancellata a mano",
+            exc_info=True,
+        )
+        return tolta
 
 
 async def async_unregister_frontend_entry(hass: HomeAssistant, entry_id: str) -> None:

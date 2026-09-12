@@ -70,7 +70,10 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   richiede e basta, e lì il modulo c'è sempre. Adesso la card si pubblica
   **anche** fra le risorse di Lovelace, che il frontend si fa dire dal socket a
   ogni apertura della dashboard: una pagina in cache le chiede lo stesso.
-  (#372, #154, #499)
+  E quando a essere tolta è l'ultima plancia, la card si toglie da Lovelace:
+  quella riga sta sul disco, e senza toglierla chi disinstalla l'integrazione
+  si ritroverebbe ogni dashboard di casa a chiedere, a ogni apertura, un
+  modulo che non c'è più. (#372, #154, #499)
 
 ### Difeso
 
