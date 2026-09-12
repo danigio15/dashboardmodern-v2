@@ -79,6 +79,16 @@ function casellaDelGuscio() {
   return campo?.closest?.(".ed-slot, .dm-slot, .ed-form-row, .dm-entity-picker-row") || null;
 }
 
+/* Se la casa e' spezzata in aree davvero.
+ *
+ * Non e' «l'elenco esiste»: da quando le zone della centrale sola si salvano
+ * in elenco, una riga sola vuol dire ancora una centrale sola — con la casella
+ * del guscio al suo posto e nessuna fila da cui scegliere. Le aree si contano
+ * da due. */
+function aree(inElenco) {
+  return Array.isArray(inElenco) && inElenco.length > 1;
+}
+
 function salva(lista, scelta) {
   const righe = (Array.isArray(lista) ? lista : []).map((riga) => {
     const scritta = {
@@ -90,7 +100,8 @@ function salva(lista, scelta) {
      * funzione riscriveva la riga da zero con tre campi soli: un campo che non
      * conosceva se ne andava in silenzio, ed e' il modo in cui una scelta
      * appena fatta sparisce al salvataggio successivo. Un elenco vuoto resta
-     * fuori: vuoto vuol dire «tutte», e scriverlo sarebbe dire un'altra cosa. */
+     * fuori: «nessuna» e «non l'ho detto» sono la stessa cosa, e fra le due si
+     * scrive la piu' corta. */
     for (const campo of [CAMPO_ZONE, CAMPO_INGRESSI]) {
       const elenco = elencoDiEntita(riga?.[campo]);
       if (elenco.length) scritta[campo] = elenco;
@@ -122,9 +133,9 @@ function salva(lista, scelta) {
  *
  * Le righe sono quelle della Presenza e dei Varchi, gia' configurate altrove:
  * qui si dice soltanto quali sono di QUESTA area. Vale la regola del modello —
- * un'area che non dichiara niente le ha tutte — quindi chi ha una centrale
- * sola non passa mai di qui, e infatti questo blocco compare solo quando le
- * aree sono piu' d'una: con una sola non c'e' niente da separare. */
+ * sono sue solo quelle dichiarate — e per questo il blocco c'e' anche con una
+ * centrale sola: se la scelta si potesse fare soltanto avendo due aree, chi ne
+ * ha una non avrebbe mai zone, e il riquadro in pagina non lo vedrebbe mai. */
 function nomiDellaPresenza() {
   const states = allStates();
   return presenzaDiCasa(states, readJson(CHIAVE_PRESENZA, {}), (entity) =>
@@ -142,16 +153,17 @@ function nomiDeiVarchi() {
   );
 }
 
+/* Le pastiglie: accesa vuol dire «e' di quest'area», e si accendono solo
+ * quelle scelte. Qui si accendevano tutte quando non c'era scelto niente,
+ * perche' la regola di prima diceva che vuoto vuol dire tutte — ed e' la fila
+ * tutta accesa che si vedeva in pagina come settanta zone adottate da noi. */
 function pastiglieDaScegliere(righe, scelte, campo) {
   const dentro = new Set(scelte);
-  /* Un elenco vuoto vuol dire «tutte»: le pastiglie si accendono tutte, cosi'
-   * si vede com'e' adesso invece di una fila spenta sotto una pagina piena. */
-  const tutte = dentro.size === 0;
   return righe
     .map(
       (riga) => `<button type="button" class="dm-area-voce" data-area-voce="${esc(riga.entity)}"
-        data-area-campo="${esc(campo)}" data-on="${tutte || dentro.has(riga.entity)}"
-        aria-pressed="${tutte || dentro.has(riga.entity)}" title="${esc(riga.entity)}">
+        data-area-campo="${esc(campo)}" data-on="${dentro.has(riga.entity)}"
+        aria-pressed="${dentro.has(riga.entity)}" title="${esc(riga.entity)}">
         <i aria-hidden="true">${riga.glifo}</i><span>${esc(riga.name)}</span></button>`,
     )
     .join("");
@@ -175,8 +187,8 @@ function zoneMarkup(voce) {
     zoneScritte(voce),
     CAMPO_ZONE,
     t(
-      "I sensori di presenza che appartengono a questa centrale. Non toccare niente vuol dire «tutti»: con una sola area è quello che serve, e la pagina Sicurezza li mostra sotto «Zone».",
-      "The presence sensors that belong to this panel. Touching nothing means “all of them”: with a single area that is what you want, and the Security page lists them under “Zones”.",
+      "I sensori di presenza che appartengono a questa centrale: accendi quelli che sono zone e lascia spenti gli altri. La pagina Sicurezza mostra sotto «Zone» soltanto quelli accesi, e senza nessuno acceso non mostra niente.",
+      "The presence sensors that belong to this panel: switch on the ones that are zones and leave the rest off. The Security page lists only the ones you switch on under “Zones”, and shows nothing at all while none is on.",
     ),
   )}
   ${fila(
@@ -185,8 +197,8 @@ function zoneMarkup(voce) {
     ingressiScritti(voce),
     CAMPO_INGRESSI,
     t(
-      "I contatti di porte e finestre che questa centrale sorveglia. Compaiono nella pagina Sicurezza sotto «Ingressi», con lo stesso nome e lo stesso stato che hanno nei Varchi.",
-      "The door and window contacts this panel watches. They show on the Security page under “Entry points”, with the same name and the same state they have under Openings.",
+      "I contatti di porte e finestre che questa centrale sorveglia: accendi quelli che vuoi vedere fra gli ingressi. Compaiono nella pagina Sicurezza sotto «Ingressi», con lo stesso nome e lo stesso stato che hanno nei Varchi.",
+      "The door and window contacts this panel watches: switch on the ones you want among the entry points. They show on the Security page under “Entry points”, with the same name and the same state they have under Openings.",
     ),
   )}`;
 }
@@ -225,11 +237,32 @@ function rigaMarkup(voce, indice) {
   </article>`;
 }
 
+/* Le zone della centrale sola.
+ *
+ * Con una centrale sola l'elenco delle aree non c'e', e la scelta delle zone
+ * viveva dentro la riga di un'area: chi ha una centrale sola non l'avrebbe mai
+ * vista, e da quando «nessuna dichiarata» vuol dire «nessuna» non avrebbe mai
+ * potuto avere una zona. Le stesse pastiglie stanno anche qui, sotto la
+ * casella della centrale del guscio, e si salvano nello stesso posto: la riga
+ * dell'unica area, che nasce al primo salvataggio e in pagina non cambia
+ * niente — la fila per passare da un'area all'altra compare da due in su. */
+function zoneDellaSolaMarkup(voce) {
+  const pastiglie = zoneMarkup(voce);
+  if (!voce || !pastiglie) return "";
+  return `<div class="dm-area-sola" data-area-index="0">
+    <div class="ed-sec-title">🛡️ ${esc(t("Zone e ingressi della centrale", "Zones and entry points of the panel"))}</div>
+    ${pastiglie}
+    <output class="dm-todo-ed-error" data-area-error></output>
+    <button type="button" class="ed-save-btn" data-area-save>💾 ${esc(t("Salva zone", "Save zones"))}</button>
+  </div>`;
+}
+
 function corpoMarkup() {
   const lista = centrali();
   const inElenco = readJson(CHIAVE_CENTRALI, []);
-  if (!Array.isArray(inElenco) || !inElenco.length) {
-    return `<button type="button" class="ed-btn-add" data-area-add>＋ ${esc(
+  if (!aree(inElenco)) {
+    return `${zoneDellaSolaMarkup(lista[0])}
+    <button type="button" class="ed-btn-add" data-area-add>＋ ${esc(
       t("Aggiungi una seconda area d'allarme", "Add a second alarm area"),
     )}</button>
     <div class="ed-intro">${esc(
@@ -259,12 +292,12 @@ function leggiRiga(riga, voce) {
   const scelte = (campo) => {
     const pastiglie = [...riga.querySelectorAll(`[data-area-campo="${campo}"]`)];
     if (!pastiglie.length) return elencoDiEntita(voce?.[campo]);
+    /* Quello che e' acceso, e nient'altro: anche la fila tutta accesa e una
+     * fila tutta spenta vogliono dire quello che dicono. Qui la fila tutta
+     * accesa si salvava vuota, cioe' «non l'ho detto», e col vuoto che voleva
+     * dire «tutte» tornava indietro identica; adesso il vuoto vuol dire
+     * «nessuna», e confonderlo con «tutte» cancellerebbe la scelta. */
     const accese = pastiglie.filter((nodo) => nodo.dataset.on === "true");
-    /* Tutte accese vuol dire «non l'ho detto», e si scrive lasciando vuoto:
-     * e' quello che fa valere la regola del modello anche domani, quando
-     * arrivera' un sensore in piu' — sarebbe rimasto fuori da un elenco
-     * scritto oggi con dentro tutti i nomi di oggi. */
-    if (accese.length === pastiglie.length) return [];
     return elencoDiEntita(accese.map((nodo) => nodo.dataset.areaVoce));
   };
   const prossima = {
@@ -280,27 +313,6 @@ function leggiRiga(riga, voce) {
   return prossima;
 }
 
-/* Tutte spente non e' una cosa che si possa dire.
- *
- * Nel modello «non ho scelto niente» vuol dire «tutte» — ed e' quella regola
- * che fa comparire da sola la zona che la centrale pubblichera' domani. Ma
- * allora una fila tutta spenta si salva identica a una fila tutta accesa: due
- * intenzioni opposte nello stesso posto, e chi aveva spento tutto riapriva
- * l'area e la ritrovava tutta accesa senza spiegazione. Spegnendo l'ultima si
- * torna a «tutte», e le pastiglie lo dicono subito invece di far scoprire il
- * salto al ridisegno dopo. */
-function tutteSeNessuna(voce) {
-  const campo = clean(voce.dataset.areaCampo);
-  const riga = voce.closest("[data-area-index]");
-  if (!campo || !riga) return;
-  const pastiglie = [...riga.querySelectorAll(`[data-area-campo="${CSS.escape(campo)}"]`)];
-  if (pastiglie.some((nodo) => nodo.dataset.on === "true")) return;
-  for (const nodo of pastiglie) {
-    nodo.dataset.on = "true";
-    nodo.setAttribute("aria-pressed", "true");
-  }
-}
-
 const accesa = (lista) => clean(lista.find((riga) => riga?.corrente)?.id);
 
 export function ensureAreeEditor() {
@@ -308,9 +320,10 @@ export function ensureAreeEditor() {
   if (!body || schedaAttiva() !== SCHEDA) return false;
   const casella = casellaDelGuscio();
   const inElenco = readJson(CHIAVE_CENTRALI, []);
-  const pieno = Array.isArray(inElenco) && inElenco.length > 0;
-  /* Con la lista, la casella del guscio si toglie di mezzo: da quel momento è
-   * la stessa dell'area in pagina. */
+  const pieno = aree(inElenco);
+  /* Con piu' aree, la casella del guscio si toglie di mezzo: da quel momento è
+   * la stessa dell'area in pagina. Con una sola resta dov'è — è lei la
+   * centrale, e l'elenco a una riga serve solo a tenerle le zone. */
   const accordion = casella?.closest?.("details.ed-acc") || null;
   const suo = casella?.closest?.(".ed-slot, .dm-slot") || casella;
   if (suo) suo.hidden = pieno;
@@ -367,7 +380,6 @@ function onClick(event) {
      * via il tocco appena dato. */
     voce.dataset.on = voce.dataset.on === "true" ? "false" : "true";
     voce.setAttribute("aria-pressed", voce.dataset.on);
-    tutteSeNessuna(voce);
     return;
   }
   const pick = event.target.closest("[data-area-pick]");
@@ -403,12 +415,13 @@ function onClick(event) {
     if (root.confirm && !root.confirm(t(`Tolgo "${nome}"?`, `Remove "${nome}"?`))) return;
     const restano = lista.filter((_voce, posto) => posto !== indice);
     state.aperto = -1;
-    /* Rimasta una sola, la lista non serve più: la sua entità è già nella
-     * mappatura, ed è esattamente da dove si era partiti. */
+    /* Rimasta una sola, torna a essere la centrale di sempre: la sua entità è
+     * già nella mappatura, ed è esattamente da dove si era partiti. La riga
+     * resta in elenco con le sue zone — svuotare l'elenco le butterebbe, e
+     * `aree()` sa già che una riga sola non è una casa spezzata in aree. */
     if (restano.length <= 1) {
       const sola = restano[0] || lista[indice === 0 ? 1 : 0];
       salva(sola ? [sola] : [], sola?.id);
-      writeJsonIfChanged(CHIAVE_CENTRALI, []);
     } else {
       salva(restano, lista[indice].corrente ? restano[0].id : accesa(lista));
     }
@@ -422,8 +435,13 @@ function onClick(event) {
     const errore = riga.querySelector("[data-area-error]");
     const entita = clean(prossime[indice].caselle[RIF_CENTRALE]);
     /* Un'entità che non è una centrale non ha inserimenti da dichiarare, e la
-     * pagina resterebbe con un quadrante che non risponde. */
-    if (entita && !/^alarm_control_panel\.[a-z0-9_]+$/i.test(entita)) {
+     * pagina resterebbe con un quadrante che non risponde.
+     *
+     * Si controlla solo dove la casella c'è: il blocco delle zone della
+     * centrale sola non la mostra, e rifiutare «salva zone» per un'entità che
+     * quel tasto non ha nemmeno toccato vorrebbe dire un errore su un campo
+     * che non si vede. */
+    if (riga.querySelector("[data-area-entity]") && entita && !/^alarm_control_panel\.[a-z0-9_]+$/i.test(entita)) {
       if (errore)
         errore.textContent = t(
           "Serve un'entità alarm_control_panel.* valida.",
@@ -435,7 +453,11 @@ function onClick(event) {
     state.aperto = -1;
     salva(prossime, accesa(lista));
     ridisegna();
-    root.edToast?.(t("💾 Area salvata", "💾 Area saved"));
+    root.edToast?.(
+      riga.querySelector("[data-area-entity]")
+        ? t("💾 Area salvata", "💾 Area saved")
+        : t("💾 Zone salvate", "💾 Zones saved"),
+    );
   }
 }
 
@@ -443,6 +465,9 @@ function installStyles() {
   installStyle(
     "dm-centrali-editor",
     `#ed-body .${BLOCCO}{margin-top:10px}
+    /* Il blocco delle zone della centrale sola: sta sopra il tasto della
+       seconda area, e dall'elenco delle aree lo separa solo un po' d'aria. */
+    #ed-body .dm-area-sola{margin-top:14px;margin-bottom:18px}
     /* Le pastiglie delle zone e degli ingressi (#511): accesa vuol dire «e' di
        quest'area». Spenta resta leggibile, perche' serve poterla riaccendere. */
     #ed-body .dm-area-voci{display:grid;gap:6px;margin-top:12px}

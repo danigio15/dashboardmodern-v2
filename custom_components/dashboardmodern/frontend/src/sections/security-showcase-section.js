@@ -248,10 +248,16 @@ function passaAllAreaAllarme(id) {
   if (!scelta || scelta.corrente) return false;
   /* Quella che esce di scena si porta via la sua mappatura: è quella che sta
    * negli override adesso, e senza rimetterla in elenco andrebbe persa alla
-   * prima scrittura di quella che entra. */
+   * prima scrittura di quella che entra.
+   *
+   * Si riscrive la riga intera meno il segno di «in pagina adesso», non tre
+   * campi scelti a mano: qui c'erano `id`, `nome` e `caselle`, e le zone di
+   * TUTTE le aree (#511) se ne andavano al primo passaggio da un'area
+   * all'altra — lo stesso modo in cui le perdeva la lettura canonica, nello
+   * stesso giro. Un campo nuovo domani non deve ricordarsi di passare di qui. */
   writeJsonIfChanged(
     CHIAVE_CENTRALI,
-    lista.map((riga) => ({ id: riga.id, nome: riga.nome, caselle: riga.caselle })),
+    lista.map(({ corrente: _inPagina, ...riga }) => riga),
   );
   root.localStorage?.setItem?.(CHIAVE_CENTRALE_SCELTA, scelta.id);
   const prossime = overridesPerCentrale(readJson("cd_entity_overrides", {}), scelta);

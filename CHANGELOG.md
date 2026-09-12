@@ -5,6 +5,97 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.24
+
+### Corretto
+
+- **Il meteo sceso in pagina si veste come le altre card**
+
+  «Contorno meteo non uguale alle altre card.»
+
+  In pagina il riquadro indossava ancora le vesti della striscia
+  dell'intestazione: fondo chiaro, un filo di bordo, nessuna ombra, e al
+  passaggio il bordo che si tingeva d'accento. Fra le carte della Home si
+  vedeva una fascia pallida appoggiata sopra, non una card.
+
+  Adesso porta le vesti della plancia — le stesse delle persone e delle
+  tessere: carta, filo di bordo, ombra scolpita, e il sollevarsi al passaggio.
+  Non è una terza veste inventata per il meteo: sono gli stessi valori, letti
+  dagli stessi nomi. E nell'intestazione la striscia resta quella che è, che lì
+  è giusta.
+
+- **Sicurezza: le zone e gli ingressi sono solo quelli scelti**
+
+  «In zone sicurezza non devi rilevare tu e mettere tutto.»
+
+  La regola era che una centrale senza zone dichiarate le avesse TUTTE: serviva
+  a far comparire il riquadro senza configurare niente, e costava troppo. Una
+  casa con settanta sensori di presenza apriva Sicurezza e li trovava tutti
+  dentro la centrale, dichiarati dalla plancia al posto suo, e per togliere i
+  sessantasette che non c'entravano bisognava spegnerli uno per uno.
+
+  Adesso la centrale parte vuota: sono sue solo le zone e gli ingressi che le
+  vengono detti, e finché non gliene si dice nessuno il riquadro in pagina non
+  c'è. La scelta si fa nella scheda Sicurezza, e si fa anche con una centrale
+  sola — prima viveva dentro la riga di un'area, e le aree nascono da due in
+  su: chi ne ha una non avrebbe mai potuto avere una zona.
+
+- **Auto: la tendina del target non propone più percentuali strambe**
+
+  «Non esiste 91% e 96%, da dove li stai pescando.»
+
+  Da un limite di carica che va da 1 a 100 col passo di 1: cento voci in una
+  tendina non ci stanno, si diradano di cinque in cinque, e partendo dal minimo
+  la scala diventava 1, 6, 11... 91, 96. Sono valori che l'entità accetta, ma
+  nessuno li ha mai visti scritti su un limite di carica.
+
+  Adesso il primo scalino è il primo valore tondo che l'entità accetta davvero,
+  e la scala diventa 1, 5, 10... 100. Dove un valore tondo non esiste — un
+  minimo di 7 col passo di 3 — si riparte dal minimo, com'era: meglio una scala
+  storta che uno scalino rifiutato. Gli estremi ci sono sempre, e il target
+  impostato da fuori resta scelto anche se la scala lo salta.
+
+- **Auto: un gettone scaduto non si racconta come un'integrazione scollegata**
+
+  «Inoltre dà un errore che non esiste.»
+
+  Al rifiuto per credenziali la plancia scriveva «l'integrazione dell'auto non
+  è più collegata al suo account», detto come un fatto, mentre l'integrazione
+  era collegata e a essere scaduto era il gettone del cloud dell'auto per
+  quella chiamata — al giro dopo l'integrazione lo rinnova da sola. Adesso si
+  dice cosa è successo, col riprova prima e la riconnessione dopo, che è
+  l'ordine in cui si risolve. Quello che ha detto Home Assistant resta in coda
+  fra parentesi.
+
+- **La plancia nella barra laterale una volta sola**
+
+  «Ancora problema, è comparsa due volte.»
+
+  Nella barra laterale c'erano due «Casa 3.0» con lo stesso nome e la stessa
+  icona: una fra le dashboard, una fra i pannelli. Sono il pannello della
+  plancia e la dashboard di appoggio — quella che permette di scegliere la
+  plancia come predefinita — e l'appoggio deve stare fuori dalla barra.
+
+  Che stia fuori glielo scrivevamo nella sua scheda, ed è la cosa giusta da
+  scrivere; ma chi mette il pannello nella barra è Lovelace, leggendo quel
+  campo al suo avvio, e fra la sua lettura e la nostra scrittura ci sono
+  passaggi che non governiamo — l'ordine di avvio, un ripristino da backup, un
+  tocco su «Mostra nella barra laterale». Bastava che una volta andasse storto
+  e le due voci restavano fino al riavvio dopo, che le rivedeva.
+
+  Adesso, oltre alla scheda, si guarda il posto che decide davvero: l'elenco
+  dei pannelli di Home Assistant. Se quello dell'appoggio ha un titolo nella
+  barra, gli si toglie subito — senza aspettare un riavvio. L'appoggio continua
+  ad aprirsi e resta scegliibile come plancia predefinita; quello che sparisce è
+  il suo doppione nella barra. E nel registro resta scritto che è successo.
+
+- **Sicurezza: cambiando area non si perdono le zone delle altre**
+
+  Il passaggio da un'area all'altra riscriveva l'elenco con tre campi scelti a
+  mano — nome, id, mappature — e le zone di tutte le aree se ne andavano al
+  primo cambio. Adesso la riga si riscrive intera. Stessa ragione, anche
+  cancellando la penultima area: quella che resta si tiene le sue.
+
 ## 1.4.23
 
 ### Aggiunto

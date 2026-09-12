@@ -56,11 +56,21 @@ header.dm-testata-col-meteo .brand-text{flex:1 1 auto;min-width:0;text-align:cen
  * vincerebbe, rimettendo il gradiente dentro il riquadro. Con «body» davanti
  * il peso torna quello di prima. */
 body .dm-testata-riga{
-  flex:1 1 100%;order:9;display:flex;align-items:center;gap:10px;min-width:0;
+  flex:1 1 100%;order:9;display:flex;align-items:center;gap:10px;min-width:0}
+/* Le vesti della STRISCIA: il fondo chiaro, il filo di bordo e il bordo che si
+   scalda al passaggio. Sono le vesti di una fascia dentro l'intestazione, e
+   valgono finche' il riquadro e' li'.
+ *
+ * Scesa in pagina non e' piu' una fascia, e' una card in mezzo alle altre —
+ * «contorno meteo non uguale alle altre card»: con questo fondo e senza
+ * ombra si vedeva una striscia pallida appoggiata fra le carte. Da qui le
+ * vesti non le mettiamo, cosi' il foglio della card le mette per intero e non
+ * c'e' niente da scavalcare. */
+body .dm-testata-riga:not([data-dm-meteo="card"]){
   padding:6px 12px;border-radius:16px;
   background:var(--surface-2,#f8fafc);border:1px solid var(--card-border,#e8edf3);
   transition:border-color .2s ease,background .2s ease}
-body .dm-testata-riga:hover{
+body .dm-testata-riga:not([data-dm-meteo="card"]):hover{
   border-color:color-mix(in srgb,var(--accent,#0ea5e9) 38%,var(--card-border,#e8edf3));
   background:color-mix(in srgb,var(--accent,#0ea5e9) 6%,var(--surface-2,#f8fafc))}
 /* Dentro il riquadro non ci sono altri riquadri: il bordo e il fondo sono del

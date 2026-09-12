@@ -139,6 +139,68 @@ async def test_la_compagna_rimessa_nella_barra_ne_esce_al_riavvio(hass: Any) -> 
     assert voce["show_in_sidebar"] is False
 
 
+async def test_la_compagna_esce_dalla_barra_anche_senza_riavvio(hass: Any) -> None:
+    """«Ancora problema, e' comparsa due volte»: dalla barra esce subito.
+
+    La scheda salvata dice «fuori dalla barra», ma chi mette il pannello nella
+    barra e' Lovelace, leggendo quel campo al suo avvio: fra la sua lettura e
+    la nostra scrittura ci sono passati che non governiamo, e quando uno va
+    storto nella barra restano due plance identiche finche' qualcuno non
+    riavvia. Qui si guarda il posto che decide davvero — l'elenco dei pannelli
+    — e non la casella da cui quel posto e' stato riempito.
+
+    Il pannello deve restarci: l'appoggio si apre ancora, e si sceglie ancora
+    come plancia predefinita. Quello che sparisce e' il suo posto nella barra.
+    """
+    assert await async_setup_component(hass, "lovelace", {})
+    await hass.async_block_till_done()
+    entry = _voce(hass)
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
+    await hass.async_block_till_done()
+
+    url_path = fe._lovelace_url_path(entry)
+    pannelli = hass.data["frontend_panels"]
+    pannello = pannelli[url_path]
+    # Lovelace l'ha messa nella barra, qualunque sia stata la ragione.
+    pannello.sidebar_title = entry.title
+    pannello.sidebar_icon = "mdi:view-dashboard-edit"
+
+    assert fe._fuori_dalla_barra(hass, url_path) is True
+    rimasto = hass.data["frontend_panels"][url_path]
+    assert rimasto.sidebar_title is None
+    assert rimasto.sidebar_icon is None
+    assert rimasto.component_name == "lovelace"
+    assert rimasto.config == pannello.config
+    # E una seconda passata non ha niente da togliere.
+    assert fe._fuori_dalla_barra(hass, url_path) is False
+
+
+async def test_il_pannello_della_plancia_resta_nella_barra(hass: Any) -> None:
+    """Fuori dalla barra ci va l'appoggio, non la plancia.
+
+    Sono due pannelli con due indirizzi diversi, e il guardiano guarda solo
+    quello dell'appoggio: se sbagliasse indirizzo la plancia sparirebbe dalla
+    barra, che e' il modo di risolvere «due voci» togliendo quella giusta.
+    """
+    assert await async_setup_component(hass, "lovelace", {})
+    await hass.async_block_till_done()
+    entry = _voce(hass)
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
+    await hass.async_block_till_done()
+
+    pannello = fe.PANEL_URL_PATH
+    fe._register_or_update_panel(
+        hass,
+        entry,
+        pannello,
+        update=True,
+        asset_version="x",
+        static_url_path="/x",
+    )
+    assert fe._fuori_dalla_barra(hass, fe._lovelace_url_path(entry)) is False
+    assert hass.data["frontend_panels"][pannello].sidebar_title == entry.title
+
+
 async def test_una_scheda_gia_sul_disco_non_si_ricrea(hass: Any) -> None:
     """La stessa scheda c'e' gia': crearla di nuovo Lovelace la rifiuta.
 

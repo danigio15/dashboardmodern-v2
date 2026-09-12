@@ -43,6 +43,31 @@ function vocePerOpzione(opzione) {
   return { valore, testo: /^\d+(?:[.,]\d+)?$/.test(valore) ? `${valore}%` : valore };
 }
 
+/* Da dove parte la scala diradata: dal primo valore tondo, non dal minimo.
+ *
+ * «Non esiste 91% e 96%, da dove li stai pescando.» Da qui: un limite che va
+ * da 1 a 100 col passo di 1 si dirada di cinque in cinque, e partendo dal
+ * minimo la scala diventava 1, 6, 11... 91, 96. Sono tutti valori che
+ * l'entita' accetta — il passo e' uno — ma nessuno li ha mai visti scritti su
+ * un limite di carica, e uno che apre la tendina non riconosce piu' la sua
+ * entita'.
+ *
+ * Il primo scalino si cerca fra i valori dell'entita' (minimo piu' un numero
+ * intero di passi SUOI) e si prende il primo che sia anche un multiplo del
+ * passo diradato: con minimo 1 e passo 1 e' il cinque, e la scala diventa
+ * 1, 5, 10... 100. Se un valore tondo non esiste — minimo 7 col passo 3, dove
+ * i multipli di sei non cadono mai sui valori buoni — si riparte dal minimo,
+ * com'era: meglio una scala storta che uno scalino che l'entita' rifiuta. */
+function primoScalino(min, suo, max, mio) {
+  const quanti = Math.round(mio / suo);
+  for (let passi = 0; passi < quanti; passi += 1) {
+    const valore = min + passi * suo;
+    if (valore > max + 1e-9) break;
+    if (Math.abs(valore / mio - Math.round(valore / mio)) < 1e-9) return valore;
+  }
+  return min;
+}
+
 function vociDaiNumeri(attributi) {
   const min = numero(attributi?.min);
   const max = numero(attributi?.max);
@@ -56,22 +81,23 @@ function vociDaiNumeri(attributi) {
     mio = suo * quante;
     if ((max - min) / mio <= QUANTE_AL_MASSIMO) break;
   }
-  const voci = [];
   /* I decimali del passo dicono con quante cifre si scrive: un passo di 0,5
    * scrive «57,5», un passo intero scrive «60». */
   const cifre = String(mio).includes(".") ? String(mio).split(".")[1].length : 0;
-  for (let valore = min; valore <= max + 1e-9; valore += mio) {
+  const voci = [];
+  const aggiungi = (valore) => {
     const scritto = valore.toFixed(cifre);
+    if (voci.some((voce) => voce.valore === scritto)) return;
     voci.push({ valore: scritto, testo: `${scritto}%` });
-  }
-  const ultimo = voci[voci.length - 1];
-  /* Il massimo c'e' sempre: e' il valore che uno cerca piu' spesso, e un passo
-   * che non ci arriva in pieno lo lascerebbe fuori. */
-  if (ultimo && Number(ultimo.valore) < max - 1e-9) {
-    const scritto = max.toFixed(cifre);
-    voci.push({ valore: scritto, testo: `${scritto}%` });
-  }
-  return voci;
+  };
+  /* Il minimo e il massimo ci sono sempre: sono gli estremi che l'entita'
+   * accetta, e una scala tonda che non ci arriva in pieno li lascerebbe fuori
+   * — cioe' toglierebbe proprio il «tutto» e il «niente». */
+  aggiungi(min);
+  for (let valore = primoScalino(min, suo, max, mio); valore <= max + 1e-9; valore += mio)
+    aggiungi(valore);
+  aggiungi(max);
+  return voci.sort((uno, due) => Number.parseFloat(uno.valore) - Number.parseFloat(due.valore));
 }
 
 /**

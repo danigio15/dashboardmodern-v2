@@ -681,14 +681,68 @@ async def _aggiorna_scheda_compagna(
         # stessa icona sono due plance per chi guarda, e una delle due non e'
         # la plancia.
         cambi["show_in_sidebar"] = False
-        _LOGGER.info(
-            "La dashboard di appoggio %s era finita nella barra laterale "
-            "accanto al pannello: la rimetto fuori",
+        _LOGGER.warning(
+            "La scheda della dashboard di appoggio %s diceva «nella barra "
+            "laterale»: la rimetto fuori. Nella barra c'e' gia' il pannello "
+            "della plancia, e due voci con lo stesso nome e la stessa icona "
+            "sono due plance per chi guarda",
             url_path,
         )
     if not cambi:
         return
     await aggiorna(voce["id"], cambi)
+
+
+def _fuori_dalla_barra(hass: HomeAssistant, url_path: str) -> bool:
+    """Togli dalla barra laterale il pannello della dashboard di appoggio.
+
+    «Ancora problema, e' comparsa due volte»: la plancia nella barra laterale
+    una volta fra le dashboard e una volta fra i pannelli, stesso nome e
+    stessa icona.
+
+    Che l'appoggio stia fuori dalla barra glielo diciamo scrivendo
+    `show_in_sidebar: False` nella sua scheda, ed e' la cosa giusta da
+    scrivere. Ma non e' una cosa che si possa CONTROLLARE: chi mette il
+    pannello nella barra e' Lovelace, leggendo quel campo al suo avvio, e
+    fra la sua lettura e la nostra scrittura ci sono passati che non
+    governiamo — l'ordine di avvio delle integrazioni, un rifiuto della
+    scrittura, un campo che una versione non ha letto, un ripristino da
+    backup. Basta che una volta vada storto e nella barra restano due
+    plance identiche di cui una sola e' la plancia, finche' qualcuno non
+    riavvia. E chi riavvia le rivede.
+
+    Quindi qui si guarda il posto che decide davvero: l'elenco dei pannelli
+    di Home Assistant. Se quello dell'appoggio ha un titolo nella barra, lo
+    si riscrive senza — stesso indirizzo, stesso componente, stessa
+    configurazione, `update=True`. Il pannello continua ad aprirsi, la
+    dashboard resta scegliibile come predefinita, e dalla barra sparisce
+    subito, senza aspettare un riavvio.
+
+    Torna `True` se c'era da togliere qualcosa.
+    """
+    from homeassistant.components import frontend
+
+    pannelli = hass.data.get("frontend_panels")
+    pannello = pannelli.get(url_path) if isinstance(pannelli, dict) else None
+    if pannello is None or not getattr(pannello, "sidebar_title", None):
+        return False
+    frontend.async_register_built_in_panel(
+        hass,
+        component_name=getattr(pannello, "component_name", "lovelace"),
+        frontend_url_path=url_path,
+        config=getattr(pannello, "config", None),
+        require_admin=bool(getattr(pannello, "require_admin", False)),
+        update=True,
+        config_panel_domain=getattr(pannello, "config_panel_domain", None),
+    )
+    _LOGGER.warning(
+        "La dashboard di appoggio %s era nella barra laterale accanto al "
+        "pannello della plancia: l'ho tolta dalla barra. La plancia resta "
+        "quella del pannello, e l'appoggio resta scegliibile come plancia "
+        "predefinita",
+        url_path,
+    )
+    return True
 
 
 def _la_compagna_e_gia_registrata(collezione: Any, plance: Any, url_path: str) -> bool:
@@ -1124,6 +1178,9 @@ async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> boo
             collezione, plance, url_path, titolo, solo_admin
         ):
             return False
+        # La scheda dice «fuori dalla barra»; qui si guarda se la barra e'
+        # d'accordo. Sono due posti diversi, e il secondo e' quello che si vede.
+        _fuori_dalla_barra(hass, url_path)
         magazzino = await _magazzino_della_compagna(plance, url_path)
         if magazzino is None:
             # Una dashboard che c'e' ma non si riesce a riempire e' peggio di

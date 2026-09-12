@@ -251,10 +251,22 @@ export function vestiLaCard() {
 const STILE = `
 /* Tutto quello che segue vale SOLO col riquadro sceso in pagina: nella
    testata la striscia resta quella che e', ed e' giusta li'. */
+/* Le vesti di una card della plancia, non di una fascia: carta, filo di bordo
+   e ombra scolpita. Sono gli stessi quattro valori che portano le persone e le
+   tessere — «contorno meteo non uguale alle altre card»: sono le vesti della
+   plancia, non una terza veste inventata per il meteo. */
 body .dm-testata-riga[data-dm-meteo="card"]{
   display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;
   gap:10px 16px;padding:18px 20px 16px;border-radius:22px;
+  background:var(--card-bg,#fff);border:1px solid var(--card-border,#e8edf3);
+  box-shadow:var(--shadow-sculpted,0 4px 14px rgba(15,23,42,.08));
+  transition:var(--transition,.3s);
   cursor:pointer}
+/* Si alza al passaggio come le altre card, e con lo scatto che questo riquadro
+   ha sempre avuto quando era la card del meteo del guscio. */
+body .dm-testata-riga[data-dm-meteo="card"]:hover{
+  transform:translateY(-4px);
+  box-shadow:var(--shadow-hover,0 10px 25px rgba(15,23,42,.14))}
 body .dm-testata-riga[data-dm-meteo="card"]>.weather-widget{
   grid-area:1/1;display:grid;gap:14px;min-width:0}
 /* L'ora, in alto a destra. Il suo foglio di stile parla solo dentro

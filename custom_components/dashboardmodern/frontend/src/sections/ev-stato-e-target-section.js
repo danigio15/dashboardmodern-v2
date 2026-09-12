@@ -236,6 +236,14 @@ export function paintTarget() {
  * Un gettone scaduto ha un rimedio preciso, e va detto. Quello che ha detto
  * Home Assistant resta comunque in coda, fra parentesi: e' quello che serve a
  * chi apre una segnalazione, e toglierlo sarebbe nascondere la prova.
+ *
+ * Su un gettone scaduto si diceva anche una cosa che non sappiamo: «non e' piu'
+ * collegata al suo account», detto come un fatto. «Da un errore che non
+ * esiste»: l'integrazione era collegata benissimo, ed era il gettone del cloud
+ * dell'auto a essere scaduto per quella chiamata — succede, e al giro dopo
+ * l'integrazione lo rinnova da sola. Adesso si dice quello che e' successo,
+ * col riprova prima e la riconnessione dopo, che e' l'ordine in cui si
+ * risolve.
  */
 function parolePerIlRifiuto(dettaglio) {
   const testa = t("Home Assistant ha rifiutato il target", "Home Assistant refused the target");
@@ -243,8 +251,8 @@ function parolePerIlRifiuto(dettaglio) {
   const consiglio =
     ragione === "autenticazione"
       ? t(
-          "L'integrazione dell'auto non è più collegata al suo account: riconnettila in Impostazioni → Dispositivi e servizi.",
-          "The car integration is no longer connected to its account: reconnect it in Settings → Devices & services.",
+          "Il servizio dell'auto ha rifiutato le credenziali dell'integrazione: riprova, e se continua riconnetti l'integrazione in Impostazioni → Dispositivi e servizi.",
+          "The car service refused the integration's credentials: try again, and if it keeps happening reconnect the integration in Settings → Devices & services.",
         )
       : ragione === "permesso"
         ? t(
