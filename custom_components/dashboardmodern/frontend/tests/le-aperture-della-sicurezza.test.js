@@ -260,3 +260,25 @@ test("la scelta si salva solo se e' una delle tre", () => {
   assert.equal(porta.gesto, "entrambi");
   assert.equal(normalizeSecurityDoors([{ entity: "lock.p", gesto: "boh" }])[0].gesto, "");
 });
+
+/* La voce «Apri porte» compare anche quando il guscio arriva tardi.
+ *
+ * A far nascere la voce nella barra e' il giro generale del guscio, agganciato
+ * all'installazione della sezione. Se il guscio arriva DOPO — su un apparecchio
+ * lento capita — quell'aggancio non trova niente da agganciare, e nessuno degli
+ * annunci a cui la sezione si mette in ascolto passa piu': la voce non compare
+ * affatto, e la pagina delle aperture resta irraggiungibile fino a un
+ * ricaricamento. Il giro degli stati, che arriva ogni paio di secondi in una
+ * casa viva, e' l'occasione per riprovare — ma solo finche' la voce manca: a
+ * voce nata non si ridisegna una pagina che nessuno sta guardando.
+ */
+test("finché la voce manca, il giro degli stati riprova ad agganciarsi", () => {
+  const sorgente = leggi("sections/security-doors-section.js");
+  const blocco = sorgente.slice(
+    sorgente.indexOf('root.addEventListener?.("dashboardmodern:state-changed"'),
+  );
+  const dentro = blocco.slice(0, 1400);
+  assert.match(dentro, /const senzaVoce = !doc\.querySelector\(/);
+  assert.match(dentro, /if \(senzaVoce\) agganciaRender\(\);/);
+  assert.match(dentro, /if \(paginaVisibile\(\) \|\| senzaVoce\) schedule\(\);/);
+});

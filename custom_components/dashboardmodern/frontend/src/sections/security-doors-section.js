@@ -577,7 +577,19 @@ export function installSecurityDoorsSection() {
     });
   }
   root.addEventListener?.("dashboardmodern:state-changed", () => {
-    if (paginaVisibile()) schedule();
+    /* La pagina si ridisegna solo quando la si guarda: dipingere quello che
+     * nessuno ha davanti e' lavoro per nessuno. La VOCE nella barra pero' non
+     * e' la pagina — e senza di lei non c'e' modo di arrivarci.
+     *
+     * A farla nascere e' il giro generale del guscio, agganciato
+     * all'installazione: se il guscio arriva DOPO di noi — su un apparecchio
+     * lento capita — quell'aggancio non c'era, e nessuno degli annunci qui
+     * sopra passava piu'. La voce «Apri porte» non compariva affatto, e la
+     * sezione restava irraggiungibile fino al ricaricamento della pagina.
+     * Finche' manca, questo giro riprova ad agganciarsi e disegna. */
+    const senzaVoce = !doc.querySelector(`.tab[data-tab="${APERTURE_TAB}"]`);
+    if (senzaVoce) agganciaRender();
+    if (paginaVisibile() || senzaVoce) schedule();
   });
   doc.addEventListener(
     "click",

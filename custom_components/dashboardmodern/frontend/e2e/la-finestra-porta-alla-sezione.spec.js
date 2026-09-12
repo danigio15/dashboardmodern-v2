@@ -139,30 +139,47 @@ test("dalla finestra delle Porte si arriva ad «Apri porte», non alla Sicurezza
 }, testInfo) => {
   test.setTimeout(120_000);
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
-  await page.evaluate(() => {
-    const grezzi = eval("_RAW_STATES");
-    grezzi["lock.portone"] = {
-      entity_id: "lock.portone",
-      state: "locked",
-      attributes: { friendly_name: "Portone" },
-    };
-    /* Le aperture le scrive il loro editor nella loro chiave: e' l'unica cosa
-     * che fa nascere la tessera e la pagina. */
-    localStorage.setItem(
-      "cd_security_doors",
-      JSON.stringify([{ id: "d1", name: "Portone", entity: "lock.portone", icon: "🚪" }]),
-    );
-    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
-    window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
-  });
+
+  /* Le aperture le scrive il loro editor nella loro chiave: e' l'unica cosa che
+   * fa nascere la tessera, la pagina e la voce nella barra.
+   *
+   * Si riscrive finche' non attecchisce, invece di scriverla una volta e
+   * sperare. Il giro che ripristina la configurazione salvata arriva dopo che i
+   * moduli ci sono, e ripassa sulle chiavi del magazzino: su un apparecchio
+   * carico se la portava via, la voce non nasceva piu' e la prova cadeva per
+   * una corsa invece che per il tasto che vuole provare. */
+  const metteLePorte = () =>
+    page.evaluate(() => {
+      const grezzi = eval("_RAW_STATES");
+      grezzi["lock.portone"] = {
+        entity_id: "lock.portone",
+        state: "locked",
+        attributes: { friendly_name: "Portone" },
+      };
+      /* E la sezione accesa. Questa prova, piu' avanti, la spegne apposta per
+       * guardare il tasto andarsene: se cade prima di riaccenderla, il
+       * magazzino resta spento — e il tentativo seguente, che quel magazzino se
+       * lo ritrova, non puo' piu' vedere nascere nessuna voce. Si riparte da
+       * una casa in cui le aperture ci sono e sono accese. */
+      const sezioni = JSON.parse(localStorage.getItem("cd_sections") || "{}");
+      if (sezioni && typeof sezioni === "object" && sezioni.porte === false) {
+        delete sezioni.porte;
+        localStorage.setItem("cd_sections", JSON.stringify(sezioni));
+        window.cdApplyNavVis?.();
+      }
+      const chiave = "cd_security_doors";
+      const valore = JSON.stringify([
+        { id: "d1", name: "Portone", entity: "lock.portone", icon: "🚪" },
+      ]);
+      if (localStorage.getItem(chiave) !== valore) localStorage.setItem(chiave, valore);
+      window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+      window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+      return Boolean(document.querySelector('.tab[data-tab="porte"]'));
+    });
+  await expect.poll(metteLePorte, { timeout: 45_000 }).toBe(true);
   await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
 
   await apriTessera(page, "porte");
-  const vai = page.locator("#dm-widget-popup [data-dm-w-sezione]");
-  await expect(vai).toBeVisible({ timeout: 15_000 });
-  /* Il tasto dichiara la tessera, non la sezione: e' la tavola a tradurla, ed
-   * e' la tavola che era rimasta indietro. */
-  await expect(vai).toHaveAttribute("data-dm-w-sezione", "porte");
 
   /* Quanti tasti ci sono dopo un giro di stati.
    *
@@ -178,6 +195,16 @@ test("dalla finestra delle Porte si arriva ad «Apri porte», non alla Sicurezza
       () => document.querySelectorAll("#dm-widget-popup [data-dm-w-sezione]").length,
     );
   };
+
+  /* E anche il PRIMO tasto si aspetta col giro, non stando fermi a guardare: la
+   * voce puo' nascere fra il tocco e il disegno, e il piede la segue al giro
+   * dopo — non lo precede. */
+  await expect.poll(tastiDopoUnGiro, { timeout: 30_000 }).toBe(1);
+  const vai = page.locator("#dm-widget-popup [data-dm-w-sezione]");
+  await expect(vai).toBeVisible({ timeout: 20_000 });
+  /* Il tasto dichiara la tessera, non la sezione: e' la tavola a tradurla, ed
+   * e' la tavola che era rimasta indietro. */
+  await expect(vai).toHaveAttribute("data-dm-w-sezione", "porte");
 
   /* E il tasto segue la sezione MENTRE la finestra e' aperta.
    *

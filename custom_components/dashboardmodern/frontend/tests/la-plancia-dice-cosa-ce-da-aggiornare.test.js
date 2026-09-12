@@ -13,6 +13,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { aggiornamentiDaFare, aspettaDiEssereFatto } from "../src/core/aggiornamenti-da-fare.js";
+import { haOggettoWidget, oggettoWidget } from "../src/core/oggetti-widget.js";
 
 const sorgente = readFileSync(
   new URL("../src/sections/home-widgets-section.js", import.meta.url),
@@ -135,4 +136,16 @@ test("aprendo la tessera si vedono tutti, uno per uno, con le loro versioni", ()
   /* E nessun tasto per installare: si installa da Home Assistant, dove accanto
    * al tasto ci sono le note di rilascio. */
   assert.doesNotMatch(finestra, /chiamaHa|call_service|cdApplEntTog/);
+});
+
+test("la tessera porta un disegno nostro, non un'emoji del telefono", () => {
+  /* Ogni sistema disegna le emoji a modo suo, e una freccia piatta accanto a
+   * una lampadina di vetro si vede da un chilometro. La tessera degli
+   * aggiornamenti era l'unica dell'elenco senza il suo oggetto: nella scheda
+   * che li elenca tutti si riconosceva perché stonava. */
+  assert.equal(haOggettoWidget("aggiornamenti"), true);
+  const disegno = oggettoWidget("aggiornamenti");
+  assert.match(disegno, /<svg class="dm-oggetto"/);
+  /* L'ambra della tessera, non il rosso: un aggiornamento non è un guasto. */
+  assert.match(disegno, /#f59e0b/);
 });

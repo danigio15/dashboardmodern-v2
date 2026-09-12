@@ -524,7 +524,14 @@ export function mountEntityPickers(target) {
       input.insertAdjacentElement("afterend", button);
     }
     attributoSeCambia(button, "data-entity-target", input.id);
-    attributoSeCambia(button, "aria-label", `${t("select")} entity_id`);
+    /* La lente che e' diventata pastiglia l'etichetta se la scrive da se', e
+     * dice molto di piu': il nome del campo e l'entita' scelta. Riscrivergliela
+     * sopra da qui voleva dire due mani sullo stesso attributo, una per giro —
+     * il documento registra ogni scrittura e sveglia chi guarda, che richiama
+     * questa passata — e un campo che trema non si lascia compilare. E' lo
+     * stesso difetto della #494, in un punto che allora era sfuggito. */
+    if (!button.classList.contains("dm-slot-chip"))
+      attributoSeCambia(button, "aria-label", `${t("select")} entity_id`);
     button.onclick = null;
     if (button.dataset.pickerMounted !== "true") {
       button.dataset.pickerMounted = "true";

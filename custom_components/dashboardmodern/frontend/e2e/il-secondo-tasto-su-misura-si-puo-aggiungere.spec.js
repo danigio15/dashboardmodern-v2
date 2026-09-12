@@ -122,8 +122,19 @@ test("due tasti si compilano e si salvano, e restano tutti e due", async ({ page
     const riga = page.locator(`#dm-antifurto-su-misura [data-suo-index="${indice}"]`);
     await expect(riga).toHaveCount(1, { timeout: 10_000 });
     await riga.locator('[data-suo-field="nome"]').fill(nome);
-    await riga.locator('[data-suo-field="entita"]').fill(entita);
-    await riga.locator("[data-suo-save]").click();
+    /* Il campo dell'entita' e' un campo entita' come tutti gli altri della
+     * configurazione: al posto della casella con l'id c'e' la pastiglia, che
+     * apre la ricerca di casa, e l'id da scrivere a mano sta dietro la matita.
+     * Qui si scrive a mano, che e' la strada di chi il nome del suo script lo
+     * sa gia' — ed e' lo stesso gesto che fanno le prove delle altre schede. */
+    const campo = riga.locator('[data-suo-field="entita"]');
+    if (!(await campo.isVisible())) await riga.locator(".dm-chip-manual").first().click();
+    await campo.fill(entita);
+    /* E si salva dal tasto in fondo alla scheda: da quando la configurazione e'
+     * uniforme (#404) i «salva» dentro i pannelli stanno nascosti, e quello in
+     * fondo li preme tutti. E' il gesto che fa chi usa la plancia — premere il
+     * tasto della riga non lo puo' fare nessuno, perche' non si vede. */
+    await page.locator("#ed-body [data-dm-save-all]").click();
   };
 
   await compila(0, "Totale", "script.inserisci_totale");

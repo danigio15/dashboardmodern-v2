@@ -599,7 +599,14 @@ function paintFieldChip(host) {
     ) ||
     clean(input.getAttribute("aria-label")) ||
     t("Entità", "Entity");
-  chip.setAttribute("aria-label", `${fieldName}: ${nameText}`);
+  // Questa riga era l'unica del gruppo a scrivere senza guardare: ogni giro
+  // riscriveva la stessa etichetta, e il documento non confronta — registra la
+  // scrittura e sveglia chi guarda, che richiama questa funzione. Da fermi, col
+  // dito lontano, la pastiglia tremava; e un campo che trema non si lascia
+  // compilare. E' lo stesso difetto che il resto di questa funzione evita da
+  // quando c'e', arrivato fin qui in fondo.
+  const etichetta = `${fieldName}: ${nameText}`;
+  if (chip.getAttribute("aria-label") !== etichetta) chip.setAttribute("aria-label", etichetta);
 }
 
 /* One entity field, made readable.
@@ -626,6 +633,15 @@ function decorateField(input) {
   host.dataset[CHIP_MARKER] = "true";
   input.classList.add("dm-chip-raw");
   lens.classList.add("dm-slot-chip");
+  /* Da qui in poi la pastiglia parla di roba di casa: il nome che chi abita ha
+   * dato alla sua entita', e il suo id. Il giro che traduce il documento non
+   * deve toccarla — e non e' solo una questione di gusto. Quel giro si ricorda
+   * il PRIMO valore che ha visto addosso a un nodo e ci torna sopra ogni volta
+   * che cambia: qui il primo era la lente, «Seleziona entity_id», scritta nel
+   * guscio. Diventata pastiglia, ce n'era uno che scriveva il nome scelto e uno
+   * che rimetteva la frase del guscio — due mani sullo stesso attributo, e un
+   * campo che trema non si lascia compilare. */
+  lens.setAttribute("data-dm-no-i18n", "");
   lens.innerHTML = chipMarkup();
 
   /* La matita da sola non diceva a cosa serviva.

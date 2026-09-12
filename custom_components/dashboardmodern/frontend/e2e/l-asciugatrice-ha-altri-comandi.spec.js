@@ -125,34 +125,38 @@ test.describe("gli altri comandi dell'elettrodomestico (#338)", () => {
       window.edApplEdit(0);
     });
     const modale = page.locator("#dm-appliance-editor-modal");
-    await expect(modale.locator("[data-appl-comandi]")).toHaveCount(1);
+    /* Le due file — i comandi in piu' e le letture in piu' (#471) — si vestono
+     * uguali, fin nella frase che dicono quando sono vuote: quello che si
+     * guarda qui e' la fila dei comandi, e si guarda dentro la sua. */
+    const comandi = modale.locator("[data-appl-comandi]");
+    await expect(comandi).toHaveCount(1);
     /* Di serie non ce n'e' nessuno, e la scheda lo dice invece di lasciare un
      * buco. */
-    await expect(modale.locator(".dm-appl-cmd-vuoto")).toHaveCount(1);
+    await expect(comandi.locator(".dm-appl-cmd-vuoto")).toHaveCount(1);
 
     /* Il campo e' un campo entita' come gli altri della configurazione: la
      * pastiglia «Scegli entità» apre la ricerca di casa, la matita lo apre da
      * scrivere a mano. Qui si scrive a mano, che e' la strada di chi sa gia'
      * come si chiama il suo script. */
-    const casella = modale.locator("[data-appl-comando-nuovo]");
-    await modale.locator("[data-appl-comandi] .dm-chip-manual").click();
+    const casella = comandi.locator("[data-appl-comando-nuovo]");
+    await comandi.locator(".dm-chip-manual").click();
     await expect(casella).toBeVisible();
 
     /* Un'entita' che non sa fare da comando viene rifiutata, e la scheda dice
      * quali servono: e' meglio di un tasto che poi non fa niente. */
     await casella.fill("sensor.asciugatrice_potenza");
-    await modale.locator("[data-appl-cmd-add]").click();
-    await expect(modale.locator("[data-appl-cmd-error]")).not.toBeEmpty();
-    await expect(modale.locator(".dm-appl-cmd-chip")).toHaveCount(0);
+    await comandi.locator("[data-appl-cmd-add]").click();
+    await expect(comandi.locator("[data-appl-cmd-error]")).not.toBeEmpty();
+    await expect(comandi.locator(".dm-appl-cmd-chip")).toHaveCount(0);
 
     /* Lo script invece si': e' la scatola in cui `hon.start_program` sta. */
     await casella.fill("script.asciugatrice_rapido_30");
-    await modale.locator("[data-appl-cmd-add]").click();
-    await expect(modale.locator("[data-appl-cmd-error]")).toBeEmpty();
+    await comandi.locator("[data-appl-cmd-add]").click();
+    await expect(comandi.locator("[data-appl-cmd-error]")).toBeEmpty();
     /* La pastiglia porta il nome senza ripetere «Asciugatrice», che sta gia'
      * in testa alla finestra. */
-    await expect(modale.locator(".dm-appl-cmd-chip")).toHaveCount(1);
-    await expect(modale.locator(".dm-appl-cmd-chip")).toContainText("Rapido 30");
+    await expect(comandi.locator(".dm-appl-cmd-chip")).toHaveCount(1);
+    await expect(comandi.locator(".dm-appl-cmd-chip")).toContainText("Rapido 30");
 
     await modale.locator('button[type="submit"]').click();
     await expect(page.locator("#dm-appliance-editor-modal")).toHaveCount(0);
