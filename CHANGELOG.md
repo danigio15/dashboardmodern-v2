@@ -52,6 +52,21 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   stessa cosa con una striscia. Chi non ha scritto niente non si accorge che
   qualcosa è cambiato.
 
+- **Home: si sposta anche l'intestazione, hamburger compreso**
+
+  «Prevedi di spostare anche intestazione della home, quindi la prima sezione
+  compresa di hamburger.»
+
+  Il riordino della Home muoveva tutto tranne la striscia in cima — quella col
+  menù, il nome della casa e la pastiglia della connessione. Adesso è un blocco
+  come gli altri, ed è il primo: chi non tocca niente non vede cambiare un
+  pixel. Spostandola più in basso scende dentro la pagina e si mette in fila.
+
+  Con una regola che non è un dettaglio: **la striscia scende solo nella Home.**
+  Non è sua — la usano anche Energia, Clima, Sicurezza — e lasciarla in mezzo
+  alla pagina significherebbe che su ogni altra sezione l'hamburger non c'è
+  più. Uscendo dalla Home torna al suo posto da sola.
+
 - **Sicurezza: le zone e gli ingressi della centrale**
 
   «Tutti i miei sensori di presenza sono riferiti alla centrale: magari aprendo

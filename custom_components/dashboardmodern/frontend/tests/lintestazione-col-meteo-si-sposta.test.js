@@ -39,9 +39,12 @@ import { haOggettoWidget } from "../src/core/oggetti-widget.js";
 
 const leggi = (nome) => readFileSync(new URL(`../src/${nome}`, import.meta.url), "utf8");
 
-test("il meteo e' un blocco della Home, e di serie e' il primo", () => {
+test("il meteo e' un blocco della Home, e di serie sta sopra la pagina", () => {
   assert.ok(BLOCCHI_DELLA_HOME.includes(BLOCCO_DEL_METEO));
-  assert.equal(BLOCCHI_DELLA_HOME[0], BLOCCO_DEL_METEO);
+  /* Non e' piu' il primo: davanti c'e' la striscia col menu, che e' spostabile
+   * anche lei. Le due stanno tutte e due SOPRA la pagina, e l'ordine fra loro
+   * dice solo quale si vede prima — il meteo resta in testata lo stesso. */
+  assert.equal(BLOCCHI_DELLA_HOME[1], BLOCCO_DEL_METEO);
   /* Primo vuol dire «sopra tutto», e sopra tutto e' l'intestazione: chi non ha
    * mai toccato niente non deve vedere la Home muoversi di un pixel. */
   assert.equal(ilMeteoStaInTestata(null), true);

@@ -11,8 +11,10 @@ import test from "node:test";
 import {
   BLOCCHI_DELLA_HOME,
   BLOCCO_DEL_METEO,
+  BLOCCO_INTESTAZIONE,
   eLOrdineDiSerie,
   ilMeteoStaInTestata,
+  lIntestazioneStaInCima,
   ordineDeiBlocchi,
 } from "../src/core/ordine-dei-blocchi.js";
 
@@ -26,10 +28,12 @@ test("senza niente salvato vale l'ordine di sempre", () => {
 test("l'ordine scelto si rispetta, e quello che non c'e' va in coda al suo posto", () => {
   /* Chi rientra in casa e vuole i tasti per primi. */
   assert.deepEqual(ordineDeiBlocchi(["azioni"]), [
-    /* Il meteo (#492) e' nato dopo, e va DAVANTI, non in coda: il suo posto di
-     * serie e' l'intestazione, cioe' sopra la pagina. In coda vorrebbe dire
-     * che chi si era gia' riordinato la Home, aggiornando, trova il riquadro
-     * col meteo staccato dall'intestazione e buttato in fondo. */
+    /* I due che stanno sopra la pagina vanno DAVANTI, non in coda, e
+     * nell'ordine in cui si vedono: prima la striscia col menu, poi il
+     * riquadro del tempo. In coda vorrebbero dire che chi si era gia'
+     * riordinato la Home, aggiornando, trova l'hamburger e il meteo staccati
+     * dall'alto e buttati in fondo alla pagina. */
+    "intestazione",
     "meteo",
     "azioni",
     "persone",
@@ -41,6 +45,7 @@ test("l'ordine scelto si rispetta, e quello che non c'e' va in coda al suo posto
   ]);
   assert.equal(eLOrdineDiSerie(["azioni"]), false);
   assert.deepEqual(ordineDeiBlocchi(["dispositivi", "azioni"]), [
+    "intestazione",
     "meteo",
     "dispositivi",
     "azioni",
@@ -54,6 +59,7 @@ test("un ordine sporco non rompe la Home", () => {
   /* Un blocco scritto due volte compare una volta sola: due copie dello stesso
    * nodo non esistono, e la seconda si porterebbe via la prima. */
   assert.deepEqual(ordineDeiBlocchi(["azioni", "persone", "azioni"]), [
+    "intestazione",
     "meteo",
     "azioni",
     "persone",
@@ -64,6 +70,7 @@ test("un ordine sporco non rompe la Home", () => {
   /* Un nome che non esiste piu' — una versione che toglie un blocco — si
    * ignora invece di lasciare un buco nella fila. */
   assert.deepEqual(ordineDeiBlocchi(["fantasma", "widget"]), [
+    "intestazione",
     "meteo",
     "widget",
     "persone",
@@ -73,6 +80,7 @@ test("un ordine sporco non rompe la Home", () => {
   ]);
   /* E le voci che non sono nemmeno stringhe. */
   assert.deepEqual(ordineDeiBlocchi([null, 3, { azioni: true }, "persone"]), [
+    "intestazione",
     "meteo",
     "persone",
     "widget",
@@ -89,12 +97,20 @@ test("il meteo mancante va DAVANTI, non in coda", () => {
    * quel posto si scrive «per primo». Chi aveva gia' un ordine salvato prima
    * che il meteo fosse spostabile non deve vederselo scendere in fondo alla
    * Home per il solo fatto di aver aggiornato. */
-  assert.equal(ordineDeiBlocchi(["dispositivi"])[0], BLOCCO_DEL_METEO);
+  /* Davanti, non in coda: subito dopo la striscia col menu, che sta sopra la
+   * pagina come lui. */
+  assert.equal(ordineDeiBlocchi(["dispositivi"])[1], BLOCCO_DEL_METEO);
   assert.equal(ilMeteoStaInTestata(["dispositivi"]), true);
   assert.equal(ilMeteoStaInTestata(null), true);
   /* E chi lo sposta davvero se lo vede scendere in pagina. */
   assert.equal(ilMeteoStaInTestata(["persone", "meteo"]), false);
   assert.equal(ilMeteoStaInTestata(["meteo", "persone"]), true);
+  /* E la striscia col menu davanti non lo fa scendere: sono tutte e due sopra
+   * la pagina. Chiedendo «e' il primo», il giorno in cui la striscia e'
+   * diventata spostabile il riquadro sarebbe sceso in pagina a tutti quelli
+   * che non avevano mai toccato niente. */
+  assert.equal(ilMeteoStaInTestata(["intestazione", "meteo", "persone"]), true);
+  assert.equal(ilMeteoStaInTestata(["persone", "intestazione", "meteo"]), false);
 });
 
 test("un blocco NUOVO non si perde e non passa davanti", () => {
@@ -107,4 +123,30 @@ test("un blocco NUOVO non si perde e non passa davanti", () => {
   assert.equal(fila.length, BLOCCHI_DELLA_HOME.length);
   assert.equal(fila.at(-1), "dispositivi");
   assert.deepEqual(fila.slice(0, -1), salvato);
+});
+
+/* ── l'intestazione, hamburger compreso ───────────────────────────────────
+ *
+ * «Prevedi di spostare anche intestazione della home, quindi la prima sezione
+ * compresa di hamburger.»
+ *
+ * La striscia col menu non e' un blocco come gli altri: sta FUORI dalla Home e
+ * la usano anche l'Energia, il Clima, la Sicurezza. Le prove qui sotto tengono
+ * ferme le due cose che, sbagliate, romperebbero la plancia invece di
+ * riordinarla.
+ */
+test("l'intestazione e' il primo blocco, e di serie non si muove", () => {
+  assert.equal(BLOCCHI_DELLA_HOME[0], BLOCCO_INTESTAZIONE);
+  assert.equal(lIntestazioneStaInCima(null), true);
+  assert.equal(lIntestazioneStaInCima([]), true);
+  /* E chi aveva gia' un ordine salvato prima che esistesse non se la ritrova
+   * in fondo: l'hamburger in coda alla pagina sarebbe un menu che sparisce. */
+  assert.equal(lIntestazioneStaInCima(["azioni", "persone"]), true);
+  assert.equal(ordineDeiBlocchi(["azioni"])[0], BLOCCO_INTESTAZIONE);
+});
+
+test("spostata sotto un blocco della pagina, scende", () => {
+  assert.equal(lIntestazioneStaInCima(["persone", "intestazione"]), false);
+  /* Il meteo davanti non la fa scendere: stanno tutte e due sopra la pagina. */
+  assert.equal(lIntestazioneStaInCima(["meteo", "intestazione", "persone"]), true);
 });

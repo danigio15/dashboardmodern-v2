@@ -21,6 +21,8 @@ import { spostaNellElenco } from "../core/ordine-a-mano.js";
 import {
   BLOCCHI_DELLA_HOME,
   BLOCCO_DEL_METEO,
+  BLOCCO_INTESTAZIONE,
+  lIntestazioneStaInCima,
   CHIAVE_ORDINE_BLOCCHI,
   ordineDeiBlocchi,
 } from "../core/ordine-dei-blocchi.js";
@@ -73,6 +75,11 @@ export function ordineSalvato() {
  * annunciano, quindi un blocco e' sempre TUTTI i suoi pezzi. */
 function pezziDelBlocco(nome, pagina) {
   const dentro = (nodo) => (nodo && nodo.parentElement === pagina ? nodo : null);
+  /* L'intestazione e' un blocco solo quando e' scesa dentro la Home. Finche'
+   * sta sopra la pagina non e' figlia sua, quindi qui non c'e' niente da
+   * mettere in fila — ed e' giusto: li' sta sopra tutto, per tutte le
+   * pagine. */
+  if (nome === BLOCCO_INTESTAZIONE) return [dentro(laTestata())].filter(Boolean);
   /* Il riquadro col meteo e l'ora (#492) e' un blocco solo quando e' sceso in
    * pagina. Finche' sta nell'intestazione non e' figlio della Home, quindi qui
    * non c'e' niente da mettere in fila — ed e' giusto: li' sta sopra tutto. */
@@ -98,6 +105,57 @@ function pezziDelBlocco(nome, pagina) {
     return titolo?.classList?.contains("section-title") && !titolo.id ? [titolo, corpo] : [corpo];
   }
   return [];
+}
+
+/* ── l'intestazione, che e' di tutte le pagine ─────────────────────────────
+ *
+ * «Prevedi di spostare anche intestazione della home, quindi la prima sezione
+ * compresa di hamburger.»
+ *
+ * La striscia col menu non e' un blocco come gli altri: sta FUORI dalla Home —
+ * il guscio la stampa sopra la barra delle linguette — e la usano anche
+ * l'Energia, il Clima, la Sicurezza. Spostarla dentro la Home e lasciarla li'
+ * vorrebbe dire che su ogni altra pagina l'hamburger non c'e' piu': un menu
+ * che sparisce non e' un riordino, e' una plancia rotta.
+ *
+ * Quindi scende dentro la Home solo mentre la Home e' quella aperta, e appena
+ * si cambia pagina torna al suo posto. Le due funzioni qui sotto sono quelle
+ * due mosse, e sono scritte per essere sicure: chiedono dov'e' adesso e non se
+ * lo ricordano, cosi' non c'e' un ricordo che possa restare indietro. */
+function laTestata() {
+  return doc?.querySelector?.("body > header") || doc?.querySelector?.("header") || null;
+}
+
+/* Il suo posto di sempre: subito prima della barra delle linguette. */
+function rimettiLaTestata() {
+  const testata = laTestata();
+  const barra = doc?.querySelector?.("nav.tabs");
+  if (!testata || !barra || testata.nextElementSibling === barra) return false;
+  barra.before(testata);
+  return true;
+}
+
+/* La porta dentro la Home, se non c'e' gia': da li' in poi la mette in fila
+ * `applicaLOrdineDeiBlocchi`, insieme agli altri. */
+function portaLaTestataInPagina(pagina) {
+  const testata = laTestata();
+  if (!testata || !pagina || testata.parentElement === pagina) return false;
+  pagina.prepend(testata);
+  return true;
+}
+
+/**
+ * L'intestazione dove l'ordine dice che stia.
+ *
+ * Prima nella fila — o Home non aperta — vuol dire sopra la pagina, dov'e'
+ * sempre stata. Esportata perche' la chiama anche chi cambia pagina: uscire
+ * dalla Home deve rimetterla su, e chi esce non passa da `applica`, che sulla
+ * pagina chiusa si ferma subito.
+ */
+export function sistemaLaTestata(pagina = laHomeSiGuarda()) {
+  if (!pagina || lIntestazioneStaInCima(readJson(CHIAVE_ORDINE_BLOCCHI, null)))
+    return rimettiLaTestata();
+  return portaLaTestataInPagina(pagina);
 }
 
 /* La Home e' quella che si sta guardando? Spostare nodi in una pagina chiusa e'
@@ -160,6 +218,11 @@ function inCoda() {
        * qui, e un ordine applicato su un riquadro ancora nell'intestazione
        * sarebbe un ordine con un blocco in meno. */
       rigaDellaTestata();
+      /* E l'intestazione va dove l'ordine dice, prima di mettere in fila: un
+       * ordine applicato su una striscia ancora sopra la pagina sarebbe un
+       * ordine con un blocco in meno — e su una pagina che non e' la Home
+       * questa riga e' cio' che la rimette al suo posto. */
+      sistemaLaTestata();
       applicaLOrdineDeiBlocchi();
     } catch (_error) {}
   });
@@ -181,6 +244,7 @@ const SCHEDA_HOME = "sez0";
  * scelgono e si ordinano fra loro; le persone e le azioni rapide pure. Qui si
  * mettono in fila i blocchi. */
 const NOMI_DEI_BLOCCHI = () => ({
+  intestazione: t("Intestazione e menù", "Header and menu"),
   meteo: t("Intestazione col meteo", "Weather header"),
   persone: t("Persone", "People"),
   widget: t("Widget", "Widgets"),
@@ -195,7 +259,14 @@ const NOMI_DEI_BLOCCHI = () => ({
  * azioni, stanze — e per quelli non c'e' niente da scrivere. Gli altri due
  * sono i soliti due nomi: il riquadro in cima si chiama «meteo» e i
  * dispositivi sono gli elettrodomestici della griglia. */
-const OGGETTO_DEL_BLOCCO = Object.freeze({ dispositivi: "elettrodomestici" });
+const OGGETTO_DEL_BLOCCO = Object.freeze({
+  dispositivi: "elettrodomestici",
+  /* La striscia col menu e il nome della casa: il disegno e' quello della
+   * plancia stessa. Il catalogo non ha una voce «intestazione», e inventare
+   * un'icona fuori catalogo per una riga di configurazione sarebbe l'unica
+   * icona non nostra in tutta la scheda. */
+  intestazione: "home",
+});
 
 const disegnoDelBlocco = (nome) => oggettoWidget(OGGETTO_DEL_BLOCCO[nome] || nome);
 
@@ -224,8 +295,8 @@ function pannelloMarkup() {
   return `<div class="ed-sec-title">🏠 ${esc(t("Ordine dei blocchi della Home", "Order of the Home blocks"))}</div>
     <div class="ed-intro">${esc(
       t(
-        "In che ordine si vedono in Home. L'intestazione col meteo e l'ora, finché sta per prima, resta in alto attaccata al nome della casa: spostandola più in basso scende in pagina insieme agli altri blocchi. Dentro ogni blocco l'ordine si fa dove si configura quel blocco: le persone nella loro scheda, le tessere in Widget, le azioni rapide nella loro.",
-        "The order they appear in on Home. The header with the weather and the clock, as long as it stays first, remains up top next to the house name: move it further down and it comes down into the page with the other blocks. Inside each block the order is set where that block is configured: people in their own tab, tiles in Widgets, quick actions in theirs.",
+        "In che ordine si vedono in Home. Le prime due — la striscia col menù e il riquadro col meteo — finché stanno in cima restano sopra la pagina, dove sono sempre state; spostandole più in basso scendono in pagina insieme agli altri blocchi. La striscia col menù scende solo qui: sulle altre pagine torna in alto da sola, o l'hamburger sparirebbe. Dentro ogni blocco l'ordine si fa dove si configura quel blocco: le persone nella loro scheda, le tessere in Widget, le azioni rapide nella loro.",
+        "The order they appear in on Home. The first two — the strip with the menu and the weather box — stay above the page as long as they are on top, where they have always been; move them further down and they come into the page with the other blocks. The menu strip only comes down here: on the other pages it goes back up by itself, or the hamburger would disappear. Inside each block the order is set where that block is configured: people in their own tab, tiles in Widgets, quick actions in theirs.",
       ),
     )}</div>
     <div class="dm-blocco-list">${righe}</div>
