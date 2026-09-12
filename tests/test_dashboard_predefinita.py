@@ -222,13 +222,80 @@ async def test_senza_lovelace_non_si_rompe_niente(hass: Any) -> None:
     assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is False
 
 
+async def test_chi_non_puo_registrarsi_lo_dice_dove_si_guarda(hass: Any) -> None:
+    """«Non riesco a visualizzare la dashboard nel menu plance» (#499).
+
+    Qui si rinunciava in silenzio, e il silenzio era il difetto. Chi ha la casa
+    non ha niente da guardare: nessuna riga, nessun avviso, e la plancia
+    semplicemente non c'e' fra le predefinite. Chi ha segnalato ha
+    reinstallato — due volte — perche' era l'unica cosa che gli restava da
+    provare, e reinstallare non cambia niente.
+
+    Il caso vero e' quasi sempre Lovelace in modo YAML: li' le plance le scrive
+    a mano chi ha la casa, e nessuna integrazione puo' aggiungersi da sola. Non
+    e' un guasto nostro e non si aggiusta dal nostro lato — ma e' esattamente
+    la risposta che chi segnala sta cercando, e adesso la trova in
+    Impostazioni > Riparazioni, che e' dove Home Assistant mette le cose che
+    non vanno.
+    """
+    from homeassistant.helpers import issue_registry as ir
+
+    entry = _voce(hass)
+    hass.data.pop("lovelace", None)
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is False
+
+    registro = ir.async_get(hass)
+    avviso = registro.async_get_issue(
+        "dashboardmodern", f"plancia_non_registrabile_{entry.entry_id}"
+    )
+    assert avviso is not None, "la plancia non si registra e non lo dice a nessuno"
+    assert avviso.severity == ir.IssueSeverity.WARNING
+    # Niente tasto: non c'e' niente che possiamo fare noi al posto suo, e un
+    # tasto che non aggiusta e' peggio di nessun tasto.
+    assert avviso.is_fixable is False
+    assert avviso.translation_placeholders == {"plancia": "Casa 3.0"}
+
+
+async def test_quando_torna_a_funzionare_l_avviso_se_ne_va(hass: Any) -> None:
+    """Un avviso che resta acceso dopo il guasto insegna a ignorare gli avvisi."""
+    from homeassistant.helpers import issue_registry as ir
+
+    entry = _voce(hass)
+    hass.data.pop("lovelace", None)
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is False
+    registro = ir.async_get(hass)
+    chiave = f"plancia_non_registrabile_{entry.entry_id}"
+    assert registro.async_get_issue("dashboardmodern", chiave) is not None
+
+    # Lovelace si alza: la dashboard nasce, e l'avviso sparisce da solo.
+    _lovelace(hass)
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
+    assert registro.async_get_issue("dashboardmodern", chiave) is None
+
+
+async def test_ogni_plancia_ha_il_suo_avviso(hass: Any) -> None:
+    """Due plance, due avvisi: uno solo direbbe il nome sbagliato a una delle due."""
+    assert fe._avviso_della_compagna("uno") != fe._avviso_della_compagna("due")
+    assert "uno" in fe._avviso_della_compagna("uno")
+
+
 async def test_chi_ha_spento_la_dashboard_non_se_la_ritrova(hass: Any) -> None:
+    from homeassistant.helpers import issue_registry as ir
+
     from custom_components.dashboardmodern.config_flow import OPTION_REGISTER_LOVELACE
 
     entry = _voce(hass, options={OPTION_REGISTER_LOVELACE: False})
     dati = _lovelace(hass)
     assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is False
     assert dati["dashboards_collection"].create == []
+    # Spegnerla e' una scelta, non un guasto: non si avvisa nessuno di niente.
+    registro = ir.async_get(hass)
+    assert (
+        registro.async_get_issue(
+            "dashboardmodern", f"plancia_non_registrabile_{entry.entry_id}"
+        )
+        is None
+    )
 
 
 async def test_le_persone_ammesse_arrivano_nella_vista(hass: Any) -> None:

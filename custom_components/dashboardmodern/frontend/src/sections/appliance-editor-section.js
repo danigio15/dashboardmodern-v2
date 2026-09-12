@@ -31,6 +31,7 @@ import { APPLIANCE_BINDING_FIELDS } from "../core/device-model.js";
  * stanno in un modulo loro, che le tre sezioni che le usano — robot,
  * elettrodomestici, lettori — vedono senza sapere niente l'una dell'altra. */
 import { comandiVicini, elencoComandi, genereDelComando } from "../core/comandi-accanto.js";
+import { elencoLetture, eUnaLettura, lettureVicine } from "../core/letture-accanto.js";
 import { nomeAccantoAlDispositivo } from "../core/nome-accanto-al-dispositivo.js";
 import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
 import { CAMPI_SCELTI } from "../core/energy-loads-config.js";
@@ -311,7 +312,7 @@ function cardFieldsMarkup(device = {}) {
     clean(device.image || device.image_url) ||
     CARD_FIELD_KEYS.some((key) => clean(device[key]) !== "");
   return `<details class="dm-appliance-card-fields"${configured ? " open" : ""}>
-    <summary>🧩 ${t("Card avanzata — immagine, durata, temperatura, costi", "Advanced card — image, duration, temperature, costs")}</summary>
+    <summary>🧩 ${t("Card avanzata — immagine, durata, temperatura, porta, costi", "Advanced card — image, duration, temperature, door, costs")}</summary>
     <div class="dm-appliance-card-fields-intro">${t(
       "Tutti i campi sono facoltativi: la card mostra automaticamente ciò che è disponibile. Avvio, durata, consumo e costo dell'ultimo ciclo vengono calcolati da soli dalle transizioni di potenza se non indichi entità dedicate.",
       "Every field is optional: the card automatically shows what is available. Start, duration, energy and cost of the last cycle are computed automatically from power transitions unless you provide dedicated entities.",
@@ -473,6 +474,148 @@ function wireComandi(modal, form) {
   disegnaComandi(modal, form);
 }
 
+/* ── le altre letture dell'apparecchio (#471) ──────────────────────
+ *
+ * «Se su ogni elettrodomestico si potesse aggiungere un'entità dandole un nome:
+ * io nell'asciugatrice monitoro temperatura aria e umidità residua per evitare
+ * che me li stropicci troppo. E sul frigorifero ho un sensore zigbee per
+ * porta.»
+ *
+ * Un apparecchio aveva le sue caselle a nome fisso — potenza, energia, gradi,
+ * porta — e chi ha un sensore che quelle caselle non prevedono non aveva dove
+ * metterlo. Il robot (#468) e i lettori (#451) questa fila ce l'hanno già, e le
+ * regole stanno in un posto solo: `core/letture-accanto.js` sa cos'è una
+ * lettura, come si chiama senza il nome dell'apparecchio davanti e con che
+ * unità si scrive. Qui si scelgono, nella finestra si guardano.
+ *
+ * Due porte sullo stesso frigorifero si risolvono da sé: la prima sta nella sua
+ * casella «Entità porta», la seconda è una lettura come le altre.
+ *
+ * Come per i comandi, non si salva niente finché non si preme il tasto in
+ * fondo: l'elenco vive in un campo nascosto del modulo.
+ */
+function chipLetturaMarkup(entity, azione, segno, apparecchio, states) {
+  return `<button type="button" class="dm-appl-cmd-chip" data-${azione}="${esc(entity)}" data-genere="lettura" title="${esc(entity)}"><span>${esc(nomeAccantoAlDispositivo(entity, apparecchio, states))}</span><i aria-hidden="true">${segno}</i></button>`;
+}
+
+/* L'apparecchio come lo vede il vocabolario delle letture. Porta anche i
+ * comandi gia' scelti e le caselle a nome fisso, cosi' quello che la finestra
+ * mostra gia' da un'altra parte non viene riproposto qui: sarebbe la stessa
+ * cosa scritta due volte. */
+function apparecchioDelleLetture(values, scelte) {
+  return {
+    entity: clean(values.control_entity || values.state_entity || values.power_entity),
+    name: clean(values.name),
+    letture: scelte,
+    comandi: [
+      ...elencoComandi(values.comandi),
+      ...[
+        "power_entity",
+        "state_entity",
+        "remaining_entity",
+        "cycle_duration_entity",
+        "temperature_entity",
+        "temperature_entity_2",
+        "door_entity",
+        "alert_entity",
+        "daily_energy_entity",
+        "monthly_energy_entity",
+        "total_energy_entity",
+      ]
+        .map((chiave) => clean(values[chiave]))
+        .filter(Boolean),
+    ],
+  };
+}
+
+function lettureProposte(values, snapshot, scelte) {
+  const states = allStates();
+  const candidate = Array.isArray(snapshot) && snapshot.length ? snapshot : null;
+  return lettureVicine(apparecchioDelleLetture(values, scelte), states, candidate).slice(0, 18);
+}
+
+function lettureExtraMarkup(device) {
+  const scelte = elencoLetture(device.letture);
+  return `<section class="ed-slot dm-appl-letture" data-appl-letture>
+    <span class="ed-slot-lbl">${t("Altre letture", "Other readings")}</span>
+    <input type="hidden" name="letture" value="${esc(scelte.join(","))}">
+    <div class="dm-appl-cmd-chips" data-appl-letture-scelte></div>
+    <span class="ed-form-row">
+      <input id="dm-appl-lettura" class="ed-input mono" data-appl-lettura-nuova placeholder="sensor.asciugatrice_umidita_residua" autocomplete="off" spellcheck="false">
+      <button type="button" class="dm-appl-cmd-add" data-appl-let-add aria-label="${t("Aggiungi lettura", "Add reading")}" title="${t("Aggiungi lettura", "Add reading")}">＋</button>
+    </span>
+    <output class="dm-appl-cmd-error" data-appl-let-error></output>
+    <small class="dm-appl-cmd-proposte-lbl" data-appl-letture-proposte-lbl hidden>${t("Trovate accanto all'apparecchio — un tocco le aggiunge:", "Found next to the appliance — one tap adds them:")}</small>
+    <div class="dm-appl-cmd-chips dm-appl-cmd-proposte" data-appl-letture-proposte></div>
+    <small>${t(
+      "I sensori che l'apparecchio pubblica e che le caselle qui sopra non prevedono — temperatura dell'aria e umidità residua di un'asciugatrice, una seconda porta di un frigorifero: entità sensor.*, binary_sensor.*, number.*. Compaiono nella finestra dell'apparecchio, col loro nome e la loro unità, nell'ordine in cui le aggiungi.",
+      "The sensors the appliance publishes that the fields above do not cover — air temperature and residual humidity of a dryer, a second door on a fridge: sensor.*, binary_sensor.*, number.* entities. They show up in the appliance window, with their own name and unit, in the order you add them.",
+    )}</small>
+  </section>`;
+}
+
+function disegnaLetture(modal, form) {
+  const blocco = modal.querySelector("[data-appl-letture]");
+  if (!blocco) return;
+  const states = allStates();
+  const values = Object.fromEntries(new FormData(form).entries());
+  const scelte = elencoLetture(values.letture);
+  const apparecchio = apparecchioDelleLetture(values, scelte);
+  const cassetto = blocco.querySelector("[data-appl-letture-scelte]");
+  if (cassetto)
+    cassetto.innerHTML = scelte.length
+      ? scelte
+          .map((entity) => chipLetturaMarkup(entity, "appl-let-del", "✕", apparecchio, states))
+          .join("")
+      : `<small class="dm-appl-cmd-vuoto">${esc(t("Nessuna lettura in più: la finestra mostra quello che l'apparecchio ha nelle sue caselle.", "No extra reading: the window shows what the appliance has in its own fields."))}</small>`;
+  const proposte = lettureProposte(values, bindingSnapshot(values), scelte);
+  const cassettoProposte = blocco.querySelector("[data-appl-letture-proposte]");
+  const etichettaProposte = blocco.querySelector("[data-appl-letture-proposte-lbl]");
+  if (cassettoProposte)
+    cassettoProposte.innerHTML = proposte
+      .map((entity) => chipLetturaMarkup(entity, "appl-let-sug", "＋", apparecchio, states))
+      .join("");
+  if (etichettaProposte) etichettaProposte.hidden = proposte.length === 0;
+}
+
+function wireLetture(modal, form) {
+  const blocco = modal.querySelector("[data-appl-letture]");
+  if (!blocco) return;
+  const nascosto = form.elements.letture;
+  const errore = blocco.querySelector("[data-appl-let-error]");
+  const scrivi = (elenco) => {
+    nascosto.value = elencoLetture(elenco).join(",");
+    disegnaLetture(modal, form);
+  };
+  blocco.addEventListener("click", (event) => {
+    const togli = event.target.closest("[data-appl-let-del]");
+    const proposta = event.target.closest("[data-appl-let-sug]");
+    const aggiungi = event.target.closest("[data-appl-let-add]");
+    if (!togli && !proposta && !aggiungi) return;
+    event.preventDefault();
+    const casella = blocco.querySelector("[data-appl-lettura-nuova]");
+    const scelte = elencoLetture(nascosto.value);
+    if (togli) {
+      if (errore) errore.textContent = "";
+      scrivi(scelte.filter((entity) => entity !== clean(togli.dataset.applLetDel)));
+      return;
+    }
+    const nuova = proposta ? clean(proposta.dataset.applLetSug) : clean(casella?.value);
+    if (!eUnaLettura(nuova)) {
+      if (errore)
+        errore.textContent = t(
+          "Serve un'entità che si legge: sensor.*, binary_sensor.*, number.*, input_number o input_text.",
+          "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.",
+        );
+      return;
+    }
+    if (errore) errore.textContent = "";
+    if (casella && !proposta) casella.value = "";
+    scrivi([...scelte, nuova]);
+  });
+  disegnaLetture(modal, form);
+}
+
 /* Le entita' dell'apparecchio dopo un salvataggio: le caselle della maschera,
  * piu' quelle che aveva gia' e che non sono di un altro apparecchio (#417).
  *
@@ -628,9 +771,11 @@ function paintBinding(modal, form, note = "") {
       );
     link.textContent = `🔗 ${t("Scegli il dispositivo", "Pick the device")}`;
   }
-  /* Collegare o scollegare un dispositivo cambia quali comandi gli stanno
-   * accanto (#338): le proposte si rifanno insieme alla fascia. */
+  /* Collegare o scollegare un dispositivo cambia quali comandi e quali letture
+   * gli stanno accanto (#338, #471): le proposte si rifanno insieme alla
+   * fascia. */
   disegnaComandi(modal, form);
+  disegnaLetture(modal, form);
 }
 
 function wireBinding(modal, form, device) {
@@ -736,6 +881,7 @@ export function openApplianceEditor(index) {
         ${entityField("total_energy_entity", t("Energia totale per storico e Report", "Total energy for history and Report"), totalInitial, t("Deve essere un contatore cumulativo kWh con state_class total o total_increasing. Non usare qui il sensore mensile: questo campo serve per ricostruire anche i mesi precedenti.", "This must be a cumulative kWh meter with state_class total or total_increasing. Do not use the monthly sensor here: this field is required to reconstruct previous months."))}
       </section>
       ${comandiExtraMarkup(device)}
+      ${lettureExtraMarkup(device)}
       ${cardFieldsMarkup(device)}
       <output data-error></output>
       <footer><button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button><button type="submit" class="ed-save-btn">💾 ${t("Salva modifiche", "Save changes")}</button></footer>
@@ -747,6 +893,7 @@ export function openApplianceEditor(index) {
   updateEditType(modal, visual);
   wireBinding(modal, form, device);
   wireComandi(modal, form);
+  wireLetture(modal, form);
   modal.querySelector("[data-type-trigger]")?.addEventListener("click", () => {
     openTypePicker({
       selected: form.elements.icon.value,
@@ -857,6 +1004,11 @@ export function openApplianceEditor(index) {
     const comandi = elencoComandi(values.comandi);
     if (comandi.length) next.comandi = comandi;
     else delete next.comandi;
+    /* Le altre letture (#471), con la stessa regola: un elenco vuoto non e'
+     * una configurazione, e il campo se ne va. */
+    const letture = elencoLetture(values.letture);
+    if (letture.length) next.letture = letture;
+    else delete next.letture;
     if (next.threshold_standby === "") delete next.threshold_standby;
     for (const key of [
       "cycle_minutes",
@@ -920,11 +1072,16 @@ function installStyles() {
     /* Gli altri comandi (#338): pastiglie, quelle scelte con la croce e quelle
        proposte col piu'. Stesso disegno della scheda del robot, che e' la
        stessa cosa: un elenco di entita' che l'apparecchio sa premere. */
-    .dm-appl-comandi{display:grid!important;gap:6px!important;margin-top:14px!important}
-    .dm-appl-comandi .ed-form-row{display:flex!important;gap:8px!important;min-width:0!important}
-    .dm-appl-comandi .ed-form-row>input{flex:1 1 auto!important;min-width:0!important}
-    .dm-appl-comandi .dm-appl-cmd-add{flex:0 0 38px!important;height:38px!important;border:none!important;border-radius:10px!important;background:linear-gradient(135deg,#10b981,#047857)!important;color:#fff!important;font-size:14px!important;cursor:pointer!important}
-    .dm-appl-comandi small{font-size:11px!important;line-height:1.45!important;color:var(--secondary-text-color,#64748b)!important;font-weight:600!important}
+    .dm-appl-comandi,
+    .dm-appl-letture{display:grid!important;gap:6px!important;margin-top:14px!important}
+    .dm-appl-comandi .ed-form-row,
+    .dm-appl-letture .ed-form-row{display:flex!important;gap:8px!important;min-width:0!important}
+    .dm-appl-comandi .ed-form-row>input,
+    .dm-appl-letture .ed-form-row>input{flex:1 1 auto!important;min-width:0!important}
+    .dm-appl-comandi .dm-appl-cmd-add,
+    .dm-appl-letture .dm-appl-cmd-add{flex:0 0 38px!important;height:38px!important;border:none!important;border-radius:10px!important;background:linear-gradient(135deg,#10b981,#047857)!important;color:#fff!important;font-size:14px!important;cursor:pointer!important}
+    .dm-appl-comandi small,
+    .dm-appl-letture small{font-size:11px!important;line-height:1.45!important;color:var(--secondary-text-color,#64748b)!important;font-weight:600!important}
     .dm-appl-cmd-chips{display:flex!important;flex-wrap:wrap!important;gap:6px!important}
     .dm-appl-cmd-chip{display:inline-flex!important;align-items:center!important;gap:6px!important;max-width:100%!important;padding:5px 10px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:999px!important;background:var(--card-background-color,#fff)!important;font:inherit!important;font-size:12px!important;font-weight:800!important;color:var(--text,#0f172a)!important;cursor:pointer!important}
     .dm-appl-cmd-chip>span{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}

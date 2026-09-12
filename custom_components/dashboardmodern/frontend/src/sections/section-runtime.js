@@ -93,6 +93,7 @@ import { installModoChiosco } from "./modo-chiosco-section.js";
 import { installBatterie } from "./batterie-section.js";
 import { installBatterieEditor } from "./batterie-editor-section.js";
 import { installVideoSiMuove } from "./telecamera-il-video-si-muove-section.js";
+import { installTelecameraCapacita } from "./telecamera-capacita-section.js";
 import { installTelecameraSubito } from "./telecamera-subito-section.js";
 import { installShutterSkySection } from "./shutter-sky-section.js";
 import { installShutterWindowSection } from "./shutter-window-section.js";
@@ -105,6 +106,7 @@ import { installPreseSection } from "./prese-section.js";
 import { installEnergyPlantsSection } from "./energy-plants-section.js";
 import { installRoomAssignSection } from "./room-assign-section.js";
 import { installRoomsPageSection } from "./rooms-page-section.js";
+import { installStanzeInPlancia } from "./stanze-in-plancia-section.js";
 import { installRoomsOrderEditor } from "./rooms-order-editor-section.js";
 import { installAutoIntegrazione } from "./auto-integrazione-section.js";
 import { installEnergiaCerchiStorico } from "./energia-cerchi-storico-section.js";
@@ -970,6 +972,7 @@ export function installSectionRuntime() {
      * si prova per prima la volta dopo: «sono lentissime e non carica
      * immediatamente immagine». Si installa DOPO chi avvolge le singole
      * strade, cosi' la scorciatoia chiama quelle gia' corrette. */
+    installTelecameraCapacita();
     installTelecameraSubito();
     /* Le linguette del Config in ordine di alberatura, con l'insegna della
      * famiglia davanti a ognuna: si installa dopo tutti gli editor che una
@@ -1015,6 +1018,9 @@ export function installSectionRuntime() {
     /* Le Stanze leggono le assegnazioni di tutte le altre sezioni e
      * riusano la card della pagina Luci: si installano dopo di lei. */
     installRoomsPageSection();
+    /* Il blocco delle stanze in plancia (#493) chiede alla pagina Stanze chi
+     * c'e' e dove portare col tocco: si installa dopo di lei. */
+    installStanzeInPlancia();
     /* L'ordine delle stanze si cambia in configurazione: le frecce si
      * appoggiano alle righe che disegna il documento vendorizzato. */
     installRoomsOrderEditor();

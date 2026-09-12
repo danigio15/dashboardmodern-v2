@@ -16,6 +16,7 @@ import {
   saveCamera,
   stableRoomId,
 } from "../src/legacy/dashboard-data.js";
+import { attributoSeCambia, classeSeCambia } from "../src/core/scrivere-se-cambia.js";
 import { runSteps, stepReporter } from "../src/core/runtime-steps.js";
 import { DashboardStore } from "../src/core/dashboard-store.js";
 import { daProvare, diagnosi, siSveglia, strategieDellaTelecamera } from "../src/core/strategie-telecamera.js";
@@ -495,17 +496,25 @@ export function mountEntityPickers(target) {
     }
   });
 
+  /* Si scrive solo quello che cambia.
+   *
+   * Questa funzione ripassa su ogni campo a ogni giro — e' quello che deve
+   * fare — ma finche' riscriveva gli stessi attributi col valore che avevano
+   * gia', ogni passata lasciava una scia di modifiche al documento. Chi guarda
+   * il documento si svegliava e richiamava la passata seguente: da fermi, il
+   * giro non si fermava piu', e le caselle non stavano ferme abbastanza da
+   * poterci scrivere dentro (#494). */
   inputs.forEach((input) => {
-    input.dataset.entityInput = "true";
+    attributoSeCambia(input, "data-entity-input", "true");
     if (!input.id) input.id = `dm-entity-${[...target.querySelectorAll("input")].indexOf(input)}`;
     if (lightAddEntityIds.test(input.id)) {
-      input.dataset.lightAddEntity = "";
+      attributoSeCambia(input, "data-light-add-entity", "");
     }
     let button = input.parentElement?.querySelector?.(`.dm-entity-picker[data-entity-target="${CSS.escape(input.id)}"]`);
     const adjacent = input.nextElementSibling;
     if (!button && adjacent?.matches?.(".dm-entity-picker, button[onclick*='wzPickEntity']")) {
       button = adjacent;
-      button.classList.add("dm-entity-picker");
+      classeSeCambia(button, "dm-entity-picker", true);
     }
     if (!button) {
       button = document.createElement("button");
@@ -514,8 +523,15 @@ export function mountEntityPickers(target) {
       button.textContent = "🔍";
       input.insertAdjacentElement("afterend", button);
     }
-    button.dataset.entityTarget = input.id;
-    button.setAttribute("aria-label", `${t("select")} entity_id`);
+    attributoSeCambia(button, "data-entity-target", input.id);
+    /* La lente che e' diventata pastiglia l'etichetta se la scrive da se', e
+     * dice molto di piu': il nome del campo e l'entita' scelta. Riscrivergliela
+     * sopra da qui voleva dire due mani sullo stesso attributo, una per giro —
+     * il documento registra ogni scrittura e sveglia chi guarda, che richiama
+     * questa passata — e un campo che trema non si lascia compilare. E' lo
+     * stesso difetto della #494, in un punto che allora era sfuggito. */
+    if (!button.classList.contains("dm-slot-chip"))
+      attributoSeCambia(button, "aria-label", `${t("select")} entity_id`);
     button.onclick = null;
     if (button.dataset.pickerMounted !== "true") {
       button.dataset.pickerMounted = "true";

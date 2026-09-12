@@ -314,6 +314,8 @@ function openClimateEditor(item, index) {
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomsOptions(item.room || item.room_id)}</select></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Valvola TRV (posizione %)", "TRV valve (position %)")}</span><span class="ed-form-row"><input class="ed-input mono" name="valvola" value="${esc(clean(item.valvola))}" placeholder="sensor.trv_valve_position"><button type="button" class="dm-entity-picker" data-pick-valvola>🔍</button></span><small>${t("Il sensore o il number con la posizione della valvola termostatica, da 0 a 100: la card mostra quanto è aperta e quanto chiusa. Se l'unità climate espone già valve_position, non serve.", "The sensor or number with the thermostatic valve position, 0 to 100: the card shows how open and how closed it is. If the climate entity already exposes valve_position, you do not need it.")}</small></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità della modalità (In casa / Fuori / Vacanza)", "Mode entity (Home / Away / Holiday)")}</span><span class="ed-form-row"><input class="ed-input mono" name="modo" value="${esc(clean(item.modo))}" placeholder="select.tado_home_mode" data-domain="select input_select sensor climate"><button type="button" class="dm-entity-picker" data-pick-modo>🔍</button></span><small>${t("I termostati smart espongono la modalità del riscaldamento su un'entità a parte: TADO ha In casa e Fuori, altri aggiungono Vacanza o Boost. La card la mostra, e se l'entità è un select o un input_select la si cambia da lì.", "Smart thermostats publish the heating mode on a separate entity: TADO has Home and Away, others add Holiday or Boost. The card shows it, and if the entity is a select or an input_select you can change it right there.")}</small></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Entit\u00e0 consumo (presa)", "Power entity (smart plug)")}</span><span class="ed-form-row"><input class="ed-input mono" name="consumo" value="${esc(clean(item.consumo))}" placeholder="sensor.presa_condizionatore_potenza" data-domain="sensor number input_number"><button type="button" class="dm-entity-picker" data-pick-consumo>\ud83d\udd0d</button></span><small>${t("Il sensore in watt della presa sotto cui sta l'unit\u00e0. Con la soglia qui sotto \u00e8 lui a dire se \u00e8 accesa: un climatizzatore comandato da una presa lo sa meglio del suo termostato.", "The watt sensor of the plug the unit sits under. With the threshold below, it is the one that says whether the unit is running: an air conditioner driven by a plug knows it better than its own thermostat.")}</small></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Soglia acceso (W)", "On threshold (W)")}</span><input class="ed-input" type="number" min="0" step="1" name="soglia_consumo" value="${esc(item.soglia_consumo ?? "")}" placeholder="${t("es. 20", "e.g. 20")}"><small>${t("Da questi watt in su l'unit\u00e0 \u00e8 accesa, sotto \u00e8 spenta. \u00abIl condizionatore da spento mi d\u00e0 7 W\u00bb: con 20 scritto qui, quei 7 W restano spento. Vuoto = decide lo stato dell'entit\u00e0, come prima.", "From these watts up the unit is on, below it is off. “My air conditioner draws 7 W while off”: with 20 written here, those 7 W stay off. Empty = the entity state decides, as before.")}</small></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Spegnimento automatico", "Automatic switch-off")}</span><select class="ed-input" name="minuti">${durateOpzioni(item.minuti)}</select><small>${t("Quanto resta accesa dal momento dell'accensione. Il conto alla rovescia lo tiene Home Assistant, non questa pagina: si può chiudere la plancia e l'unità si spegne lo stesso. Sulla card resta modificabile ogni volta.", "How long it stays on from the moment you switch it on. Home Assistant keeps the countdown, not this page: you can close the dashboard and the unit still switches off. On the card you can change it every time.")}</small></label>
      <div class="ed-slot"><span class="ed-slot-lbl">${t("Mesi in cui mostrarla", "Months to show it")}</span><small>${t("Un condizionatore da maggio a settembre, i termosifoni da ottobre ad aprile: fuori da quei mesi la card non compare. Nessun mese acceso vuol dire tutto l'anno. Un'unità accesa si vede sempre, anche fuori stagione.", "An air conditioner from May to September, radiators from October to April: outside those months the card does not appear. No month lit means all year. A unit that is on always shows, even out of season.")}</small>${mesiMarkup(item.mesi)}</div>
      <div class="ed-slot"><span class="ed-slot-lbl">${t("Tasto Clima rapido", "Quick climate button")}</span><small>${t("Cosa fa il tasto di questa unità nel popup Clima della Home. Vuoto = non toccare.", "What this unit's button does in the Home climate popup. Empty = leave alone.")}</small>${quickClimateFieldsMarkup(clean(item.entity), null, selectedType === "termo" ? "caldo" : "")}</div>`,
@@ -326,6 +328,9 @@ function openClimateEditor(item, index) {
   form
     .querySelector("[data-pick-modo]")
     ?.addEventListener("click", () => root.wzPickEntity?.(form.elements.modo));
+  form
+    .querySelector("[data-pick-consumo]")
+    ?.addEventListener("click", () => root.wzPickEntity?.(form.elements.consumo));
   /* Le pastiglie dei mesi si accendono e si spengono: e' un insieme, non una
    * scelta sola, e un condizionatore puo' benissimo saltare agosto. */
   form.addEventListener("click", (event) => {
@@ -350,6 +355,10 @@ function openClimateEditor(item, index) {
       /* #362, #364, #365: la modalita', quanto resta accesa e in che mesi si
        * vede. Sono dati di QUESTA unita', e stanno con lei. */
       modo: clean(form.elements.modo?.value),
+      /* #490: la presa che misura l'unita' e i watt oltre i quali e' accesa.
+       * Sono suoi anche questi, e stanno con lei. */
+      consumo: clean(form.elements.consumo?.value),
+      soglia_consumo: clean(form.elements.soglia_consumo?.value),
       minuti: normalizzaIMinuti(form.elements.minuti?.value),
       mesi: normalizzaIMesi(
         [...form.querySelectorAll("[data-dm-mese][aria-pressed='true']")].map((pastiglia) =>
@@ -361,6 +370,13 @@ function openClimateEditor(item, index) {
     // Vuoto non si scrive: una chiave assente e' «non configurato», ed e' il
     // formato che ogni versione precedente sa gia' leggere.
     if (!list[index].modo) delete list[index].modo;
+    if (!list[index].consumo) delete list[index].consumo;
+    /* La soglia e' un numero, e lo zero e' una soglia scritta: vuol dire
+     * «qualunque consumo e' acceso». Solo la casella vuota se ne va. */
+    if (list[index].soglia_consumo === "") delete list[index].soglia_consumo;
+    else list[index].soglia_consumo = Number(list[index].soglia_consumo);
+    if (!Number.isFinite(list[index].soglia_consumo) || list[index].soglia_consumo < 0)
+      delete list[index].soglia_consumo;
     if (!list[index].minuti) delete list[index].minuti;
     if (!list[index].mesi.length) delete list[index].mesi;
     if (!list[index].name || !list[index].entity) {

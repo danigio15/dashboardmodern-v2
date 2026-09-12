@@ -18,6 +18,8 @@
  * raccoglitore delle traduzioni guarda.
  */
 
+import { STATI_ACCESI } from "./stato-acceso.js";
+
 const pulito = (valore) => String(valore ?? "").trim();
 
 /* Un limite alla barra, non alla fantasia. Otto sezioni proprie stanno in una
@@ -25,8 +27,23 @@ const pulito = (valore) => String(valore ?? "").trim();
  * il problema sarebbe piu' difficile da capire che da evitare. */
 export const MASSIMO_SEZIONI = 8;
 
+/* La casella del magazzino in cui vivono. Sta qui e non nella sezione perche'
+ * a leggerla sono in due: la pagina che le disegna e la tessera che le porta in
+ * Home. */
+export const CHIAVE_SEZIONI_MIE = "cd_sezioni_mie";
+
+/* Il prefisso che marca tutto quello che appartiene a una sezione propria: la
+ * voce nella barra, la pagina, la tessera in Home. Sta scritto in un posto
+ * solo perche' a riconoscerlo sono in piu' di uno, e una chiave costruita qui
+ * e riconosciuta altrove a colpi di `startsWith` scritti a mano e' il modo in
+ * cui i due si allontanano senza che nessuno se ne accorga. */
+const PREFISSO = "mia-";
+
 /** La chiave con cui la voce di una sezione si accende e si spegne. */
-export const chiaveDellaSezione = (id) => `mia-${pulito(id)}`;
+export const chiaveDellaSezione = (id) => `${PREFISSO}${pulito(id)}`;
+
+/** Se questa chiave e' di una sezione che si e' fatto chi ha la casa. */
+export const eUnaSezioneMia = (chiave) => pulito(chiave).startsWith(PREFISSO);
 
 /* Gli stati che significano «non lo so», e che non vanno mostrati come se
  * fossero una lettura. */
@@ -47,10 +64,9 @@ const COMANDABILI = new Set([
   "humidifier",
 ]);
 
-/* Gli stati che valgono «acceso». `playing` e `home` ci stanno perche' una
- * riga accesa e' una riga che sta facendo qualcosa, non solo una con un
- * interruttore alzato. */
-const ACCESI = new Set(["on", "open", "playing", "home", "heat", "cool", "cleaning", "active"]);
+/* Gli stati che valgono «acceso» stanno in `core/stato-acceso.js`: la stessa
+ * domanda la fanno anche le stanze in plancia, e due elenchi della stessa cosa
+ * diventano due elenchi diversi al primo dominio nuovo. */
 
 function normalizzaVoce(voce, indice) {
   const entity = pulito(voce?.entity);
@@ -131,7 +147,7 @@ export function letturaDellaVoce(voce, states = {}, resolve = (valore) => valore
     nome: voce.nome || pulito(stato?.attributes?.friendly_name) || entity,
     icona: voce.icona,
     muto,
-    acceso: !muto && ACCESI.has(grezzo),
+    acceso: !muto && STATI_ACCESI.has(grezzo),
     /* Un numero con la sua unita' si mostra com'e'; il resto e' una parola di
      * stato, e la traduce chi disegna. */
     numero: Number.isFinite(numero) && grezzo !== "" && !MUTI.has(grezzo) ? numero : null,

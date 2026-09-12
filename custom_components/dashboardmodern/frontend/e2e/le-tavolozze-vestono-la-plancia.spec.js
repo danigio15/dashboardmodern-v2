@@ -104,3 +104,65 @@ test("la tavolozza scelta resta al ricaricamento", async ({ page }, testInfo) =>
     timeout: 15_000,
   });
 });
+
+/* «Nel tema Graphite, non cambia la barra» (#495).
+ *
+ * Ogni altra barra della plancia legge i token della tavolozza — la testata
+ * col meteo, l'intestazione delle pagine. La barra in fondo no: il suo fondo
+ * lo fissa il foglio storico, con i numeri scritti dentro e un !important
+ * addosso, e con un selettore più specifico di quelli dei moduli. Vince lui, e
+ * con il Grafite scelto si vedeva tutta la plancia sul grigio e la barra
+ * ancora sullo slate bluastro di serie.
+ *
+ * Qui si tengono ferme due cose insieme, e la seconda conta quanto la prima:
+ * con una tavolozza la barra la segue, e SENZA tavolozza non cambia un pixel —
+ * chi tiene il tema scuro di sempre non ha chiesto niente.
+ */
+test("la barra in fondo segue la tavolozza, e senza tavolozza resta com'era", async ({
+  page,
+}, testInfo) => {
+  await avvia(page, testInfo);
+
+  const barra = () =>
+    page.evaluate(() => {
+      const nodo = document.querySelector("nav.tabs.bottom-nav-bar");
+      const stile = getComputedStyle(nodo);
+      return { sfondo: stile.backgroundColor, bordo: stile.borderColor };
+    });
+  const vesti = (chiave, famiglia) =>
+    page.evaluate(
+      ({ chiave, famiglia }) => {
+        if (chiave) document.documentElement.setAttribute("data-dm-tavolozza", chiave);
+        else document.documentElement.removeAttribute("data-dm-tavolozza");
+        document.documentElement.setAttribute("data-theme", famiglia);
+      },
+      { chiave, famiglia },
+    );
+
+  /* Il metro: com'è senza tavolozza, scuro e chiaro. Questi due non devono
+   * muoversi mai — sono la plancia di chi non ha scelto nulla. */
+  await vesti("", "dark");
+  const scuroDiSerie = await barra();
+  expect(scuroDiSerie.sfondo).toBe("rgba(15, 23, 42, 0.92)");
+  await vesti("", "light");
+  const chiaroDiSerie = await barra();
+  expect(chiaroDiSerie.sfondo).toBe("rgba(255, 255, 255, 0.92)");
+
+  /* Grafite: grigio, non blu. */
+  await vesti("grafite", "dark");
+  const grafite = await barra();
+  expect(grafite.sfondo, "la barra è rimasta sul blu di serie").not.toBe(scuroDiSerie.sfondo);
+  expect(grafite.sfondo).toBe("rgba(28, 28, 31, 0.88)");
+  expect(grafite.bordo).toBe("rgb(46, 46, 51)");
+
+  /* E vale anche per le tavolozze chiare: non è una correzione per una sola. */
+  await vesti("sabbia", "light");
+  const sabbia = await barra();
+  expect(sabbia.sfondo).not.toBe(chiaroDiSerie.sfondo);
+  expect(sabbia.sfondo).toBe("rgba(255, 253, 248, 0.85)");
+
+  /* Tolta la tavolozza si torna esattamente da dove si era partiti: le regole
+   * nuove vivono solo finché l'attributo c'è. */
+  await vesti("", "dark");
+  expect(await barra()).toEqual(scuroDiSerie);
+});

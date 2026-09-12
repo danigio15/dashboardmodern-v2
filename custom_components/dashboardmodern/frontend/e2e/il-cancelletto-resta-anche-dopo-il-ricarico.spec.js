@@ -8,7 +8,7 @@
  * riapre la plancia da capo e si guarda se il cancelletto è ancora suo.
  */
 import { expect, test } from "@playwright/test";
-import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { attendiLaPlancia, bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
 const SEME = {
   schema_version: 4,
@@ -77,7 +77,12 @@ test("il cancelletto salvato è ancora lì dopo un ricarico", async ({ page }, t
     .toEqual(["switch.cancelletto", "cover.basculante"]);
 
   /* E la configurazione le ritrova: salvate ma invisibili sarebbe lo stesso
-   * sintomo detto in un altro modo. */
+   * sintomo detto in un altro modo.
+   *
+   * Si aspetta che la plancia sia ripartita prima di chiederle qualcosa: dopo
+   * un ricarico `editorSwitch` per un attimo non c'e', e chiamarla allora non
+   * apre niente e non dice niente. */
+  await attendiLaPlancia(page);
   await page.evaluate(() => window.apriConfigEntita());
   await page.evaluate(() => window.editorSwitch?.("doors"));
   await expect(page.locator("[data-door-index]")).toHaveCount(2, { timeout: 25000 });

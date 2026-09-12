@@ -20,7 +20,9 @@
  * spegnerle: legge `cd_sections` con la stessa chiave che scrive la fascia
  * verde della configurazione, come fanno l'Agenda e la Continuita'.
  */
+import { comandoDelDispositivo } from "../core/comandi-accanto.js";
 import {
+  CHIAVE_SEZIONI_MIE,
   chiaveDellaSezione,
   contoDellaSezione,
   lettureDellaSezione,
@@ -42,7 +44,7 @@ import {
 const KEY = "__DASHBOARDMODERN_SEZIONI_MIE__";
 const state = (root[KEY] ||= { installed: false, frame: 0, firme: new Map() });
 
-export const CHIAVE_SEZIONI_MIE = "cd_sezioni_mie";
+export { CHIAVE_SEZIONI_MIE };
 /* La chiave con cui si spegne l'intera funzione: le singole sezioni hanno il
  * loro «mostra nella barra» dentro la riga, che e' una proprieta' della
  * sezione e non una preferenza di visibilita' del guscio. */
@@ -304,10 +306,26 @@ function onClick(event) {
   const dominio = entity.split(".")[0];
   if (!dominio) return;
   if (root.navigator?.vibrate) root.navigator.vibrate(8);
-  /* `scene` e `script` non si spengono: si fanno partire. Chiamare `toggle`
-   * su una scena non fa niente, ed e' un tocco che sembra rotto. */
-  const servizio = dominio === "scene" || dominio === "script" ? "turn_on" : "toggle";
-  chiamaHa(dominio, servizio, { entity_id: entity });
+  /* Il verbo giusto per quell'entita' lo sa un posto solo.
+   *
+   * Qui c'era una regola scritta a mano — «scene e script si fanno partire,
+   * tutto il resto si inverte» — e le automazioni cadevano nel «tutto il
+   * resto»: `automation.toggle` non fa partire niente, DISABILITA
+   * l'automazione. Chi si e' fatto la sua sezione di automazioni (#504)
+   * toccava il tasto, non succedeva niente, e intanto si era spenta
+   * un'automazione di casa senza saperlo.
+   *
+   * I verbi stanno gia' tutti in `core/comandi-accanto.js`, che li usa per i
+   * comandi accanto a un dispositivo: un tasto si preme, uno script e una
+   * scena si accendono, un'automazione si fa partire. Qui si chiedono a lui.
+   * Quello che lui non conosce — una luce, un ventilatore, una sirena — e' per
+   * definizione roba che si accende e si spegne, e resta l'inversione. */
+  const comando = comandoDelDispositivo({ entity }) || {
+    domain: dominio,
+    service: "toggle",
+    data: { entity_id: entity },
+  };
+  chiamaHa(comando.domain, comando.service, comando.data);
 }
 
 /* ── il giro ──────────────────────────────────────────────────────────── */

@@ -25,6 +25,8 @@ import { lightCommand, lightView, lightsSignature } from "../core/light-model.js
 import { canonicalClimateType } from "../core/device-model.js";
 import { applianceGlyph } from "../core/appliance-artwork.js";
 import { CHIAVE_MEDIA, letturaDelLettore, lettoriConfigurati } from "../core/media-player.js";
+import { comandoDelDispositivo, genereDelComando } from "../core/comandi-accanto.js";
+import { CHIAVE_ENTITA_MIE, entitaMie } from "../core/entita-mie.js";
 import { roomGlyph } from "../core/personalization-catalog.js";
 import {
   ROOM_ASSIGN_KEY,
@@ -106,22 +108,42 @@ export function roomPages() {
  * Qui si trasforma in voci con un nome leggibile: quello di Home Assistant se
  * c'e', altrimenti l'entity_id — brutto da leggere ma mai una bugia. */
 export function assignedItems(mappa = readJson(ROOM_ASSIGN_KEY, {}), states = allStates()) {
-  if (!mappa || typeof mappa !== "object") return [];
-  return Object.entries(mappa)
-    .map(([entity, room]) => {
-      const id = clean(entity);
-      const stanza = clean(room);
-      if (!id || !stanza) return null;
-      return {
-        entity: id,
-        name: clean(states?.[id]?.attributes?.friendly_name) || id,
-        /* La classe che Home Assistant scrive sull'entita': e' quello che la
-         * riga sa dire di se' quando nessuna scheda la descrive. */
-        device_class: clean(states?.[id]?.attributes?.device_class),
-        room_id: stanza,
-      };
-    })
-    .filter(Boolean);
+  const voci = new Map();
+  const metti = (entity, stanza, nome, icona) => {
+    const id = clean(entity);
+    const room_id = clean(stanza);
+    if (!id || !room_id || voci.has(id)) return;
+    voci.set(id, {
+      entity: id,
+      name: clean(nome) || clean(states?.[id]?.attributes?.friendly_name) || id,
+      /* L'icona si scrive dove la riga la cerca gia': `emojiScelta` guarda
+       * `icon`, e accetta solo quello che un glifo lo e' davvero. */
+      icon: clean(icona),
+      /* La classe che Home Assistant scrive sull'entita': e' quello che la
+       * riga sa dire di se' quando nessuna scheda la descrive. */
+      device_class: clean(states?.[id]?.attributes?.device_class),
+      room_id,
+    });
+  };
+  if (mappa && typeof mappa === "object")
+    for (const [entity, room] of Object.entries(mappa)) metti(entity, room);
+  /* Le entita' che uno si aggiunge a mano (#504).
+   *
+   * «Si potrebbero inserire le entità personalizzate nelle stanze tipo
+   * Automazioni?» La scheda «Entità mie» la stanza la chiedeva gia' — c'e' la
+   * sua tendina accanto all'entita' — ma quella scelta non arrivava fin qui:
+   * la pagina Stanze leggeva solo le assegnazioni a mano, e un'automazione
+   * messa in cucina restava scritta in configurazione senza comparire in
+   * nessuna stanza. Adesso arriva, col nome e l'icona che le ha dato chi l'ha
+   * aggiunta — che sono suoi, e valgono piu' di quelli di Home Assistant.
+   *
+   * L'assegnazione a mano viene prima: se la stessa entita' e' in tutt'e due,
+   * comanda quella scritta dalla tendina della sua riga — e' la piu' esplicita
+   * delle due, e comunque una riga sola non diventa due. */
+  for (const voce of entitaMie(readJson(CHIAVE_ENTITA_MIE, []))) {
+    metti(voce.entity, voce.room_id, voce.nome, voce.icona);
+  }
+  return [...voci.values()];
 }
 
 /* Come si chiama ogni blocco, e con che faccia. Le parole stanno qui e non nel
@@ -436,6 +458,37 @@ export function ensureRoomsTab() {
   return tab;
 }
 
+/**
+ * Apre la pagina delle Stanze su una stanza precisa.
+ *
+ * La chiama il blocco delle stanze in plancia (#493): li' una card e' una
+ * stanza, e toccarla deve portare dove quella stanza si comanda. La scelta e
+ * il cambio di pagina stanno qui perche' stanno qui il resto delle due cose —
+ * chi tocca una pastiglia dentro la pagina fa esattamente questo.
+ *
+ * Torna `false` quando la pagina non c'è ancora: succede prima che il guscio
+ * abbia finito di alzarsi, e non è un errore da urlare.
+ */
+export function apriLaStanza(id) {
+  if (!doc) return false;
+  const voce = ensureRoomsTab();
+  const pagina = ensureRoomsPage();
+  if (!voce || !pagina) return false;
+  const scelta = clean(id);
+  if (scelta) {
+    state.room = scelta;
+    state.signature = "";
+  }
+  for (const nodo of doc.querySelectorAll(".tab")) nodo.classList.remove("active");
+  for (const nodo of doc.querySelectorAll(".page")) nodo.classList.remove("active");
+  voce.classList.add("active");
+  pagina.classList.add("active");
+  root.navigator?.vibrate?.(8);
+  root.scrollTo?.({ top: 0, behavior: "instant" });
+  schedule();
+  return true;
+}
+
 function teachNavVisibility() {
   const previous = root.cdNavVisMap;
   if (typeof previous !== "function" || previous.__dmStanze) return;
@@ -561,6 +614,23 @@ function accesa(entity, states) {
   return clean(states?.[entity]?.state).toLowerCase() === "on";
 }
 
+/* Quello che non si accende: si fa partire (#504).
+ *
+ * «Si potrebbero inserire le entità personalizzate nelle stanze tipo
+ * Automazioni?» Inserirle si poteva già — la tendina della stanza sta su ogni
+ * riga in cui l'entità è scritta — ma nella stanza l'automazione diventava una
+ * riga che diceva «on» e portava in Home, cioè da nessuna parte utile.
+ * Un'automazione, uno script, una scena, un tasto: quello che si vuole fare è
+ * FARLI PARTIRE, e adesso hanno il loro tasto qui, accanto al nome.
+ *
+ * Il verbo non si scrive qui: lo sa `core/comandi-accanto.js`, che lo usa già
+ * per i comandi accanto a un dispositivo. In particolare un'automazione si fa
+ * partire con «trigger» — «turn_on» la riabilita e basta, e sarebbe un tasto
+ * che spegne di nascosto un'automazione di casa invece di eseguirla. */
+function siPuoAvviare(entity) {
+  return genereDelComando(entity) === "tasto" && siComanda(entity);
+}
+
 /* La riga di una stanza si comanda da qui, non solo da un'altra pagina.
  *
  * «Le cose che compaiono nella sezione Stanze non sono comandabili: se clicco
@@ -613,7 +683,14 @@ function rowMarkup(item, blocco, states, aperture = aperturePerEntita(), sotto =
   }
   const tocco = siPuoAccendere(entity)
     ? `<button type="button" class="dm-stanze-tocca" data-dm-stanza-tocca="${esc(entity)}" role="switch" aria-checked="${accesa(entity, states) ? "true" : "false"}" aria-label="${esc(nomeVoce(item, states))}"><span class="dm-stanze-tocca-pallino"></span></button>`
-    : `<span class="dm-stanze-vai" aria-hidden="true">›</span>`;
+    : siPuoAvviare(entity)
+      ? /* Il segno è quello che i comandi di un dispositivo portano già altrove:
+         * una stella a quattro punte vuol dire «questo si fa partire», e nella
+         * plancia vuol dire la stessa cosa dappertutto. */
+        `<button type="button" class="dm-stanze-avvia" data-dm-stanza-avvia="${esc(entity)}" aria-label="${esc(
+          t("Avvia", "Run"),
+        )} ${esc(nomeVoce(item, states))}"><span aria-hidden="true">✦</span></button>`
+      : `<span class="dm-stanze-vai" aria-hidden="true">›</span>`;
   return `<article class="dm-stanze-card dm-stanze-voce" data-dm-stanza-vai="${esc(blocco.tab)}" data-dm-stanza-entita="${esc(entity)}" role="button" tabindex="0">
     <div class="dm-stanze-card-row">
       <span class="dm-stanze-orb">${esc(iconaVoce(item, blocco))}</span>
@@ -661,8 +738,11 @@ const TAB_DI = Object.freeze({
   /* Stessa storia dei lettori (#405): «se cliccato rimanda alla home della
    * dashboard». La pagina Musica ce l'hanno, ed e' li' che si comanda. */
   media: "media",
-  /* Le telecamere stanno nella pagina Sicurezza, non in Home: toccarne una
-   * qui riportava alla Home, cioe' in nessun posto utile. */
+  /* Le telecamere adesso si aprono da sole, sopra la stanza (#503): questa
+   * riga resta come ripiego per quando il guscio non sa aprirne una — una
+   * telecamera cancellata dalla configurazione, per dire. La Sicurezza e'
+   * comunque meglio della Home, che era dove si finiva prima: li' non c'e'
+   * nessuna telecamera. */
   telecamere: "security",
   carichi: "energy",
   robot: "robot",
@@ -877,6 +957,55 @@ function apriLaVoce(entity) {
   return true;
 }
 
+/* La telecamera di questa entita' fra quelle configurate (#503).
+ *
+ * Torna l'indice oltre alla riga perche' il guscio nomina le telecamere con
+ * `camSlug(cam, i)`, e quell'`i` e' la posizione nella lista: senza, per una
+ * telecamera senza entita' il nome verrebbe fuori diverso da quello che il
+ * guscio ha scritto sulla sua scheda, e la finestra si aprirebbe vuota. */
+export function telecameraDellEntita(entity, lista) {
+  const cercata = clean(entity);
+  if (!cercata.startsWith("camera.")) return null;
+  const righe = Array.isArray(lista) ? lista : [];
+  const indice = righe.findIndex(
+    (riga) => clean(riga?.entity || riga?.camera_entity) === cercata,
+  );
+  return indice < 0 ? null : { indice, riga: righe[indice] };
+}
+
+/* Una telecamera della stanza si apre da sola (#503).
+ *
+ * «Se vado su stanze e c'è una telecamera e ci clicco sopra dovrebbe aprire
+ * solo quella e non puntare sulla scheda dove ci sono tutte le telecamere. Se
+ * poi torno indietro non torna sulla stanza dov'ero.»
+ *
+ * Le due metà sono la stessa cosa: portare nella Sicurezza vuol dire uscire
+ * dalla stanza, e chi esce poi deve ritrovarla. La finestra della singola
+ * telecamera il guscio la apre già dalla scheda Telecamere — qui non se ne
+ * disegna una seconda, si chiede la sua — e una finestra sopra la stanza la
+ * stanza non la fa sparire: si chiude, e si è ancora lì.
+ *
+ * Se il guscio non c'è, o la telecamera in configurazione non c'è, non si
+ * inventa niente: torna `false` e il tocco riprende la strada di prima. */
+function apriLaTelecamera(entity) {
+  if (typeof root.apriCamera !== "function" || typeof root.camSlug !== "function") return false;
+  let lista = [];
+  try {
+    lista = root.getCameras?.() || [];
+  } catch (_errore) {
+    return false;
+  }
+  const trovata = telecameraDellEntita(entity, lista);
+  if (!trovata) return false;
+  try {
+    const nome = clean(trovata.riga?.name) || clean(entity).split(".")[1];
+    root.apriCamera(root.camSlug(trovata.riga, trovata.indice), nome.toUpperCase());
+    return true;
+  } catch (_errore) {
+    return false;
+  }
+}
+
 function handleClick(event) {
   /* Il tocco su un'apertura è di chi le disegna: qui si sta soltanto in
    * disparte, come già si fa per l'interruttore dentro la riga. Senza questo
@@ -919,6 +1048,20 @@ function handleClick(event) {
     tocca.setAttribute("aria-checked", acceso ? "false" : "true");
     return;
   }
+  /* Il tasto che fa partire un'automazione, uno script, una scena (#504). Come
+   * l'interruttore qui sopra: il tocco e' suo, non della riga — senza, far
+   * partire un'automazione cambierebbe pagina. */
+  const avvia = event.target?.closest?.("[data-dm-stanza-avvia]");
+  if (avvia) {
+    event.preventDefault();
+    event.stopPropagation();
+    const entity = clean(avvia.getAttribute("data-dm-stanza-avvia"));
+    const comando = entity && siComanda(entity) ? comandoDelDispositivo({ entity }) : null;
+    if (!comando) return;
+    root.navigator?.vibrate?.(8);
+    chiamaServizio(comando);
+    return;
+  }
   /* Un tocco su un comando non e' un tocco sulla card (#467): i tasti del
    * lettore e il pannello del clima stanno DENTRO la riga, e la riga porta
    * altrove. Senza questo, mettere in pausa cambiava pagina. Chi esegue quei
@@ -926,9 +1069,12 @@ function handleClick(event) {
   if (event.target?.closest?.("[data-dm-mp],[data-dm-w-panel]")) return;
   const vai = event.target?.closest?.("[data-dm-stanza-vai]");
   if (vai) {
+    const entita = clean(vai.getAttribute("data-dm-stanza-entita"));
+    /* La telecamera si apre sopra la stanza, senza cambiare pagina (#503). */
+    if (apriLaTelecamera(entita)) return;
     const tab = doc?.querySelector?.(`.tab[data-tab="${vai.getAttribute("data-dm-stanza-vai")}"]`);
     tab?.click?.();
-    apriLaVoce(clean(vai.getAttribute("data-dm-stanza-entita")));
+    apriLaVoce(entita);
   }
 }
 
@@ -996,7 +1142,7 @@ function installStyles() {
       #page-stanze .dm-stanze-h::after{content:"";flex:1 1 auto;height:1px;background:linear-gradient(90deg,var(--divider-color,#dbe4ee),transparent)}
       #page-stanze .dm-stanze-n{flex:0 0 auto;order:0;padding:2px 9px;border:1px solid var(--divider-color,#dbe4ee);border-radius:999px;font-size:10px;letter-spacing:.6px}
 
-      #page-stanze .dm-stanze-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(258px,1fr))}
+      #page-stanze .dm-stanze-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(258px,100%),1fr))}
       #page-stanze .dm-stanze-card{position:relative;display:grid;align-content:start;overflow:hidden;border:1px solid var(--divider-color,#dbe4ee);border-radius:22px;background:linear-gradient(180deg,var(--card-bg,#fff) 0%,color-mix(in srgb,#94a3b8 4%,var(--card-bg,#fff)) 100%);box-shadow:0 16px 32px -24px rgba(15,23,42,.45)}
       #page-stanze .dm-stanze-card-row{display:flex;align-items:center;gap:12px;padding:14px}
       #page-stanze .dm-stanze-orb{display:grid;place-items:center;flex:0 0 auto;width:50px;height:50px;border-radius:17px;background:linear-gradient(160deg,var(--secondary-background-color,#eef3f8),color-mix(in srgb,#94a3b8 14%,var(--secondary-background-color,#eef3f8)));font-size:24px;line-height:1}
@@ -1015,6 +1161,24 @@ function installStyles() {
       #page-stanze .dm-stanze-tocca:focus-visible{outline:2px solid var(--primary-color,#0ea5e9);outline-offset:2px}
       @media (prefers-reduced-motion:reduce){
         #page-stanze .dm-stanze-tocca,#page-stanze .dm-stanze-tocca-pallino{transition:none}
+      }
+      /* Il tasto che fa partire (#504): un'automazione, uno script, una scena.
+         Tondo come l'interruttore accanto e della stessa altezza, cosi' le
+         righe di una stanza restano tutte alte uguale — una che si accende e
+         una che si fa partire sono due gesti diversi, non due righe diverse. */
+      #page-stanze .dm-stanze-avvia{
+        flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+        width:30px;height:30px;padding:0;border:1px solid var(--card-border,#e8edf3);
+        border-radius:50%;background:var(--surface-2,#f8fafc);color:var(--primary-color,#0ea5e9);
+        font-size:14px;line-height:1;cursor:pointer;transition:background .18s ease,border-color .18s ease}
+      #page-stanze .dm-stanze-avvia:hover{
+        border-color:var(--primary-color,#0ea5e9);
+        background:color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,var(--surface-2,#f8fafc))}
+      #page-stanze .dm-stanze-avvia:active{transform:scale(.94)}
+      #page-stanze .dm-stanze-avvia:focus-visible{outline:2px solid var(--primary-color,#0ea5e9);outline-offset:2px}
+      @media (prefers-reduced-motion:reduce){
+        #page-stanze .dm-stanze-avvia{transition:none}
+        #page-stanze .dm-stanze-avvia:active{transform:none}
       }
       /* I comandi veri dentro la card (#467): il pannello del clima e la
          pulsantiera del lettore arrivano gia' vestiti da chi li disegna — sono

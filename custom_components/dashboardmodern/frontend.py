@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 from .const import DOMAIN
 
 if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
 DATA_STATIC_REGISTERED = "static_registered"
@@ -392,18 +393,74 @@ def _dashboard_card_module_url(asset_version: str) -> str:
 def _ensure_dashboard_card_registered(
     hass: HomeAssistant, domain_data: dict[str, Any], static_url_path: str
 ) -> None:
-    """Load the companion custom card through the public frontend API."""
+    """Pubblica la card della dashboard di appoggio, anche se è presto.
+
+    «Plancia predefinita: Errore di configurazione» — la decima volta che
+    viene segnalata la stessa cosa, e ogni volta la plancia aperta dalla barra
+    laterale funziona.
+
+    Le due strade non usano lo stesso pezzo di codice. La barra laterale apre
+    il PANNELLO, che si carica da sé; la dashboard predefinita apre una
+    dashboard Lovelace che dentro ha una card nostra, e quella card esiste solo
+    se il suo modulo è stato pubblicato con `add_extra_js_url`. Senza quel
+    modulo Home Assistant non trova l'elemento, e quello che disegna al suo
+    posto è esattamente la schermata rossa che chi segnala vede: «Errore di
+    configurazione».
+
+    E `add_extra_js_url` non è gentile: scrive dentro `hass.data` in una
+    casella che apre `frontend` quando si alza, e se quella casella non c'è
+    ancora solleva `KeyError`. Qui dentro veniva chiamata a secco, in mezzo
+    all'avvio della voce e prima della registrazione del pannello: un avvio in
+    cui `frontend` non fosse ancora salito non pubblicava la card E non
+    registrava il pannello, cioè rompeva tutto in una volta.
+
+    Adesso: se `frontend` c'è, si pubblica subito; se non c'è, si aspetta che
+    si alzi e si pubblica allora — lo stesso modo con cui già si aspetta
+    Lovelace per la dashboard di appoggio. E il manifest dichiara `frontend`
+    fra le dipendenze, così Home Assistant lo alza prima di noi: la strada
+    d'attesa è la rete sotto, non il caso normale.
+    """
     from homeassistant.components import frontend
 
     module_url = _dashboard_card_module_url(static_url_path.rsplit("/", 1)[-1])
     if domain_data.get(DATA_DASHBOARD_CARD_REGISTERED) == module_url:
         return
 
-    previous = domain_data.get(DATA_DASHBOARD_CARD_REGISTERED)
-    if previous:
-        frontend.remove_extra_js_url(hass, previous)
-    frontend.add_extra_js_url(hass, module_url)
-    domain_data[DATA_DASHBOARD_CARD_REGISTERED] = module_url
+    def _pubblica() -> None:
+        previous = domain_data.get(DATA_DASHBOARD_CARD_REGISTERED)
+        if previous and previous != module_url:
+            try:
+                frontend.remove_extra_js_url(hass, previous)
+            except Exception:  # noqa: BLE001 - un indirizzo vecchio di troppo non fa danni
+                _LOGGER.debug("Non ho potuto togliere %s dai moduli extra", previous)
+        try:
+            frontend.add_extra_js_url(hass, module_url)
+        except Exception:  # noqa: BLE001 - si riprova al prossimo avvio della voce
+            _LOGGER.error(
+                "Non sono riuscito a pubblicare la card %s: chi mette questa "
+                "plancia come predefinita vedrà «Errore di configurazione», "
+                "perché Home Assistant non troverà l'elemento "
+                "dashboardmodern-card. Dalla barra laterale funziona lo stesso.",
+                module_url,
+                exc_info=True,
+            )
+            return
+        domain_data[DATA_DASHBOARD_CARD_REGISTERED] = module_url
+
+    if "frontend" in hass.config.components:
+        _pubblica()
+        return
+
+    from homeassistant.setup import async_when_setup
+
+    async def _quando_frontend(_hass: HomeAssistant, _componente: str) -> None:
+        _pubblica()
+
+    _LOGGER.debug(
+        "Frontend non ancora avviato: la card %s si pubblica appena lo è",
+        module_url,
+    )
+    async_when_setup(hass, "frontend", _quando_frontend)
 
 
 def _companion_view(entry: Any, config_profile: str, primary: bool) -> dict[str, Any]:
@@ -671,6 +728,48 @@ async def _nasce_la_compagna(
     return True
 
 
+def _avviso_della_compagna(entry_id: str) -> str:
+    """Il nome dell'avviso di questa plancia: uno per voce, non uno per tutte."""
+    return f"plancia_non_registrabile_{entry_id}"
+
+
+def _avvisa_che_manca(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Dillo dove si guarda, non solo nel registro.
+
+    Il registro lo apre chi sa che esiste. Chi ha la casa apre Impostazioni,
+    e li' Home Assistant ha un posto apposta per le cose che non vanno:
+    Riparazioni. Una riga sola, con scritto perche' la plancia non e' fra le
+    predefinite e cosa si puo' fare — che in questo caso e' «niente dalla
+    plancia, la si aggiunge a mano nel proprio YAML».
+
+    Non e' riparabile con un tasto (`is_fixable=False`): non c'e' niente che
+    possiamo fare noi al posto suo, e un tasto che non aggiusta e' peggio di
+    nessun tasto.
+    """
+    from homeassistant.helpers import issue_registry as ir
+
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        _avviso_della_compagna(entry.entry_id),
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="plancia_non_registrabile",
+        translation_placeholders={"plancia": entry.title or "DashboardModern"},
+    )
+
+
+def _togli_lavviso(hass: HomeAssistant, entry_id: str) -> None:
+    """Quando torna a funzionare, l'avviso se ne va da solo.
+
+    Un avviso che resta acceso dopo che il problema e' passato insegna a
+    ignorare gli avvisi.
+    """
+    from homeassistant.helpers import issue_registry as ir
+
+    ir.async_delete_issue(hass, DOMAIN, _avviso_della_compagna(entry_id))
+
+
 async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> bool:
     """Crea e riempie la dashboard di appoggio di questa plancia.
 
@@ -687,6 +786,15 @@ async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> boo
     if entry is None:
         return False
     if not entry.options.get(OPTION_REGISTER_LOVELACE, True):
+        # Spento apposta: e' una scelta, non un guasto. Si dice piano, perche'
+        # chi lo ha spento sa perche' — ma si dice, perche' e' la prima cosa
+        # da guardare quando la plancia non compare fra le predefinite.
+        _LOGGER.debug(
+            "La dashboard di appoggio di %s non si crea: l'opzione «Registra "
+            "come plancia di Home Assistant» e' spenta nelle opzioni della voce",
+            entry.title or entry_id,
+        )
+        _togli_lavviso(hass, entry_id)
         return False
 
     dati = hass.data.get("lovelace")
@@ -696,7 +804,33 @@ async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> boo
         collezione = dati.get("dashboards_collection")
         plance = dati.get("dashboards")
     if collezione is None or plance is None:
+        # Qui si rinunciava in silenzio, e il silenzio e' il difetto.
+        #
+        # «Dopo installazione, fatta due volte, non riesco a visualizzare la
+        # dashboard nel menu plance, flag registra come plancia HA attivo»
+        # (#499). Da fuori non c'e' niente da guardare: nessuna riga nel
+        # registro, nessun avviso, e la plancia semplicemente non c'e'. Chi
+        # segnala reinstalla — due volte — perche' e' l'unica cosa che gli
+        # resta da provare, e reinstallare non cambia niente.
+        #
+        # Il caso vero e' quasi sempre uno: Lovelace in modo YAML. Con
+        # `lovelace: mode: yaml` in configuration.yaml, Home Assistant non
+        # tiene nessuna collezione di plance sul suo archivio, e le plance non
+        # si possono creare da un'integrazione: le scrive a mano chi ha la
+        # casa. Non e' un guasto della plancia e non si aggiusta dal nostro
+        # lato — ma va DETTO, perche' e' esattamente la risposta che chi
+        # segnala sta cercando.
+        _LOGGER.warning(
+            "La dashboard di appoggio di %s non si puo' creare: Home Assistant "
+            "non espone la collezione delle plance. Succede quando Lovelace e' "
+            "in modo YAML (lovelace: mode: yaml in configuration.yaml): in quel "
+            "modo le plance le scrive a mano chi ha la casa, e questa va "
+            "aggiunta li'. La plancia resta raggiungibile dalla barra laterale.",
+            entry.title or entry_id,
+        )
+        _avvisa_che_manca(hass, entry)
         return False
+    _togli_lavviso(hass, entry_id)
 
     url_path = _lovelace_url_path(entry)
     titolo = entry.title or "DashboardModern"

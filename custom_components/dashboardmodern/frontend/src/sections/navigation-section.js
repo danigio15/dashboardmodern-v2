@@ -116,6 +116,39 @@ function installStyles() {
       html[data-theme="dark"] .bottom-nav-bar .tab.active,html.dark .bottom-nav-bar .tab.active,body[data-theme="dark"] .bottom-nav-bar .tab.active,body.dark .bottom-nav-bar .tab.active,.dark .bottom-nav-bar .tab.active{background:#25324b!important;color:#fff!important;border-color:#52627f!important;box-shadow:0 8px 20px rgba(0,0,0,.28)!important}
       html[data-theme="dark"] .bottom-nav-bar .tab.active .text,html.dark .bottom-nav-bar .tab.active .text,body[data-theme="dark"] .bottom-nav-bar .tab.active .text,body.dark .bottom-nav-bar .tab.active .text,.dark .bottom-nav-bar .tab.active .text{color:#fff!important;opacity:1!important}
       @media(max-width:640px){.bottom-nav-bar .tab .text{font-weight:800!important}.bottom-nav-bar .tab{min-width:54px!important}}
+      /* La barra in fondo si veste con la tavolozza scelta (#495).
+       *
+       * «Nel tema Graphite, non cambia la barra.» Le tavolozze (#436) scrivono
+       * i loro colori sui token — card-glass, card-border, surface-3 — e ogni
+       * altra barra della plancia li legge: la testata col meteo,
+       * l'intestazione delle pagine. Questa no: il suo fondo lo fissa il foglio
+       * storico, con i numeri scritti dentro e un !important addosso, e quel
+       * selettore e' piu' specifico di quelli qui sopra. Misurato col Grafite
+       * scelto: tutta la plancia sul grigio 1c1c1f e la barra ancora sullo
+       * slate bluastro di serie.
+       *
+       * Due cose tengono in piedi queste righe, ed e' il motivo per cui stanno
+       * separate da quelle di sopra invece di essere scritte dentro.
+       *
+       * La prima: si nomina la classe due volte. Non e' un vezzo — e' l'unico
+       * modo di battere il foglio storico senza toccarlo, e toccarlo non si
+       * puo' perche' arriva vendorizzato.
+       *
+       * La seconda: valgono SOLO quando una tavolozza e' scelta davvero,
+       * perche' l'attributo data-dm-tavolozza sulla radice c'e' solo allora.
+       * Chi tiene il tema scuro di sempre, senza sceglierne nessuna, non vede
+       * cambiare un pixel — e non deve: non ha chiesto niente. */
+      html[data-dm-tavolozza] nav.tabs.bottom-nav-bar.bottom-nav-bar{
+        background:var(--card-glass)!important;border-color:var(--card-border)!important}
+      html[data-dm-tavolozza] nav.tabs.bottom-nav-bar.bottom-nav-bar .tab{
+        color:var(--text-dim)!important}
+      html[data-dm-tavolozza] nav.tabs.bottom-nav-bar.bottom-nav-bar .tab .text{
+        color:var(--text-dim)!important}
+      html[data-dm-tavolozza] nav.tabs.bottom-nav-bar.bottom-nav-bar .tab.active{
+        background:var(--surface-3)!important;color:var(--text)!important;
+        border-color:var(--card-border)!important}
+      html[data-dm-tavolozza] nav.tabs.bottom-nav-bar.bottom-nav-bar .tab.active .text{
+        color:var(--text)!important}
       /* La barra deve essere raggiungibile con il mouse.
        *
        * Sul computer la barra sta a riposo fuori dallo schermo — e' un dock:

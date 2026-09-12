@@ -796,6 +796,24 @@ const OGGETTI = Object.freeze({
       fill="none" stroke-linecap="round"/>
     <path d="M16 18.2l-4.3-4.2a2.6 2.6 0 0 1 3.7-3.7l.6.6.6-.6a2.6 2.6 0 0 1 3.7 3.7Z"
       fill="url(#dmoAssistCuore)" stroke="#fff" stroke-opacity=".7" stroke-width=".8"/>`,
+
+  /* Gli aggiornamenti (#498): il tasto tondo con la freccia in su, quello che
+   * si preme per salire. Ghiera di metallo, vetro ambrato e la luce sempre in
+   * alto a sinistra — l'ambra e' la stessa della tessera, perche' un
+   * aggiornamento non e' un guasto: e' una cosa da fare con calma, e il rosso
+   * qui dentro vuol dire «vai a vedere adesso». */
+  aggiornamenti: `<defs>
+      <linearGradient id="dmoAggGhiera" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#e2e8f0"/><stop offset="1" stop-color="#7c8ba1"/></linearGradient>
+      <radialGradient id="dmoAggVetro" cx=".38" cy=".3" r=".78">
+        <stop offset="0" stop-color="#fde68a"/><stop offset=".5" stop-color="#f59e0b"/>
+        <stop offset="1" stop-color="#b45309"/></radialGradient></defs>
+    ${OMBRA(16, 28, 8.8)}
+    <circle cx="16" cy="15.4" r="11.2" fill="url(#dmoAggGhiera)"/>
+    <circle cx="16" cy="15.4" r="9.2" fill="url(#dmoAggVetro)"/>
+    <path d="M16 8.2l5.8 6.4h-3.2v6.6h-5.2v-6.6h-3.2Z" fill="#fff" fill-opacity=".95"/>
+    <path d="M9.2 10.2a8.8 8.8 0 0 1 4.6-3.6" stroke="#fff" stroke-opacity=".7" stroke-width="1.6"
+      fill="none" stroke-linecap="round"/>`,
 });
 
 /* Due nomi per lo stesso disegno.

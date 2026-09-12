@@ -338,7 +338,7 @@ function installStyles() {
     ${P} .dm-varchi-nomi{font-size:13px;font-weight:800;color:var(--text,#0f172a)}
     ${P} .dm-varchi-sotto{font-size:12px;font-weight:700;color:var(--text-dim,#64748b)}
 
-    ${P} .dm-varchi-elenco{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+    ${P} .dm-varchi-elenco{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:10px}
 
     /* La carta di un varco: il colore lo dice prima della parola. */
     ${P} .dm-varco{

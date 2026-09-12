@@ -225,16 +225,42 @@ const ROLES = Object.freeze([
     score(entity, clues, states, contesto) {
       const domain = domainOf(entity.entity_id);
       if (!["switch", "light", "fan", "input_boolean"].includes(domain)) return null;
-      let score = domain === "switch" ? 6 : 3;
       const suo = nomeRidotto(entity.name);
       const del = nomeRidotto(contesto?.deviceName);
-      if (suo && del && suo === del) score += 9;
-      if (
+      const portaIlNome = Boolean(suo && del && suo === del);
+      const diceAvvio =
         /\b(wash|start|run|power|on off|onoff|main|operation|dry|cook|oven|dish|remote start|working|avvio|avvia|accensione|accendi|marcia|funzionamento)\b/.test(
           clues,
-        )
-      )
-        score += 5;
+        );
+      /* Fra tanti interruttori non si tira a indovinare (#463).
+       *
+       * «La lavatrice è costantemente accesa quando non lo è. Dalla sua
+       * integrazione il sensore dice off/disconnesso ma risulta accesa.
+       * L'ho inserita usando l'integrazione. Non ho prese smart.»
+       *
+       * Questo e' quello che succedeva: senza prese smart, l'interruttore lo
+       * sceglieva questa riga fra i DIECI che una lavatrice connessa pubblica,
+       * e bastava un punteggio positivo per prenderlo. Un'opzione qualunque —
+       * una che il vocabolario qui sotto non riconosce, quindi nemmeno
+       * penalizzata — usciva a sei punti e diventava il tasto
+       * d'accensione. Poi la card guarda l'interruttore: acceso, dice STANDBY,
+       * e un'opzione lasciata accesa non si spegne mai. Costantemente accesa.
+       *
+       * Le prove che l'interruttore sia QUELLO sono due, e stanno scritte qui
+       * sopra: porta il nome del dispositivo, oppure dice una parola che vuol
+       * dire accendere. Senza nessuna delle due, fra tanti, non si sceglie: la
+       * casella resta vuota e la sceglie chi ha la casa, che la macchina ce
+       * l'ha davanti. Una casella vuota si vede e si riempie; un interruttore
+       * sbagliato mente e basta.
+       *
+       * Quando invece di interruttori ce n'e' UNO SOLO non c'e' niente da
+       * confondere, e si prende: e' il caso della presa smart, che di suo
+       * pubblica quello e niente altro, e che spesso non ha nemmeno un nome da
+       * cui capirlo. */
+      if (!portaIlNome && !diceAvvio && Number(contesto?.interruttori) > 1) return null;
+      let score = domain === "switch" ? 6 : 3;
+      if (portaIlNome) score += 9;
+      if (diceAvvio) score += 5;
       if (
         /\b(pause|child lock|lock|eco|steam|delay|extra|silent|anti|dose|dosage|led|light|buzzer|sound|remote control|keep fresh|night|standby|auto)\b/.test(
           clues,
@@ -321,7 +347,15 @@ function candidates(entities = []) {
  */
 export function proposeRoles(entities = [], states = {}, { type = "", deviceName = "" } = {}) {
   const cold = COLD_TYPES.has(lower(type));
-  const contesto = { deviceName };
+  const contesto = {
+    deviceName,
+    /* Quanti interruttori ha davanti chi deve sceglierne uno: con uno solo non
+     * c'e' niente da confondere, con dieci si indovina — e il perche' conti
+     * sta scritto nel punteggio dell'interruttore. */
+    interruttori: candidates(entities).filter((entity) =>
+      ["switch", "light", "fan", "input_boolean"].includes(domainOf(entity.entity_id)),
+    ).length,
+  };
   const taken = new Set();
   const proposal = {};
   for (const role of ROLES) {

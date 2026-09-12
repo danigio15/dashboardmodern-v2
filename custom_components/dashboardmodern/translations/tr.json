@@ -28,7 +28,7 @@
         },
         "data_description": {
           "allowed_users": "Yalnızca arayüz görünürlüğü süzgeci. Veriler ve servisler Home Assistant izinlerine bağlı kalır.",
-          "register_lovelace_dashboard": "Pano, bir yönetici DashboardModern'i ilk kez açtığında oluşturulur.",
+          "register_lovelace_dashboard": "Eşlik eden pano, Home Assistant başlarken oluşturulur; bu panoyu varsayılan olarak seçmenizi sağlayan odur. Kapalıyken pano kenar çubuğunda kalır ama varsayılan panolar arasında görünmez.",
           "admin_only": "Home Assistant'ın kendi süzgeci; yönetici olmayan hesaplarda o üstün gelir.",
           "check_updates": "Her yarım saatte bir GitHub'a daha yeni bir sürüm çıkıp çıkmadığını sorar ve Ayarlar → Güncellemeler altında gösterir. Panelin internete hiç çıkmaması için kapatın; panonun buna ihtiyacı yoktur.",
           "tickets_enabled": "Panoyu kullanan herkesin panodan çıkmadan hata bildirmesini, fikir önermesini ya da yardım istemesini sağlar. Bildirim GitHub'da herkese açık bir issue olur, kendi adına açılır — HACS'ın zaten istediği hesapla. Kapalıyken evden hiçbir şey çıkmaz.",
@@ -49,6 +49,10 @@
           }
         }
       }
+    },
+    "plancia_non_registrabile": {
+      "title": "“{plancia}” varsayılan pano olarak seçilemiyor",
+      "description": "Home Assistant yazılabilir bir pano listesi tutmuyor: bu, Lovelace YAML kipinde çalışırken olur (configuration.yaml içinde lovelace: mode: yaml). O kipte panoları siz yazarsınız ve bunun oraya elle eklenmesi gerekir. “{plancia}” her zamanki gibi kenar çubuğundan erişilebilir durumda: bozuk değil, yalnızca kendini kaydedemiyor. YAML kipini kullanmıyorsanız Home Assistant'ı yeniden başlatıp bu sayfayı yeniden açın."
     }
   },
   "entity": {

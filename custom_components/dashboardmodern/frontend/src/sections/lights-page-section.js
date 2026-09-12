@@ -700,7 +700,7 @@ function installStyles() {
        * metro di bianco a destra. Con auto-fit le colonne vuote spariscono e
        * le card si allargano fino al tetto — oltre il quale una luce sola non
        * diventa un cartellone. */
-      :is(#page-luci,#page-stanze,#page-prese) .dm-lucip-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(288px,1fr))}
+      :is(#page-luci,#page-stanze,#page-prese) .dm-lucip-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(288px,100%),1fr))}
 
       /* La card: la superficie, il bagliore, il bordo e il LED leggono il
        * colore della lampada stessa, mai un ambra fisso. */

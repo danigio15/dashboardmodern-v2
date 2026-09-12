@@ -146,3 +146,52 @@ export function cosaMancaPerArieggiare({
   else if (!(finestreInStanzaConUmidita > 0)) mancanze.push("finestra-senza-stanza");
   return mancanze;
 }
+
+/* La stanza a cui una finestra appartiene, per identificativo o per nome.
+ *
+ * Sta qui e non fra chi disegna perche' la leggono in due: la card della
+ * sezione e la tessera della Home, e due letture della stessa cosa prima o poi
+ * si allontanano.
+ */
+export function stanzaDiUnaFinestra(cover, stanze = []) {
+  const cercato = String(cover?.room_id ?? cover?.roomId ?? cover?.room ?? "").trim();
+  if (!cercato) return null;
+  const elenco = Array.isArray(stanze) ? stanze : [];
+  return (
+    elenco.find(
+      (stanza) =>
+        String(stanza?.id ?? "").trim() === cercato ||
+        String(stanza?.name ?? "").trim() === cercato,
+    ) || null
+  );
+}
+
+/**
+ * Quali finestre chiedono di essere aperte, adesso.
+ *
+ * «L'avviso di arieggiare funziona ma e' presente solo se entri nella sezione,
+ * andrebbe messo a livello di widget» (#500). Il consiglio c'era gia' e c'era
+ * bene: quello che mancava e' che si vedesse da fuori. Un avviso che si scopre
+ * solo entrando nella stanza dove sta scritto non ha avvisato nessuno.
+ *
+ * Chi chiama porta i numeri gia' presi — dentro, soglia, fuori, e se l'anta e'
+ * gia' aperta — e qui si decide, con la stessa regola di sempre. Ordinate per
+ * quanto la stanza supera la soglia: se la tessera ne puo' nominare una sola,
+ * nomina quella che ne ha piu' bisogno.
+ *
+ * @param {Array<{dentro:?number,soglia:?number,fuori:?number,aperta:?boolean}>} righe
+ * @returns {Array} le sole righe che consigliano, con il loro `esito` addosso
+ */
+export function finestreDaArieggiare(righe = []) {
+  return (Array.isArray(righe) ? righe : [])
+    .map((riga) => {
+      const esito = consiglioDiArieggiare(riga || {});
+      return esito.arieggia ? { ...riga, esito } : null;
+    })
+    .filter(Boolean)
+    .sort((una, altra) => {
+      const quanto = (voce) =>
+        voce.esito.soglia === null ? 0 : (voce.esito.dentro ?? 0) - voce.esito.soglia;
+      return quanto(altra) - quanto(una);
+    });
+}

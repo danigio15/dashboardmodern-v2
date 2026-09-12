@@ -395,7 +395,7 @@ function installStyles() {
     ${P} .dm-rifiuti-bidone-ic .dm-appliance-art,
     ${P} .dm-rifiuti-riga-ic .dm-appliance-art{display:block;line-height:0}
 
-    ${P} .dm-rifiuti-elenco{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+    ${P} .dm-rifiuti-elenco{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:10px}
     ${P} .dm-rifiuti-riga{
       position:relative;display:flex;align-items:center;gap:12px;padding:12px 14px 12px 18px;
       border-radius:16px;border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff);

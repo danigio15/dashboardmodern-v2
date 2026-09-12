@@ -1143,7 +1143,7 @@ function installStyles() {
     .dm-pool-tile[data-dm-pool-tile="light"][data-on="true"] .dm-pool-tile-icon{background:linear-gradient(150deg,#fde047,#f59e0b);box-shadow:0 6px 14px rgba(245,158,11,.30)}
     .dm-pool-tile[data-dm-pool-tile="light"][data-on="true"] .dm-pool-tile-state{color:#a16207}
 
-    .dm-pool-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(298px,1fr));gap:12px;align-items:start}
+    .dm-pool-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(298px,100%),1fr));gap:12px;align-items:start}
     .dm-pool-card{box-sizing:border-box;display:grid;gap:12px;padding:16px;border:1px solid var(--card-border,#dbe4ee);border-radius:22px;background:var(--card-bg,#fff);box-shadow:var(--shadow-sculpted,0 6px 18px rgba(15,23,42,.07))}
     .dm-pool-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
     .dm-pool-card-title{display:flex;align-items:center;gap:8px;color:var(--text,#0f172a);font-size:14px;font-weight:900}

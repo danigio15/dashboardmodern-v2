@@ -683,3 +683,74 @@ test("le parole della sua Fase, tutte e undici", () => {
   assert.equal(modo("scheduled"), "standby");
   assert.equal(modo("ready"), "off");
 });
+
+/* «La lavatrice è costantemente accesa quando non lo è. Dalla sua integrazione
+ * il sensore dice off/disconnesso ma risulta accesa. L'ho inserita usando
+ * l'integrazione. Non ho prese smart per gli elettrodomestici, uso solo le
+ * integrazioni ufficiali» (#463).
+ *
+ * Senza presa smart l'interruttore lo sceglieva questo modulo, e lo sceglieva
+ * fra i dieci che una lavatrice connessa pubblica: bastava un punteggio
+ * positivo per prenderlo, e un'opzione qualunque — una che il vocabolario non
+ * riconosce, quindi nemmeno penalizzata — usciva a sei punti e diventava il
+ * tasto d'accensione. Poi la card guarda l'interruttore: acceso vuol dire
+ * STANDBY, e un'opzione lasciata accesa non si spegne mai.
+ *
+ * Le prove che l'interruttore sia QUELLO sono due: porta il nome del
+ * dispositivo, o dice una parola che vuol dire accendere. Senza nessuna delle
+ * due, fra tanti, non si sceglie — una casella vuota si vede e si riempie, un
+ * interruttore sbagliato mente e basta.
+ */
+const OPZIONI_SENZA_TASTO = [
+  ent("sensor.lavatrice_machine_status", "Machine status"),
+  /* Dieci interruttori e nessuno che dica di essere il tasto d'accensione:
+   * nomi di opzioni che il vocabolario non conosce, quindi nemmeno
+   * penalizzati. È così che uno di loro vinceva. */
+  ent("switch.lavatrice_opzione_a", "Bollicine"),
+  ent("switch.lavatrice_opzione_b", "Memo"),
+  ent("switch.lavatrice_opzione_c", "Cura tamburo"),
+];
+
+test("fra dieci interruttori senza prove non se ne indovina nessuno (#463)", () => {
+  const roles = proposeRoles(
+    OPZIONI_SENZA_TASTO,
+    {},
+    { type: "lavatrice", deviceName: "Lavatrice" },
+  );
+  assert.equal(
+    roles.control_entity,
+    undefined,
+    "un'opzione qualunque diventava il tasto, e la card restava accesa per sempre",
+  );
+  /* E il resto del collegamento non ne soffre: lo stato si trova lo stesso. */
+  assert.equal(roles.state_entity, "sensor.lavatrice_machine_status");
+});
+
+test("l'interruttore che porta il nome del dispositivo si prende lo stesso", () => {
+  const roles = proposeRoles(
+    [...OPZIONI_SENZA_TASTO, ent("switch.lavatrice_lavatrice", "Lavatrice")],
+    {},
+    { type: "lavatrice", deviceName: "Lavatrice" },
+  );
+  assert.equal(roles.control_entity, "switch.lavatrice_lavatrice");
+});
+
+test("e quello che dice di accendere pure, anche senza il nome giusto", () => {
+  const roles = proposeRoles(
+    [...OPZIONI_SENZA_TASTO, ent("switch.lavatrice_power", "Power")],
+    {},
+    { type: "lavatrice", deviceName: "Lavatrice" },
+  );
+  assert.equal(roles.control_entity, "switch.lavatrice_power");
+});
+
+test("un interruttore solo si prende: non c'è niente da confondere", () => {
+  /* È la presa smart: pubblica quello e niente altro, e spesso non ha nemmeno
+   * un nome da cui capirlo. Con uno solo davanti non si sta indovinando. */
+  const roles = proposeRoles(
+    [ent("switch.presa", ""), ent("sensor.presa_power", "Power", { unit: "W" })],
+    {},
+    { type: "lavatrice", deviceName: "Presa" },
+  );
+  assert.equal(roles.control_entity, "switch.presa");
+});

@@ -44,6 +44,11 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
   "config/entity_registry/list",
   "recorder/list_statistic_ids",
   "camera/stream",
+  /* Che flussi sa fare una telecamera (#502). Home Assistant ha tolto
+   * `frontend_stream_type` dagli attributi nella 2025.6, e questa e' la
+   * domanda che ha messo al suo posto: senza, dentro il pannello nessuna
+   * telecamera saprebbe piu' dire di saper trasmettere. */
+  "camera/capabilities",
   "camera_thumbnail",
   // Il video vero delle telecamere (#294): il WebRTC come lo parla Home
   // Assistant. L'offerta e' una sottoscrizione — session, answer, candidate

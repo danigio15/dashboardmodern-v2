@@ -28,7 +28,7 @@
         },
         "data_description": {
           "allowed_users": "Filtre d'affichage uniquement. Les données et les services restent soumis aux permissions Home Assistant.",
-          "register_lovelace_dashboard": "Le tableau de bord est créé à la première ouverture par un administrateur.",
+          "register_lovelace_dashboard": "Le tableau de bord compagnon est créé au démarrage de Home Assistant ; c'est lui qui permet de choisir cette plancia par défaut. Désactivé, la plancia reste dans la barre latérale mais n'apparaît pas parmi les tableaux de bord par défaut.",
           "admin_only": "Filtre natif Home Assistant ; il l'emporte pour les comptes non administrateurs.",
           "check_updates": "Demande à GitHub toutes les demi-heures si une version plus récente est parue, et l'affiche dans Paramètres → Mises à jour. Désactivez-le pour que le panneau ne sorte pas sur internet ; le tableau de bord n'en a jamais besoin.",
           "tickets_enabled": "Permet à qui utilise le tableau de bord de signaler un bogue, proposer une idée ou demander de l'aide sans en sortir. Le signalement devient un ticket public sur GitHub, ouvert en son nom — le même compte que HACS lui a déjà demandé. Désactivé, rien ne sort de la maison.",
@@ -49,6 +49,10 @@
           }
         }
       }
+    },
+    "plancia_non_registrabile": {
+      "title": "« {plancia} » ne peut pas être choisi comme tableau de bord par défaut",
+      "description": "Home Assistant ne tient pas de liste de tableaux de bord modifiable : cela arrive quand Lovelace est en mode YAML (lovelace: mode: yaml dans votre configuration.yaml). Dans ce mode, c'est vous qui écrivez les tableaux de bord, et celui-ci doit y être ajouté à la main. « {plancia} » reste accessible depuis la barre latérale comme toujours : il n'est pas cassé, il ne peut simplement pas s'enregistrer seul. Si vous n'utilisez pas le mode YAML, redémarrez Home Assistant et rouvrez cette page."
     }
   },
   "entity": {

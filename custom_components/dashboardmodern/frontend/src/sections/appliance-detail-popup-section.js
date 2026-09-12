@@ -24,6 +24,10 @@ import {
   elencoComandi,
 } from "../core/comandi-accanto.js";
 import {
+  elencoLetture,
+  lettureDelDispositivo as lettureScelte,
+} from "../core/letture-accanto.js";
+import {
   applianceModelForIndex,
   buildCardMarkup,
   cardLabels,
@@ -360,6 +364,7 @@ function riveste(indice) {
       lista.append(riga);
     }
   }
+  aggiungiAltreLetture(lista, appliance, titoletto);
   /* Gli altri comandi stanno accanto a quelli di sempre (#338): sono comandi
    * anche loro, e chi apre la finestra per far partire l'asciugatrice li cerca
    * dove ci sono i tasti. */
@@ -481,6 +486,39 @@ function tastoDelComandoExtra(voce) {
   return tasto;
 }
 
+/* Le altre letture dell'apparecchio (#471).
+ *
+ * «Se su ogni elettrodomestico si potesse aggiungere un'entità dandole un nome:
+ * io nell'asciugatrice monitoro temperatura aria e umidità residua.» Le sceglie
+ * la scheda dell'apparecchio, le disegna questa riga, e a dire come si chiamano
+ * e con che unità si scrivono è lo stesso vocabolario del robot e dei lettori
+ * (`core/letture-accanto.js`): un secondo modo di scrivere «34 °C» sarebbe
+ * un secondo modo di sbagliarlo.
+ *
+ * Stanno sopra i comandi: si guardano, non si toccano, e chi apre la finestra
+ * legge prima di premere. */
+function aggiungiAltreLetture(lista, appliance, titoletto) {
+  const voci = lettureScelte(
+    { ...apparecchioDeiComandi(appliance), letture: appliance?.letture },
+    allStates(),
+  );
+  if (!voci.length) return false;
+  lista.append(titoletto(t("Altre letture", "Other readings")));
+  const griglia = doc.createElement("div");
+  griglia.className = "dm-apde-caselle";
+  for (const voce of voci) {
+    const casella = doc.createElement("button");
+    casella.type = "button";
+    casella.className = "dm-apde-casella hist-clickable";
+    casella.dataset.dmApdeEntity = voce.entity;
+    casella.innerHTML = `<span class="dm-apde-casella-ic" aria-hidden="true">📈</span><b>${esc(voce.testo)}</b><span>${esc(voce.name)}</span>`;
+    casella.addEventListener("click", (event) => apriStorico(event, voce.entity, voce.name));
+    griglia.append(casella);
+  }
+  lista.append(griglia);
+  return true;
+}
+
 function aggiungiAltriComandi(lista, appliance, titoletto) {
   const voci = comandiScelti(apparecchioDeiComandi(appliance), allStates());
   if (!voci.length) return false;
@@ -589,17 +627,30 @@ function vesteIntegrazione(lista, appliance, giaMostrate, titoletto) {
   });
   const nuove = (voci) => voci.filter((voce) => !voce.mapped);
   const stato = nuove(gruppi.state);
-  const letture = nuove(gruppi.readings);
   /* Un'entita' scelta come «altro comando» (#338) esce di li' e basta: e' la
    * stessa entita', e disegnarla due volte — una fra i comandi del dispositivo
    * e una fra quelli scelti — sarebbe la stessa cosa detta due volte, con due
    * tasti che si contraddicono a vicenda mentre lo stato cambia. */
   const scelti = new Set(elencoComandi(appliance?.comandi));
+  /* E quello vale uguale per una lettura scelta a mano (#471): «Altre letture»
+   * qui sotto la disegna gia', ed e' li' che chi l'ha scelta se l'aspetta.
+   * Lasciandola anche fra le letture del dispositivo, la stessa misura usciva
+   * due volte nella stessa finestra, a due caselle di distanza — e chi legge
+   * due caselle uguali pensa che siano due sonde. */
+  const scelteDaLeggere = new Set(elencoLetture(appliance?.letture));
+  const letture = nuove(gruppi.readings).filter((voce) => !scelteDaLeggere.has(voce.entity));
   const comandi = gruppi.controls.filter(
     (voce) => !scelti.has(voce.entity) && (!voce.mapped || voce.control?.kind !== "toggle"),
   );
   const diagnostica = gruppi.diagnostics.filter((voce) => !scelti.has(voce.entity));
-  if (!stato.length && !letture.length && !comandi.length && !diagnostica.length && !scelti.size)
+  if (
+    !stato.length &&
+    !letture.length &&
+    !comandi.length &&
+    !diagnostica.length &&
+    !scelti.size &&
+    !scelteDaLeggere.size
+  )
     return;
 
   const testa = doc.createElement("section");
@@ -660,6 +711,7 @@ function vesteIntegrazione(lista, appliance, giaMostrate, titoletto) {
     lista.append(titoletto(t("I comandi del dispositivo", "The device controls")));
     for (const voce of comandi) lista.append(rigaDiComando(voce));
   }
+  aggiungiAltreLetture(lista, appliance, titoletto);
   /* Quelli scelti a mano stanno subito sotto (#338), prima della diagnostica:
    * sono i tasti per cui la finestra si apre, non un dettaglio. */
   aggiungiAltriComandi(lista, appliance, titoletto);

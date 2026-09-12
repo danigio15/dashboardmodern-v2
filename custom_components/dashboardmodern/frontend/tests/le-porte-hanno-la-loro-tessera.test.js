@@ -170,10 +170,17 @@ test("il disegno è il nostro, ed è quello stesso delle aperture: non una secon
   assert.match(oggettoWidget("porte"), /<svg class="dm-oggetto"/);
 });
 
-test("la tessera esiste, porta alla Sicurezza e si può ordinare e spegnere", () => {
+test("la tessera esiste, porta in «Apri porte» e si può ordinare e spegnere", () => {
   assert.match(PONTE, /key: "porte"/);
   assert.match(PONTE, /porteModel\(states\),/);
-  assert.match(PONTE, /porte: "security",/);
+  /* Qui c'era scritto «security», ed era giusto quando le porte stavano nella
+   * Sicurezza. Con la #275 sono uscite: hanno la loro pagina e la loro voce, e
+   * questa riga era rimasta indietro — il tasto «Apri sezione» portava in una
+   * pagina dove quelle porte non ci sono piu' (#501). Il nome della voce lo
+   * dichiara la sezione che la crea, e da qui si nomina la sua costante invece
+   * di ribatterlo: e' il modo di non restare indietro un'altra volta. */
+  assert.match(PONTE, /porte: APERTURE_TAB,/);
+  assert.doesNotMatch(PONTE, /porte: "security",/);
   assert.match(EDITOR, /\["porte", "🚪", t\("Porte", "Doors"\)\]/);
 });
 

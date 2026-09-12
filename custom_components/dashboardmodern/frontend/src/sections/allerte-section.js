@@ -793,7 +793,7 @@ function installStyles() {
     ${P} .dm-allerte-riassunto strong{font-size:16px;font-weight:900;color:var(--text,#0f172a)}
     ${P} .dm-allerte-riassunto small{font-size:11.5px;font-weight:700;color:var(--text-dim,#64748b)}
 
-    ${P} .dm-allerte-griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+    ${P} .dm-allerte-griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr));gap:12px}
     ${P} .dm-allerta{
       position:relative;display:grid;gap:8px;padding:14px 16px;border-radius:18px;
       border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff);

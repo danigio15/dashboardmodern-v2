@@ -1198,8 +1198,20 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // — e la sua scheda sotto le telecamere. Il push lo manda Home Assistant,
   // quindi qui non c'e' nessun secondo motore di automazioni: c'e' il
   // documento da incollare.
+  // 340 con lo scrivere solo quello che cambia (#494): riscrivere un attributo
+  // col valore che ha gia' sveglia chi guarda il documento, che rimette a
+  // posto gli stessi attributi, che svegliano di nuovo. Da fermi non si
+  // fermava piu', e un campo che trema dodici volte al secondo non si lascia
+  // scrivere. La regola la usano due piani — le sezioni e i moduli comuni —
+  // quindi sta in mezzo.
+  // 341 con l'interruttore delle pastiglie di stato (#491): spegnerle non e'
+  // riordinarle, e la differenza sta tutta in una riga di regola.
+  // 342 con gli aggiornamenti che aspettano (#498): Home Assistant li dichiara
+  // gia' con le sue entita' `update.`, e qui si leggono e si mettono in fila.
+  // Niente da configurare: un elenco scritto a mano invecchierebbe al primo
+  // add-on installato.
   assert.ok(
-    relative.length <= 339,
+    relative.length <= 345,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

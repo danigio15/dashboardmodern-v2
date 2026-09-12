@@ -19,8 +19,12 @@ test("the picker row never lands on a container", () => {
   // The old unconditional call is gone, not merely shadowed.
   assert.doesNotMatch(guard, /\["LABEL", "SPAN", "DIV"\]\.includes\(parent\.tagName\)\) parent\.classList\.add/);
   // And an installation upgrading from a release that flexed a container gets
-  // it back as a block on the next reconcile.
-  assert.match(guard, /node\?\.classList\?\.remove\?\.\("dm-entity-picker-row"\)/);
+  // it back as a block on the next reconcile — ma togliendola solo se c'e'.
+  // Toglierne una che non c'e' riscrive comunque l'attributo `class`, e ogni
+  // riscrittura a vuoto sveglia chi guarda il documento: era una delle strade
+  // per cui una casella non stava mai ferma (#494).
+  assert.match(guard, /classeSeCambia\(node, "dm-entity-picker-row", false\)/);
+  assert.doesNotMatch(guard, /classList\?\.remove\?\.\("dm-entity-picker-row"\)/);
 });
 
 test("the editor body stays a vertical stack whatever else runs", () => {

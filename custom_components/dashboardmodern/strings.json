@@ -28,7 +28,7 @@
         },
         "data_description": {
           "allowed_users": "UI visibility filter only. Home Assistant permissions still govern data and service access.",
-          "register_lovelace_dashboard": "The dashboard is created the first time an administrator opens DashboardModern.",
+          "register_lovelace_dashboard": "The companion dashboard is created when Home Assistant starts, and it is what lets you pick this plancia as the default. Turned off, the plancia stays in the sidebar but is not offered among the default dashboards.",
           "admin_only": "Native Home Assistant filter; it takes precedence for non-administrator accounts.",
           "check_updates": "Asks GitHub every half hour whether a newer release is out, and shows it under Settings → Updates. Turn it off to keep the panel from reaching the internet at all; the dashboard itself never needs it.",
           "tickets_enabled": "Lets anyone using the dashboard report a bug, suggest a feature or ask for help without leaving it. The report becomes a public issue on GitHub, opened under their own account — the same one HACS already asked them for. Turn it off and nothing leaves the house.",
@@ -49,6 +49,10 @@
           }
         }
       }
+    },
+    "plancia_non_registrabile": {
+      "title": "“{plancia}” cannot be picked as the default dashboard",
+      "description": "Home Assistant is not keeping a writable list of dashboards: this happens when Lovelace runs in YAML mode (lovelace: mode: yaml in your configuration.yaml). In that mode you write the dashboards yourself, and this one has to be added there by hand. “{plancia}” is still reachable from the sidebar as always: it is not broken, it simply cannot register itself. If you are not using YAML mode, restart Home Assistant and open this page again."
     }
   },
   "entity": {

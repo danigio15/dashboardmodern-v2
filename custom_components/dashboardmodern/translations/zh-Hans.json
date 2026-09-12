@@ -28,7 +28,7 @@
         },
         "data_description": {
           "allowed_users": "仅为界面显示过滤。数据和服务的访问仍然由 Home Assistant 的权限决定。",
-          "register_lovelace_dashboard": "面板会在管理员首次打开 DashboardModern 时创建。",
+          "register_lovelace_dashboard": "配套面板在 Home Assistant 启动时创建，正是它让这块面板可以被选为默认。关闭后，面板仍留在侧边栏，但不会出现在默认面板中。",
           "admin_only": "Home Assistant 自带的过滤；对非管理员账号以它为准。",
           "check_updates": "每半小时向 GitHub 询问是否有更新的版本，并显示在“设置 → 更新”中。关闭后面板完全不联网；仪表板本身并不需要它。",
           "tickets_enabled": "让使用面板的人不必离开面板即可报告缺陷、提出建议或寻求帮助。反馈会成为 GitHub 上的公开 issue，以其本人的名义提交——正是 HACS 早已要求的那个账号。关闭后，任何内容都不会离开本地。",
@@ -49,6 +49,10 @@
           }
         }
       }
+    },
+    "plancia_non_registrabile": {
+      "title": "无法把“{plancia}”选为默认面板",
+      "description": "Home Assistant 没有可写入的面板列表：当 Lovelace 以 YAML 模式运行时会这样（configuration.yaml 中的 lovelace: mode: yaml）。该模式下面板由你自己编写，这一个也需要在那里手动添加。“{plancia}”仍然可以像往常一样从侧边栏打开：它没有坏，只是无法自行注册。如果你并没有使用 YAML 模式，请重启 Home Assistant 后重新打开本页。"
     }
   },
   "entity": {

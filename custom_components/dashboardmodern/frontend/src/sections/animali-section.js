@@ -500,7 +500,7 @@ function installStyles() {
     `
       /* La larghezza non se la sceglie questa sezione: sta in un posto solo,
        * --dm-page-room, e tutte le pagine la seguono insieme. */
-      #page-animali .dm-animali-wrap{box-sizing:border-box;width:100%;max-width:var(--dm-page-room,none);margin:0 auto;padding:0 4px 18px;display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+      #page-animali .dm-animali-wrap{box-sizing:border-box;width:100%;max-width:var(--dm-page-room,none);margin:0 auto;padding:0 4px 18px;display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr))}
       #page-animali .dm-animale-card{display:grid;align-content:start;gap:12px;padding:14px;border:1px solid var(--divider-color,#dbe4ee);border-radius:20px;background:var(--card-bg,#fff);box-shadow:0 18px 34px -28px rgba(15,23,42,.55)}
       #page-animali .dm-animale-card[data-gravita="attenzione"]{border-color:color-mix(in srgb,#f59e0b 55%,transparent)}
       #page-animali .dm-animale-card[data-gravita="urgente"]{border-color:color-mix(in srgb,#dc2626 55%,transparent)}

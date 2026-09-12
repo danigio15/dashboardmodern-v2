@@ -38,10 +38,7 @@ export async function bootNamespacedDashboard(page, variant, testInfo, seed) {
   );
 
   await page.goto(`/legacy/${variant}?dmi=${encodeURIComponent(instance)}`);
-  await page.waitForFunction(() => Boolean(window.__DASHBOARDMODERN_STORAGE_NS__));
-  await page.waitForFunction(
-    () => window.__DASHBOARDMODERN_LEGACY_READY__ && window.DashboardModernModules,
-  );
+  await attendiLaPlancia(page);
   await expect
     .poll(() => page.evaluate(() => DashboardModernModules.store.getState()))
     .toMatchObject({ schema_version: 4 });
@@ -76,4 +73,25 @@ export async function bootNamespacedDashboard(page, variant, testInfo, seed) {
       )
       .not.toBe("niente");
   }
+}
+
+/* Aspetta che la plancia sia in piedi davvero.
+ *
+ * Serve dopo ogni `page.reload()`, e non e' un di piu': il guscio espone
+ * `apriConfigEntita` e `editorSwitch` quando e' pronto, e chiamarli prima non
+ * da' nessun errore — `window.editorSwitch?.("doors")` con la funzione che
+ * ancora non c'e' non fa niente, in silenzio. Da li' in poi si aspetta una
+ * scheda che nessuno ha mai chiesto di disegnare, finche' il tempo non scade.
+ *
+ * E' successo davvero, e ha fermato un rilascio: una shard webkit-ipad del
+ * cancello ha atteso venticinque secondi per tre tentativi di fila righe che
+ * nessuno stava disegnando, mentre la stessa prova sullo stesso commit passava
+ * altrove. Non era sfortuna: era una corsa, e le corse le vince chi ha il
+ * runner meno carico.
+ */
+export async function attendiLaPlancia(page) {
+  await page.waitForFunction(() => Boolean(window.__DASHBOARDMODERN_STORAGE_NS__));
+  await page.waitForFunction(
+    () => window.__DASHBOARDMODERN_LEGACY_READY__ && window.DashboardModernModules,
+  );
 }

@@ -28,7 +28,7 @@
         },
         "data_description": {
           "allowed_users": "Tylko filtr widoczności interfejsu. Dane i usługi nadal podlegają uprawnieniom Home Assistant.",
-          "register_lovelace_dashboard": "Panel powstaje przy pierwszym otwarciu przez administratora.",
+          "register_lovelace_dashboard": "Panel towarzyszący powstaje przy starcie Home Assistant i to on pozwala wybrać tę planszę jako domyślną. Wyłączony — plansza zostaje na pasku bocznym, ale nie pojawia się wśród domyślnych paneli.",
           "admin_only": "Natywny filtr Home Assistant; dla kont bez uprawnień administratora ma pierwszeństwo.",
           "check_updates": "Co pół godziny pyta GitHuba, czy jest nowsze wydanie, i pokazuje je w Ustawienia → Aktualizacje. Wyłącz, aby panel w ogóle nie łączył się z internetem; sam pulpit tego nie potrzebuje.",
           "tickets_enabled": "Pozwala każdemu, kto korzysta z panelu, zgłosić błąd, zaproponować pomysł lub poprosić o pomoc bez wychodzenia z niego. Zgłoszenie staje się publicznym issue na GitHubie, otwartym w jego imieniu — na tym samym koncie, o które poprosił już HACS. Wyłączone — nic nie opuszcza domu.",
@@ -49,6 +49,10 @@
           }
         }
       }
+    },
+    "plancia_non_registrabile": {
+      "title": "„{plancia}” nie może zostać wybrany jako domyślny panel",
+      "description": "Home Assistant nie prowadzi zapisywalnej listy paneli: dzieje się tak, gdy Lovelace działa w trybie YAML (lovelace: mode: yaml w configuration.yaml). W tym trybie panele piszesz sam, a ten trzeba tam dodać ręcznie. „{plancia}” nadal jest dostępny z paska bocznego jak zawsze: nie jest zepsuty, po prostu nie może zarejestrować się sam. Jeśli nie używasz trybu YAML, uruchom ponownie Home Assistant i otwórz tę stronę jeszcze raz."
     }
   },
   "entity": {

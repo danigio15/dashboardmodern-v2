@@ -1134,7 +1134,7 @@ function securityCss() {
   color:var(--dm-sec-dim);padding:4px 11px;border-radius:9px;
   background:var(--surface-3,#f1f5f9);border:1px solid var(--dm-sec-border)
 }
-.dm-sec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(288px,1fr));gap:16px}
+.dm-sec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(288px,100%),1fr));gap:16px}
 .dm-sec-grid[hidden]{display:none}
 .dm-sec-cctv.is-empty .dm-sec-rec{display:none}
 
@@ -1256,7 +1256,7 @@ function securityCss() {
    than as one full-width status line above a very wide keypad. */
 @media(min-width:1000px){
   .dm-sec-alarm{
-    display:grid;grid-template-columns:minmax(0,1fr) minmax(370px,.82fr);
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(min(370px,100%),.82fr);
     align-items:center;gap:30px;padding:30px
   }
   .dm-sec-modes{margin-top:0}

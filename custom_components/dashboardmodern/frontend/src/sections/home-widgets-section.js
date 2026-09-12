@@ -40,6 +40,12 @@ import {
 } from "../core/racconto-tessera.js";
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
 import { escluseDellaTessera } from "../core/fuori-dai-widget.js";
+import {
+  CHIAVE_SEZIONI_MIE,
+  chiaveDellaSezione,
+  eUnaSezioneMia,
+  sezioniDaMostrare,
+} from "../core/sezioni-mie.js";
 import { PERIOD_SOURCES } from "../core/period-service.js";
 import {
   TONO_DEL_GRADO,
@@ -165,6 +171,13 @@ import {
   isRelayEntity,
   relayCoverCommands,
 } from "../core/cover-kind.js";
+import { aggiornamentiDaFare } from "../core/aggiornamenti-da-fare.js";
+import {
+  CHIAVE_SOGLIA_UMIDITA,
+  finestreDaArieggiare,
+  sogliaDellaFinestra,
+  stanzaDiUnaFinestra,
+} from "../core/arieggiare.js";
 import { azioniDellaPorta } from "../core/security-door-model.js";
 import { humidityEntry } from "../core/room-overview.js";
 import { CHIAVE_VARCHI, contoDeiVarchi, varchiDiCasa } from "../core/varchi-di-casa.js";
@@ -207,6 +220,7 @@ import { EVENTO_PIATTAFORME, piattaformeConosciute } from "./di-chi-e-unentita-s
  * si leggono da li': la tessera e la pagina devono contare le stesse righe. */
 import { serverPerDispositivo } from "./macchine-e-rete-section.js";
 import {
+  APERTURE_TAB,
   configuredSecurityDoors,
   iconaPortaMarkup,
   parolaDelGesto,
@@ -1136,6 +1150,10 @@ function coversModel(states) {
       return {
         soloSensore: Boolean(soloSensore),
         entity,
+        /* La riga si porta dietro la sua configurazione: la stanza e la soglia
+         * dell'umidita' stanno scritte li', e cercarle una seconda volta per
+         * entita' vorrebbe dire rifare il giro che qui e' gia' fatto. */
+        config: item,
         name: etichetta,
         open,
         invertita: girata,
@@ -1175,7 +1193,48 @@ function coversModel(states) {
    * la regola sta tutta in `contoDelleAperture`, che e' pura e si prova con i
    * numeri invece che rileggendo queste righe. */
   const { alzate, aperte, soloMotori, insieme, contate } = contoDelleAperture(rows);
+  /* «L'avviso di arieggiare funziona ma e' presente solo se entri nella
+   * sezione, andrebbe messo a livello di widget» (#500).
+   *
+   * Il consiglio c'era gia' e funzionava: quello che mancava era che si
+   * vedesse da fuori. Un avviso che si scopre soltanto entrando nella stanza
+   * dove sta scritto non ha avvisato nessuno.
+   *
+   * La regola non si rifa': e' quella del nucleo, la stessa che disegna la
+   * riga sotto la card. Qui si vanno solo a prendere i numeri — l'umidita'
+   * della stanza a cui la finestra appartiene, la soglia sua o quella di casa,
+   * e se l'anta e' gia' aperta, che e' il caso in cui aprire non si consiglia
+   * perche' sta gia' arieggiando. */
+  const stanzeDiCasa = root.getStanze?.() || readJson("cd_stanze", []);
+  const sogliaDiCasa = readJson(CHIAVE_SOGLIA_UMIDITA, null);
+  /* I numeri si passano com'e' li scrive Home Assistant: a leggerli e a
+   * scartare «unavailable» ci pensa il nucleo, che sa anche la virgola. */
+  const umiditaFuori = stateOf(states, "dm.home_meteo_umidita")?.state ?? null;
+  const daArieggiare = finestreDaArieggiare(
+    rows.map((riga) => {
+      const stanza = stanzaDiUnaFinestra(riga.config, stanzeDiCasa);
+      return {
+        nome: riga.name,
+        stanza: clean(stanza?.name),
+        dentro: stateOf(states, stanza?.hum)?.state ?? null,
+        soglia: sogliaDellaFinestra(riga.config, sogliaDiCasa),
+        fuori: umiditaFuori,
+        aperta: riga.open,
+      };
+    }),
+  );
   const didascalia = () => {
+    /* Quando c'e' da arieggiare lo dice la didascalia, al posto del conto: e'
+     * l'unica cosa della tessera su cui si puo' fare qualcosa adesso. */
+    if (daArieggiare.length) {
+      const prima = daArieggiare[0];
+      const dove = prima.stanza || prima.nome;
+      /* Le altre si contano con un segno, non con una frase: una chiave di
+       * traduzione con dentro un numero non e' una chiave, e' codice che
+       * cambia a ogni lettura del sensore. */
+      const quante = daArieggiare.length > 1 ? ` · +${daArieggiare.length - 1}` : "";
+      return `${t("Arieggia", "Air out")}: ${dove} ${Math.round(prima.esito.dentro)}%${quante}`;
+    }
     if (soloMotori) return nomiAccesi(alzate, () => true, t("Tutte abbassate", "All down"));
     /* Le finestre aperte si NOMINANO, una per una.
      *
@@ -1199,6 +1258,11 @@ function coversModel(states) {
     value: String(contate.length),
     caption: didascalia(),
     ring: Math.round((contate.length / insieme.length) * 100),
+    /* Rosso solo quando c'e' da fare: una tessera che avvisa sempre non
+     * avvisa. Le finestre aperte sono uno stato, non un avviso — quello lo
+     * dicono i Varchi. */
+    alert: daArieggiare.length > 0,
+    arieggia: daArieggiare,
     rows,
     /* Le aperture escono col modello, come le luci accese: chi le conta senza
      * disegnarle legge questo campo invece di rifiltrare le righe per conto
@@ -1287,6 +1351,46 @@ export function porteAperte(doors = [], states = {}) {
     if (clean(door?.entity).split(".")[0] !== "lock") return false;
     return PORTA_APERTA.test(clean(stateOf(states, door.entity)?.state).toLowerCase());
   });
+}
+
+/* Cosa c'e' da aggiornare in casa (#498).
+ *
+ * «Creare un avviso che segnali gli aggiornamenti presenti da effettuare,
+ * compresi quelli della fantastica dashmodern.»
+ *
+ * Home Assistant lo sa gia': ogni integrazione, ogni add-on e il sistema
+ * stesso pubblicano un'entita' `update.` che sta a ON quando c'e' una versione
+ * nuova. Qui non si va a chiedere niente fuori e non si configura niente —
+ * un elenco scritto a mano invecchierebbe al primo add-on installato.
+ *
+ * La tessera compare SOLO quando c'e' qualcosa da fare. Una tessera
+ * «Aggiornamenti: 0» occupa un posto per dire che non e' successo niente, e in
+ * una Home dove ogni posto e' una cosa che si guarda quello e' un posto
+ * sprecato.
+ *
+ * Non e' rossa: un aggiornamento non e' un guasto, e il rosso in questa Home
+ * vuol dire «vai a vedere adesso». E' ambra, come le cose da fare con calma.
+ */
+function aggiornamentiModel(states) {
+  const fuori = widgetExcludedEntities("aggiornamenti");
+  const fila = aggiornamentiDaFare(states).filter((voce) => widgetIncludes(voce.entity, fuori));
+  if (!fila.length) return null;
+  const primo = fila[0];
+  return {
+    key: "aggiornamenti",
+    accent: "#d97706",
+    icon: "⬆️",
+    label: t("Aggiornamenti", "Updates"),
+    value: String(fila.length),
+    /* Si nomina il primo — la plancia quando c'e', che e' quella per cui
+     * questa tessera e' stata chiesta — e si dice a che versione va. Gli altri
+     * si contano: i nomi di sei add-on in una didascalia non si leggono. */
+    caption:
+      fila.length === 1
+        ? `${primo.nome}${primo.a ? ` → ${primo.a}` : ""}`
+        : `${primo.nome} · +${fila.length - 1}`,
+    aggiornamenti: fila,
+  };
 }
 
 function porteModel(states) {
@@ -4229,6 +4333,61 @@ export function evidenzeSingole(states) {
     .filter(Boolean);
 }
 
+/* Le tessere delle sezioni che si fa l'utente (#262, e la richiesta di #473).
+ *
+ * Una sezione propria nasceva con la sua voce nella barra e la sua pagina, e
+ * si fermava li': in Home non arrivava mai. Ma la Home e' il posto da cui si
+ * guarda la casa senza aprire niente, e chi si e' fatto una sezione per le due
+ * valvole del serbatoio sul tetto vuole vedere da li' se sono aperte — non
+ * andare a cercare una pagina.
+ *
+ * La tessera si disegna come quella delle evidenze, perche' e' la stessa cosa:
+ * un pugno di entita' scelte a mano, col loro nome e il loro valore. Una
+ * tessera per sezione, con il titolo e il disegno che le ha dato chi l'ha
+ * fatta; per ordine e visibilita' contano tutte insieme sotto «Sezioni mie»,
+ * come gli avvisi personalizzati sotto `custom`.
+ */
+export function sezioniMieModels(states) {
+  let sezioni = [];
+  try {
+    sezioni = sezioniDaMostrare(readJson(CHIAVE_SEZIONI_MIE, []));
+  } catch (_errore) {
+    return [];
+  }
+  if (!sezioni.length) return [];
+  const elenco = widgetPreferences().excluded;
+  return sezioni
+    .map((sezione) => {
+      const chiave = chiaveDellaSezione(sezione.id);
+      const fuori = escluseDellaTessera(elenco, chiave);
+      const rows = sezione.voci
+        .map((voce) =>
+          rigaInEvidenza(
+            states,
+            { entity: voce.entity, name: voce.nome, icon: voce.icona || sezione.icona },
+            fuori,
+          ),
+        )
+        .filter(Boolean);
+      if (!rows.length) return null;
+      return {
+        key: chiave,
+        accent: "#f59e0b",
+        icon: sezione.icona || "⭐",
+        label: sezione.titolo,
+        /* Quante cose ci sono dentro. Quali sono accese lo dice la didascalia
+         * una per una, che e' l'unico modo onesto quando le righe sono di
+         * generi diversi: due valvole e due batterie non fanno un numero. */
+        value: String(rows.length),
+        caption: rows.map((riga) => clean(`${riga.name} ${riga.value}`)).join(" · "),
+        ring: null,
+        attiva: rows.some((riga) => riga.on === true),
+        rows,
+      };
+    })
+    .filter(Boolean);
+}
+
 export function evidenzaModels(states) {
   return [evidenzaModel(states), ...evidenzeSingole(states)].filter(Boolean);
 }
@@ -4403,9 +4562,15 @@ export function applyWidgetPreferences(models, preferences = widgetPreferences()
       ? "custom"
       : widget.key.startsWith("evidenza-")
         ? "evidenza"
-        : eUnaTesseraEnergia(widget.key)
-          ? "energia"
-          : widget.key;
+        : /* Le sezioni che si fa l'utente si spostano e si spengono insieme,
+           * sotto la voce unica «Sezioni mie»: sono tante quante uno se ne fa,
+           * e una riga a testa nel catalogo lo riempirebbe di voci che
+           * cambiano da una casa all'altra. */
+          eUnaSezioneMia(widget.key)
+          ? "mie"
+          : eUnaTesseraEnergia(widget.key)
+            ? "energia"
+            : widget.key;
   const rank = (widget) => {
     const nome = chiave(widget);
     const index = preferences.order.indexOf(nome);
@@ -4837,7 +5002,12 @@ export function modelliDelleTessere(states) {
        * Chi lo vuole altrove lo sposta dalla scheda Widget. */
       chatModel(),
       ...evidenzaModels(states),
+      /* Le sezioni che si fa l'utente arrivano in Home accanto alle evidenze:
+       * sono la stessa cosa fatta in grande — entita' scelte a mano — e chi le
+       * cerca le cerca li'. */
+      ...sezioniMieModels(states),
       segnalazioniModel(),
+      aggiornamentiModel(states),
       agendaModel(states),
       lightsModel(states),
       climateModel(states),
@@ -5981,6 +6151,32 @@ function fumoDetail(widget) {
     .join("");
 }
 
+/* La finestra degli aggiornamenti (#498): cosa aspetta, e da che versione a
+ * che versione.
+ *
+ * La tessera dice quanti sono e nomina il primo, perche' i nomi di sei add-on
+ * in una didascalia non si leggono. Chi la apre li vuole vedere tutti: senza
+ * questa funzione la finestra rispondeva «niente da mostrare», che con la
+ * tessera accesa su sei aggiornamenti e' la risposta sbagliata.
+ *
+ * Il tasto per installare non c'e' e non ci va: si installa da Home Assistant,
+ * dove accanto al tasto ci sono le note di rilascio — e un aggiornamento
+ * lanciato da qui, senza averle lette, e' un aggiornamento fatto al buio. */
+function aggiornamentiDetail(widget) {
+  return (widget.aggiornamenti || [])
+    .map((voce) => {
+      const da = clean(voce?.da);
+      const a = clean(voce?.a);
+      const versioni = da && a ? `${da} \u2192 ${a}` : a || da;
+      return rowShell(
+        `<span class="dm-w-glyph" data-on="true" aria-hidden="true">\u2B06\uFE0F</span>
+         <span class="dm-w-name">${esc(clean(voce?.nome) || clean(voce?.entity))}</span>
+         <span class="dm-w-val">${esc(versioni || t("Disponibile", "Available"))}</span>`,
+      );
+    })
+    .join("");
+}
+
 /* Anche gli avvisi personalizzati sono caselle: nome e stato, in carta. */
 function customDetail() {
   return "";
@@ -6144,8 +6340,12 @@ const eUnaTesseraEnergia = (chiave) =>
   clean(chiave) === "energia" || clean(chiave).startsWith("energia_");
 
 function carteDalleRighe(widget) {
-  /* Una tessera «a se'» delle evidenze si disegna come la tessera madre. */
-  const chiave = clean(widget.key).startsWith("evidenza-") ? "evidenza" : clean(widget.key);
+  /* Una tessera «a se'» delle evidenze si disegna come la tessera madre, e
+   * cosi' anche quella di una sezione propria: sono entrambe un pugno di
+   * entita' scelte a mano, col loro nome e il loro valore. */
+  const grezza = clean(widget.key);
+  const chiave =
+    grezza.startsWith("evidenza-") || eUnaSezioneMia(grezza) ? "evidenza" : grezza;
   if (!(CHIAVI_A_CARTE.has(chiave) || eUnaTesseraEnergia(chiave) || chiave.startsWith("custom-")))
     return [];
   const righe = Array.isArray(widget.rows) ? widget.rows : [];
@@ -6789,6 +6989,7 @@ function detailRows(widget, states) {
   if (widget.key === "batterie") return batteriesDetail(widget);
   if (widget.key === "allagamenti") return floodDetail(widget);
   if (widget.key === "fumo") return fumoDetail(widget);
+  if (widget.key === "aggiornamenti") return aggiornamentiDetail(widget);
   if (widget.key.startsWith("custom-")) return customDetail(widget);
   return "";
 }
@@ -6810,10 +7011,31 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
   clima: "clima",
   tapparelle: "tapparelle",
   sicurezza: "security",
-  /* Le porte e i cancelli si configurano e si aprono nella Sicurezza: e' la
-   * sezione che li contiene davvero, anche se in Home hanno tessera loro. */
-  porte: "security",
+  /* Le porte e i cancelli hanno la loro pagina da quando sono usciti dalla
+   * Sicurezza (#275): «Apri porte». Questa riga era rimasta indietro, e il
+   * tasto «Apri sezione» della tessera portava ancora nella Sicurezza — cioe'
+   * in una pagina dove quelle porte non ci sono piu' (#501).
+   *
+   * Il nome della voce si chiede alla sezione che la crea: scritto a mano qui,
+   * sarebbe la stessa riga rimasta indietro un'altra volta. E se la sezione e'
+   * spenta o non ha aperture da comandare, la sua voce sta nascosta e il tasto
+   * non compare — che e' meglio di un tasto che porta altrove. */
+  porte: APERTURE_TAB,
   telecamere: "security",
+  /* Le tessere che una pagina ce l'hanno da un pezzo, e qui non erano mai
+   * arrivate: il tasto «Apri sezione» non compariva affatto, e chi guardava i
+   * varchi o le batterie dalla finestra doveva cercarsi la voce nella barra.
+   * Il nome della voce lo dichiara la sezione che la crea, e che qui sia
+   * scritto lo stesso nome lo tiene una prova — la stessa che ha trovato le
+   * porte rimaste indietro. */
+  varchi: "varchi",
+  presenza: "presenza",
+  batterie: "batterie",
+  citofono: "citofono",
+  stampanti: "stampanti",
+  /* Le macchine di casa e la rete contano le stesse integrazioni della pagina
+   * Server: e' quella la loro pagina, la stessa del mini PC. */
+  macchine: "server",
   energia: "energy",
   elettrodomestici: "appliances-main",
   temperatura: "temp",
@@ -6840,8 +7062,17 @@ const SEZIONE_DEL_WIDGET = Object.freeze({
  * le scrive `display:none` addosso — e portarci sarebbe peggio che non
  * offrirlo: si aprirebbe una pagina che l'utente ha deciso di non avere. */
 function voceDellaSezione(chiave) {
-  /* Ogni tessera energia porta alla sezione, non solo la prima (#286). */
-  const tab = SEZIONE_DEL_WIDGET[eUnaTesseraEnergia(chiave) ? "energia" : clean(chiave)];
+  const grezza = clean(chiave);
+  /* Le sezioni che si fa chi ha la casa (#504) non stanno nell'elenco qui
+   * sopra, e non possono starci: cambiano da una casa all'altra. La loro voce
+   * pero' si chiama esattamente come la loro tessera — le da' lo stesso nome
+   * la stessa funzione — e chiedere l'elenco voleva dire non trovarla mai. Il
+   * tasto «Apri sezione» non compariva proprio dove serviva di piu': su una
+   * pagina che uno si e' costruito apposta per andarci. */
+  const tab = eUnaSezioneMia(grezza)
+    ? grezza
+    : /* Ogni tessera energia porta alla sezione, non solo la prima (#286). */
+      SEZIONE_DEL_WIDGET[eUnaTesseraEnergia(grezza) ? "energia" : grezza];
   if (!tab) return null;
   const voce = doc?.querySelector?.(`.tab[data-tab="${tab}"]`);
   if (!voce || voce.style?.display === "none") return null;
@@ -6855,16 +7086,26 @@ function bricioleDelWidget(widget) {
   return bricioleDellaSezione(widget.key, t).join(" · ") || clean(widget.caption);
 }
 
-function detailMarkup(widget, states) {
-  const vaiAllaSezione = voceDellaSezione(widget.key)
-    ? `<footer class="dm-w-piede">
+/* Il piede della finestra: il tasto che porta alla sezione, quando c'e' dove
+ * andare. Sta in una funzione sua perche' non si disegna una volta sola —
+ * `sincronizzaPopup` lo rifa' a ogni giro, e il perche' e' scritto li'. */
+function firmaDelPiede(widget) {
+  return `${widget.key}|${clean(widget.impianto)}`;
+}
+
+function piedeDellaSezione(widget) {
+  if (!voceDellaSezione(widget.key)) return "";
+  return `<footer class="dm-w-piede" data-dm-piede="${esc(firmaDelPiede(widget))}">
         <button type="button" class="dm-w-vai" data-dm-w-sezione="${esc(widget.key)}"${
           widget.impianto ? ` data-dm-w-impianto="${esc(widget.impianto)}"` : ""
         }>
           ${esc(t("Apri sezione", "Open section"))} <span aria-hidden="true">→</span>
         </button>
-      </footer>`
-    : "";
+      </footer>`;
+}
+
+function detailMarkup(widget, states) {
+  const vaiAllaSezione = piedeDellaSezione(widget);
   return `<article class="dm-widget-detail" data-dm-widget-detail="${widget.key}"
       style="--dm-widget-accent:${widget.accent}">
       <header class="dm-w-head">
@@ -7286,6 +7527,23 @@ export function renderHomeWidgets() {
         const briciole = bricioleDelWidget(widget);
         if (captionDetail && captionDetail.textContent !== briciole)
           captionDetail.textContent = briciole;
+        /* Il tasto «Apri sezione» si rifa' a ogni giro, non solo all'apertura.
+         *
+         * La voce di una sezione la crea il suo modulo, e puo' nascere DOPO
+         * che la tessera e' stata aperta — su un telefono, dove la plancia
+         * parte piu' adagio, capita davvero: il tasto non c'era, e non
+         * compariva piu' finche' non si chiudeva e si riapriva la finestra.
+         * Vale anche al contrario: una sezione spenta mentre la finestra e'
+         * aperta deve portarsi via il tasto, invece di lasciarlo li' a
+         * promettere una pagina che non c'e' piu'. */
+        const scheda = doc.querySelector("#dm-widget-popup [data-dm-widget-detail]");
+        if (scheda) {
+          const vuole = piedeDellaSezione(widget);
+          const piede = scheda.querySelector(":scope > .dm-w-piede");
+          if (!vuole) piede?.remove();
+          else if (!piede) scheda.insertAdjacentHTML("beforeend", vuole);
+          else if (piede.dataset.dmPiede !== firmaDelPiede(widget)) piede.outerHTML = vuole;
+        }
         const body = doc.querySelector("#dm-widget-popup .dm-w-body");
         const markup = detailBody(widget, states);
         const scritto = state.corpo.chiave === widget.key && state.corpo.markup === markup;
