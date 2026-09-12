@@ -4,12 +4,15 @@
  * aprendo Sicurezza, dove leggo zone — sarebbero i sensori di presenza — e
  * dove leggo ingressi — sarebbero i varchi mappati dalla centrale.»
  *
- * La prova che conta e' la prima: una centrale che non ha dichiarato niente le
- * ha TUTTE. E' la riga che fa funzionare la segnalazione senza configurare
- * nulla — chi ha una centrale sola, che e' il caso di chi l'ha scritta, apre
- * Sicurezza e le trova li' — ed e' anche l'unica risposta onesta: un elenco
- * vuoto vuol dire «non l'ho detto», non «nessuno». Rispondere «nessuno»
- * avrebbe mostrato due riquadri vuoti a chi ha la casa piena di sensori.
+ * La prova che conta e' la prima: una centrale ha SOLO le zone che ha
+ * dichiarato. Qui c'era la regola opposta — chi non dichiara niente le ha
+ * tutte — scritta per far comparire il riquadro senza configurare nulla, e
+ * costava troppo: «in zone sicurezza non devi rilevare tu e mettere tutto».
+ * Una casa con settanta sensori di presenza apriva Sicurezza e li trovava
+ * tutti dentro la centrale, dichiarati da noi al posto suo. Adesso la centrale
+ * parte vuota, il riquadro non c'e' finche' non le si dice niente, e la scelta
+ * si fa anche con una centrale sola — altrimenti chi ne ha una non potrebbe
+ * mai averne.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -42,12 +45,18 @@ const VARCHI = [
   { entity: "binary_sensor.finestra_bagno", name: "Finestra bagno", stato: "aperto" },
 ];
 
-test("una centrale che non dichiara niente le ha tutte", () => {
+test("una centrale che non dichiara niente non ha zone", () => {
   const centrale = { id: "centrale", nome: "Casa" };
-  assert.deepEqual(zoneDellaCentrale(PRESENZA, centrale), PRESENZA);
-  assert.deepEqual(ingressiDellaCentrale(VARCHI, centrale), VARCHI);
+  assert.deepEqual(zoneDellaCentrale(PRESENZA, centrale), []);
+  assert.deepEqual(ingressiDellaCentrale(VARCHI, centrale), []);
   assert.deepEqual(zoneScritte(centrale), []);
   assert.deepEqual(ingressiScritti(centrale), []);
+  /* E allora in pagina non c'e' niente da disegnare: nessun riquadro vuoto, e
+   * nessuna zona adottata da noi. */
+  assert.equal(
+    ceQualcosaDaMostrare(zoneDellaCentrale(PRESENZA, centrale), ingressiDellaCentrale(VARCHI, centrale)),
+    false,
+  );
 });
 
 test("dichiarandole, restano solo le sue", () => {
@@ -83,8 +92,8 @@ test("aggiungere e togliere non tocca la centrale che c'era", () => {
   const con = conEntita(prima, CAMPO_ZONE, "binary_sensor.salotto_movimento", true);
   assert.equal(prima[CAMPO_ZONE], undefined, "l'originale non si tocca");
   assert.deepEqual(con[CAMPO_ZONE], ["binary_sensor.salotto_movimento"]);
-  /* Tolta l'ultima il campo sparisce: se restasse scritto vuoto, la centrale
-   * smetterebbe di «averle tutte» pur non avendo dichiarato nulla. */
+  /* Tolta l'ultima il campo sparisce: «nessuna» e «non l'ho detto» sono la
+   * stessa cosa, e fra le due si scrive la piu' corta. */
   const senza = conEntita(con, CAMPO_ZONE, "binary_sensor.salotto_movimento", false);
   assert.equal(CAMPO_ZONE in senza, false);
   assert.equal(senza.nome, "Casa");
@@ -116,9 +125,71 @@ test("l'area salva le sue zone, e non le perde al salvataggio successivo", () =>
    * conosceva se ne andava in silenzio. E' il modo in cui una scelta appena
    * fatta sparisce al salvataggio dopo. */
   assert.match(scheda, /for \(const campo of \[CAMPO_ZONE, CAMPO_INGRESSI\]\) \{\s*const elenco = elencoDiEntita\(riga\?\.\[campo\]\);/);
-  /* E tutte accese si scrive lasciando vuoto, o un sensore aggiunto domani
-   * resterebbe fuori da un elenco compilato oggi. */
-  assert.match(scheda, /if \(accese\.length === pastiglie\.length\) return \[\];/);
+  /* E si salva quello che e' acceso, senza scorciatoie: la fila tutta accesa
+   * si scriveva vuota — «non l'ho detto» — e col vuoto che vuol dire «nessuna»
+   * quella scorciatoia cancellerebbe la scelta appena fatta. */
+  assert.doesNotMatch(scheda, /accese\.length === pastiglie\.length/);
+  assert.match(scheda, /return elencoDiEntita\(accese\.map\(\(nodo\) => nodo\.dataset\.areaVoce\)\);/);
+  /* Niente si accende da solo: la pastiglia e' accesa se e' fra le scelte. */
+  assert.match(scheda, /data-on="\$\{dentro\.has\(riga\.entity\)\}"/);
+  assert.doesNotMatch(scheda, /const tutte = dentro\.size === 0;/);
+  assert.doesNotMatch(scheda, /tutteSeNessuna/);
+});
+
+/* La scelta si fa anche con una centrale sola.
+ *
+ * Prima viveva soltanto dentro la riga di un'area, e le aree nascono da due in
+ * su: con la regola nuova — sono sue solo le zone dichiarate — chi ha una
+ * centrale sola non avrebbe mai avuto una zona, e il riquadro in pagina non lo
+ * avrebbe visto mai. Le stesse pastiglie stanno anche sotto la casella della
+ * centrale del guscio, e si salvano nello stesso posto. */
+test("le zone si scelgono anche senza una seconda area", () => {
+  const scheda = sorgente("src/sections/centrali-allarme-editor-section.js");
+  assert.match(scheda, /function zoneDellaSolaMarkup\(voce\) \{/);
+  assert.match(scheda, /\$\{zoneDellaSolaMarkup\(lista\[0\]\)\}/);
+  /* E una riga sola in elenco non e' una casa spezzata in aree: la casella del
+   * guscio resta al suo posto e la fila per passare da un'area all'altra non
+   * compare. */
+  assert.match(scheda, /function aree\(inElenco\) \{\s*return Array\.isArray\(inElenco\) && inElenco\.length > 1;/);
+  assert.match(scheda, /if \(!aree\(inElenco\)\) \{/);
+  assert.match(scheda, /const pieno = aree\(inElenco\);/);
+  /* Cancellando la penultima area, le zone di quella che resta non si buttano:
+   * l'elenco non si svuota piu'. */
+  assert.doesNotMatch(scheda, /writeJsonIfChanged\(CHIAVE_CENTRALI, \[\]\);/);
+});
+
+/* «Salva zone» non resuscita una centrale cancellata.
+ *
+ * Rilievo della revisione, verificato. Il blocco delle zone della centrale
+ * sola non ha la casella dell'entita', e `leggiRiga` ripiegava sulla riga
+ * salvata: chi svuota la casella «Centrale allarme» del guscio se la vedeva
+ * tornare al primo «Salva zone», perche' l'elenco a una riga la teneva da
+ * parte e il salvataggio la riscriveva negli override. E' la riga a una sola
+ * che ha aperto il buco — prima, senza elenco, non c'era niente da cui
+ * resuscitarla. */
+test("il salvataggio delle sole zone non riscrive un'entità cancellata", () => {
+  const scheda = sorgente("src/sections/centrali-allarme-editor-section.js");
+  /* Senza casella nel documento si legge la mappatura viva, vuota compresa. */
+  assert.match(
+    scheda,
+    /if \(voce\?\.corrente\) return clean\(readJson\("cd_entity_overrides", \{\}\)\[RIF_CENTRALE\]\);/,
+  );
+  assert.match(scheda, /caselle: \{ \[RIF_CENTRALE\]: suaEntita\(\) \}/);
+  /* E solo per quella in pagina adesso: in un elenco a piu' aree la mappatura
+     viva e' la sua, e prestarla alle altre darebbe a ognuna l'entita' della
+     vicina. */
+  assert.match(scheda, /return entitaDellaCentrale\(voce\);/);
+});
+
+/* Passare da un'area all'altra non le spoglia delle sue zone.
+ *
+ * `passaAllAreaAllarme` riscriveva l'elenco con tre campi — `id`, `nome`,
+ * `caselle` — e le zone di tutte le aree se ne andavano al primo passaggio: lo
+ * stesso modo in cui le perdeva `normalizzaVoce`, nello stesso giro. */
+test("cambiando area, le zone di tutte restano scritte", () => {
+  const pagina = sorgente("src/sections/security-showcase-section.js");
+  assert.doesNotMatch(pagina, /lista\.map\(\(riga\) => \(\{ id: riga\.id, nome: riga\.nome, caselle: riga\.caselle \}\)\)/);
+  assert.match(pagina, /lista\.map\(\(\{ corrente: _inPagina, \.\.\.riga \}\) => riga\)/);
 });
 
 /* La lettura canonica non spoglia la riga.
@@ -156,8 +227,8 @@ test("le zone e gli ingressi sopravvivono alla lettura della centrale", () => {
   );
 });
 
-/* Chi non dichiara niente continua ad averle tutte: la riga di sopra non
- * doveva comprare il filtro al prezzo della configurazione zero. */
+/* Chi non dichiara niente esce senza campi, e non con due array vuoti dentro:
+ * la lettura non deve inventare niente, in nessuna delle due direzioni. */
 test("una centrale che non dichiara niente esce ancora senza campi", () => {
   const [voce] = centraliAllarme([{ id: "centrale", nome: "Casa", caselle: {} }], {}, "centrale");
   assert.equal(voce[CAMPO_ZONE], undefined);

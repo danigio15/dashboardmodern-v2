@@ -16,11 +16,18 @@
  * alle stesse porte. Qui si sceglie soltanto QUALI di quelle righe appartengono
  * a questa centrale.
  *
- * E la regola di appartenenza e' una sola, ed e' quella che fa funzionare la
- * cosa senza configurare niente: una centrale che non dichiara le sue zone le
- * ha TUTTE. Chi ha una centrale sola — che e' il caso della segnalazione — apre
- * Sicurezza e le trova li', senza aver toccato niente. Dichiararle serve a chi
- * ha due aree e vuole separarle.
+ * E la regola di appartenenza e' una sola: sono sue SOLO quelle che ha
+ * dichiarato. Una centrale che non dichiara niente non ha zone, e il riquadro
+ * in pagina non c'e'.
+ *
+ * Qui c'era la regola opposta — «chi non dichiara niente le ha tutte» — nata
+ * per far comparire il riquadro senza configurare niente. Costava troppo:
+ * «in zone sicurezza non devi rilevare tu e mettere tutto». Una casa con
+ * settanta sensori di presenza si apriva Sicurezza e li trovava tutti dentro
+ * la centrale, dichiarati da noi al posto suo, e per togliere i sessantasette
+ * che non c'entravano bisognava spegnerli uno per uno. Adesso la centrale
+ * parte vuota e si riempie di quello che le viene detto: e' l'unica cosa che
+ * non indovina niente.
  *
  * Il modulo e' puro: entrano le righe e una centrale, escono le righe che sono
  * sue.
@@ -63,14 +70,14 @@ export function ingressiScritti(centrale = {}) {
   return elencoDiEntita(centrale?.[CAMPO_INGRESSI]);
 }
 
-/* Chi appartiene a una centrale che non ha dichiarato niente: tutti.
+/* Chi appartiene a una centrale che non ha dichiarato niente: nessuno.
  *
- * E' la riga che fa funzionare la segnalazione senza configurare niente, ed e'
- * anche l'unica risposta onesta: un elenco vuoto vuol dire «non l'ho detto»,
- * non «nessuno». Rispondere «nessuno» avrebbe mostrato una pagina Sicurezza
- * con due riquadri vuoti a chi ha la casa piena di sensori. */
+ * Un elenco vuoto vuol dire «nessuna», e un riquadro vuoto non si disegna —
+ * ci pensa `ceQualcosaDaMostrare`. Nessuno viene adottato per assomigliare a
+ * una zona: la centrale mostra quello che le e' stato detto, e finche' non le
+ * si dice niente la pagina Sicurezza resta quella di prima. */
 function suoi(righe, scelte) {
-  if (!scelte.length) return [...righe];
+  if (!scelte.length) return [];
   const insieme = new Set(scelte);
   return righe.filter((riga) => insieme.has(pulito(riga?.entity)));
 }
@@ -92,10 +99,9 @@ export function ingressiDellaCentrale(righe = [], centrale = {}) {
 /**
  * La stessa centrale, con questa entita' dentro o fuori da un elenco.
  *
- * Non modifica l'originale, e un elenco che resta vuoto sparisce: una centrale
- * a cui non si e' dichiarato niente deve restare esattamente com'era, o la
- * regola del «vuoto vuol dire tutti» smetterebbe di valere per lei al primo
- * tocco dato e ritirato.
+ * Non modifica l'originale, e un elenco che resta vuoto sparisce: «nessuna» e
+ * «non l'ho detto» adesso sono la stessa cosa, e fra le due si scrive la piu'
+ * corta invece di lasciare in giro un campo con l'array vuoto dentro.
  */
 export function conEntita(centrale = {}, campo, entity, dentro = true) {
   const id = pulito(entity);

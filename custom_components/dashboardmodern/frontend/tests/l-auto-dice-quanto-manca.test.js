@@ -138,12 +138,96 @@ test("un numero porta i suoi min, max e passo — e il passo si allarga, non si 
   assert.ok(fitto.voci.length <= 26, `troppe voci: ${fitto.voci.length}`);
 });
 
+/* La scala diradata parte da un valore tondo.
+ *
+ * «Non esiste 91% e 96%, da dove li stai pescando.» Da un limite che va da 1 a
+ * 100 col passo di 1: diradato di cinque in cinque e partendo dal MINIMO la
+ * scala diventava 1, 6, 11... 91, 96. Valori che l'entita' accetta — il passo
+ * e' uno — ma che nessuno ha mai visto scritti su un limite di carica, e chi
+ * apre la tendina non riconosce piu' la sua entita'. */
+test("la scala diradata si appoggia sui valori tondi, non sul minimo", () => {
+  const { voci } = vociDelTarget({ state: "86", attributes: { min: 1, max: 100, step: 1 } });
+  const valori = voci.map((voce) => voce.valore);
+  assert.ok(!valori.includes("91"), `il 91 non ci deve stare: ${valori.join(",")}`);
+  assert.ok(!valori.includes("96"), `nemmeno il 96: ${valori.join(",")}`);
+  assert.ok(valori.includes("90") && valori.includes("95"), valori.join(","));
+  /* Gli estremi ci sono sempre: sono il «niente» e il «tutto» dell'entita'. */
+  assert.equal(valori[0], "1");
+  assert.equal(valori[valori.length - 1], "100");
+  /* E il target di adesso resta scelto anche se la scala tonda lo salta. */
+  assert.equal(voceDiAdesso(voci, "86"), "86");
+});
+
+/* Ma un valore tondo non si propone se l'entita' non lo accetta.
+ *
+ * Con minimo 7 e passo 3 i valori buoni sono 7, 10, 13... e i multipli di sei
+ * non ci cadono mai: li' si riparte dal minimo, com'era. Meglio una scala
+ * storta che uno scalino rifiutato — che e' il rifiuto da cui nasce tutta
+ * questa storia. */
+test("una scala tonda che l'entità non accetta non si inventa", () => {
+  const { voci } = vociDelTarget({ state: "10", attributes: { min: 7, max: 93, step: 3 } });
+  const valori = voci.map((voce) => voce.valore);
+  /* Gli scalini stanno tutti sul passo dell'entita': il primo e' il minimo,
+     cioe' il ripiego, e da li' si sale di sei in sei. Gli estremi li dichiara
+     l'entita' e li teniamo come sono — un massimo che il suo stesso passo non
+     raggiunge in pieno (93 = 7 + 28,67 passi) resta il massimo, e Home
+     Assistant il passo non lo verifica, verifica di stare fra minimo e
+     massimo. */
+  for (const valore of valori.slice(1, -1))
+    assert.equal((Number(valore) - 7) % 3, 0, `${valore} non è un valore dell'entità`);
+  assert.equal(valori[0], "7", "senza un valore tondo si riparte dal minimo");
+  assert.equal(valori[valori.length - 1], "93");
+});
+
+/* Le cifre vengono dai numeri dell'entita', non dal passo diradato.
+ *
+ * Il passo diradato e' sempre piu' grosso e spesso intero: prendendo le cifre
+ * da lui, un limite da 0,25 a 100 col passo di 0,25 si dirada a cinque, le
+ * cifre diventano zero, e il minimo si scriveva «0» — un valore SOTTO il
+ * minimo, che Home Assistant rifiuta. Rilievo della revisione, verificato:
+ * usciva davvero «0». */
+test("un minimo con la virgola non si arrotonda fuori dai suoi limiti", () => {
+  const { voci } = vociDelTarget({ state: "50", attributes: { min: 0.25, max: 100, step: 0.25 } });
+  const valori = voci.map((voce) => voce.valore);
+  assert.equal(valori[0], "0.25", `il minimo dichiarato e' 0,25: ${valori.slice(0, 3).join(",")}`);
+  for (const valore of valori) assert.ok(Number(valore) >= 0.25, `${valore} sta sotto il minimo`);
+  /* E gli altri scalini non si portano dietro decimali che non servono: «5»,
+     non «5,00». */
+  assert.ok(valori.includes("5") && valori.includes("100"), valori.join(","));
+});
+
+test("un passo con la virgola scrive i suoi mezzi, e il resto interi", () => {
+  const { voci } = vociDelTarget({ state: "57.5", attributes: { min: 55, max: 100, step: 2.5 } });
+  const valori = voci.map((voce) => voce.valore);
+  assert.equal(valori[0], "55");
+  assert.ok(valori.includes("57.5"), valori.join(","));
+  assert.ok(valori.includes("60"), "un intero resta intero");
+  assert.equal(valori[valori.length - 1], "100");
+});
+
 test("un'entità che non dice niente lascia stare la tendina del guscio", () => {
   for (const stato of [null, { state: "80" }, { state: "80", attributes: {} }]) {
     const esito = vociDelTarget(stato);
     assert.equal(esito.padrone, false);
     assert.deepEqual(esito.voci, []);
   }
+});
+
+/* Il rifiuto per gettone scaduto non dichiara un fatto che non sappiamo.
+ *
+ * «Da un errore che non esiste»: la plancia scriveva «l'integrazione dell'auto
+ * non è più collegata al suo account», detto come un fatto, mentre
+ * l'integrazione era collegata benissimo ed era il gettone del cloud dell'auto
+ * a essere scaduto per quella chiamata — al giro dopo l'integrazione lo
+ * rinnova da sola. Si dice cosa è successo, col riprova prima e la
+ * riconnessione dopo. */
+test("un gettone scaduto non si racconta come un'integrazione scollegata", () => {
+  const sorgente = leggi("sections/ev-stato-e-target-section.js");
+  assert.doesNotMatch(sorgente, /non è più collegata al suo account/);
+  assert.match(sorgente, /ha rifiutato le credenziali dell'integrazione: riprova/);
+  /* E quello che ha detto Home Assistant resta in coda fra parentesi: è la
+     prova che serve a chi apre una segnalazione. */
+  assert.match(sorgente, /return dettaglio \? `\$\{consiglio\} \(\$\{dettaglio\}\)` : consiglio;/);
 });
 
 test("il ripiego dei sei numeri di serie non esiste più", () => {

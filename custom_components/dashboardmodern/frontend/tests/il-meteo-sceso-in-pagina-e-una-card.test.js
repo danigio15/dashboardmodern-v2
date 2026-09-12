@@ -99,6 +99,35 @@ test("la card è un vestito: il meteo resta uno, e i suoi nodi li scrive il gusc
   assert.match(sorgente, /const RIPOSO = 30 \* 60 \* 1000/);
 });
 
+/* Scesa in pagina porta le vesti delle altre card.
+ *
+ * «Contorno meteo non uguale alle altre card.» In pagina la card indossava
+ * ancora le vesti della striscia — fondo `--surface-2`, filo di bordo, nessuna
+ * ombra, e il bordo che si scalda d'accento al passaggio: fra le carte della
+ * Home si vedeva una fascia pallina appoggiata sopra. Le vesti sono quelle
+ * della plancia, le stesse delle persone: carta, bordo e ombra scolpita. */
+test("la card scesa in pagina si veste come le altre card", () => {
+  const card = leggi("sections/la-card-del-meteo-section.js");
+  const blocco = card.slice(
+    card.indexOf('body .dm-testata-riga[data-dm-meteo="card"]{'),
+    card.indexOf('body .dm-testata-riga[data-dm-meteo="card"]>.weather-widget'),
+  );
+  assert.match(blocco, /background:var\(--card-bg,#fff\)/);
+  assert.match(blocco, /border:1px solid var\(--card-border,#e8edf3\)/);
+  assert.match(blocco, /box-shadow:var\(--shadow-sculpted,/);
+  /* E si alza al passaggio, invece di tingersi d'accento come la fascia. */
+  assert.match(card, /\[data-dm-meteo="card"\]:hover\{\s*transform:translateY\(-4px\);/);
+  /* Le vesti della striscia non arrivano piu' fino a qui: non si scavalcano,
+     non valgono. */
+  const striscia = leggi("sections/weather-in-masthead-section.js");
+  assert.match(
+    striscia,
+    /body \.dm-testata-riga:not\(\[data-dm-meteo="card"\]\)\{\s*padding:6px 12px/,
+  );
+  assert.match(striscia, /body \.dm-testata-riga:not\(\[data-dm-meteo="card"\]\):hover\{/);
+  assert.doesNotMatch(striscia, /body \.dm-testata-riga\{[^}]*background:var\(--surface-2/);
+});
+
 /* Manca vuol dire manca, non zero.
  *
  * `Number(null)` e `Number("")` fanno entrambi zero, e zero e' un numero
