@@ -280,6 +280,27 @@ function leggiRiga(riga, voce) {
   return prossima;
 }
 
+/* Tutte spente non e' una cosa che si possa dire.
+ *
+ * Nel modello «non ho scelto niente» vuol dire «tutte» — ed e' quella regola
+ * che fa comparire da sola la zona che la centrale pubblichera' domani. Ma
+ * allora una fila tutta spenta si salva identica a una fila tutta accesa: due
+ * intenzioni opposte nello stesso posto, e chi aveva spento tutto riapriva
+ * l'area e la ritrovava tutta accesa senza spiegazione. Spegnendo l'ultima si
+ * torna a «tutte», e le pastiglie lo dicono subito invece di far scoprire il
+ * salto al ridisegno dopo. */
+function tutteSeNessuna(voce) {
+  const campo = clean(voce.dataset.areaCampo);
+  const riga = voce.closest("[data-area-index]");
+  if (!campo || !riga) return;
+  const pastiglie = [...riga.querySelectorAll(`[data-area-campo="${CSS.escape(campo)}"]`)];
+  if (pastiglie.some((nodo) => nodo.dataset.on === "true")) return;
+  for (const nodo of pastiglie) {
+    nodo.dataset.on = "true";
+    nodo.setAttribute("aria-pressed", "true");
+  }
+}
+
 const accesa = (lista) => clean(lista.find((riga) => riga?.corrente)?.id);
 
 export function ensureAreeEditor() {
@@ -346,6 +367,7 @@ function onClick(event) {
      * via il tocco appena dato. */
     voce.dataset.on = voce.dataset.on === "true" ? "false" : "true";
     voce.setAttribute("aria-pressed", voce.dataset.on);
+    tutteSeNessuna(voce);
     return;
   }
   const pick = event.target.closest("[data-area-pick]");

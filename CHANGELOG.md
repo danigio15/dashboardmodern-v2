@@ -262,6 +262,73 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   nuova prende gli oggetti veri di quell'avvio e li rimette nella forma di
   oggi.
 
+- **Sicurezza: un sensore che non risponde non è più «in quiete»**
+
+  I sommari delle zone e degli ingressi contavano sul totale: con quattro zone
+  tutte scollegate la card scriveva «4 in quiete» e «4 chiusi». Le pastiglie
+  sotto lo dicevano già — un sensore muto è smorto, non verde — ma la riga
+  sopra presentava come sorvegliata una centrale che non stava guardando
+  niente. I contatori tengono i liberi, i chiusi e i muti proprio per questo, e
+  adesso sono quelli che si leggono: chi non risponde ha la sua voce.
+
+- **Sicurezza: le zone scelte non si perdono più al primo ridisegno**
+
+  La scelta delle zone e degli ingressi si salvava e poi tornava «tutte». Il
+  motivo non era il salvataggio: la lettura canonica delle aree passava per una
+  normalizzazione che riscriveva ogni riga con tre campi soli — nome, id e
+  mappatura — e le zone se ne andavano in silenzio. Una riga senza zone, nel
+  modello, vuol dire «tutte», quindi il filtro sembrava rotto mentre rotta era
+  la lettura. Chi ha campi suoi adesso li dichiara, e quella normalizzazione li
+  porta di là senza interpretarli. In più: spegnere tutte le pastiglie non si
+  può dire — sarebbe identico a lasciarle tutte accese — e adesso spegnendo
+  l'ultima si torna a «tutte», che è ciò che viene salvato.
+
+- **Energia: con due impianti la soglia guarda la casa, non mezza casa**
+
+  Con una tessera per impianto la soglia veniva valutata su un impianto per
+  volta: due misuratori che tirano 2 kW l'uno restavano in quiete sotto una
+  soglia di 3,3 kW, mentre la pagina Energia — che somma — diceva giustamente
+  che la casa ne stava tirando 4. Il numero che si scrive dice «oltre qui salta
+  il contatore», e il contatore è uno: adesso il verdetto è uno, quello della
+  casa, e ogni tessera dice la stessa cosa.
+
+- **Meteo: una previsione vuota non diventa più 0°**
+
+  Un provider che per la massima o la minima di un giorno pubblica un valore
+  nullo si vedeva disegnato come `0°`, perché zero è quello che esce
+  convertendo il nulla in numero. Una gelata inventata è peggio di mezza
+  forbice che manca. E cambiando l'entità del meteo in sessione le previsioni
+  non restano più quelle di prima per mezz'ora: il riposo è per entità.
+
+- **Auto: la capacità della batteria si salva anche senza profilo vettura**
+
+  La casella si vede anche per chi ha una macchina sola e le sue mappature
+  senza aver creato un profilo — ed è giusto che si veda — ma il salvataggio
+  cercava un profilo su cui scrivere e se ne tornava a mani vuote: il campo si
+  ripuliva sotto le dita e il tempo di fine carica restava sui 70 kWh assunti.
+  Adesso ha il suo posto anche lì, accanto al motore dichiarato per la plancia.
+  E la tendina della percentuale tiene sempre il valore che c'è davvero: con un
+  limite da 0 a 100 a passo 1 le voci si diradano di cinque in cinque, e un
+  target messo a 83 da un'automazione finiva fuori elenco — la plancia scriveva
+  «0%» dove Home Assistant diceva 83.
+
+- **Elettrodomestici: si può nascondere anche l'allarme, e ciò che arriva dopo**
+
+  L'elenco di «Cosa mostrare nella finestra» chiedeva un campo con un nome che
+  nel modello non esiste, e l'unica voce che non si poteva spegnere era proprio
+  il sensore di anomalia. E costruiva le scelte dalla fotografia del
+  dispositivo scattata il giorno del collegamento: una diagnostica pubblicata
+  dall'integrazione un mese dopo compariva nella finestra — come deve — ma non
+  in quell'elenco, e per nasconderla bisognava scollegare e ricollegare. Adesso
+  legge anche il catalogo di adesso.
+
+- **Home: il meteo non scende più a rimorchio dell'intestazione**
+
+  Con un ordine come «meteo, persone, intestazione» il riquadro del meteo
+  restava figlio della testata mentre la testata scendeva in pagina sotto le
+  persone, e ci finiva insieme: in un posto che l'ordine non aveva chiesto per
+  lui. Restare in testata vuol dire che la testata è ancora su.
+
 ## 1.4.22
 
 ### Corretto

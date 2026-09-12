@@ -150,3 +150,27 @@ test("spostata sotto un blocco della pagina, scende", () => {
   /* Il meteo davanti non la fa scendere: stanno tutte e due sopra la pagina. */
   assert.equal(lIntestazioneStaInCima(["meteo", "intestazione", "persone"]), true);
 });
+
+/* Il meteo non scende a rimorchio dell'intestazione.
+ *
+ * La striscia del meteo e' figlia della testata, e la testata adesso si puo'
+ * spostare. Con una fila come «meteo, persone, intestazione» il meteo si
+ * dichiarava ancora «in testata» — davanti a lui non c'era nessun blocco della
+ * pagina — mentre la testata scendeva dentro la Home sotto le persone, e il
+ * riquadro ci finiva insieme: in un posto che l'ordine non aveva chiesto per
+ * lui, e che nessun giro successivo poteva correggere. Restare in testata vuol
+ * dire che la testata c'e' ancora, su. */
+test("scesa l'intestazione, il meteo diventa un blocco della pagina", () => {
+  const fila = [BLOCCO_DEL_METEO, "persone", BLOCCO_INTESTAZIONE];
+  assert.equal(lIntestazioneStaInCima(fila), false, "le persone la scavalcano");
+  assert.equal(ilMeteoStaInTestata(fila), false, "e quindi il meteo va in pagina");
+});
+
+test("finche' l'intestazione sta su, il meteo resta dentro di lei", () => {
+  /* I due possono scambiarsi di posto fra loro: sono entrambi sopra la pagina,
+   * e l'ordine fra loro dice solo quale si vede prima. */
+  assert.equal(ilMeteoStaInTestata([BLOCCO_DEL_METEO, BLOCCO_INTESTAZIONE, "persone"]), true);
+  assert.equal(ilMeteoStaInTestata([BLOCCO_INTESTAZIONE, BLOCCO_DEL_METEO, "persone"]), true);
+  /* E di serie, che e' il caso di chi non ha mai toccato niente. */
+  assert.equal(ilMeteoStaInTestata(null), true);
+});

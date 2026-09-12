@@ -43,7 +43,15 @@ export function segnoDelTempo(condizione) {
   return SEGNI[clean(condizione).toLowerCase()] || "☀️";
 }
 
+/* Manca vuol dire manca, non zero.
+ *
+ * `Number(null)` e `Number("")` fanno entrambi zero, e zero e' un numero
+ * finito: un meteo che per la minima di un giorno pubblica `null` — capita, e
+ * capita a giorni alterni sullo stesso provider — si vedeva disegnato come
+ * `0°`. Una previsione di gelo inventata e' peggio di mezza forbice mancante,
+ * che almeno si vede che manca. */
 const numero = (valore) => {
+  if (valore === null || valore === undefined || String(valore).trim() === "") return null;
   const letto = Number(valore);
   return Number.isFinite(letto) ? letto : null;
 };

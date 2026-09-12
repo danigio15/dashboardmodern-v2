@@ -34,7 +34,7 @@ import { comandiVicini, elencoComandi, genereDelComando } from "../core/comandi-
 import { elencoLetture, eUnaLettura, lettureVicine } from "../core/letture-accanto.js";
 import { elencoNascoste } from "../core/le-voci-nascoste.js";
 import { nomeAccantoAlDispositivo } from "../core/nome-accanto-al-dispositivo.js";
-import { apriMenuIntegrazioni } from "./appliance-integration-section.js";
+import { apriMenuIntegrazioni, entitaDelDispositivo } from "./appliance-integration-section.js";
 import { CAMPI_SCELTI } from "../core/energy-loads-config.js";
 import {
   eDiUnAltroApparecchio,
@@ -764,6 +764,18 @@ function vociDellApparecchio(values) {
   for (const casella of CASELLE_DELLA_FINESTRA) aggiungi(values[casella]);
   for (const entity of elencoLetture(values.letture)) aggiungi(entity);
   for (const entity of elencoComandi(values.comandi)) aggiungi(entity);
+  /* Il catalogo di ADESSO, non solo quello di quando si e' collegato.
+   *
+   * `device_entities` e' uno scatto: fotografa il dispositivo il giorno che lo
+   * si e' scelto. La finestra dell'apparecchio invece chiede il catalogo vivo,
+   * quindi una diagnostica o un comando pubblicati dall'integrazione un mese
+   * dopo li' compaiono da soli — ed e' proprio il comportamento che si voleva
+   * — ma in questo elenco non c'erano: l'unica voce che non si poteva
+   * nascondere era quella appena arrivata, e per farla comparire qui bisognava
+   * scollegare e ricollegare il dispositivo. Le due liste si uniscono, e lo
+   * scatto resta perche' il catalogo vivo puo' non essere ancora arrivato. */
+  for (const voce of entitaDelDispositivo(clean(values.device_id)) || [])
+    aggiungi(voce?.entity_id);
   for (const entity of bindingSnapshot(values)) aggiungi(entity);
   return elenco;
 }
@@ -779,7 +791,11 @@ const CASELLE_DELLA_FINESTRA = Object.freeze([
   "temperature_entity",
   "temperature_entity_2",
   "door_entity",
-  "alarm_entity",
+  /* `alert_entity`, col nome che porta nel modello e nella scheda. Qui c'era
+   * scritto `alarm_entity`, che non esiste da nessun'altra parte: il sensore
+   * di anomalia configurato a mano non compariva fra le voci da nascondere, e
+   * l'unica cosa che non si poteva spegnere era proprio quella. */
+  "alert_entity",
   "daily_energy_entity",
   "monthly_energy_entity",
 ]);

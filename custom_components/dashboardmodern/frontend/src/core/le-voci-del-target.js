@@ -88,9 +88,31 @@ export function vociDelTarget(stato) {
     const voci = opzioni.map(vocePerOpzione).filter(Boolean);
     if (voci.length) return { voci, padrone: true };
   }
-  const voci = vociDaiNumeri(stato?.attributes);
+  const voci = conQuellaDiAdesso(vociDaiNumeri(stato?.attributes), stato);
   if (voci.length) return { voci, padrone: true };
   return { voci: [], padrone: false };
+}
+
+/* Il valore di adesso c'e' sempre, anche se il passo diradato lo salta.
+ *
+ * Un limite da 0 a 100 col passo di 1 non ci sta in venticinque voci, e il
+ * passo si allarga a cinque: le voci diventano 0, 5, 10... Un target messo a
+ * 83 da un'automazione o dall'app della colonnina in quell'elenco non c'e', la
+ * tendina non trova la sua voce e mostra la prima — cioe' la plancia scrive
+ * «0%» dove Home Assistant dice 83. Il numero che c'e' davvero entra
+ * nell'elenco al suo posto, e resta scelto. */
+function conQuellaDiAdesso(voci, stato) {
+  if (!voci.length || voceDiAdesso(voci, stato?.state)) return voci;
+  const scritto = clean(stato?.state).replace(",", ".");
+  const adesso = Number.parseFloat(scritto);
+  if (!Number.isFinite(adesso)) return voci;
+  const min = numero(stato?.attributes?.min);
+  const max = numero(stato?.attributes?.max);
+  if ((min !== null && adesso < min) || (max !== null && adesso > max)) return voci;
+  const suo = { valore: scritto, testo: `${scritto}%` };
+  return [...voci, suo].sort(
+    (uno, due) => Number.parseFloat(uno.valore) - Number.parseFloat(due.valore),
+  );
 }
 
 /**

@@ -33,6 +33,7 @@ import {
   ruoteDellAuto,
 } from "../core/auto-termica.js";
 import {
+  CAPACITA_DI_CASA_KEY,
   MOTORE_DI_CASA_KEY,
   TIPI_MOTORE,
   VEHICLE_CAPACITY_FIELD,
@@ -88,6 +89,11 @@ const ARC_LENGTH = 2 * Math.PI * ARC_RADIUS;
  * cosi' nessun salvataggio puo' portarsela via. */
 export function motoreDiCasa() {
   return tipoMotore(readJson(MOTORE_DI_CASA_KEY, ""));
+}
+
+/** La capacita' scritta per la plancia, o `null` se non c'e'. */
+export function capacitaDiCasa() {
+  return capacitaDellaBatteria({ [VEHICLE_CAPACITY_FIELD]: readJson(CAPACITA_DI_CASA_KEY, "") });
 }
 
 export function motoreInPagina() {
@@ -401,30 +407,50 @@ function sincronizzaCapacita(casella) {
   const { chiave, auto, casa } = diChiParlaLaTendina();
   if (campo.dataset.dmPer === chiave) return true;
   campo.dataset.dmPer = chiave;
-  campo.value = casa || !auto ? "" : clean(auto[VEHICLE_CAPACITY_FIELD]);
+  /* Senza vettura la casella non e' muta: legge quella della plancia, che e'
+   * il posto in cui la scrive chi non ha profili. */
+  campo.value = auto
+    ? clean(auto[VEHICLE_CAPACITY_FIELD])
+    : clean(readJson(CAPACITA_DI_CASA_KEY, ""));
   return true;
 }
 
-/** Scrive la capacita' sulla vettura aperta. Vuoto vuol dire «non la so». */
+/**
+ * Scrive la capacita' dove appartiene. Vuoto vuol dire «non la so».
+ *
+ * Sulla vettura aperta, se c'e'. Senza vettura sulla plancia: la casella si
+ * vede anche li' — chi ha una macchina sola e le sue mappature non ha nessun
+ * profilo da aprire — e prima si rifiutava di salvare, quindi si ripuliva da
+ * sola e il tempo di fine carica restava sui settanta assunti.
+ */
 export function scriviLaCapacita(valore) {
   const { auto } = diChiParlaLaTendina();
-  if (!auto) return false;
-  const uid = clean(auto[VEHICLE_KEY_FIELD]);
-  if (!uid) return false;
   const scritto = clean(valore).replace(",", ".");
   const numero = Number(scritto);
   /* Un numero che non sta in piedi non si salva e non cancella quello che
    * c'era: chi sta ancora scrivendo «4» di «48» non deve perdere niente. */
   const nuovo = scritto === "" ? "" : Number.isFinite(numero) && numero > 0 ? scritto : null;
   if (nuovo === null) return false;
+  if (!auto) {
+    writeJsonIfChanged(CAPACITA_DI_CASA_KEY, nuovo);
+    return true;
+  }
+  const uid = clean(auto[VEHICLE_KEY_FIELD]);
+  if (!uid) return false;
   if (clean(auto[VEHICLE_CAPACITY_FIELD]) === nuovo) return true;
   salvaAuto(updateVehicle(profiles(), uid, { [VEHICLE_CAPACITY_FIELD]: nuovo }));
   return true;
 }
 
-/** Quanti kilowattora tiene la batteria dell'auto in uso, o i settanta di serie. */
+/**
+ * Quanti kilowattora tiene la batteria dell'auto in uso.
+ *
+ * La vettura se l'ha dichiarata, altrimenti quella della plancia, altrimenti i
+ * settanta di serie — che restano l'assunzione di sempre, detta invece che
+ * nascosta.
+ */
 export function capacitaDellAutoInUso() {
-  return capacitaDellaBatteria(activeVehicle() || {}) ?? CAPACITA_DI_SERIE;
+  return capacitaDellaBatteria(activeVehicle() || {}) ?? capacitaDiCasa() ?? CAPACITA_DI_SERIE;
 }
 
 /* ── il quadro nella pagina ───────────────────────────────────────────── */

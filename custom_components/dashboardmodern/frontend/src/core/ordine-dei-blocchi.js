@@ -138,9 +138,16 @@ function staSopraLaPagina(nome, salvato) {
  *
  * Li' resta figlio della testata e non tocca la pagina. Appena un blocco della
  * pagina lo scavalca, scende e si mette in fila con gli altri.
+ *
+ * E non basta che sia sopra la pagina LUI: deve esserci anche la TESTATA che
+ * lo contiene. Con una fila come «meteo, persone, intestazione» il meteo
+ * restava figlio della testata mentre la testata scendeva dentro la Home sotto
+ * le persone — e il riquadro ci scendeva insieme, portato a rimorchio in un
+ * posto che l'ordine non aveva chiesto per lui. Quando la testata scende, il
+ * meteo diventa un blocco della pagina e va dove dice la fila.
  */
 export function ilMeteoStaInTestata(salvato) {
-  return staSopraLaPagina(BLOCCO_DEL_METEO, salvato);
+  return staSopraLaPagina(BLOCCO_DEL_METEO, salvato) && lIntestazioneStaInCima(salvato);
 }
 
 /**

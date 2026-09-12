@@ -122,6 +122,17 @@ export function tipoMotore(valore) {
  * sarebbe falsa per una delle due. */
 export const MOTORE_DI_CASA_KEY = "cd_ev_motore";
 
+/* E la capacita' della batteria, per la stessa casa.
+ *
+ * La casella si vedeva anche senza profili — e' il caso di chi ha una macchina
+ * sola e le sue `dm.ev_*` e non ha mai creato una vettura — ma il salvataggio
+ * chiedeva un profilo su cui scrivere e se ne tornava a mani vuote: il campo
+ * si ripuliva sotto le dita e il tempo di fine carica restava sui settanta
+ * assunti. Qui la capacita' ha il suo posto anche quando il garage e' vuoto,
+ * accanto al motore e con la stessa regola: vale solo quando profili non ce
+ * ne sono, perche' con dei profili comanda la vettura. */
+export const CAPACITA_DI_CASA_KEY = "cd_ev_kwh";
+
 /**
  * Che motore ha l'auto di cui si sta parlando.
  *

@@ -197,10 +197,18 @@ test("togliere una chiave non alza la revisione", async () => {
    * o rosso la card per capire un sovraccarico». Il limite del contratto — o
    * il consumo che si vuole tenere d'occhio — è un fatto dell'impianto: chi lo
    * scrive dal computer deve ritrovare la tessera colorata sul telefono. */
-  assert.equal(CONFIG_KEYS_REVISION, 49);
+  /* E la 50 con la capacità della batteria di chi non ha profili auto
+   * (`cd_ev_kwh`): la casella si vedeva anche senza vettura ma non aveva dove
+   * salvarsi, e il tempo di fine carica restava sui settanta assunti. Quanti
+   * kilowattora tiene la batteria non cambia col vetro da cui lo si scrive. */
+  assert.equal(CONFIG_KEYS_REVISION, 50);
   assert.ok(
     CONFIG_KEYS.includes("cd_energia_soglia"),
     "la soglia di potenza è dell'impianto, non del vetro da cui la si è scritta",
+  );
+  assert.ok(
+    CONFIG_KEYS.includes("cd_ev_kwh"),
+    "la capacità della batteria è dell'auto di casa, non del dispositivo",
   );
   assert.ok(
     CONFIG_KEYS.includes("cd_home_pastiglie"),

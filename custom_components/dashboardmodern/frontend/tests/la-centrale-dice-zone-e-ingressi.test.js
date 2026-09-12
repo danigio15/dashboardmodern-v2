@@ -28,6 +28,7 @@ import {
   zoneDellaCentrale,
   zoneScritte,
 } from "../src/core/le-zone-della-centrale.js";
+import { centraliAllarme } from "../src/core/alarm-panel.js";
 
 const QUI = dirname(fileURLToPath(import.meta.url));
 const sorgente = (percorso) => readFileSync(join(QUI, "..", percorso), "utf8");
@@ -118,4 +119,64 @@ test("l'area salva le sue zone, e non le perde al salvataggio successivo", () =>
   /* E tutte accese si scrive lasciando vuoto, o un sensore aggiunto domani
    * resterebbe fuori da un elenco compilato oggi. */
   assert.match(scheda, /if \(accese\.length === pastiglie\.length\) return \[\];/);
+});
+
+/* La lettura canonica non spoglia la riga.
+ *
+ * `centraliAllarme` e' il posto da cui leggono tutti — l'editor e la card — e
+ * passava per una normalizzazione che riscriveva la voce con tre campi:
+ * `id`, `nome`, `caselle`. Le zone salvate uscivano da li' sparite, e una
+ * riga senza zone nel modello vuol dire «tutte»: il filtro si vedeva
+ * funzionare fino al primo ridisegno, poi mostrava di nuovo tutto, e il
+ * salvataggio successivo riscriveva le righe spogliate. La prova sta qui e non
+ * dentro il modulo dell'elenco, perche' quello che conta e' che le zone
+ * arrivino a chi disegna. */
+test("le zone e gli ingressi sopravvivono alla lettura della centrale", () => {
+  const salvato = [
+    {
+      id: "centrale",
+      nome: "Casa",
+      caselle: { "dm.alarm_panel": "alarm_control_panel.casa" },
+      [CAMPO_ZONE]: ["binary_sensor.salone", "binary_sensor.cucina"],
+      [CAMPO_INGRESSI]: ["binary_sensor.ingresso"],
+    },
+  ];
+  const [voce] = centraliAllarme(salvato, {}, "centrale");
+  assert.deepEqual(voce[CAMPO_ZONE], ["binary_sensor.salone", "binary_sensor.cucina"]);
+  assert.deepEqual(voce[CAMPO_INGRESSI], ["binary_sensor.ingresso"]);
+  /* E il filtro, che e' cio' a cui servivano, taglia davvero. */
+  const righe = [
+    { entity: "binary_sensor.salone" },
+    { entity: "binary_sensor.cucina" },
+    { entity: "binary_sensor.mansarda" },
+  ];
+  assert.deepEqual(
+    zoneDellaCentrale(righe, voce).map((riga) => riga.entity),
+    ["binary_sensor.salone", "binary_sensor.cucina"],
+  );
+});
+
+/* Chi non dichiara niente continua ad averle tutte: la riga di sopra non
+ * doveva comprare il filtro al prezzo della configurazione zero. */
+test("una centrale che non dichiara niente esce ancora senza campi", () => {
+  const [voce] = centraliAllarme([{ id: "centrale", nome: "Casa", caselle: {} }], {}, "centrale");
+  assert.equal(voce[CAMPO_ZONE], undefined);
+  assert.equal(voce[CAMPO_INGRESSI], undefined);
+});
+
+/* I sommari della card non contano fra quelli a posto chi non risponde.
+ *
+ * I contatori tengono `liberi`, `chiusi` e `muti` proprio per questo, e la card
+ * usava `totale`: con quattro zone tutte scollegate scriveva «4 in quiete». Su
+ * una sezione Sicurezza non e' un'imprecisione, e' dire che una centrale
+ * sorveglia mentre non sta guardando niente. */
+test("i sommari delle zone chiedono i liberi e i muti, non il totale", () => {
+  const sorgente = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "..", "src", "sections", "security-showcase-section.js"),
+    "utf8",
+  );
+  assert.match(sorgente, /zoneSommario\(conto\.attivi, conto\.liberi, conto\.muti\)/);
+  assert.match(sorgente, /ingressiSommario\(varchi\.aperti, varchi\.chiusi, varchi\.muti\)/);
+  assert.doesNotMatch(sorgente, /zoneSommario\(conto\.attivi, conto\.totale\)/);
+  assert.doesNotMatch(sorgente, /ingressiSommario\(varchi\.aperti, ingressi\.length\)/);
 });

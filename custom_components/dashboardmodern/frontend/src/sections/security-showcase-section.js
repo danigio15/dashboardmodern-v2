@@ -123,14 +123,30 @@ const copy = () => ({
   zoneTitolo: t("Zone e ingressi", "Zones and entry points"),
   zone: t("Zone", "Zones"),
   ingressi: t("Ingressi", "Entry points"),
-  zoneSommario: (attive, totale) =>
-    attive
-      ? `${attive}/${totale} ${t("in allarme", "triggered")}`
-      : `${totale} ${t("in quiete", "quiet")}`,
-  ingressiSommario: (aperti, totale) =>
-    aperti
-      ? `${aperti}/${totale} ${t("aperti", "open")}`
-      : `${totale} ${t("chiusi", "closed")}`,
+  /* Chi non risponde non si conta fra quelli a posto.
+   *
+   * E' la stessa regola delle pastiglie qui sotto — un sensore muto e' smorto,
+   * non verde — ma il sommario la tradiva: contava sul TOTALE, e con quattro
+   * zone tutte scollegate scriveva «4 in quiete», «4 chiusi». Su una sezione
+   * Sicurezza quella non e' un'imprecisione: e' presentare come sorvegliata
+   * una centrale che non sta guardando niente. I contatori tengono `liberi`,
+   * `chiusi` e `muti` proprio per questo, e qui si usano quelli. */
+  zoneSommario: (attive, libere, mute) =>
+    [
+      attive ? `${attive} ${t("in allarme", "triggered")}` : "",
+      libere ? `${libere} ${t("in quiete", "quiet")}` : "",
+      mute ? `${mute} ${t("non rispondono", "not answering")}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · "),
+  ingressiSommario: (aperti, chiusi, muti) =>
+    [
+      aperti ? `${aperti} ${t("aperti", "open")}` : "",
+      chiusi ? `${chiusi} ${t("chiusi", "closed")}` : "",
+      muti ? `${muti} ${t("non rispondono", "not answering")}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · "),
   cctv: t("Videosorveglianza", "Video surveillance"),
   rec: "REC",
   live: "LIVE",
@@ -356,12 +372,12 @@ function riquadroDelleZone(zone, ingressi, labels) {
     </div>
     ${fila(
       labels.zone,
-      labels.zoneSommario(conto.attivi, conto.totale),
+      labels.zoneSommario(conto.attivi, conto.liberi, conto.muti),
       zone.map(pastigliaDellaZona).join(""),
     )}
     ${fila(
       labels.ingressi,
-      labels.ingressiSommario(varchi.aperti, ingressi.length),
+      labels.ingressiSommario(varchi.aperti, varchi.chiusi, varchi.muti),
       ingressi.map(pastigliaDellIngresso).join(""),
     )}`;
 }

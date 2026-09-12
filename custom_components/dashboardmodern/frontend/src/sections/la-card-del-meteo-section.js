@@ -38,7 +38,17 @@ import {
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CARD_DEL_METEO__";
-const state = (root[KEY] ||= { installed: false, previsioni: [], chieste: 0, inVolo: false });
+const state = (root[KEY] ||= {
+  installed: false,
+  previsioni: [],
+  chieste: 0,
+  /* Di CHI sono le previsioni che teniamo. Il riposo era uno solo per tutti, e
+   * cambiando l'entita' del meteo le condizioni di adesso passavano subito
+   * mentre i quattro giorni restavano quelli di prima per mezz'ora: due meteo
+   * diversi nella stessa card. */
+  chiestePer: "",
+  inVolo: false,
+});
 
 /* Mezz'ora fra una domanda e l'altra: le previsioni del giorno cambiano due
  * volte, non due volte al minuto. */
@@ -70,9 +80,14 @@ function chiediLePrevisioni() {
   const entita = entitaDelMeteo();
   if (!entita) return;
   const adesso = Date.now();
-  if (state.chieste && adesso - state.chieste < RIPOSO) return;
+  const stessa = state.chiestePer === entita;
+  if (stessa && state.chieste && adesso - state.chieste < RIPOSO) return;
   state.inVolo = true;
   state.chieste = adesso;
+  if (!stessa) {
+    state.chiestePer = entita;
+    state.previsioni = [];
+  }
   chiediAHomeAssistant({
     type: "call_service",
     domain: "weather",

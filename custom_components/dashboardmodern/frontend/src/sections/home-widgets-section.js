@@ -1740,9 +1740,16 @@ function paroleDelSovraccarico(verdetto) {
   return `⚠️ ${t("Sovraccarico", "Overload")} ${dove} · ${formatWatts(verdetto.watt)} / ${formatWatts(verdetto.limite)}`;
 }
 
-function tesseraEnergia(rows, house, today, { key = "energia", label, impianto = "", oggi } = {}) {
+function tesseraEnergia(
+  rows,
+  house,
+  today,
+  { key = "energia", label, impianto = "", oggi, verdetto: dato } = {},
+) {
   if (house == null && !rows.length) return null;
-  const verdetto = sovraccaricoDellaTessera(rows, house);
+  /* Il verdetto si puo' passare da fuori: con una tessera per impianto quello
+   * che conta e' la soglia della CASA, e la casa e' la somma. */
+  const verdetto = dato || sovraccaricoDellaTessera(rows, house);
   const avviso = paroleDelSovraccarico(verdetto);
   return {
     key,
@@ -1799,6 +1806,18 @@ function energyModels(states) {
   if (
     comeSiVedeLEnergia(root.localStorage?.getItem?.(TESSERE_IMPIANTI_KEY)) === TESSERA_PER_IMPIANTO
   ) {
+    /* La soglia e' della CASA, e la casa e' la somma.
+     *
+     * Il numero che si scrive dice «oltre qui salta il contatore», e il
+     * contatore e' uno. Valutarlo un impianto per volta lo sbaglia a meta':
+     * due misuratori che tirano 2 kW l'uno restano in quiete sotto una soglia
+     * di 3,3 kW, mentre la pagina Energia — che somma — dice giustamente che
+     * la casa ne sta tirando 4. Un verdetto solo, portato su ogni tessera: il
+     * colore e le parole dicono la stessa cosa da qualunque parte si guardi. */
+    const dellaCasa = sovraccaricoDellaTessera(
+      sommaLetture(letture.map((lettura) => lettura.rows)),
+      sommaNumeri(letture.map((lettura) => lettura.house)),
+    );
     /* Una per impianto. La prima tiene la chiave di sempre, così l'ordine e la
      * visibilità che si erano già scelti restano suoi; le altre portano il
      * loro id, come fanno le tariffe e i contatori. */
@@ -1809,6 +1828,7 @@ function energyModels(states) {
           label: plantLabel(impianto, indice, t("Impianto", "Plant")),
           impianto: clean(impianto?.id) || PRIMO_IMPIANTO,
           oggi: letture[indice].oggi,
+          verdetto: dellaCasa,
         }),
       )
       .filter(Boolean);

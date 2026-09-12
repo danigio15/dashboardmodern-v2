@@ -187,3 +187,37 @@ test("chi conta il tempo legge la capacità dell'auto in uso", () => {
      una sola in tutta la plancia. */
   assert.match(sorgente, /inKilowattora\(/);
 });
+
+/* Il valore di adesso c'e' sempre, anche quando il passo diradato lo salta.
+ *
+ * Un limite da 0 a 100 col passo di 1 non sta in venticinque voci e il passo
+ * si allarga a cinque: 0, 5, 10... Un target messo a 83 dall'app della
+ * colonnina in quell'elenco non c'era, la tendina non trovava la sua voce e
+ * mostrava la prima — cioe' la plancia scriveva «0%» dove Home Assistant
+ * diceva 83. */
+test("il target che c'e' davvero entra nell'elenco anche fuori dal passo", () => {
+  const { voci, padrone } = vociDelTarget({
+    state: "83",
+    attributes: { min: 0, max: 100, step: 1 },
+  });
+  assert.equal(padrone, true);
+  assert.equal(
+    voci.some((voce) => voce.valore === "83"),
+    true,
+    "il numero scritto sull'entita' deve poter essere scelto",
+  );
+  assert.equal(voceDiAdesso(voci, "83"), "83");
+  /* E resta in ordine, che e' come si legge una tendina di percentuali. */
+  const numeri = voci.map((voce) => Number(voce.valore));
+  assert.deepEqual(numeri, [...numeri].sort((uno, due) => uno - due));
+});
+
+test("un valore fuori dai limiti non si infila nell'elenco", () => {
+  /* Se l'entita' dice 120 su un massimo di 100 il numero e' suo, non nostro:
+   * inventargli una voce vorrebbe dire farlo scegliere. */
+  const { voci } = vociDelTarget({ state: "120", attributes: { min: 0, max: 100, step: 1 } });
+  assert.equal(
+    voci.some((voce) => voce.valore === "120"),
+    false,
+  );
+});

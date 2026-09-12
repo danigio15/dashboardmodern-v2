@@ -98,3 +98,21 @@ test("la card è un vestito: il meteo resta uno, e i suoi nodi li scrive il gusc
   /* Le previsioni si chiedono col riposo: sono previsioni, non misure. */
   assert.match(sorgente, /const RIPOSO = 30 \* 60 \* 1000/);
 });
+
+/* Manca vuol dire manca, non zero.
+ *
+ * `Number(null)` e `Number("")` fanno entrambi zero, e zero e' un numero
+ * finito: un provider che per la minima di un giorno pubblica `null` — capita,
+ * e capita a giorni alterni sullo stesso — si vedeva disegnato come `0°`. Una
+ * previsione di gelo inventata e' peggio di mezza forbice che manca. */
+test("una massima o una minima vuota non diventa zero gradi", () => {
+  const previsioni = [
+    { datetime: "2026-09-13T00:00:00+00:00", condition: "sunny", temperature: 24, templow: null },
+    { datetime: "2026-09-14T00:00:00+00:00", condition: "rainy", temperature: "", templow: 11 },
+  ];
+  const [primo, secondo] = giorniCheVengono(previsioni, 2, Date.parse("2026-09-12T09:00:00Z"));
+  assert.equal(primo.alta, 24);
+  assert.equal(primo.bassa, null, "la minima non c'e', e non e' zero");
+  assert.equal(secondo.alta, null, "nemmeno la massima vuota");
+  assert.equal(secondo.bassa, 11);
+});
