@@ -1413,7 +1413,13 @@ function porteModel(states) {
     accent: aperte.length ? "#dc2626" : serrature.length ? "#16a34a" : "#d97706",
     icon: "🚪",
     alert: aperte.length > 0,
-    label: t("Porte", "Doors"),
+    /* «Porte» dice cosa c'e' dentro, non cosa fa: e cio' che c'e' dentro sono
+     * i comandi che aprono — «alla fine dentro ci si aggiunge i comandi che
+     * sbloccano qualcosa» (#513). Una tessera che si chiama come la cosa che
+     * sorveglia la si confonde coi Varchi, che le porte le guardano davvero.
+     * «Apri porte» e' gia' il nome della pagina che questa tessera apre: erano
+     * due nomi per lo stesso posto, adesso e' uno. */
+    label: t("Apri porte", "Openers"),
     value: String(serrature.length ? aperte.length : doors.length),
     caption: aperte.length
       ? aperte.map(nome).join(" · ")

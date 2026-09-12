@@ -705,7 +705,7 @@ const NOMI_DELLE_VOCI = () => ({
   posta: t("Posta", "Mail"),
   rifiuti: t("Rifiuti", "Waste"),
   sicurezza: t("Sicurezza", "Security"),
-  porte: t("Porte", "Doors"),
+  porte: t("Apri porte", "Openers"),
   varchi: t("Varchi", "Openings"),
   luci: t("Luci", "Lights"),
   tapparelle: t("Finestre", "Windows"),

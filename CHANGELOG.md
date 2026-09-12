@@ -52,6 +52,28 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   stessa cosa con una striscia. Chi non ha scritto niente non si accorge che
   qualcosa è cambiato.
 
+- **Elettrodomestici: scegliere cosa mostrare nella finestra**
+
+  «Negli elettrodomestici poter gestire, esempio negli stati o nei comandi,
+  cosa visualizzare o meno: ci sono cose che magari vengono rilevate ma alla
+  fine graficamente uno può non interessare.»
+
+  Collegare un'integrazione porta dentro tutto quello che il dispositivo
+  pubblica, e un dispositivo moderno pubblica molto: la lavatrice dichiara il
+  programma e i giri, ma anche il numero di serie, la versione del firmware e
+  tre diagnostiche. Rilevarle è giusto — sono davvero sue — mostrarle tutte no.
+
+  Nella scheda dell'apparecchio c'è adesso **Cosa mostrare nella finestra**: le
+  voci dell'apparecchio, una per una, e un tocco le spegne. Restano
+  configurate; smettono di comparire. E spariscono da tutte le file insieme —
+  fra le misure, fra gli stati e fra i comandi — perché è la stessa entità:
+  toglierla da una sola avrebbe fatto sparire la scritta lasciando il bottone.
+
+  Si scrive quello che si nasconde, non quello che si mostra: chi non tocca
+  niente vede esattamente quello che vedeva prima, e un'entità nuova che
+  l'integrazione pubblica domani compare da sola invece di restare invisibile
+  perché non era in un elenco scritto ieri.
+
 - **La capacità della batteria della vettura, nella scheda Auto**
 
   Serve a una cosa sola e la fa bene: dire quanto manca alla fine della carica.
@@ -77,6 +99,18 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   non si comanda affatto. Spenta l'ultima, la finestra si chiude. Le pastiglie
   che raccontano una cosa sola — il ritiro dei rifiuti, l'antifurto, le quattro
   misure — continuano ad aprire la loro tessera.
+
+- **La tessera «Porte» si chiama «Apri porte»**
+
+  «Questa dove dice Porte credo sia più corretto dire Apri Porte o Comandi
+  Porte: alla fine dentro ci si aggiunge i comandi che sbloccano qualcosa.»
+
+  «Porte» diceva cosa c'è dentro, non cosa fa — e quello che c'è dentro sono i
+  comandi che aprono. Una tessera chiamata come la cosa che sorveglia si
+  confondeva con i Varchi, che le porte le guardano davvero. «Apri porte» era
+  già il nome della pagina che quella tessera apre: erano due nomi per lo
+  stesso posto, adesso è uno. Cambia anche la pastiglia nella barra sotto il
+  meteo e la voce con cui si spegne la tessera.
 
 ### Corretto
 

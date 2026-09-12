@@ -80,7 +80,9 @@ test("le porte hanno una tessera loro, accanto alla Sicurezza", async ({ page },
 
   const porte = page.locator('.dm-tile[data-dm-widget="porte"]').first();
   await expect(porte).toBeVisible({ timeout: 20_000 });
-  await expect(porte).toContainText("Porte");
+  /* «Apri porte» dice cosa fa, non cosa sorveglia (#513): e' il nome della
+     pagina che questa tessera apre. */
+  await expect(porte).toContainText("Apri porte");
   /* Il disegno è il nostro, non un'emoji del sistema. */
   await expect(porte.locator("svg.dm-oggetto")).toBeAttached();
 

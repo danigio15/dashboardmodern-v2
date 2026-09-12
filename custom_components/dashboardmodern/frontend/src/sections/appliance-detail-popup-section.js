@@ -27,6 +27,7 @@ import {
   elencoLetture,
   lettureDelDispositivo as lettureScelte,
 } from "../core/letture-accanto.js";
+import { soloQuelleViste } from "../core/le-voci-nascoste.js";
 import {
   applianceModelForIndex,
   buildCardMarkup,
@@ -225,7 +226,16 @@ function famiglie(appliance) {
     const acceso = /^(on|open|aperto|running|cleaning|heat|cool)$/i.test(grezzo);
     pillole.push({ entity, nome: nomeInParole(nome, token), acceso, valore: grezzo });
   }
-  return { misure: misure.slice(0, 12), pillole: pillole.slice(0, 12), comandi };
+  /* E si toglie quello che chi possiede l'apparecchio ha detto di non voler
+   * vedere (#512). Si filtra qui, in fondo, e non entrata per entrata: cosi'
+   * la stessa entita' sparisce da tutte e tre le file — la misura, la pillola
+   * e il tasto — invece che da quella in cui e' capitato di ricordarsene. */
+  const viste = (elenco) => soloQuelleViste(elenco, appliance);
+  return {
+    misure: viste(misure).slice(0, 12),
+    pillole: viste(pillole).slice(0, 12),
+    comandi: viste(comandi),
+  };
 }
 
 /* I tasti della card, dentro la finestra.
@@ -498,9 +508,15 @@ function tastoDelComandoExtra(voce) {
  * Stanno sopra i comandi: si guardano, non si toccano, e chi apre la finestra
  * legge prima di premere. */
 function aggiungiAltreLetture(lista, appliance, titoletto) {
-  const voci = lettureScelte(
-    { ...apparecchioDeiComandi(appliance), letture: appliance?.letture },
-    allStates(),
+  /* Anche una lettura scelta a mano si puo' non voler vedere (#512): l'elenco
+   * di cio' che si nasconde vale per tutta la finestra, non per le sole voci
+   * che ci sono arrivate dall'integrazione. */
+  const voci = soloQuelleViste(
+    lettureScelte(
+      { ...apparecchioDeiComandi(appliance), letture: appliance?.letture },
+      allStates(),
+    ),
+    appliance,
   );
   if (!voci.length) return false;
   lista.append(titoletto(t("Altre letture", "Other readings")));
@@ -520,7 +536,10 @@ function aggiungiAltreLetture(lista, appliance, titoletto) {
 }
 
 function aggiungiAltriComandi(lista, appliance, titoletto) {
-  const voci = comandiScelti(apparecchioDeiComandi(appliance), allStates());
+  const voci = soloQuelleViste(
+    comandiScelti(apparecchioDeiComandi(appliance), allStates()),
+    appliance,
+  );
   if (!voci.length) return false;
   lista.append(titoletto(t("Altri comandi", "Other commands")));
   for (const voce of voci) {
@@ -626,7 +645,7 @@ function vesteIntegrazione(lista, appliance, giaMostrate, titoletto) {
     readOnly: false,
   });
   const nuove = (voci) => voci.filter((voce) => !voce.mapped);
-  const stato = nuove(gruppi.state);
+  const stato = soloQuelleViste(nuove(gruppi.state), appliance);
   /* Un'entita' scelta come «altro comando» (#338) esce di li' e basta: e' la
    * stessa entita', e disegnarla due volte — una fra i comandi del dispositivo
    * e una fra quelli scelti — sarebbe la stessa cosa detta due volte, con due
@@ -638,11 +657,17 @@ function vesteIntegrazione(lista, appliance, giaMostrate, titoletto) {
    * due volte nella stessa finestra, a due caselle di distanza — e chi legge
    * due caselle uguali pensa che siano due sonde. */
   const scelteDaLeggere = new Set(elencoLetture(appliance?.letture));
-  const letture = nuove(gruppi.readings).filter((voce) => !scelteDaLeggere.has(voce.entity));
-  const comandi = gruppi.controls.filter(
+  /* E si toglie quello che si e' scelto di non vedere (#512): un dispositivo
+   * moderno pubblica anche il numero di serie e tre diagnostiche, e chi le
+   * nasconde le vuole nascoste in ogni fila di questa finestra. */
+  const viste = (elenco) => soloQuelleViste(elenco, appliance);
+  const letture = viste(nuove(gruppi.readings)).filter(
+    (voce) => !scelteDaLeggere.has(voce.entity),
+  );
+  const comandi = viste(gruppi.controls).filter(
     (voce) => !scelti.has(voce.entity) && (!voce.mapped || voce.control?.kind !== "toggle"),
   );
-  const diagnostica = gruppi.diagnostics.filter((voce) => !scelti.has(voce.entity));
+  const diagnostica = viste(gruppi.diagnostics).filter((voce) => !scelti.has(voce.entity));
   if (
     !stato.length &&
     !letture.length &&

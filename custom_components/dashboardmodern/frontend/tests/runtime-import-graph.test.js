@@ -1227,8 +1227,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // posto dove la si scrive, dentro le impostazioni dell'Energia. Due file,
   // perche' la regola dev'essere provabile senza aprire una scheda: la tessera
   // in Home la legge da sola, e non passa di qui.
+  // 353 con l'elenco di cio' che un apparecchio non vuole mostrare (#512): un
+  // file solo, perche' e' una domanda sola — «questa entita' si vede?» — e la
+  // fanno la finestra e la scheda, che esistono gia' tutte e due.
   assert.ok(
-    relative.length <= 352,
+    relative.length <= 353,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
