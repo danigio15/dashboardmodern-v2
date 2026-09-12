@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — 設定済み",
+  "1 on · tap to turn off": "1 個オン · タップで消灯",
   "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "読み取れるエンティティが必要です：sensor.*、binary_sensor.*、number.*、input_number、input_text。",
   "Above the threshold the Energy tile on Home changes colour: amber to keep an eye on it, red for an overload. Leave a field empty to skip it.": "しきい値を超えるとホームのエネルギーカードの色が変わります。注意はアンバー、過負荷は赤です。使わない項目は空欄のままにしてください。",
   "Add reading": "計測値を追加",
@@ -538,7 +539,6 @@ export default Object.freeze({
   "CCTV offline": "監視カメラはオフライン",
   "CIRCLES UNDER HOME": "ホームの下の円",
   "CLIMATE SYSTEM": "空調システム",
-  "CLOSE": "閉じる",
   "CLOSED": "閉",
   "CONFIGURATION": "設定",
   "CONNECTED": "接続中",
@@ -3207,6 +3207,7 @@ export default Object.freeze({
   "on out of": "オン／",
   "on the page now": "いまページに表示中",
   "on this device": "この端末に",
+  "on · tap to turn off": "個オン · タップで消灯",
   "one of the two took it from the other, and from here there is no way to know which.": "どちらかがもう一方から取り込んだものですが、ここからはどちらかを知る方法がありません。",
   "one or more entities": "1 つ以上のエンティティ",
   "only used when there is no total meter: when there is one, it wins": "積算メーターがない場合にだけ使われます。ある場合はそちらが優先されます",

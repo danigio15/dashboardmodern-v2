@@ -511,14 +511,25 @@ function finestra() {
   if (nodo) return nodo;
   nodo = doc.createElement("div");
   nodo.id = POPUP;
-  nodo.className = "modal-wrapper";
-  nodo.innerHTML = `<div class="modal-card details-content">
-      <div class="ev-waw-header">
-        <h3 class="ev-waw-title" data-dm-casa-titolo></h3>
-        <div class="ev-waw-close" data-dm-casa-chiudi>✕ ${esc(t("CHIUDI", "CLOSE"))}</div>
-      </div>
-      <div class="details-list dm-casa-elenco" data-dm-casa-elenco></div>
-    </div>`;
+  nodo.hidden = true;
+  /* La veste e' quella delle altre finestre della plancia — l'intestazione col
+   * disegno, il titolo e il tasto che chiude, il corpo che scorre sotto — e non
+   * si riscrive qui: le regole stanno nel foglio del ponte dei widget, che le
+   * dichiara per «una finestra della plancia» e non per la sua soltanto.
+   * Riscriverle sarebbe due vesti che si scollano alla prima ritoccata.
+   *
+   * Quello che cambia e' cio' che c'e' dentro: qui non c'e' la tessera aperta,
+   * ci sono le cose accese e i tasti per spegnerle — «devi mostrare solo quelli
+   * accesi e non una replica del popup widget». */
+  nodo.innerHTML = `<article class="dm-widget-detail" data-dm-casa-scheda>
+      <header class="dm-w-head">
+        <button type="button" class="dm-w-close" data-dm-casa-chiudi aria-label="${esc(t("Chiudi", "Close"))}"><span aria-hidden="true">✕</span> ${esc(t("Chiudi", "Close"))}</button>
+        <span class="dm-w-head-ic" aria-hidden="true" data-dm-casa-faccia></span>
+        <strong data-dm-casa-titolo></strong>
+        <small data-dm-casa-sotto></small>
+      </header>
+      <div class="dm-w-body dm-casa-elenco" data-dm-casa-elenco></div>
+    </article>`;
   doc.body.append(nodo);
   return nodo;
 }
@@ -564,12 +575,26 @@ export function disegnaLElenco() {
   const chiave = clean(state.elenco);
   if (!chiave) return false;
   const nodo = doc?.getElementById?.(POPUP);
-  if (!nodo || !nodo.classList.contains("show")) return false;
+  if (!nodo || nodo.hidden) return false;
   const pastiglia = pastigliaDiChiave(chiave);
   const voci = vociDellaPastiglia(pastiglia);
   const titolo = nodo.querySelector("[data-dm-casa-titolo]");
   const elenco = nodo.querySelector("[data-dm-casa-elenco]");
+  const faccia = nodo.querySelector("[data-dm-casa-faccia]");
+  const sotto = nodo.querySelector("[data-dm-casa-sotto]");
   if (!titolo || !elenco) return false;
+  /* Il disegno e' quello della pastiglia che si e' toccata, che e' quello
+   * della sua tessera: chi ha toccato la lampadina la ritrova in cima. */
+  if (faccia && pastiglia) {
+    const disegno = facciaDellaPastiglia(pastiglia);
+    if (faccia.innerHTML !== disegno) faccia.innerHTML = disegno;
+  }
+  /* E l'accento: la finestra prende il colore della cosa che racconta, come
+   * fa la tessera aperta. */
+  const tinta = clean(pastiglia?.tinta) || "#0ea5e9";
+  const scheda = nodo.querySelector("[data-dm-casa-scheda]");
+  if (scheda && scheda.style.getPropertyValue("--dm-widget-accent") !== tinta)
+    scheda.style.setProperty("--dm-widget-accent", tinta);
   /* Il titolo e' quello che dice la pastiglia: «2 luci accese». Chi ha toccato
    * quella frase deve ritrovarla in cima, o non sa di aver aperto lei. */
   const { testa, coda } = pastiglia
@@ -584,6 +609,13 @@ export function disegnaLElenco() {
     chiudiLElenco();
     return false;
   }
+  if (sotto) {
+    const briciola =
+      voci.length === 1
+        ? t("1 acceso · tocca per spegnere", "1 on · tap to turn off")
+        : `${voci.length} ${t("accesi · tocca per spegnere", "on · tap to turn off")}`;
+    if (sotto.textContent !== briciola) sotto.textContent = briciola;
+  }
   const disegno = voci.map((voce) => rigaDellElenco(voce, states)).join("");
   if (elenco.innerHTML !== disegno) elenco.innerHTML = disegno;
   return true;
@@ -593,7 +625,10 @@ export function apriLElenco(chiave) {
   const pastiglia = pastigliaDiChiave(chiave);
   if (!haUnElenco(pastiglia)) return false;
   state.elenco = clean(chiave);
-  finestra().classList.add("show");
+  finestra().hidden = false;
+  /* Dietro non si scorre, come per la finestra delle tessere: e' la stessa
+   * classe, e la mette e la toglie chi apre. */
+  doc?.documentElement?.classList?.add("dm-widget-popup-open");
   disegnaLElenco();
   try {
     root.navigator?.vibrate?.(10);
@@ -603,7 +638,9 @@ export function apriLElenco(chiave) {
 
 export function chiudiLElenco() {
   state.elenco = "";
-  doc?.getElementById?.(POPUP)?.classList.remove("show");
+  const nodo = doc?.getElementById?.(POPUP);
+  if (nodo) nodo.hidden = true;
+  doc?.documentElement?.classList?.remove("dm-widget-popup-open");
   return true;
 }
 
@@ -633,7 +670,7 @@ function spegni(entita) {
 
 function onClickElenco(event) {
   const nodo = doc?.getElementById?.(POPUP);
-  if (!nodo || !nodo.classList.contains("show")) return;
+  if (!nodo || nodo.hidden) return;
   const dentro = event.target?.closest?.(`#${POPUP}`);
   if (!dentro) return;
   if (event.target.closest("[data-dm-casa-chiudi]") || event.target === nodo) {

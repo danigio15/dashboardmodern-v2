@@ -28,7 +28,7 @@ test("una conferma sta sopra a chi la chiede", () => {
   assert.match(ponte, /#confirm-modal,#custom-keypad,#dm-door-keypad\{z-index:10050!important\}/);
   /* E la finestra resta dov'era: alzare lei avrebbe spostato il problema al
    * prossimo velo che nasce dopo. */
-  assert.match(ponte, /#dm-widget-popup\{[\s\S]{0,80}z-index:9999/);
+  assert.match(ponte, /:is\(#dm-widget-popup,#dm-casa-popup\)\{[\s\S]{0,80}z-index:9999/);
 });
 
 test("la doppia conferma si può spegnere, il PIN no", async () => {

@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — yapılandırıldı",
+  "1 on · tap to turn off": "1 açık · kapatmak için dokun",
   "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "Okunabilir bir varlık gerekir: sensor.*, binary_sensor.*, number.*, input_number veya input_text.",
   "Above the threshold the Energy tile on Home changes colour: amber to keep an eye on it, red for an overload. Leave a field empty to skip it.": "Eşiğin üzerinde Ana ekrandaki Enerji kartı renk değiştirir: göz kulak olmak için kehribar, aşırı yük için kırmızı. Kullanmamak için bir alanı boş bırakın.",
   "Add reading": "Ölçüm ekle",
@@ -538,7 +539,6 @@ export default Object.freeze({
   "CCTV offline": "Kamera çevrimdışı",
   "CIRCLES UNDER HOME": "EV ALTINDAKİ DAİRELER",
   "CLIMATE SYSTEM": "İKLİM SİSTEMİ",
-  "CLOSE": "KAPAT",
   "CLOSED": "KAPALI",
   "CONFIGURATION": "YAPILANDIRMA",
   "CONNECTED": "BAĞLI",
@@ -3207,6 +3207,7 @@ export default Object.freeze({
   "on out of": "açık /",
   "on the page now": "şu an sayfada",
   "on this device": "bu cihazda",
+  "on · tap to turn off": "açık · kapatmak için dokun",
   "one of the two took it from the other, and from here there is no way to know which.": "ikisinden biri onu diğerinden almış, ve buradan hangisi olduğu anlaşılamıyor.",
   "one or more entities": "bir ya da daha çok varlık",
   "only used when there is no total meter: when there is one, it wins": "yalnızca toplam sayaç yokken kullanılır: varsa o üstün gelir",

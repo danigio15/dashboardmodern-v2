@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — настроена",
+  "1 on · tap to turn off": "1 включено · нажмите, чтобы выключить",
   "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "Нужна сущность, которую можно читать: sensor.*, binary_sensor.*, number.*, input_number или input_text.",
   "Above the threshold the Energy tile on Home changes colour: amber to keep an eye on it, red for an overload. Leave a field empty to skip it.": "Выше порога плитка «Энергия» на главном экране меняет цвет: янтарный — приглядеться, красный — перегрузка. Оставьте поле пустым, чтобы его не использовать.",
   "Add reading": "Добавить показание",
@@ -538,7 +539,6 @@ export default Object.freeze({
   "CCTV offline": "Видеонаблюдение не в сети",
   "CIRCLES UNDER HOME": "КРУГИ ПОД ДОМОМ",
   "CLIMATE SYSTEM": "СИСТЕМА КЛИМАТА",
-  "CLOSE": "ЗАКРЫТЬ",
   "CLOSED": "ЗАКРЫТА",
   "CONFIGURATION": "НАСТРОЙКА",
   "CONNECTED": "ЕСТЬ СВЯЗЬ",
@@ -3207,6 +3207,7 @@ export default Object.freeze({
   "on out of": "включено из",
   "on the page now": "сейчас на странице",
   "on this device": "на этом устройстве",
+  "on · tap to turn off": "включено · нажмите, чтобы выключить",
   "one of the two took it from the other, and from here there is no way to know which.": "одна из двух взяла его у другой, и отсюда не узнать, какая именно.",
   "one or more entities": "одну или несколько сущностей",
   "only used when there is no total meter: when there is one, it wins": "используется только при отсутствии суммарного счётчика: если он есть, побеждает он",

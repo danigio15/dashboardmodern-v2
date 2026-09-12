@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — 已配置",
+  "1 on · tap to turn off": "1 项开启 · 轻触关闭",
   "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "需要一个可读取的实体：sensor.*、binary_sensor.*、number.*、input_number 或 input_text。",
   "Above the threshold the Energy tile on Home changes colour: amber to keep an eye on it, red for an overload. Leave a field empty to skip it.": "超过阈值后，首页的能源磁贴会变色：琥珀色表示留意，红色表示过载。留空即不启用该项。",
   "Add reading": "添加读数",
@@ -538,7 +539,6 @@ export default Object.freeze({
   "CCTV offline": "监控离线",
   "CIRCLES UNDER HOME": "首页下方的圆圈",
   "CLIMATE SYSTEM": "冷暖系统",
-  "CLOSE": "关闭",
   "CLOSED": "已关",
   "CONFIGURATION": "设置",
   "CONNECTED": "已连接",
@@ -3207,6 +3207,7 @@ export default Object.freeze({
   "on out of": "开，共",
   "on the page now": "当前在页面上",
   "on this device": "在本设备上",
+  "on · tap to turn off": "项开启 · 轻触关闭",
   "one of the two took it from the other, and from here there is no way to know which.": "两者之一是从对方那里拿来的，而在这里无从知道是哪一个。",
   "one or more entities": "一个或多个实体",
   "only used when there is no total meter: when there is one, it wins": "仅在没有总表时使用；有总表时以总表为准",

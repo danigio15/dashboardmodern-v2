@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — कॉन्फ़िगर किया गया",
+  "1 on · tap to turn off": "1 चालू · बंद करने के लिए स्पर्श करें",
   "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "पढ़ी जा सकने वाली एंटिटी चाहिए: sensor.*, binary_sensor.*, number.*, input_number या input_text.",
   "Above the threshold the Energy tile on Home changes colour: amber to keep an eye on it, red for an overload. Leave a field empty to skip it.": "सीमा से ऊपर होम पर ऊर्जा टाइल का रंग बदल जाता है: नज़र रखने के लिए अंबर, अधिभार के लिए लाल। किसी फ़ील्ड को छोड़ने के लिए उसे ख़ाली रखें।",
   "Add reading": "रीडिंग जोड़ें",
@@ -538,7 +539,6 @@ export default Object.freeze({
   "CCTV offline": "सीसीटीवी ऑफ़लाइन",
   "CIRCLES UNDER HOME": "घर के नीचे के घेरे",
   "CLIMATE SYSTEM": "जलवायु प्रणाली",
-  "CLOSE": "बंद करें",
   "CLOSED": "बंद",
   "CONFIGURATION": "कॉन्फ़िगरेशन",
   "CONNECTED": "जुड़ा है",
@@ -3207,6 +3207,7 @@ export default Object.freeze({
   "on out of": "चालू, कुल",
   "on the page now": "अभी पेज पर",
   "on this device": "इस डिवाइस पर",
+  "on · tap to turn off": "चालू · बंद करने के लिए स्पर्श करें",
   "one of the two took it from the other, and from here there is no way to know which.": "दोनों में से एक ने इसे दूसरे से लिया है, और यहाँ से यह जानना संभव नहीं कि कौन-सा।",
   "one or more entities": "एक या अधिक इकाइयाँ",
   "only used when there is no total meter: when there is one, it wins": "केवल तब उपयोग होता है जब कुल मीटर न हो: यदि हो तो वही मान्य है",

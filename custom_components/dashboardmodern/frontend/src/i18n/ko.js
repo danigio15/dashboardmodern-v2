@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — 설정됨",
+  "1 on · tap to turn off": "1개 켜짐 · 눌러서 끄기",
   "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "읽을 수 있는 엔티티가 필요합니다: sensor.*, binary_sensor.*, number.*, input_number 또는 input_text.",
   "Above the threshold the Energy tile on Home changes colour: amber to keep an eye on it, red for an overload. Leave a field empty to skip it.": "임계값을 넘으면 홈의 에너지 타일 색이 바뀝니다. 주의는 호박색, 과부하는 빨간색입니다. 사용하지 않을 항목은 비워 두세요.",
   "Add reading": "측정값 추가",
@@ -538,7 +539,6 @@ export default Object.freeze({
   "CCTV offline": "CCTV 오프라인",
   "CIRCLES UNDER HOME": "홈 아래의 원",
   "CLIMATE SYSTEM": "냉난방 시스템",
-  "CLOSE": "닫기",
   "CLOSED": "닫힘",
   "CONFIGURATION": "설정",
   "CONNECTED": "연결됨",
@@ -3207,6 +3207,7 @@ export default Object.freeze({
   "on out of": "켜짐 /",
   "on the page now": "지금 페이지에",
   "on this device": "이 기기에",
+  "on · tap to turn off": "개 켜짐 · 눌러서 끄기",
   "one of the two took it from the other, and from here there is no way to know which.": "둘 중 하나가 다른 쪽에서 가져온 것인데, 여기서는 어느 쪽인지 알 수 없습니다.",
   "one or more entities": "하나 이상의 엔티티",
   "only used when there is no total meter: when there is one, it wins": "누적 계량기가 없을 때만 씁니다. 있으면 그쪽이 우선합니다",

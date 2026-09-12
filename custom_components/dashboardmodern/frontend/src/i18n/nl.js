@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — geconfigureerd",
+  "1 on · tap to turn off": "1 aan · tik om uit te zetten",
   "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "Er is een leesbare entiteit nodig: sensor.*, binary_sensor.*, number.*, input_number of input_text.",
   "Above the threshold the Energy tile on Home changes colour: amber to keep an eye on it, red for an overload. Leave a field empty to skip it.": "Boven de drempel verandert de Energie-tegel op Home van kleur: amber om in de gaten te houden, rood bij overbelasting. Laat een veld leeg om het over te slaan.",
   "Add reading": "Meetwaarde toevoegen",
@@ -538,7 +539,6 @@ export default Object.freeze({
   "CCTV offline": "Camerabewaking offline",
   "CIRCLES UNDER HOME": "CIRKELS ONDER THUIS",
   "CLIMATE SYSTEM": "KLIMAATSYSTEEM",
-  "CLOSE": "SLUITEN",
   "CLOSED": "DICHT",
   "CONFIGURATION": "CONFIGURATIE",
   "CONNECTED": "VERBONDEN",
@@ -3207,6 +3207,7 @@ export default Object.freeze({
   "on out of": "aan van",
   "on the page now": "nu op de pagina",
   "on this device": "op dit apparaat",
+  "on · tap to turn off": "aan · tik om uit te zetten",
   "one of the two took it from the other, and from here there is no way to know which.": "een van de twee heeft hem van de ander overgenomen, en van hieruit is niet te zien welke.",
   "one or more entities": "een of meer entiteiten",
   "only used when there is no total meter: when there is one, it wins": "wordt alleen gebruikt als er geen totaalmeter is: is die er wel, dan wint die",

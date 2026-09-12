@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   " — configured": " — configurée",
+  "1 on · tap to turn off": "1 allumé · touche pour éteindre",
   "A readable entity is required: sensor.*, binary_sensor.*, number.*, input_number or input_text.": "Il faut une entité qui se lit : sensor.*, binary_sensor.*, number.*, input_number ou input_text.",
   "Above the threshold the Energy tile on Home changes colour: amber to keep an eye on it, red for an overload. Leave a field empty to skip it.": "Au-delà du seuil, la tuile Énergie de l'accueil change de couleur : ambre pour la surveiller, rouge pour la surcharge. Laisse un champ vide pour ne pas l'utiliser.",
   "Add reading": "Ajouter une mesure",
@@ -538,7 +539,6 @@ export default Object.freeze({
   "CCTV offline": "CCTV hors ligne",
   "CIRCLES UNDER HOME": "CERCLES SOUS MAISON",
   "CLIMATE SYSTEM": "SYSTÈME DE CLIMATISATION",
-  "CLOSE": "FERMER",
   "CLOSED": "FERMÉ",
   "CONFIGURATION": "CONFIGURATION",
   "CONNECTED": "CONNECTÉ",
@@ -3207,6 +3207,7 @@ export default Object.freeze({
   "on out of": "allumées sur",
   "on the page now": "à l'écran maintenant",
   "on this device": "sur cet appareil",
+  "on · tap to turn off": "allumés · touche pour éteindre",
   "one of the two took it from the other, and from here there is no way to know which.": "l'un des deux l'a pris à l'autre, et d'ici il n'y a aucun moyen de savoir lequel.",
   "one or more entities": "une ou plusieurs entités",
   "only used when there is no total meter: when there is one, it wins": "utilisé seulement s'il n'y a pas de compteur total : s'il y en a un, c'est lui qui l'emporte",
