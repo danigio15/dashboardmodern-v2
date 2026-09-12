@@ -56,7 +56,7 @@
     },
     "plancia_senza_elenco_plance": {
       "title": "“{plancia}” varsayılan panel olarak seçilemiyor",
-      "description": "Home Assistant, panel listesini bu entegrasyonun baktığı yerde sunmuyor ve sorun YAML kipi değil: orada bir panel oluşturulabilirdi. Bu bizim sorunumuz, senin yapılandırmanın değil — configuration.yaml dosyanda aranacak bir şey yok. “{plancia}” her zamanki gibi kenar çubuğundan erişilebilir durumda: bozuk değil, yalnızca kendini varsayılan olarak kaydedemiyor. Home Assistant günlüğünde, bunun yerine ne bulunduğunu söyleyen bir DashboardModern satırı var: bir hata bildiriminde bu satırı aktar, düzeltelim. Bu arada varsayılan panel çalışıyorsa bu uyarı eskimiştir, yok sayabilirsin."
+      "description": "Home Assistant, panel listesini bu entegrasyonun baktığı yerde sunmuyor. Sorun YAML kipi değil: Lovelace'in normal kipte çalışıyor, yani bir panel pekâlâ oluşturulabilirdi — liste yalnızca baktığımız yerde değil. Bu bizim sorunumuz, senin yapılandırmanın değil: configuration.yaml dosyanda aranacak bir şey yok. “{plancia}” her zamanki gibi kenar çubuğundan erişilebilir durumda: bozuk değil, yalnızca kendini varsayılan olarak kaydedemiyor. Home Assistant günlüğünde, listenin yerine ne bulunduğunu söyleyen bir DashboardModern satırı var: bir hata bildiriminde bu satırı aktar, düzeltelim. Bu arada varsayılan panel çalışıyorsa bu uyarı eskimiştir, yok sayabilirsin."
     }
   },
   "entity": {

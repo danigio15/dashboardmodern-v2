@@ -56,7 +56,7 @@
     },
     "plancia_senza_elenco_plance": {
       "title": "„{plancia}“ kann nicht als Standard-Dashboard gewählt werden",
-      "description": "Home Assistant stellt die Dashboard-Liste nicht dort bereit, wo diese Integration sie sucht, und es liegt nicht am YAML-Modus: dort ließe sich ein Dashboard anlegen. Das liegt an uns, nicht an deiner Konfiguration – in deiner configuration.yaml gibt es nichts zu suchen. „{plancia}“ bleibt wie immer über die Seitenleiste erreichbar: es ist nicht kaputt, es kann sich nur nicht selbst als Standard eintragen. Im Home-Assistant-Protokoll steht eine DashboardModern-Zeile mit dem, was stattdessen gefunden wurde: gib sie in einem Fehlerbericht an, dann beheben wir es. Wenn das Standard-Dashboard inzwischen funktioniert, ist dieser Hinweis veraltet und kann ignoriert werden."
+      "description": "Home Assistant stellt die Dashboard-Liste nicht dort bereit, wo diese Integration sie sucht. Es liegt nicht am YAML-Modus: deine Lovelace läuft im normalen Modus, ein Dashboard ließe sich also problemlos anlegen – die Liste ist nur nicht dort, wo wir suchen. Das liegt an uns, nicht an deiner Konfiguration: in deiner configuration.yaml gibt es nichts zu suchen. „{plancia}“ bleibt wie immer über die Seitenleiste erreichbar: es ist nicht kaputt, es kann sich nur nicht selbst als Standard eintragen. Im Home-Assistant-Protokoll steht eine DashboardModern-Zeile mit dem, was statt der Liste gefunden wurde: gib sie in einem Fehlerbericht an, dann beheben wir es. Wenn das Standard-Dashboard inzwischen funktioniert, ist dieser Hinweis veraltet und kann ignoriert werden."
     }
   },
   "entity": {

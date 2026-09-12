@@ -56,7 +56,7 @@
     },
     "plancia_senza_elenco_plance": {
       "title": "«{plancia}» non si può scegliere come plancia predefinita",
-      "description": "Home Assistant non sta esponendo l'elenco delle plance dove la plancia lo cerca, e non è il modo YAML: lì le plance si potrebbero creare. È un problema nostro, non della tua configurazione — non cercare niente nel tuo configuration.yaml. «{plancia}» resta raggiungibile dalla barra laterale come sempre: non è rotta, semplicemente non riesce a registrarsi da sola come predefinita. Nel registro di Home Assistant c'è una riga di DashboardModern che dice cosa ha trovato al suo posto: riportala in una segnalazione e la correggiamo. Se nel frattempo la plancia predefinita funziona, questo avviso è vecchio e si può ignorare."
+      "description": "Home Assistant non sta esponendo l'elenco delle plance dove la plancia lo cerca. Non è il modo YAML: la tua Lovelace è in modo normale, quindi una plancia si potrebbe creare benissimo — l'elenco semplicemente non è dove lo cerchiamo. È un problema nostro, non della tua configurazione: non c'è niente da cercare nel tuo configuration.yaml. «{plancia}» resta raggiungibile dalla barra laterale come sempre: non è rotta, semplicemente non riesce a registrarsi da sola come predefinita. Nel registro di Home Assistant c'è una riga di DashboardModern che dice cosa ha trovato al posto dell'elenco: riportala in una segnalazione e la correggiamo. Se intanto la plancia predefinita funziona, questo avviso è vecchio e si può ignorare."
     }
   },
   "entity": {

@@ -56,7 +56,7 @@
     },
     "plancia_senza_elenco_plance": {
       "title": "«{plancia}» no se puede elegir como panel predeterminado",
-      "description": "Home Assistant no está exponiendo la lista de paneles donde esta integración la busca, y no es el modo YAML: ahí sí se podría crear un panel. Es cosa nuestra, no de tu configuración — no hay nada que buscar en tu configuration.yaml. «{plancia}» sigue siendo accesible desde la barra lateral como siempre: no está rota, simplemente no consigue registrarse sola como predeterminada. En el registro de Home Assistant hay una línea de DashboardModern que dice qué encontró en su lugar: cítala en un informe y lo corregimos. Si mientras tanto el panel predeterminado funciona, este aviso es viejo y se puede ignorar."
+      "description": "Home Assistant no está exponiendo la lista de paneles donde esta integración la busca. No es el modo YAML: tu Lovelace está en modo normal, así que un panel se podría crear perfectamente — la lista simplemente no está donde la buscamos. Es cosa nuestra, no de tu configuración: no hay nada que buscar en tu configuration.yaml. «{plancia}» sigue siendo accesible desde la barra lateral como siempre: no está rota, simplemente no consigue registrarse sola como predeterminada. En el registro de Home Assistant hay una línea de DashboardModern que dice qué encontró en lugar de la lista: cítala en un informe y lo corregimos. Si mientras tanto el panel predeterminado funciona, este aviso es viejo y se puede ignorar."
     }
   },
   "entity": {

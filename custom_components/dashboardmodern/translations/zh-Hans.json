@@ -56,7 +56,7 @@
     },
     "plancia_senza_elenco_plance": {
       "title": "无法将“{plancia}”选为默认仪表板",
-      "description": "Home Assistant 没有在本集成查找的位置提供仪表板列表，而且原因不是 YAML 模式：在那种模式下仪表板是可以创建的。这是我们的问题，不是你的配置问题——不必去 configuration.yaml 里找什么。“{plancia}”仍像往常一样可以从侧边栏打开：它没有坏，只是无法把自己注册为默认。Home Assistant 日志里有一行 DashboardModern 的记录，说明它在那里找到了什么：把这一行附在问题反馈里，我们来修。如果此刻默认仪表板已经可用，那么这条提示已经过期，可以忽略。"
+      "description": "Home Assistant 没有在本集成查找的位置提供仪表板列表。原因不是 YAML 模式：你的 Lovelace 处于普通模式，本来是可以创建仪表板的——只是这份列表不在我们查找的位置。这是我们的问题，不是你的配置问题：不必去 configuration.yaml 里找什么。“{plancia}”仍像往常一样可以从侧边栏打开：它没有坏，只是无法把自己注册为默认。Home Assistant 日志里有一行 DashboardModern 的记录，说明它在那里找到了什么来代替列表：把这一行附在问题反馈里，我们来修。如果此刻默认仪表板已经可用，那么这条提示已经过期，可以忽略。"
     }
   },
   "entity": {

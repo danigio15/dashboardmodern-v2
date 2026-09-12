@@ -56,7 +56,7 @@
     },
     "plancia_senza_elenco_plance": {
       "title": "„{plancia}” nie może zostać wybrany jako domyślny pulpit",
-      "description": "Home Assistant nie udostępnia listy pulpitów w miejscu, w którym ta integracja jej szuka, i nie chodzi o tryb YAML: tam pulpit dałoby się utworzyć. To nasza sprawa, nie twojej konfiguracji — w configuration.yaml nie ma czego szukać. „{plancia}” nadal jest dostępny z paska bocznego jak zawsze: nie jest zepsuty, po prostu nie potrafi sam zarejestrować się jako domyślny. W dzienniku Home Assistant jest wiersz DashboardModern mówiący, co znaleziono zamiast tego: zacytuj go w zgłoszeniu, a naprawimy. Jeśli tymczasem domyślny pulpit działa, to powiadomienie jest stare i można je zignorować."
+      "description": "Home Assistant nie udostępnia listy pulpitów w miejscu, w którym ta integracja jej szuka. Nie chodzi o tryb YAML: twój Lovelace działa w trybie zwykłym, więc pulpit dałoby się spokojnie utworzyć — lista po prostu nie jest tam, gdzie jej szukamy. To nasza sprawa, nie twojej konfiguracji: w configuration.yaml nie ma czego szukać. „{plancia}” nadal jest dostępny z paska bocznego jak zawsze: nie jest zepsuty, po prostu nie potrafi sam zarejestrować się jako domyślny. W dzienniku Home Assistant jest wiersz DashboardModern mówiący, co znaleziono zamiast listy: zacytuj go w zgłoszeniu, a naprawimy. Jeśli tymczasem domyślny pulpit działa, to powiadomienie jest stare i można je zignorować."
     }
   },
   "entity": {
