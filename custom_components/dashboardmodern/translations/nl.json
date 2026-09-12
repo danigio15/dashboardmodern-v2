@@ -53,6 +53,10 @@
     "plancia_non_registrabile": {
       "title": "“{plancia}” kan niet als standaarddashboard worden gekozen",
       "description": "Home Assistant houdt geen beschrijfbare lijst met dashboards bij: dat gebeurt als Lovelace in YAML-modus draait (lovelace: mode: yaml in je configuration.yaml). In die modus schrijf je de dashboards zelf, en dit moet daar met de hand worden toegevoegd. “{plancia}” blijft zoals altijd bereikbaar via de zijbalk: het is niet stuk, het kan zichzelf alleen niet registreren. Gebruik je geen YAML-modus, start Home Assistant opnieuw op en open deze pagina nogmaals."
+    },
+    "plancia_senza_elenco_plance": {
+      "title": "“{plancia}” kan niet als standaarddashboard worden gekozen",
+      "description": "Home Assistant stelt de dashboardlijst niet beschikbaar op de plek waar deze integratie hem zoekt, en het is niet de YAML-modus: daar zou een dashboard wel aangemaakt kunnen worden. Dit ligt aan ons, niet aan jouw configuratie — er valt niets te zoeken in je configuration.yaml. “{plancia}” blijft gewoon bereikbaar via de zijbalk: het is niet kapot, het kan zichzelf alleen niet als standaard registreren. In het logboek van Home Assistant staat een DashboardModern-regel met wat er in plaats daarvan gevonden is: vermeld die in een melding, dan lossen we het op. Werkt het standaarddashboard intussen wel, dan is deze melding oud en kun je hem negeren."
     }
   },
   "entity": {

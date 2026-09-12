@@ -53,6 +53,10 @@
     "plancia_non_registrabile": {
       "title": "「{plancia}」を既定のダッシュボードに選べません",
       "description": "Home Assistant が書き込み可能なダッシュボード一覧を持っていません。Lovelace が YAML モード（configuration.yaml の lovelace: mode: yaml）で動いているときに起こります。そのモードではダッシュボードはご自身で書くため、これも手で追加する必要があります。「{plancia}」はこれまでどおりサイドバーから開けます。壊れているのではなく、自分で登録できないだけです。YAML モードを使っていない場合は、Home Assistant を再起動してこのページを開き直してください。"
+    },
+    "plancia_senza_elenco_plance": {
+      "title": "「{plancia}」を既定のダッシュボードに選べません",
+      "description": "Home Assistant が、この統合の探している場所にダッシュボードの一覧を出していません。YAML モードが原因ではありません——YAML モードならダッシュボードは作成できます。こちら側の問題であって設定の問題ではないので、configuration.yaml を調べる必要はありません。「{plancia}」はこれまでどおりサイドバーから開けます。壊れているのではなく、自分を既定として登録できないだけです。Home Assistant のログに、代わりに何が見つかったかを示す DashboardModern の行があります。不具合報告にその行を添えてください、修正します。その間に既定のダッシュボードが動いているなら、この通知は古いので無視して構いません。"
     }
   },
   "entity": {

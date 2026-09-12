@@ -53,6 +53,10 @@
     "plancia_non_registrabile": {
       "title": "«{plancia}» non si può scegliere come plancia predefinita",
       "description": "Home Assistant non tiene un elenco di plance su cui scrivere: succede quando Lovelace è in modo YAML (lovelace: mode: yaml nel tuo configuration.yaml). In quel modo le plance le scrivi tu nel file, e questa va aggiunta lì a mano. «{plancia}» resta raggiungibile dalla barra laterale come sempre: non è rotta, semplicemente non può registrarsi da sola. Se invece non usi il modo YAML, riavvia Home Assistant e riapri questa pagina."
+    },
+    "plancia_senza_elenco_plance": {
+      "title": "«{plancia}» non si può scegliere come plancia predefinita",
+      "description": "Home Assistant non sta esponendo l'elenco delle plance dove la plancia lo cerca, e non è il modo YAML: lì le plance si potrebbero creare. È un problema nostro, non della tua configurazione — non cercare niente nel tuo configuration.yaml. «{plancia}» resta raggiungibile dalla barra laterale come sempre: non è rotta, semplicemente non riesce a registrarsi da sola come predefinita. Nel registro di Home Assistant c'è una riga di DashboardModern che dice cosa ha trovato al suo posto: riportala in una segnalazione e la correggiamo. Se nel frattempo la plancia predefinita funziona, questo avviso è vecchio e si può ignorare."
     }
   },
   "entity": {

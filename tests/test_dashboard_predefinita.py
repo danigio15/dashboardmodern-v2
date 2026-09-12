@@ -690,3 +690,102 @@ def test_chi_apre_la_plancia_ripara_la_dashboard_di_appoggio() -> None:
     risposta = sorgente.index('connection.send_result(msg["id"], result)')
     riparazione = sorgente.index("await _ripara_la_dashboard_compagna(")
     assert risposta < riparazione
+
+
+async def test_la_collezione_si_trova_anche_senza_il_suo_nome(hass: Any) -> None:
+    """Il nome della chiave è un avanzo, e un avanzo prima o poi si toglie.
+
+    Nel codice di Home Assistant, accanto a `dashboards_collection`, c'è
+    scritto «This can be removed when the map integration is removed». Cercarla
+    per nome e dedurre dal buco «Lovelace è in modo YAML» vuol dire che il
+    giorno in cui quel nome cambia la plancia accusa di modo YAML una casa che
+    il modo YAML non ce l'ha — e chi legge va a cercare in `configuration.yaml`
+    una riga che non ha mai scritto.
+
+    Si cerca anche per quello che l'oggetto sa fare: elencare le plance,
+    crearne una, aggiornarla. E non è quella delle risorse.
+    """
+    entry = _voce(hass)
+    plance: dict = {}
+    collezione = _Collezione(plance)
+    hass.data["lovelace"] = {
+        "mode": "storage",
+        "dashboards": plance,
+        # Il nome se n'è andato; l'oggetto no.
+        "collezione_con_un_altro_nome": collezione,
+        "resources": _Collezione(plance),
+    }
+
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
+    assert [voce["url_path"] for voce in collezione.create] == [
+        fe._lovelace_url_path(entry)
+    ]
+
+
+async def test_le_risorse_non_si_scambiano_per_le_plance(hass: Any) -> None:
+    """Due collezioni sanno fare le stesse cose: quella giusta è una sola."""
+    plance: dict = {}
+    risorse = _Collezione(plance)
+    hass.data["lovelace"] = {"dashboards": plance, "resources": risorse}
+
+    collezione, _plance, _modo, _dentro = fe._plance_di_lovelace(hass)
+    assert collezione is None, "le risorse non sono la collezione delle plance"
+
+
+async def test_senza_modo_yaml_l_avviso_non_accusa_il_modo_yaml(hass: Any) -> None:
+    """«Succede quando Lovelace è in modo YAML» era scritto senza guardare.
+
+    Il modo Lovelace lo dichiara, nello stesso posto da cui si legge il resto.
+    Quando non è YAML, l'elenco non è dove lo cerchiamo ed è un guaio nostro:
+    mandare chi legge a frugare nel proprio `configuration.yaml` è mandarlo a
+    caccia al posto di chi ha sbagliato.
+    """
+    from homeassistant.helpers import issue_registry as ir
+
+    entry = _voce(hass)
+    hass.data["lovelace"] = {"mode": "storage", "dashboards": {}}
+
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is False
+
+    registro = ir.async_get(hass)
+    avviso = registro.async_get_issue(
+        "dashboardmodern", f"plancia_non_registrabile_{entry.entry_id}"
+    )
+    assert avviso is not None
+    assert avviso.translation_key == "plancia_senza_elenco_plance"
+
+
+async def test_in_modo_yaml_l_avviso_dice_il_modo_yaml(hass: Any) -> None:
+    """E quando il modo YAML c'è davvero, la risposta è quella di prima."""
+    from homeassistant.helpers import issue_registry as ir
+
+    entry = _voce(hass)
+    hass.data["lovelace"] = {"mode": "yaml", "dashboards": {}}
+
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is False
+
+    registro = ir.async_get(hass)
+    avviso = registro.async_get_issue(
+        "dashboardmodern", f"plancia_non_registrabile_{entry.entry_id}"
+    )
+    assert avviso is not None
+    assert avviso.translation_key == "plancia_non_registrabile"
+
+
+def test_ogni_lingua_ha_i_due_avvisi() -> None:
+    """Due avvisi, e nessuna lingua che ne perde uno per strada."""
+    import json
+    from pathlib import Path
+
+    cartella = (
+        Path(__file__).resolve().parents[1]
+        / "custom_components"
+        / "dashboardmodern"
+        / "translations"
+    )
+    for file in sorted(cartella.glob("*.json")):
+        problemi = json.loads(file.read_text(encoding="utf-8")).get("issues", {})
+        for chiave in ("plancia_non_registrabile", "plancia_senza_elenco_plance"):
+            assert chiave in problemi, f"{file.name}: manca {chiave}"
+            assert problemi[chiave]["title"], f"{file.name}: {chiave} senza titolo"
+            assert problemi[chiave]["description"], f"{file.name}: {chiave} senza testo"

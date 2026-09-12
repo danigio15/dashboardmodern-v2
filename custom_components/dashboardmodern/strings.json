@@ -53,6 +53,10 @@
     "plancia_non_registrabile": {
       "title": "“{plancia}” cannot be picked as the default dashboard",
       "description": "Home Assistant is not keeping a writable list of dashboards: this happens when Lovelace runs in YAML mode (lovelace: mode: yaml in your configuration.yaml). In that mode you write the dashboards yourself, and this one has to be added there by hand. “{plancia}” is still reachable from the sidebar as always: it is not broken, it simply cannot register itself. If you are not using YAML mode, restart Home Assistant and open this page again."
+    },
+    "plancia_senza_elenco_plance": {
+      "title": "“{plancia}” cannot be picked as the default dashboard",
+      "description": "Home Assistant is not exposing the dashboard list where this integration looks for it, and it is not YAML mode: there, a dashboard could be created. This is on us, not on your configuration — there is nothing to look for in your configuration.yaml. “{plancia}” is still reachable from the sidebar as always: it is not broken, it simply cannot register itself as the default. The Home Assistant log has a DashboardModern line saying what it found instead: quote it in a bug report and we will fix it. If the default dashboard works in the meantime, this notice is stale and can be ignored."
     }
   },
   "entity": {

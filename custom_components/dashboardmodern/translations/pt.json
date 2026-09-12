@@ -53,6 +53,10 @@
     "plancia_non_registrabile": {
       "title": "«{plancia}» não pode ser escolhido como painel predefinido",
       "description": "O Home Assistant não mantém uma lista de painéis onde escrever: acontece quando o Lovelace está em modo YAML (lovelace: mode: yaml no teu configuration.yaml). Nesse modo os painéis escreve-los tu, e este tem de ser acrescentado ali à mão. «{plancia}» continua acessível pela barra lateral como sempre: não está avariado, apenas não se consegue registar sozinho. Se não usas o modo YAML, reinicia o Home Assistant e reabre esta página."
+    },
+    "plancia_senza_elenco_plance": {
+      "title": "«{plancia}» não pode ser escolhido como painel predefinido",
+      "description": "O Home Assistant não está a expor a lista de painéis onde esta integração a procura, e não é o modo YAML: aí um painel poderia ser criado. O problema é nosso, não da tua configuração — não há nada para procurar no teu configuration.yaml. «{plancia}» continua acessível pela barra lateral como sempre: não está avariado, apenas não consegue registar-se sozinho como predefinido. No registo do Home Assistant há uma linha do DashboardModern a dizer o que encontrou em vez disso: cita-a num relato e corrigimos. Se entretanto o painel predefinido funcionar, este aviso é antigo e pode ser ignorado."
     }
   },
   "entity": {

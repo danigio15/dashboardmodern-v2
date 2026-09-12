@@ -53,6 +53,10 @@
     "plancia_non_registrabile": {
       "title": "« {plancia} » ne peut pas être choisi comme tableau de bord par défaut",
       "description": "Home Assistant ne tient pas de liste de tableaux de bord modifiable : cela arrive quand Lovelace est en mode YAML (lovelace: mode: yaml dans votre configuration.yaml). Dans ce mode, c'est vous qui écrivez les tableaux de bord, et celui-ci doit y être ajouté à la main. « {plancia} » reste accessible depuis la barre latérale comme toujours : il n'est pas cassé, il ne peut simplement pas s'enregistrer seul. Si vous n'utilisez pas le mode YAML, redémarrez Home Assistant et rouvrez cette page."
+    },
+    "plancia_senza_elenco_plance": {
+      "title": "« {plancia} » ne peut pas être choisi comme tableau de bord par défaut",
+      "description": "Home Assistant n'expose pas la liste des tableaux de bord là où cette intégration la cherche, et ce n'est pas le mode YAML : là, un tableau de bord pourrait être créé. Cela vient de nous, pas de votre configuration — il n'y a rien à chercher dans votre configuration.yaml. « {plancia} » reste accessible depuis la barre latérale comme toujours : il n'est pas cassé, il n'arrive simplement pas à s'enregistrer lui-même comme tableau par défaut. Le journal de Home Assistant contient une ligne DashboardModern indiquant ce qui a été trouvé à la place : citez-la dans un rapport et nous corrigerons. Si le tableau par défaut fonctionne entre-temps, cet avertissement est ancien et peut être ignoré."
     }
   },
   "entity": {

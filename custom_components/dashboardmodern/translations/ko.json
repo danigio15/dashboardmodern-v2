@@ -53,6 +53,10 @@
     "plancia_non_registrabile": {
       "title": "“{plancia}”을(를) 기본 대시보드로 선택할 수 없습니다",
       "description": "Home Assistant가 쓸 수 있는 대시보드 목록을 두고 있지 않습니다. Lovelace가 YAML 모드(configuration.yaml의 lovelace: mode: yaml)로 동작할 때 생기는 일입니다. 그 모드에서는 대시보드를 직접 작성하므로, 이것도 그곳에 손으로 추가해야 합니다. “{plancia}”은(는) 예전처럼 사이드바에서 열 수 있습니다. 고장난 것이 아니라 스스로 등록하지 못할 뿐입니다. YAML 모드를 쓰지 않는다면 Home Assistant를 다시 시작한 뒤 이 페이지를 다시 열어 보세요."
+    },
+    "plancia_senza_elenco_plance": {
+      "title": "「{plancia}」을(를) 기본 대시보드로 선택할 수 없습니다",
+      "description": "Home Assistant가 이 통합이 찾는 위치에 대시보드 목록을 제공하지 않고 있으며, YAML 모드 때문이 아닙니다. YAML 모드였다면 대시보드를 만들 수 있습니다. 설정이 아니라 저희 쪽 문제이므로 configuration.yaml에서 찾을 것은 없습니다. 「{plancia}」은(는) 예전처럼 사이드바에서 열 수 있습니다. 고장난 것이 아니라 스스로 기본으로 등록하지 못할 뿐입니다. Home Assistant 로그에 대신 무엇을 찾았는지 알려 주는 DashboardModern 줄이 있습니다. 버그 신고에 그 줄을 함께 적어 주시면 고치겠습니다. 그사이 기본 대시보드가 잘 동작한다면 이 알림은 오래된 것이므로 무시해도 됩니다."
     }
   },
   "entity": {
