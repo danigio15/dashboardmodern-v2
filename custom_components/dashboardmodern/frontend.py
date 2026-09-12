@@ -844,7 +844,92 @@ def _avviso_della_compagna(entry_id: str) -> str:
     return f"plancia_non_registrabile_{entry_id}"
 
 
-def _avvisa_che_manca(hass: HomeAssistant, entry: ConfigEntry) -> None:
+def _campo(dati: Any, nome: str) -> Any:
+    """Un campo di `hass.data["lovelace"]`, che è un dizionario o un oggetto."""
+    if isinstance(dati, dict):
+        return dati.get(nome)
+    return getattr(dati, nome, None)
+
+
+def _pare_una_collezione(valore: Any, risorse: Any) -> bool:
+    """Se questo oggetto sa fare quello che sa fare una collezione di plance.
+
+    Si chiede il minimo che serve — elencare e creare — e non tutto quello che
+    una collezione di oggi sa fare: una Lovelace vecchia la stessa collezione
+    ce l'ha senza `async_update_item`, e pretenderlo qui vorrebbe dire non
+    riconoscerla. Le risorse sanno fare le stesse cose e si escludono per
+    identita', non per nome.
+    """
+    if valore is None or valore is risorse:
+        return False
+    return all(
+        callable(getattr(valore, nome, None))
+        for nome in ("async_items", "async_create_item")
+    )
+
+
+def _dentro_a_lovelace(dati: Any) -> list[str]:
+    """I nomi di quello che Lovelace tiene in mano. Serve a chi legge i registri."""
+    if isinstance(dati, dict):
+        return sorted(str(chiave) for chiave in dati)
+    try:
+        return sorted(vars(dati))
+    except TypeError:
+        return sorted(nome for nome in dir(dati) if not nome.startswith("_"))
+
+
+def _plance_di_lovelace(hass: HomeAssistant) -> tuple[Any, Any, str, list[str]]:
+    """La collezione delle plance, le plance, il modo, e cosa c'era da guardare.
+
+    La collezione si cercava per nome — `dashboards_collection` — e quando non
+    si trovava si concludeva «Lovelace e' in modo YAML». Sono due cose diverse,
+    e la seconda non discende dalla prima: quel nome, nel codice di Home
+    Assistant, porta scritto accanto «This can be removed when the map
+    integration is removed». E' un avanzo dichiarato tale. Il giorno che sparisce
+    o cambia, la plancia accusa di modo YAML una casa che il modo YAML non ce
+    l'ha — e chi legge va a cercare in `configuration.yaml` una riga che non c'e'.
+
+    Quindi si cerca anche per quello che l'oggetto SA FARE: una collezione di
+    plance sa elencarle, crearne una e aggiornarla, e non e' quella delle
+    risorse. E il modo si legge dove Lovelace lo scrive, invece di indovinarlo.
+    """
+    dati = hass.data.get("lovelace")
+    if dati is None:
+        return None, None, "", []
+    modo = str(_campo(dati, "mode") or "")
+    plance = _campo(dati, "dashboards")
+    risorse = _campo(dati, "resources")
+    collezione = _campo(dati, "dashboards_collection")
+    if collezione is None:
+        # Il nome non c'e' piu': si guarda chi, li' dentro, sa fare il mestiere.
+        try:
+            valori = list(
+                dati.values() if isinstance(dati, dict) else vars(dati).values()
+            )
+        except TypeError:
+            valori = []
+        candidati = [
+            valore for valore in valori if _pare_una_collezione(valore, risorse)
+        ]
+        if len(candidati) == 1:
+            collezione = candidati[0]
+        else:
+            # Piu' di uno vuol dire che c'e' una terza collezione che non
+            # conosciamo: si sceglie per nome invece di tirare a indovinare, e
+            # se nessuno lo porta non si sceglie nessuno — meglio l'avviso che
+            # scrivere una plancia dentro la cosa sbagliata.
+            collezione = next(
+                (
+                    valore
+                    for valore in candidati
+                    if "dashboard" in type(valore).__name__.lower()
+                ),
+                None,
+            )
+    return collezione, plance, modo, _dentro_a_lovelace(dati)
+
+
+def _avvisa_che_manca(hass: HomeAssistant, entry: ConfigEntry, in_yaml: bool) -> None:
     """Dillo dove si guarda, non solo nel registro.
 
     Il registro lo apre chi sa che esiste. Chi ha la casa apre Impostazioni,
@@ -865,7 +950,14 @@ def _avvisa_che_manca(hass: HomeAssistant, entry: ConfigEntry) -> None:
         _avviso_della_compagna(entry.entry_id),
         is_fixable=False,
         severity=ir.IssueSeverity.WARNING,
-        translation_key="plancia_non_registrabile",
+        # Due avvisi, perche' sono due fatti diversi. Il modo YAML e' una scelta
+        # di chi ha la casa, e la risposta e' «aggiungila a mano nel file». Un
+        # elenco che non si trova pur non essendo in modo YAML e' un guaio
+        # nostro, e dirgli di cercare una riga che non ha mai scritto vuol dire
+        # mandarlo a caccia al posto di chi ha sbagliato.
+        translation_key=(
+            "plancia_non_registrabile" if in_yaml else "plancia_senza_elenco_plance"
+        ),
         translation_placeholders={"plancia": entry.title or "DashboardModern"},
     )
 
@@ -908,12 +1000,7 @@ async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> boo
         _togli_lavviso(hass, entry_id)
         return False
 
-    dati = hass.data.get("lovelace")
-    collezione = getattr(dati, "dashboards_collection", None)
-    plance = getattr(dati, "dashboards", None)
-    if collezione is None and isinstance(dati, dict):
-        collezione = dati.get("dashboards_collection")
-        plance = dati.get("dashboards")
+    collezione, plance, modo, dentro = _plance_di_lovelace(hass)
     if collezione is None or plance is None:
         # Qui si rinunciava in silenzio, e il silenzio e' il difetto.
         #
@@ -924,22 +1011,31 @@ async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> boo
         # segnala reinstalla — due volte — perche' e' l'unica cosa che gli
         # resta da provare, e reinstallare non cambia niente.
         #
-        # Il caso vero e' quasi sempre uno: Lovelace in modo YAML. Con
-        # `lovelace: mode: yaml` in configuration.yaml, Home Assistant non
-        # tiene nessuna collezione di plance sul suo archivio, e le plance non
-        # si possono creare da un'integrazione: le scrive a mano chi ha la
-        # casa. Non e' un guasto della plancia e non si aggiusta dal nostro
-        # lato — ma va DETTO, perche' e' esattamente la risposta che chi
-        # segnala sta cercando.
+        # Detto, pero', va detto quello che si SA. Prima qui c'era scritto
+        # «succede quando Lovelace e' in modo YAML», e quella frase veniva
+        # stampata anche quando il modo YAML non c'entrava niente: chi la
+        # leggeva andava a cercare in `configuration.yaml` una riga che non
+        # aveva mai scritto. Il modo Lovelace lo dichiara — sta nello stesso
+        # posto da cui si legge il resto — quindi lo si guarda e si dice quello.
+        in_yaml = modo.lower() == "yaml"
         _LOGGER.warning(
-            "La dashboard di appoggio di %s non si puo' creare: Home Assistant "
-            "non espone la collezione delle plance. Succede quando Lovelace e' "
-            "in modo YAML (lovelace: mode: yaml in configuration.yaml): in quel "
-            "modo le plance le scrive a mano chi ha la casa, e questa va "
-            "aggiunta li'. La plancia resta raggiungibile dalla barra laterale.",
+            "La dashboard di appoggio di %s non si puo' creare: Lovelace "
+            "dichiara modo «%s» e non espone la collezione delle plance. "
+            "Quello che tiene in mano e': %s. %s La plancia resta raggiungibile "
+            "dalla barra laterale.",
             entry.title or entry_id,
+            modo or "sconosciuto",
+            ", ".join(dentro) or "niente",
+            (
+                "In modo YAML le plance le scrive a mano chi ha la casa, e "
+                "questa va aggiunta li'."
+                if in_yaml
+                else "Il modo non e' YAML, quindi una plancia si potrebbe "
+                "creare: l'elenco non e' dove lo cerchiamo. Questa riga dice "
+                "cosa c'era al suo posto — riportala nella segnalazione."
+            ),
         )
-        _avvisa_che_manca(hass, entry)
+        _avvisa_che_manca(hass, entry, in_yaml)
         return False
     _togli_lavviso(hass, entry_id)
 

@@ -5,6 +5,32 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.23
+
+### Corretto
+
+- **L'avviso della plancia predefinita accusava il modo YAML senza guardare**
+
+  «Casa 3.0 non si può scegliere come plancia predefinita… succede quando
+  Lovelace è in modo YAML»: comparso in Riparazioni a una casa che il modo
+  YAML non ce l'ha, e che la plancia predefinita ce l'ha funzionante. Chi lo
+  legge va a cercare in `configuration.yaml` una riga che non ha mai scritto.
+
+  Sotto c'erano due cose diverse messe in fila come se una discendesse
+  dall'altra: «non trovo l'elenco delle plance» e «Lovelace è in modo YAML».
+  L'elenco si cercava per nome, `dashboards_collection` — un nome che nel
+  codice di Home Assistant porta scritto accanto *«This can be removed when
+  the map integration is removed»*, cioè un avanzo dichiarato tale. Il giorno
+  che cambia, la plancia accusa del modo YAML chiunque.
+
+  Adesso il modo si **legge** dove Lovelace lo scrive, e l'avviso dice quello
+  che ha verificato: se il modo è YAML, la risposta è quella di prima; se non
+  lo è, l'avviso dice che è un problema nostro, che non c'è niente da cercare
+  nel proprio file, e che nel registro c'è la riga che dice dov'è finito
+  l'elenco. E la collezione non si cerca più solo per nome: si cerca anche per
+  quello che sa fare — elencare le plance e crearne una — così un nome che
+  cambia non diventa un'accusa sbagliata.
+
 ## 1.4.22
 
 ### Corretto
