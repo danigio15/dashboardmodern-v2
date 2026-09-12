@@ -5,6 +5,84 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.22
+
+### Corretto
+
+- **Le icone delle stanze in Home: il disegno, mai il nome dell'icona**
+
+  «Icone stanze in home non si vedono.» Nella scheda della Home, sotto «Stanze
+  in plancia», sopra il nome di ogni stanza c'era scritto `mdi:sofa`,
+  `mdi:stove`, `mdi:shower`: il **nome** dell'icona, stampato come parola.
+  Quella riga il disegno non lo chiedeva a nessuno. La regola c'era già — sta
+  scritta da sempre sopra `writeIconGlyph`, «il token grezzo non si stampa mai
+  come testo» — ma valeva solo per chi disegna scrivendo dentro un nodo, e
+  mezza plancia disegna costruendo markup. Adesso la regola ha due facce e una
+  stanza sola, e i due posti delle stanze — la scheda e la card in Home, dove
+  il ripiego era la stessa parola — la usano tutt'e due.
+
+- **La barra sotto il meteo è tutta del catalogo di casa**
+
+  «Icone barra sotto al menu non sono del nostro catalogo, se non esistono
+  creale, e ovviamente vanno cambiate ovunque.» Quattro delle quattordici voci
+  un disegno non ce l'avevano — la posta, l'umidità, la pioggia di adesso e
+  quella di oggi — e cadevano sempre sull'emoji di ripiego, in fila accanto a
+  dieci oggetti disegnati. Adesso ci sono: la cassetta con la bandierina
+  alzata, il quadrante dell'igrometro, la nuvola con le gocce, il pluviometro.
+  E l'elenco nella configurazione, che le emoji le aveva scritte a mano tutte
+  quante, chiede il disegno allo stesso catalogo da cui lo chiedono le
+  pastiglie: una barra sola, una faccia sola. Stessa cosa per l'elenco dei
+  blocchi della Home, a cui mancava il sole dietro la nuvola dell'intestazione.
+
+- **La barra in basso rimette il disegno anche quando il guscio arriva tardi**
+
+  Le voci che aggiungono i moduli — Stanze, Luci, Prese, Robot, le telecamere,
+  le porte — nascono col simbolo scritto a mano da chi le crea, e a
+  rimpiazzarlo col disegno era un solo aggancio a una funzione del guscio. Se
+  al momento dell'installazione quella funzione non c'era ancora, l'aggancio
+  non si faceva e non si riprovava mai più: la barra restava con le emoji del
+  telefono. Adesso il disegno si rimette dove la barra si rifà — insieme al
+  filtro, che è la cosa che già succedeva al momento giusto — e gli agganci al
+  guscio si riprovano quando il guscio dichiara di esserci.
+
+- **Telecamere: il popup rispetta il tempo della strada, non uno suo**
+
+  «E ancora telecamere non funzionanti», col velo «Connessione WebRTC…» sopra
+  un fotogramma fermo. Il tempo del WebRTC nativo era scritto in due posti che
+  non si parlavano: il guscio lo chiede alla strategia — dieci secondi a una
+  telecamera di casa, venticinque a una in cloud che deve svegliarsi — e il
+  nostro negoziato ne teneva quindici, sempre, per chiunque. E contano tutt'e
+  due, perché il guscio aspetta che il negoziato torni prima di guardare il
+  proprio cronometro: a una telecamera di casa erano cinque secondi di velo in
+  più prima che la fila passasse alla strada dopo; a un'Arlo o a una Ring era
+  la trattativa interrotta dieci secondi prima della fine del tempo che le era
+  stato dato, cioè la strada buona tolta proprio a chi ne aveva bisogno.
+
+- **Plancia predefinita: l'errore sul telefono**
+
+  «Se imposto plancia predefinita da utente, da smartphone continua a dare
+  errore; da pc no.» Il pezzo che mancava era da quale apparecchio. La card
+  veniva pubblicata solo con `add_extra_js_url`, che la scrive nell'**avvio**
+  della pagina: l'app companion quell'avvio se lo tiene in cache a lungo, e un
+  avvio messo in cache prima che l'integrazione ci fosse non nomina il nostro
+  modulo — l'elemento non viene mai definito, e al suo posto Home Assistant
+  disegna «Errore di configurazione». Dal browser di un computer l'avvio si
+  richiede e basta, e lì il modulo c'è sempre. Adesso la card si pubblica
+  **anche** fra le risorse di Lovelace, che il frontend si fa dire dal socket a
+  ogni apertura della dashboard: una pagina in cache le chiede lo stesso.
+  E quando a essere tolta è l'ultima plancia, la card si toglie da Lovelace:
+  quella riga sta sul disco, e senza toglierla chi disinstalla l'integrazione
+  si ritroverebbe ogni dashboard di casa a chiedere, a ogni apertura, un
+  modulo che non c'è più. (#372, #154, #499)
+
+### Difeso
+
+- Il modo chiosco dentro la card della plancia predefinita — che non è il
+  pannello: due ombre in mezzo, e la card che si ritaglia l'altezza sotto
+  l'intestazione. L'interruttore in ⚙️ Impostazioni la porta a tutto schermo
+  sopra l'intestazione di Lovelace, e la scelta regge il ricaricamento, che su
+  un computer è tutto quello che la tiene in piedi.
+
 ## 1.4.21
 
 ### Aggiunto

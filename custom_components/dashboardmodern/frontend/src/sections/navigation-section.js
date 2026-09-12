@@ -1007,15 +1007,30 @@ function filtraNelFotogramma() {
   chiedi.call(root, () => {
     state.filtroInCoda = false;
     applicaLaVisibilita();
+    disegniNellaBarra();
   });
 }
 
+/* Una voce appena nata si filtra subito E si disegna subito.
+ *
+ * Le due cose succedono nello stesso momento — la voce nasce — e finora solo
+ * una delle due era agganciata qui: il filtro. Il disegno stava appeso a
+ * `cdApplyNavVis`, che e' del guscio, e se al momento dell'installazione quella
+ * funzione non c'era ancora l'aggancio non si faceva piu': la voce nasceva col
+ * simbolo scritto a mano da chi l'ha creata — «🚪», «📷» — e restava cosi'
+ * finche' qualcuno non cambiava scheda. E' la stessa strada del guasto della
+ * voce delle porte, che quella volta non nasceva affatto.
+ *
+ * `disegniNellaBarra` non ridisegna quello che e' gia' a posto: si ferma sul
+ * primo confronto per ogni voce, quindi metterla qui non aggiunge lavoro a un
+ * giro in cui non c'e' niente di nuovo. */
 function filtraDopo(nome) {
   const originale = root[nome];
   if (typeof originale !== "function" || originale.__dmVisibilitaSubito) return false;
   const avvolta = function (...argomenti) {
     const esito = originale.apply(this, argomenti);
     applicaLaVisibilita();
+    disegniNellaBarra();
     filtraNelFotogramma();
     return esito;
   };
@@ -1107,8 +1122,17 @@ export function installNavigationSection() {
   accodaDopo("cdApplyNavOrder");
   accodaDopo("cdApplyNavVis");
   filtraDopo("render");
+  /* Le funzioni del guscio possono non esserci ancora quando questo modulo si
+   * installa: `accodaDopo` e `filtraDopo` in quel caso non agganciano niente e
+   * lo dicono tornando falso. Riprovarci ai due momenti in cui il guscio
+   * dichiara di esserci e' il modo di non restare senza aggancio per sempre —
+   * e tutt'e due si rifiutano di avvolgere due volte la stessa funzione. */
   for (const evento of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready"])
-    root.addEventListener?.(evento, () => filtraDopo("render"));
+    root.addEventListener?.(evento, () => {
+      accodaDopo("cdApplyNavOrder");
+      accodaDopo("cdApplyNavVis");
+      filtraDopo("render");
+    });
   /* La configurazione condivisa, arrivando, riscrive le chiavi: se quella
    * dell'altro dispositivo non la porta, qui resterebbe vuota e la barra
    * tornerebbe a scomparsa da sola. */

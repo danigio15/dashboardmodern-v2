@@ -153,6 +153,26 @@ export function siSveglia(stato = {}) {
 }
 
 /**
+ * Quanto tempo ha la strada del flusso per questa telecamera.
+ *
+ * Vale per l'HLS e per il WebRTC che negozia Home Assistant: sono le due
+ * strade che devono prima SVEGLIARE l'apparecchio, e chi sta in cloud ci mette
+ * secondi mentre chi sta in casa risponde subito.
+ *
+ * Sta qui, e non dentro `strategieDellaTelecamera`, perche' quel numero non lo
+ * guarda soltanto chi mette in fila le strade: lo deve rispettare anche chi la
+ * strada la percorre. Il negoziato del popup se n'era scritto uno suo —
+ * quindici secondi fissi — e i due numeri non erano lo stesso: a una
+ * telecamera di casa toglieva cinque secondi buttati prima di passare alla
+ * strada dopo, e a una in cloud, che di secondi ne ha venticinque, la
+ * interrompeva dieci secondi prima della fine. «E ancora telecamere non
+ * funzionanti.» Un tempo solo, scritto una volta.
+ */
+export function attesaDelFlusso(stato = {}) {
+  return siSveglia(stato) ? ATTESE.HLS_SVEGLIA : ATTESE.HLS_LOCALE;
+}
+
+/**
  * Le strade da provare, in ordine, con quanto aspettare ciascuna.
  *
  * Ogni voce che si salta porta il suo `salta`: un codice, non una frase, cosi'
@@ -166,6 +186,7 @@ export function siSveglia(stato = {}) {
 export function strategieDellaTelecamera(cam = {}, stato = {}, opzioni = {}) {
   const nomeDelFlusso = pulito(cam.stream);
   const dorme = siSveglia(stato);
+  const attesaDelSuoFlusso = attesaDelFlusso(stato);
   const webrtcNelBrowser = opzioni.webrtcNelBrowser !== false;
   const hlsNelBrowser = opzioni.hlsNelBrowser !== false;
   /* Home Assistant moderno parla WebRTC da solo: `frontend_stream_type` vale
@@ -213,7 +234,7 @@ export function strategieDellaTelecamera(cam = {}, stato = {}, opzioni = {}) {
       /* Una telecamera in cloud che negozia in nativo deve prima svegliarsi:
        * il tempo e' quello della sveglia, non quello della rete di casa. E qui
        * l'attesa non e' buttata — e' la strada scelta, non una prova. */
-      attesa: dorme ? ATTESE.HLS_SVEGLIA : ATTESE.HLS_LOCALE,
+      attesa: attesaDelSuoFlusso,
       nativa: true,
     });
   else strade.push({ nome: "WebRTC", salta: "senza-nome-di-flusso" });
@@ -243,7 +264,7 @@ export function strategieDellaTelecamera(cam = {}, stato = {}, opzioni = {}) {
   else
     strade.push({
       nome: "HLS",
-      attesa: dorme ? ATTESE.HLS_SVEGLIA : ATTESE.HLS_LOCALE,
+      attesa: attesaDelSuoFlusso,
       sveglia: dorme,
     });
 

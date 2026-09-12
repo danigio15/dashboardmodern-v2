@@ -876,25 +876,40 @@ export function writeIconGlyph(target, icon, { size = 26, fallback = "🔌", kin
     if (target.textContent !== token) target.textContent = token;
     return true;
   }
+  /* Il motore, quando puo', scrive lui dentro il nodo: sa cosa c'e' gia' e non
+   * lo riscrive per niente. Quando non puo' — non e' ancora salito, o il nodo
+   * non e' il suo — resta il markup, che e' la stessa regola vista da fuori. */
   try {
     if (root.DashboardModernIconEngine?.render?.(target, kind, token, { size })) return true;
   } catch (_error) {}
+  target.innerHTML = iconGlyphHtml(token, { size, fallback, kind });
+  return true;
+}
+
+/* La stessa regola, per chi il markup se lo costruisce a stringhe.
+ *
+ * Mezza plancia disegna scrivendo markup — un pannello della configurazione si
+ * rifa' tutto in una volta — e li' `writeIconGlyph` non si puo' chiamare:
+ * serve il pezzo di testo, non il nodo. Chi ne aveva bisogno se l'e' scritto
+ * per conto suo, e chi se l'e' dimenticato ha stampato il token: «mdi:sofa»
+ * come parola sopra il nome della stanza, che e' esattamente la cosa che il
+ * commento qui sopra promette non succeda mai.
+ *
+ * La regola adesso sta in una funzione sola e le due facce la dividono: quella
+ * che scrive nel nodo chiama questa. `esc` sul ripiego perche' un simbolo
+ * scelto a mano puo' contenere qualunque cosa, e questo esce come markup. */
+export function iconGlyphHtml(icon, { size = 26, fallback = "🔌", kind = "action" } = {}) {
+  const token = clean(icon) || fallback;
+  if (!/^mdi:/i.test(token)) return esc(token);
   try {
     const markup = root.DashboardModernIconEngine?.markup?.(kind, token, { size });
-    if (markup) {
-      target.innerHTML = markup;
-      return true;
-    }
+    if (markup) return markup;
   } catch (_error) {}
   try {
     const legacy = root.cdIconMarkup?.(token, size);
-    if (legacy && legacy !== token) {
-      target.innerHTML = legacy;
-      return true;
-    }
+    if (legacy && legacy !== token) return legacy;
   } catch (_error) {}
-  target.textContent = fallback;
-  return true;
+  return esc(fallback);
 }
 
 export function afterResult(result, callback) {

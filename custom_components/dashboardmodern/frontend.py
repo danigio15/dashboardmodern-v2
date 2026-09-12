@@ -369,6 +369,12 @@ async def _ensure_static_registered(
     domain_data[DATA_STATIC_REGISTERED] = static_url_path
 
 
+# Il percorso della card, senza la firma: e' quello che resta uguale fra un
+# aggiornamento e l'altro, ed e' con quello che la si riconosce fra le risorse
+# di Lovelace — dove la firma della riga scritta ieri non e' quella di oggi.
+PERCORSO_DELLA_CARD = f"{STATIC_URL_PATH}/dashboard-card.js"
+
+
 def _dashboard_card_module_url(asset_version: str) -> str:
     """L'indirizzo con cui il frontend carica la card, e perche' non e' versionato.
 
@@ -387,7 +393,7 @@ def _dashboard_card_module_url(asset_version: str) -> str:
     firma nuova e non riusa quella in cache. La card ricava da se' la sua base
     per il resto degli asset, quindi non le cambia niente.
     """
-    return f"{STATIC_URL_PATH}/dashboard-card.js?v={asset_version}"
+    return f"{PERCORSO_DELLA_CARD}?v={asset_version}"
 
 
 def _ensure_dashboard_card_registered(
@@ -461,6 +467,111 @@ def _ensure_dashboard_card_registered(
         module_url,
     )
     async_when_setup(hass, "frontend", _quando_frontend)
+
+
+def _risorse_di_lovelace(hass: HomeAssistant) -> Any:
+    """La collezione delle risorse di Lovelace, comunque Home Assistant la tenga."""
+    dati = hass.data.get("lovelace")
+    risorse = getattr(dati, "resources", None)
+    if risorse is None and isinstance(dati, dict):
+        risorse = dati.get("resources")
+    return risorse
+
+
+def _la_nostra_risorsa(voci: Any) -> dict[str, Any] | None:
+    """La riga della card fra le risorse di Lovelace, qualunque firma porti."""
+    return next(
+        (
+            voce
+            for voce in (voci or [])
+            if isinstance(voce, dict)
+            and str(voce.get("url") or "").split("?", 1)[0] == PERCORSO_DELLA_CARD
+        ),
+        None,
+    )
+
+
+async def _ensure_card_resource_registered(
+    hass: HomeAssistant, module_url: str
+) -> bool:
+    """Pubblica la card ANCHE come risorsa di Lovelace, e non e' un doppione.
+
+    «Se imposto plancia predefinita da utente, da smartphone continua a dare
+    errore; da pc no.» E' la stessa segnalazione di sempre — «Errore di
+    configurazione» sulla plancia predefinita — con dentro la cosa che finora
+    mancava: da quale apparecchio.
+
+    Le due strade con cui un modulo del frontend arriva al browser non sono la
+    stessa cosa.
+
+    `add_extra_js_url` lo scrive nell'AVVIO della pagina: Home Assistant lo
+    stampa dentro l'index che serve al primo caricamento. L'app companion
+    quell'index se lo tiene in cache a lungo — e' il pezzo che le fa aprire la
+    plancia senza rete — quindi un index messo in cache PRIMA che questa
+    integrazione ci fosse non nomina il nostro modulo, e continuera' a non
+    nominarlo finche' la cache dura. Il browser del computer l'index lo richiede
+    e basta: li' il modulo c'e' sempre. E' esattamente la differenza fra «da
+    smartphone da' errore» e «da pc funziona», ed e' la ragione per cui la
+    stessa segnalazione torna da un anno pur essendo stata «corretta» piu'
+    volte: le correzioni di prima riguardavano la vista, il filtro e
+    l'indirizzo del modulo, cioe' tre cose vere che pero' non toccavano la
+    cache di quell'indice.
+    (#372, #154, #499)
+
+    Le RISORSE di Lovelace invece non stanno nell'index: il frontend se le fa
+    dire dal socket a ogni apertura della dashboard, e le importa allora. Una
+    pagina in cache le chiede lo stesso, perche' chiederle fa parte
+    dell'apertura della dashboard, non del caricamento della pagina.
+
+    Quindi si pubblica in tutt'e due i modi. Il modulo si definisce una volta
+    sola comunque — `dashboard-card.js` non ridichiara l'elemento se c'e'
+    gia' — percio' due strade non fanno due card: fanno due occasioni perche'
+    la card ci sia.
+
+    In modo YAML le risorse le scrive chi ha la casa, e la collezione non sa
+    creare: li' non si insiste, come per la dashboard di appoggio.
+    """
+    risorse = _risorse_di_lovelace(hass)
+    elenca = getattr(risorse, "async_items", None)
+    crea = getattr(risorse, "async_create_item", None)
+    if risorse is None or elenca is None or crea is None:
+        _LOGGER.debug(
+            "Le risorse di Lovelace non si possono scrivere (modo YAML?): la card "
+            "resta pubblicata solo nell'avvio della pagina"
+        )
+        return False
+    try:
+        # La collezione legge dal disco alla prima domanda, non alla nascita:
+        # guardare prima vorrebbe dire non trovare mai la nostra e riscriverla
+        # a ogni avvio.
+        if not getattr(risorse, "loaded", False):
+            await risorse.async_load()
+            risorse.loaded = True
+        nostra = _la_nostra_risorsa(elenca())
+        if nostra is None:
+            await crea({"res_type": "module", "url": module_url})
+            _LOGGER.info(
+                "Ho pubblicato la card %s fra le risorse di Lovelace", module_url
+            )
+            return True
+        if str(nostra.get("url") or "") == module_url:
+            return True
+        aggiorna = getattr(risorse, "async_update_item", None)
+        if aggiorna is None:
+            return False
+        # La firma cambia a ogni aggiornamento: si rimette in pari quella che
+        # c'e', invece di aggiungerne una seconda allo stesso percorso.
+        await aggiorna(nostra["id"], {"res_type": "module", "url": module_url})
+        return True
+    except Exception:  # noqa: BLE001 - una risorsa in meno non ferma la plancia
+        _LOGGER.warning(
+            "Non sono riuscito a pubblicare la card %s fra le risorse di Lovelace: "
+            "chi apre la plancia predefinita dall'app potrebbe vedere «Errore di "
+            "configurazione»",
+            module_url,
+            exc_info=True,
+        )
+        return False
 
 
 def _companion_view(entry: Any, config_profile: str, primary: bool) -> dict[str, Any]:
@@ -926,7 +1037,13 @@ async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
     # finito, e subito se aveva gia' finito.
     from homeassistant.setup import async_when_setup
 
+    module_url = _dashboard_card_module_url(asset_version)
+
     async def _quando_lovelace(hass: HomeAssistant, _componente: str) -> None:
+        # Prima la card fra le risorse, poi la dashboard che la contiene: chi
+        # apre subito dopo trova tutt'e due, e in quest'ordine non c'e' un
+        # istante in cui la dashboard esiste e il suo elemento no.
+        await _ensure_card_resource_registered(hass, module_url)
         await _ensure_companion_dashboard(hass, entry_id)
 
     async_when_setup(hass, "lovelace", _quando_lovelace)
@@ -966,6 +1083,61 @@ async def async_ripara_dashboard_compagna(hass: HomeAssistant, entry_id: str) ->
             exc_info=True,
         )
         return False
+
+
+async def async_dimentica_la_card(hass: HomeAssistant) -> bool:
+    """Toglie la card da Lovelace quando l'ultima plancia se ne va.
+
+    La risorsa di Lovelace sta sul DISCO, e non se ne va spegnendo
+    l'integrazione: chi toglie DashboardModern si ritroverebbe OGNI dashboard
+    di casa a chiedere, a ogni apertura, un modulo che non c'e' piu' — un 404
+    per volta — e una riga di troppo nell'elenco delle risorse, da cancellare a
+    mano sapendo che esiste. Il modulo scritto nell'avvio della pagina invece
+    vive in memoria e sparisce al riavvio; si toglie lo stesso, cosi' non resta
+    nemmeno fino a li'.
+
+    Si chiama quando la voce viene tolta DAVVERO e non ne resta nessun'altra.
+    Scaricare una plancia non e' toglierla: un riavvio di Home Assistant scarica
+    tutto, e una pulizia allo scarico vorrebbe dire ripubblicare la card a ogni
+    avvio come se fosse nuova.
+    """
+    tolta = False
+    domain_data: dict[str, Any] = hass.data.setdefault(DOMAIN, {})
+    module_url = domain_data.pop(DATA_DASHBOARD_CARD_REGISTERED, None)
+    if module_url:
+        try:
+            from homeassistant.components import frontend
+
+            frontend.remove_extra_js_url(hass, module_url)
+            tolta = True
+        except Exception:  # noqa: BLE001 - un modulo di troppo se ne va al riavvio
+            _LOGGER.debug("Non ho potuto togliere %s dai moduli extra", module_url)
+
+    risorse = _risorse_di_lovelace(hass)
+    elenca = getattr(risorse, "async_items", None)
+    cancella = getattr(risorse, "async_delete_item", None)
+    if risorse is None or elenca is None or cancella is None:
+        return tolta
+    try:
+        if not getattr(risorse, "loaded", False):
+            await risorse.async_load()
+            risorse.loaded = True
+        nostra = _la_nostra_risorsa(elenca())
+        if nostra is None:
+            return tolta
+        await cancella(nostra["id"])
+        _LOGGER.info(
+            "Ho tolto la card %s dalle risorse di Lovelace: non resta nessuna plancia",
+            nostra.get("url"),
+        )
+        return True
+    except Exception:  # noqa: BLE001 - una riga di troppo non rompe niente
+        _LOGGER.warning(
+            "Non sono riuscito a togliere la card dalle risorse di Lovelace: "
+            "la riga resta nell'elenco e va cancellata a mano",
+            exc_info=True,
+        )
+        return tolta
 
 
 async def async_unregister_frontend_entry(hass: HomeAssistant, entry_id: str) -> None:

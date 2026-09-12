@@ -814,6 +814,110 @@ const OGGETTI = Object.freeze({
     <path d="M16 8.2l5.8 6.4h-3.2v6.6h-5.2v-6.6h-3.2Z" fill="#fff" fill-opacity=".95"/>
     <path d="M9.2 10.2a8.8 8.8 0 0 1 4.6-3.6" stroke="#fff" stroke-opacity=".7" stroke-width="1.6"
       fill="none" stroke-linecap="round"/>`,
+
+  /* ── la barra sotto il meteo: i quattro che le mancavano ─────────────────
+   *
+   * «Icone barra sotto al menu non sono del nostro catalogo, se non esistono
+   * creale.» La barra chiede il disegno di casa e ripiega sull'emoji quando il
+   * catalogo non ce l'ha: quattro delle sue pastiglie — la posta, l'umidita' e
+   * le due della pioggia — cadevano sempre nel ripiego, e stavano in fila
+   * accanto a dieci disegni. Il ripiego adesso non serve piu' a nessuna. */
+
+  /* La cassetta della posta (#357): lo sportello, la lettera che spunta e la
+   * bandierina alzata — che e' esattamente la notizia che la pastiglia porta. */
+  posta: `<defs>
+      <linearGradient id="dmoPostaC" x1="0" y1="0" x2=".35" y2="1">
+        <stop offset="0" stop-color="#60a5fa"/><stop offset=".55" stop-color="#2563eb"/>
+        <stop offset="1" stop-color="#1e3a8a"/></linearGradient>
+      <linearGradient id="dmoPostaL" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dbeafe"/></linearGradient>
+      <linearGradient id="dmoPostaB" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fca5a5"/><stop offset=".5" stop-color="#ef4444"/>
+        <stop offset="1" stop-color="#b91c1c"/></linearGradient></defs>
+    ${OMBRA(16, 28.6, 8.6)}
+    <path d="M5.6 24.4v-9.8a6.6 6.6 0 0 1 6.6-6.6h6.6a6.6 6.6 0 0 1 6.6 6.6v9.8Z" fill="url(#dmoPostaC)"/>
+    <path d="M12.2 8a6.6 6.6 0 0 0-6.6 6.6v9.8h4.4v-9.8A6.6 6.6 0 0 1 16.6 8Z" fill="#0b1220" fill-opacity=".2"/>
+    <rect x="13.2" y="13.2" width="11.4" height="7.8" rx="1.4" fill="url(#dmoPostaL)"/>
+    <path d="m13.6 14.2 5.3 3.4 5.3-3.4" stroke="#93c5fd" stroke-width="1.3" fill="none"
+      stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="4.4" y="24.4" width="23.2" height="2.8" rx="1.4" fill="#334155"/>
+    <rect x="25.4" y="8.6" width="1.7" height="9.4" rx=".85" fill="#94a3b8"/>
+    <path d="M27.1 9h4l-1.2 1.9 1.2 1.9h-4Z" fill="url(#dmoPostaB)"/>
+    <path d="M8.2 14.8a4.4 4.4 0 0 1 3.4-4.4" stroke="#fff" stroke-opacity=".55" stroke-width="1.4"
+      fill="none" stroke-linecap="round"/>`,
+
+  /* L'umidita': il quadrante dell'igrometro con la goccia dentro. Non e' la
+   * goccia degli allagamenti — quella e' l'acqua dov'e' finita, questa e'
+   * l'acqua che si misura — e sta accanto al termometro, con cui divide la
+   * ghiera e il vetro. */
+  umidita: `<defs>
+      <radialGradient id="dmoUmiG" cx=".35" cy=".3" r=".85">
+        <stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#e2e8f0"/>
+        <stop offset="1" stop-color="#94a3b8"/></radialGradient>
+      <linearGradient id="dmoUmiA" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#bae6fd"/><stop offset=".5" stop-color="#0ea5e9"/>
+        <stop offset="1" stop-color="#0369a1"/></linearGradient></defs>
+    ${OMBRA(16, 28.8, 8.6)}
+    <circle cx="16" cy="15.4" r="11.2" fill="url(#dmoUmiG)"/>
+    <circle cx="16" cy="15.4" r="9.2" fill="#f8fafc"/>
+    <g stroke="#94a3b8" stroke-width="1.3" stroke-linecap="round">
+      <path d="M16 7.4v1.8M23.9 15.4h-1.8M16 23.4v-1.8M8.1 15.4h1.8"/></g>
+    <path d="M16 9.4c2.7 3.2 4.9 5.7 4.9 8.3a4.9 4.9 0 1 1-9.8 0c0-2.6 2.2-5.1 4.9-8.3Z" fill="url(#dmoUmiA)"/>
+    <path d="M13.7 15.6a4.6 4.6 0 0 0-1.1 2.9" stroke="#fff" stroke-opacity=".75" stroke-width="1.3"
+      fill="none" stroke-linecap="round"/>
+    <path d="M8.6 9.2a10.2 10.2 0 0 1 4.6-3.4" stroke="#fff" stroke-opacity=".8" stroke-width="1.6"
+      fill="none" stroke-linecap="round"/>`,
+
+  /* La pioggia di adesso: la nuvola e le gocce che stanno cadendo. */
+  pioggia: `<defs>
+      <linearGradient id="dmoPiogN" x1="0" y1="0" x2=".3" y2="1">
+        <stop offset="0" stop-color="#f8fafc"/><stop offset=".5" stop-color="#cbd5e1"/>
+        <stop offset="1" stop-color="#64748b"/></linearGradient>
+      <linearGradient id="dmoPiogA" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#7dd3fc"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs>
+    <path d="M10.6 18.4a5.4 5.4 0 0 1-.6-10.7 7.2 7.2 0 0 1 13.6 1.6 4.6 4.6 0 0 1-.8 9.1Z" fill="url(#dmoPiogN)"/>
+    <path d="M11.6 8.6a5.8 5.8 0 0 1 5.2-3.4" stroke="#fff" stroke-opacity=".85" stroke-width="1.7"
+      fill="none" stroke-linecap="round"/>
+    <g fill="url(#dmoPiogA)">
+      <path d="M11.4 20.4c1.4 1.8 2.1 2.9 2.1 3.8a2.1 2.1 0 1 1-4.2 0c0-.9.7-2 2.1-3.8Z"/>
+      <path d="M16 22.4c1.4 1.8 2.1 2.9 2.1 3.8a2.1 2.1 0 1 1-4.2 0c0-.9.7-2 2.1-3.8Z"/>
+      <path d="M20.6 20.4c1.4 1.8 2.1 2.9 2.1 3.8a2.1 2.1 0 1 1-4.2 0c0-.9.7-2 2.1-3.8Z"/></g>`,
+
+  /* La pioggia di oggi: il pluviometro. Sono due domande diverse — quanta ne
+   * sta venendo giu' adesso, quanta ne e' caduta da stamattina — e due domande
+   * diverse accanto non possono portare lo stesso oggetto. */
+  pioggiaOggi: `<defs>
+      <linearGradient id="dmoPlvV" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#e2e8f0"/>
+        <stop offset="1" stop-color="#b6c2d2"/></linearGradient>
+      <linearGradient id="dmoPlvA" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs>
+    ${OMBRA(16, 29, 6.6)}
+    <path d="M7.2 4.6h17.6l-5.4 6.8h-6.8Z" fill="#94a3b8"/>
+    <path d="M7.2 4.6h17.6l-1.3 1.6H8.5Z" fill="#e2e8f0"/>
+    <rect x="12.4" y="10.4" width="7.2" height="16.6" rx="3.6" fill="url(#dmoPlvV)"/>
+    <path d="M13.6 17.2h4.8v6.2a2.4 2.4 0 0 1-4.8 0Z" fill="url(#dmoPlvA)"/>
+    <g stroke="#64748b" stroke-width="1.1" stroke-linecap="round">
+      <path d="M17.4 13.4h1.5M17.4 16.4h1M17.4 19.4h1.5M17.4 22.4h1"/></g>
+    <path d="M14 12.2v12.4" stroke="#fff" stroke-opacity=".75" stroke-width="1.3"
+      stroke-linecap="round" fill="none"/>`,
+
+  /* Il meteo: il sole dietro la nuvola. E' l'intestazione della Home nell'elenco
+   * dei blocchi, l'unica riga di quell'elenco che non aveva il suo oggetto. */
+  meteo: `<defs>
+      <radialGradient id="dmoMeteoS" cx=".38" cy=".32" r=".8">
+        <stop offset="0" stop-color="#fef3c7"/><stop offset=".55" stop-color="#fbbf24"/>
+        <stop offset="1" stop-color="#d97706"/></radialGradient>
+      <linearGradient id="dmoMeteoN" x1="0" y1="0" x2=".3" y2="1">
+        <stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#e2e8f0"/>
+        <stop offset="1" stop-color="#94a3b8"/></linearGradient></defs>
+    <circle cx="11.6" cy="11.4" r="5.2" fill="url(#dmoMeteoS)"/>
+    <g stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round">
+      <path d="M11.6 2.8v2.2M11.6 17.8v2.2M2.8 11.4H5M18.2 11.4H20.4M5.4 5.2l1.6 1.6M16.2 16l1.6 1.6M5.4 17.6l1.6-1.6M16.2 6.8l1.6-1.6"/></g>
+    <circle cx="9.8" cy="9.6" r="1.5" fill="#fff" fill-opacity=".6"/>
+    <path d="M13.4 26.2a5.6 5.6 0 0 1-.6-11.1 7.4 7.4 0 0 1 14 1.7 4.7 4.7 0 0 1-.8 9.4Z" fill="url(#dmoMeteoN)"/>
+    <path d="M14.4 16.2a6 6 0 0 1 5.4-3.5" stroke="#fff" stroke-opacity=".85" stroke-width="1.7"
+      fill="none" stroke-linecap="round"/>`,
 });
 
 /* Due nomi per lo stesso disegno.
