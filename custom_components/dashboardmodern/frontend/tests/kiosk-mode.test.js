@@ -6,6 +6,7 @@ import {
   explicitKioskRequest,
   isIosDevice,
   kioskHostStyles,
+  retrazioneDopo,
   kioskValueFromLocation,
   readStoredKiosk,
   isTouchDevice,
@@ -138,6 +139,36 @@ test("an unusable measurement falls back to the dynamic viewport unit", () => {
 
 test("the overlay steps down while the native sidebar is open", () => {
   assert.equal(kioskHostStyles({ height: 844, drawerOpen: true })["z-index"], "1");
+});
+
+test("l'hamburger fa scendere la plancia e ripremerlo la rimanda su", () => {
+  /* «Premendo i 3 trattini in alto non fa più niente, non si riesce più a
+   * tornare in HA: lo noto solo mettendo la modalità chiosco» (#535).
+   *
+   * A comandare la discesa era il cassetto di Home Assistant, cercato dentro
+   * le sue ombre: dove non lo si trovava — un Home Assistant che ha cambiato
+   * le sue parti dentro, una barra laterale agganciata che un cassetto non è
+   * — non si scendeva mai, e il tasto sembrava rotto. Il gesto invece c'è
+   * sempre. */
+  assert.equal(retrazioneDopo(false, "hamburger"), true);
+  assert.equal(retrazioneDopo(true, "hamburger"), false);
+});
+
+test("un tocco sulla plancia la rimanda a tutto schermo", () => {
+  assert.equal(retrazioneDopo(true, "plancia"), false);
+  assert.equal(retrazioneDopo(false, "plancia"), false);
+});
+
+test("il cassetto comanda solo dopo essersi fatto vedere aperto", () => {
+  /* Prima di allora un «non sono aperto» è un «non lo so»: il campionamento
+   * parte nello stesso fotogramma del tocco, quando Home Assistant il
+   * cassetto non l'ha ancora aperto. Rialzare lì vuol dire annullare il
+   * gesto appena fatto. */
+  assert.equal(retrazioneDopo(true, "cassetto", { visto: false, aperto: false }), true);
+  assert.equal(retrazioneDopo(true, "cassetto", { visto: true, aperto: true }), true);
+  /* Chiuso dal velo, senza toccare né l'hamburger né la plancia: è l'unica
+   * cosa che il cassetto sa e i due gesti non possono sapere. */
+  assert.equal(retrazioneDopo(true, "cassetto", { visto: true, aperto: false }), false);
 });
 
 test("only a real containing block on an ancestor is neutralized", () => {

@@ -1015,8 +1015,16 @@ export function renderClimate({ rebuild = false, force = false } = {}) {
   });
   const units = stagione.dentro;
   state.fuoriStagione = stagione.fuori.length;
-  // Marked here, on the shell this pass owns: paintSummary can switch the page
-  // to the other zone, and the render that follows replaces the shell under it.
+  /* Marcato qui, sul guscio che questa passata ha in mano: `paintSummary` puo'
+   * mandare la pagina sull'altra zona, e di li' riparte un disegno.
+   *
+   * Ma non riparte DENTRO questo: `wrapFunction` rimanda il richiamo a un
+   * microtask, cosi' il giro nuovo comincia quando questo e' finito — e non
+   * rifa' nemmeno il guscio, che `ensureSkeleton` rifa' solo se non c'e'. La
+   * prima stesura di questa riga diceva il contrario, e una segnalazione ci si
+   * e' appoggiata per spiegare le card sparite (#541): quella rientranza non
+   * esiste, e le card non spariscono — la prova sta in
+   * `e2e/il-clima-non-si-svuota-cambiando-linguetta.spec.js`. */
   paintZoneTabs(shell, units);
   for (const zone of ["freddo", "caldo"]) {
     const grid = doc.getElementById(`clima-grid-${zone}`);

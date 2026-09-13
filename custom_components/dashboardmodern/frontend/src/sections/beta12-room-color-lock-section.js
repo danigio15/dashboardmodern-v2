@@ -52,6 +52,8 @@ state.scrollLock ||= [];
 state.drawer ||= null;
 state.drawerFrame ||= null;
 state.drawerBound ||= false;
+/* Se la plancia sta in basso per far vedere Home Assistant. */
+state.retratta ||= false;
 
 export function isIosDevice(nav = root.navigator) {
   const ua = clean(nav?.userAgent);
@@ -433,9 +435,41 @@ function haDrawer() {
  * never through a DOM observer: this module is forbidden from observing DOM.
  */
 function applyDrawerRetraction(open) {
+  state.retratta = Boolean(open);
   const host = state.kioskHost;
   if (!host?.style) return;
   host.style.setProperty("z-index", open ? "1" : KIOSK_Z_INDEX, "important");
+}
+
+/**
+ * Quanto sta in basso la plancia dopo un gesto.
+ *
+ * A comandare la retrazione era il cassetto di Home Assistant, cercato dentro
+ * le sue ombre: se non lo si trovava — un Home Assistant che ha cambiato le
+ * sue parti dentro, una barra laterale agganciata che un cassetto non e' — non
+ * si scendeva mai, e sotto il chiosco il tasto sembrava rotto. «Premendo i 3
+ * trattini in alto non fa piu' niente, non si riesce piu' a tornare in HA: lo
+ * noto solo mettendo la modalita' chiosco» (#535).
+ *
+ * Adesso comanda il gesto, che c'e' sempre: l'hamburger inverte — si preme per
+ * chiamare il menu e si ripreme per mandarlo via — e un tocco sulla plancia la
+ * rimanda a tutto schermo, perche' quel tocco vuol dire «ho finito di
+ * guardare Home Assistant» (e su un telefono chiude anche il cassetto). Il
+ * cassetto, quando si trova, resta la via piu' precisa e dice solo la verita'
+ * che le altre due non possono sapere: che e' stato chiuso dal velo, senza
+ * toccare ne' l'hamburger ne' la plancia. Ma parla dopo essersi fatto vedere
+ * aperto: prima di allora un «non sono aperto» e' un «non lo so».
+ *
+ * @param {boolean} prima com'era
+ * @param {"hamburger"|"plancia"|"cassetto"} gesto cos'e' successo
+ * @param {{visto?: boolean, aperto?: boolean}} cassetto cosa dice il cassetto
+ * @returns {boolean} se la plancia deve stare in basso
+ */
+export function retrazioneDopo(prima, gesto, { visto = false, aperto = false } = {}) {
+  if (gesto === "hamburger") return !prima;
+  if (gesto === "plancia") return false;
+  if (gesto === "cassetto") return visto ? aperto : Boolean(prima);
+  return Boolean(prima);
 }
 
 function nextFrame(callback) {
@@ -448,11 +482,13 @@ function nextFrame(callback) {
 function trackDrawer(frames = 20) {
   state.drawer ||= haDrawer();
   if (!state.drawer || state.drawerFrame) return false;
+  let visto = false;
   const step = () => {
-    const open = Boolean(state.drawer?.hasAttribute?.("open"));
-    applyDrawerRetraction(open);
+    const aperto = Boolean(state.drawer?.hasAttribute?.("open"));
+    if (aperto) visto = true;
+    applyDrawerRetraction(retrazioneDopo(state.retratta, "cassetto", { visto, aperto }));
     frames -= 1;
-    state.drawerFrame = state.active && (open || frames > 0) ? nextFrame(step) : null;
+    state.drawerFrame = state.active && (aperto || frames > 0) ? nextFrame(step) : null;
   };
   state.drawerFrame = nextFrame(step);
   return true;
@@ -464,13 +500,33 @@ function bindDrawerToggle() {
   if (!view?.addEventListener) return false;
   state.drawerBound = true;
   // Dispatched by the plancia hamburger and by every native sidebar toggle.
-  view.addEventListener("hass-toggle-menu", () => trackDrawer(), true);
+  view.addEventListener(
+    "hass-toggle-menu",
+    () => {
+      applyDrawerRetraction(retrazioneDopo(state.retratta, "hamburger"));
+      trackDrawer();
+    },
+    true,
+  );
+  /* Tornare sulla plancia la rimanda a tutto schermo. L'hamburger no: quello
+   * e' il tasto che chiama il menu, e il suo tocco arriva prima del suo
+   * click — conterebbe due volte, e in senso contrario. */
+  doc?.addEventListener?.(
+    "pointerdown",
+    (event) => {
+      if (!state.retratta) return;
+      if (event?.target?.closest?.(".ha-menu-btn")) return;
+      applyDrawerRetraction(retrazioneDopo(state.retratta, "plancia"));
+    },
+    true,
+  );
   return true;
 }
 
 function releaseDrawer() {
   state.drawer = null;
   state.drawerFrame = null;
+  state.retratta = false;
 }
 
 function activateIosKiosk() {
@@ -498,10 +554,7 @@ function activateIosKiosk() {
   }
   if (host) {
     host.dataset.dmIosKiosk = "true";
-    const styles = kioskHostStyles({
-      height,
-      drawerOpen: Boolean(state.drawer?.hasAttribute?.("open")),
-    });
+    const styles = kioskHostStyles({ height, drawerOpen: Boolean(state.retratta) });
     const scritte = ricordaEScrivi(
       host,
       Object.entries(styles).map(([property, value]) => [property, value, "important"]),
