@@ -1,6 +1,9 @@
 {
   "domain": "dashboardmodern",
   "name": "Dashboard Modern v2",
+  "after_dependencies": [
+    "lovelace"
+  ],
   "codeowners": [
     "@danigio15"
   ],
