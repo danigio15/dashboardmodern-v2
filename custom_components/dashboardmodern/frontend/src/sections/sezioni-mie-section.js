@@ -418,7 +418,7 @@ function installStyles() {
        * valore e leva — e dove uno dei due ultimi non c'e' arriva comunque il
        * suo posto vuoto. Con tre colonne il quarto figlio andava a capo, e la
        * leva finiva sotto il nome: la tessera diventava alta il doppio, cioe'
-       * l'opposto di quello che si era chiesto. Le due code sono `auto`:
+       * l'opposto di quello che si era chiesto. Le due code sono «auto»:
        * quella che non ha niente da dire non occupa niente. */
       .dm-mia-lista[data-formato="piccole"] .dm-mia-riga{
         grid-template-columns:32px minmax(0,1fr) auto auto;gap:9px;padding:8px 11px;
