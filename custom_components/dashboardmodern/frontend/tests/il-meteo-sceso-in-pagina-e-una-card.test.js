@@ -108,13 +108,15 @@ test("la card è un vestito: il meteo resta uno, e i suoi nodi li scrive il gusc
  * della plancia, le stesse delle persone: carta, bordo e ombra scolpita. */
 test("la card scesa in pagina si veste come le altre card", () => {
   const card = leggi("sections/la-card-del-meteo-section.js");
-  const blocco = card.slice(
-    card.indexOf('body .dm-testata-riga[data-dm-meteo="card"]{'),
-    card.indexOf('body .dm-testata-riga[data-dm-meteo="card"]>.weather-widget'),
-  );
-  assert.match(blocco, /background:var\(--card-bg,#fff\)/);
-  assert.match(blocco, /border:1px solid var\(--card-border,#e8edf3\)/);
-  assert.match(blocco, /box-shadow:var\(--shadow-sculpted,/);
+  /* Le vesti non se le scrive da se': le legge da dove le leggono anche le
+     tessere. Due ricette per la stessa cosa danno due aspetti diversi, ed e'
+     esattamente quello che si e' visto — «le altre sembrano in rilievo, questa
+     piatta». */
+  assert.match(card, /from "\.\.\/core\/le-vesti-della-carta\.js"/);
+  assert.match(card, /background:\$\{FONDO_DELLA_CARTA\}/);
+  assert.match(card, /box-shadow:\$\{OMBRA_DELLA_CARTA\}/);
+  assert.match(card, /\$\{GRANA_DELLA_CARTA\}/);
+  assert.match(card, /\$\{tokenDellaCarta\(/);
   /* E si alza al passaggio, invece di tingersi d'accento come la fascia. */
   assert.match(card, /\[data-dm-meteo="card"\]:hover\{\s*transform:translateY\(-4px\);/);
   /* Le vesti della striscia non arrivano piu' fino a qui: non si scavalcano,
@@ -126,6 +128,46 @@ test("la card scesa in pagina si veste come le altre card", () => {
   );
   assert.match(striscia, /body \.dm-testata-riga:not\(\[data-dm-meteo="card"\]\):hover\{/);
   assert.doesNotMatch(striscia, /body \.dm-testata-riga\{[^}]*background:var\(--surface-2/);
+});
+
+/* Anche le tessere leggono la stessa ricetta, o non e' una ricetta sola.
+ *
+ * La prova sta qui e non fra quelle dei widget perche' quello che si vuole
+ * garantire e' che i DUE la prendano dallo stesso posto: chiederlo a uno solo
+ * lascerebbe l'altro libero di tornare a scriversela in casa, che e' come e'
+ * nato questo difetto. */
+test("le tessere e il meteo prendono le vesti dallo stesso posto", () => {
+  const tessere = leggi("sections/home-widgets-section.js");
+  assert.match(tessere, /from "\.\.\/core\/le-vesti-della-carta\.js"/);
+  assert.match(tessere, /background:\$\{FONDO_DELLA_CARTA\}/);
+  assert.match(tessere, /box-shadow:\$\{OMBRA_DELLA_CARTA\}/);
+  /* E la ricetta non e' rimasta anche scritta a mano da qualche parte. */
+  assert.doesNotMatch(tessere, /0 14px 28px -18px rgba\(15,23,42,\.55\)/);
+});
+
+/* Il titolo sopra la card, e solo da sceso in pagina.
+ *
+ * «Non compare il titolo sopra come le altre sezioni» — e insieme: «se e' con
+ * etichetta principale non deve uscire». Sono la stessa regola letta dalle due
+ * parti: in pagina il meteo e' un blocco come gli altri e il titolo ce l'ha;
+ * nell'intestazione sta gia' sotto il nome della casa, e li' un secondo titolo
+ * sarebbe una scritta di troppo. */
+test("il titolo del meteo esiste solo da sceso in pagina", () => {
+  const card = leggi("sections/la-card-del-meteo-section.js");
+  /* Nasce quando la card si accende... */
+  assert.match(card, /titoloDelMeteo\(riga, true\);/);
+  /* ...e se ne va quando il riquadro risale nell'intestazione. */
+  const risalito = card.slice(card.indexOf("if (!scesoInPagina(riga)) {"));
+  assert.match(
+    risalito.slice(0, risalito.indexOf("return false;")),
+    /querySelectorAll\??\.?\(`\.\$\{CLASSE_DEL_TITOLO\}`\)[^\n]*\.remove\(\)/,
+  );
+  /* Sta FUORI dal riquadro: dentro comparirebbe anche in testata, che e'
+     proprio quello che non deve succedere. */
+  assert.match(card, /riga\.before\(titolo\)/);
+  assert.match(card, /titolo\.className = `section-title \$\{CLASSE_DEL_TITOLO\}`/);
+  /* E l'aria da quello che c'e' sopra: «troppo attaccato ad altra sezione». */
+  assert.match(card, /margin-top:26px/);
 });
 
 /* Manca vuol dire manca, non zero.

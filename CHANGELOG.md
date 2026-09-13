@@ -5,6 +5,63 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.25
+
+### Corretto
+
+- **La plancia aggiornata non resta indietro**
+
+  «Nell'integrazione portava versione 1.4.24 ma nella plancia 1.4.23;
+  scaricando manualmente da HACS si è aggiornato.»
+
+  La stessa plancia, aperta dalla barra laterale era nuova e aperta come
+  dashboard predefinita era vecchia. Sono due strade: il pannello si carica da
+  un indirizzo che porta dentro la firma degli asset — cambia a ogni
+  aggiornamento, quindi quello che il browser aveva in cache non c'entra più —
+  mentre la card sta sul percorso stabile, e deve starci, se no una pagina
+  vecchia in cache chiederebbe una firma che non esiste più.
+
+  Il difetto non era la card: era quello che la card si porta dietro. Un
+  modulo risolve i suoi import rispetto a dove lo si è preso, quindi da lì
+  tutto `src/` e tutto `legacy/` venivano chiesti sul percorso stabile — che
+  Home Assistant serve senza nemmeno un `Cache-Control`. Un file senza
+  istruzioni il browser se lo tiene per conto suo, a spanne, per ore.
+
+  Adesso quel percorso rimanda all'indirizzo versionato di adesso, e da lì in
+  poi ogni import è versionato: sempre nuovo dopo un aggiornamento, tenuto in
+  cache quando non cambia niente. E la plancia, dentro la card, si monta dalla
+  base che i pannelli pubblicano in questo momento — non da quella scritta
+  dentro la dashboard il giorno che è nata.
+
+- **La plancia non compare più due volte nella barra laterale**
+
+  «Ho sempre due volte nella barra laterale», con nell'elenco delle plance
+  quattro voci dove di plance ce n'è una sola.
+
+  Ogni plancia si porta la sua dashboard di appoggio — è quella che permette
+  di sceglierla come predefinita. Quando la plancia veniva tolta, però, si
+  toglieva il pannello e basta: la dashboard restava sul disco per sempre, col
+  nome che la plancia aveva quel giorno. Chi reinstalla, o rinomina, se ne
+  accumulava una per volta, e una di quelle orfane finiva nella barra accanto
+  a quella vera.
+
+  Adesso la dashboard di appoggio se ne va con la sua plancia, e quelle già
+  accumulate si spazzano da sole all'avvio. Si cancella solo quello che è
+  nostro due volte — il nome che scriviamo noi e, dentro, soltanto card nostre
+  — e solo quando la plancia a cui appartengono non esiste più: una dashboard
+  fatta a mano non si tocca.
+
+- **Stampanti: la barra del nero si vede anche sulla plancia scura**
+
+  «Nel menu della stampante per i due colori uno mi fa la slide colorata e
+  l'altra no.»
+
+  Il colore del nero è il nero vero dell'inchiostro, giusto sulla carta
+  bianca. Su una tavolozza scura, però, quello è il colore del fondo: pista e
+  riempimento venivano uguali e la barra sembrava vuota, mentre quella a
+  colori si vedeva benissimo. Adesso sul fondo scuro il nero si scrive chiaro,
+  come il testo; sul chiaro non cambia niente.
+
 ## 1.4.24
 
 ### Corretto

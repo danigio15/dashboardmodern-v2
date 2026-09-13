@@ -52,6 +52,7 @@ import {
   t,
   writeJsonIfChanged,
 } from "./shared.js";
+import { CLASSE_DEL_TITOLO } from "./la-card-del-meteo-section.js";
 import { rigaDellaTestata } from "./weather-in-masthead-section.js";
 
 const KEY = "__DASHBOARDMODERN_HOME_BLOCCHI__";
@@ -84,7 +85,16 @@ function pezziDelBlocco(nome, pagina) {
    * pagina. Finche' sta nell'intestazione non e' figlio della Home, quindi qui
    * non c'e' niente da mettere in fila — ed e' giusto: li' sta sopra tutto. */
   if (nome === BLOCCO_DEL_METEO)
-    return [dentro(doc.querySelector(".dm-testata-riga"))].filter(Boolean);
+    /* Due pezzi, come «Dispositivi»: il titolo e il riquadro. Il titolo esiste
+     * solo da sceso in pagina — lassu' il riquadro sta gia' sotto il nome della
+     * casa — e lo scrive chi veste la card. Spostare il riquadro lasciando
+     * indietro il titolo vorrebbe dire una scritta staccata da quello che
+     * annuncia, che e' esattamente il motivo per cui i blocchi hanno piu' di un
+     * pezzo. */
+    return [
+      dentro(doc.querySelector(`.${CLASSE_DEL_TITOLO}`)),
+      dentro(doc.querySelector(".dm-testata-riga")),
+    ].filter(Boolean);
   if (nome === "persone") return [dentro(doc.getElementById("dm-people"))].filter(Boolean);
   if (nome === "widget") return [dentro(doc.getElementById("dm-widgets"))].filter(Boolean);
   /* Le stanze (#493) sono un nodo solo: il titolo se lo porta dentro, come le

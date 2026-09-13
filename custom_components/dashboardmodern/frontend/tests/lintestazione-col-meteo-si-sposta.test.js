@@ -100,10 +100,11 @@ test("chi mette in fila i blocchi sa che il meteo e' uno di loro", () => {
   /* Il riquadro conta come blocco solo quando e' sceso in pagina: `dentro`
    * torna null per chi non e' figlio della Home, e finche' sta in testata non
    * c'e' niente da mettere in fila. */
-  assert.match(
-    sorgente,
-    /if \(nome === BLOCCO_DEL_METEO\)\s*\n\s*return \[dentro\(doc\.querySelector\("\.dm-testata-riga"\)\)\]\.filter\(Boolean\);/,
-  );
+  /* E sono DUE pezzi, come «Dispositivi»: il titolo e il riquadro. Spostare il
+   * riquadro lasciando indietro il titolo darebbe una scritta staccata da
+   * quello che annuncia. */
+  assert.match(sorgente, /dentro\(doc\.querySelector\(`\.\$\{CLASSE_DEL_TITOLO\}`\)\)/);
+  assert.match(sorgente, /dentro\(doc\.querySelector\("\.dm-testata-riga"\)\)/);
   /* E ha un nome nella scheda: una riga senza etichetta non si sposta. Il
    * simbolo accanto al nome non e' piu' un'emoji di sistema — «non voglio
    * vedere icone che non sono nostre» — ma il sole dietro la nuvola del

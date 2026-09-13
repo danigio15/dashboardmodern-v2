@@ -24,6 +24,12 @@
  * giorno.
  */
 import { giorniCheVengono, oggiFraMassimaEMinima, segnoDelTempo } from "../core/la-card-del-meteo.js";
+import {
+  FONDO_DELLA_CARTA,
+  GRANA_DELLA_CARTA,
+  OMBRA_DELLA_CARTA,
+  tokenDellaCarta,
+} from "../core/le-vesti-della-carta.js";
 import { rigaDellaTestata } from "./weather-in-masthead-section.js";
 import {
   allStates,
@@ -223,6 +229,38 @@ function misureInPiu(riquadro) {
   }
 }
 
+/* Il titolo del blocco, che vive solo mentre il riquadro sta in pagina.
+ *
+ * Sta FUORI dal riquadro, come nei blocchi del guscio — «Dispositivi» e la sua
+ * griglia sono due fratelli — e non dentro, come se lo portano le persone e i
+ * widget. La ragione e' che il riquadro non e' nostro: e' quello del guscio,
+ * che nell'intestazione ospita anche l'orologio. Infilarci dentro un titolo
+ * vorrebbe dire vederlo comparire anche lassu', ed e' proprio quello che non
+ * deve succedere: «se e' con etichetta principale non deve uscire».
+ *
+ * Chi mette i blocchi in fila lo sa: per lui il meteo sceso in pagina e' due
+ * pezzi, il titolo e il riquadro, e li sposta insieme. */
+export const CLASSE_DEL_TITOLO = "dm-testata-titolo";
+
+function titoloDelMeteo(riga, acceso) {
+  const pagina = riga.parentElement;
+  let titolo = pagina?.querySelector(`:scope > .${CLASSE_DEL_TITOLO}`) || null;
+  if (!acceso) {
+    titolo?.remove();
+    return;
+  }
+  if (!titolo) {
+    titolo = doc.createElement("h3");
+    titolo.className = `section-title ${CLASSE_DEL_TITOLO}`;
+    riga.before(titolo);
+  }
+  const testo = t("Meteo", "Weather");
+  if (titolo.textContent !== testo) titolo.textContent = testo;
+  /* Il titolo annuncia il riquadro, quindi gli sta sempre attaccato davanti:
+   * se qualcuno ha rimesso in fila i blocchi, il titolo lo segue. */
+  if (titolo.nextElementSibling !== riga) riga.before(titolo);
+}
+
 /** Accende o spegne la card, e la tiene aggiornata mentre e' accesa. */
 export function vestiLaCard() {
   const riga = doc?.querySelector?.(".dm-testata-riga");
@@ -230,14 +268,16 @@ export function vestiLaCard() {
   const riquadro = riga.querySelector(":scope > .weather-widget");
   if (!scesoInPagina(riga)) {
     /* Risalito nell'intestazione: la striscia torna quella di prima, e quello
-     * che la card aveva aggiunto se ne va con lei. */
+     * che la card aveva aggiunto se ne va con lei — il titolo compreso. */
     if (riga.dataset.dmMeteo) delete riga.dataset.dmMeteo;
+    for (const vecchio of doc?.querySelectorAll?.(`.${CLASSE_DEL_TITOLO}`) || []) vecchio.remove();
     riquadro?.querySelector(":scope .dm-meteo-oggi")?.remove();
     riquadro?.querySelector(":scope > .dm-meteo-giorni")?.remove();
     for (const nodo of riquadro?.querySelectorAll("[data-dm-meteo-extra]") || []) nodo.remove();
     return false;
   }
   if (riga.dataset.dmMeteo !== "card") riga.dataset.dmMeteo = "card";
+  titoloDelMeteo(riga, true);
   if (!riquadro) return false;
   rigaDiOggi(riquadro);
   strisciaDeiGiorni(riquadro);
@@ -251,22 +291,44 @@ export function vestiLaCard() {
 const STILE = `
 /* Tutto quello che segue vale SOLO col riquadro sceso in pagina: nella
    testata la striscia resta quella che e', ed e' giusta li'. */
-/* Le vesti di una card della plancia, non di una fascia: carta, filo di bordo
-   e ombra scolpita. Sono gli stessi quattro valori che portano le persone e le
-   tessere — «contorno meteo non uguale alle altre card»: sono le vesti della
-   plancia, non una terza veste inventata per il meteo. */
+/* Le vesti della carta, le stesse delle tessere: fondo a carta, i due fili del
+   bordo, l'ombra corta attaccata e quella lunga sotto.
+ *
+ * Qui c'era l'ombra morbida delle persone — un valore solo — e su una card
+ * larga tutta la pagina non si vede: «le altre sembrano in rilievo, questa
+ * piatta». Non era la ricetta sbagliata: erano DUE ricette per la stessa cosa.
+ * Adesso e' una sola, e sta in core/le-vesti-della-carta.js. */
+${tokenDellaCarta('body .dm-testata-riga[data-dm-meteo="card"]')}
 body .dm-testata-riga[data-dm-meteo="card"]{
+  position:relative;overflow:hidden;
   display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;
-  gap:10px 16px;padding:18px 20px 16px;border-radius:22px;
-  background:var(--card-bg,#fff);border:1px solid var(--card-border,#e8edf3);
-  box-shadow:var(--shadow-sculpted,0 4px 14px rgba(15,23,42,.08));
-  transition:var(--transition,.3s);
+  gap:10px 16px;padding:18px 20px 16px;border:0;border-radius:22px;
+  background:${FONDO_DELLA_CARTA};
+  box-shadow:${OMBRA_DELLA_CARTA};
+  transition:transform .18s cubic-bezier(.16,1,.3,1),box-shadow .2s ease;
   cursor:pointer}
-/* Si alza al passaggio come le altre card, e con lo scatto che questo riquadro
-   ha sempre avuto quando era la card del meteo del guscio. */
+body .dm-testata-riga[data-dm-meteo="card"]::before{${GRANA_DELLA_CARTA}}
+/* Si alza al passaggio come le altre card. */
 body .dm-testata-riga[data-dm-meteo="card"]:hover{
   transform:translateY(-4px);
   box-shadow:var(--shadow-hover,0 10px 25px rgba(15,23,42,.14))}
+/* Il titolo sopra, come ogni altra sezione della Home.
+ *
+ * «Non compare il titolo sopra come le altre sezioni.» Ce l'hanno tutte —
+ * PERSONE, WIDGET, AZIONI RAPIDE — e il meteo sceso in pagina no: sembrava una
+ * card capitata li' invece di un blocco.
+ *
+ * Esiste SOLO da sceso in pagina: «se e con etichetta principale non deve
+ * uscire». Nell'intestazione il riquadro sta gia' sotto il nome della casa, e
+ * li' un secondo titolo sarebbe una scritta di troppo. */
+body #page-home>.dm-testata-titolo{margin:0 0 10px}
+/* E l'aria da quello che c'e' sopra: «troppo attaccato ad altra sezione». Gli
+   altri blocchi se la portano dentro; questo riquadro nasce nell'intestazione,
+   dove l'aria la fa la testata, e scendendo non ne aveva. La porta il pezzo
+   che viene per primo: col titolo e' il titolo, senza e' la card. */
+body #page-home>.dm-testata-titolo,
+body #page-home>.dm-testata-riga[data-dm-meteo="card"]{margin-top:26px}
+body #page-home>.dm-testata-titolo+.dm-testata-riga[data-dm-meteo="card"]{margin-top:0}
 body .dm-testata-riga[data-dm-meteo="card"]>.weather-widget{
   grid-area:1/1;display:grid;gap:14px;min-width:0}
 /* L'ora, in alto a destra. Il suo foglio di stile parla solo dentro
