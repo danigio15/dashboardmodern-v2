@@ -62,6 +62,7 @@ import {
   letturaDellAria,
   normalizzaAria,
   parolaDelGrado,
+  valoreScritto,
 } from "../core/aria-model.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
 import { cavoDalloStato, codiceDellaRicarica } from "../core/stato-della-ricarica.js";
@@ -3773,7 +3774,7 @@ function ariaModel(states) {
     label: t("Aria", "Air"),
     /* Il numero e la sua unita' nella stessa casella: la tessera le separa da
      * se', come fa coi gradi della temperatura. */
-    value: `${formatNumber(copertina.valore, copertina.valore >= 100 ? 0 : 1)}${copertina.unita ? ` ${copertina.unita}` : ""}`,
+    value: `${valoreScritto(copertina, locale())}${copertina.unita ? ` ${copertina.unita}` : ""}`,
     caption: `${parola} · ${copertina.misura}`,
     ring: copertina.quanto,
     grado: giudizio.grado,
@@ -3784,7 +3785,7 @@ function ariaModel(states) {
       entity: lettura.entity,
       name: lettura.name,
       glyph: lettura.glifo,
-      value: `${formatNumber(lettura.valore, lettura.valore >= 100 ? 0 : 1)}${lettura.unita ? ` ${lettura.unita}` : ""}`,
+      value: `${valoreScritto(lettura, locale())}${lettura.unita ? ` ${lettura.unita}` : ""}`,
       grado: lettura.grado,
     })),
   };
