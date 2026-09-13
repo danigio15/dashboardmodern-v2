@@ -249,8 +249,14 @@ function annunciaLaPagina(sezione, indice, letture) {
   });
 }
 
-function paginaMarkup(letture) {
-  return `<div class="dm-mia-lista">${letture.map(rigaMarkup).join("")}</div>`;
+/* Il formato lo porta un attributo, e il resto lo fa il foglio di stile: la
+ * riga disegnata e' una sola — stessa icona, stesso nome, stesso valore,
+ * stessa leva — e cambia come si dispone, non cosa dice. Due disegni per la
+ * stessa voce sarebbero due disegni da tenere allineati. */
+function paginaMarkup(letture, formato) {
+  return `<div class="dm-mia-lista" data-formato="${esc(formato)}">${letture
+    .map(rigaMarkup)
+    .join("")}</div>`;
 }
 
 function dipingi() {
@@ -276,10 +282,10 @@ function dipingi() {
     /* Si ridisegna solo quando qualcosa e' cambiato davvero: la pagina la
      * ripassa il guscio a ogni giro, e rifare il documento sotto le dita di
      * chi sta toccando un interruttore glielo fa mancare. */
-    const firma = JSON.stringify([sezione.titolo, sezione.icona, letture]);
+    const firma = JSON.stringify([sezione.titolo, sezione.icona, sezione.formato, letture]);
     if (state.firme.get(sezione.id) === firma) continue;
     state.firme.set(sezione.id, firma);
-    dove.innerHTML = paginaMarkup(letture);
+    dove.innerHTML = paginaMarkup(letture, sezione.formato);
   }
 }
 
@@ -387,6 +393,51 @@ function installStyles() {
       @media(max-width:560px){
         .dm-mia-riga{grid-template-columns:38px minmax(0,1fr) auto 46px;gap:9px;padding:10px 11px}
         .dm-mia-ic{width:38px;height:38px;font-size:17px}
+      }
+
+      /* Piccole (#515): la stessa voce, stretta.
+       *
+       * «Si potrebbe poter scegliere il tipo di scheda? Magari averle piu'
+       * piccole.» Piccole vuol dire due cose insieme, e servono tutt'e due:
+       * piu' bassa la singola voce, e piu' voci per riga. Una sola delle due
+       * non basta — voci basse a tutta larghezza restano una colonna, e voci
+       * affiancate ma piu' alte occupano lo stesso posto di prima in verticale.
+       *
+       * Resta su UN piano, come quella di sempre: icona, nome, e in fondo
+       * quello che la voce ha da dare. Che e' sempre una cosa sola — un
+       * interruttore ha la leva e non ha un numero, un sensore ha il numero e
+       * non ha la leva — quindi la colonna in fondo basta per tutt'e due, e
+       * mandare il valore su un secondo piano allungherebbe la tessera invece
+       * di accorciarla. L'entita' sotto il nome se ne va: in una tessera
+       * stretta e' una fila di puntini.
+       *
+       * Il minimo e' 150 px: sotto, il nome di un'entita' non ci sta. */
+      .dm-mia-lista[data-formato="piccole"]{
+        grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+      /* Quattro colonne perche' i figli sono quattro, sempre: icona, nome,
+       * valore e leva — e dove uno dei due ultimi non c'e' arriva comunque il
+       * suo posto vuoto. Con tre colonne il quarto figlio andava a capo, e la
+       * leva finiva sotto il nome: la tessera diventava alta il doppio, cioe'
+       * l'opposto di quello che si era chiesto. Le due code sono `auto`:
+       * quella che non ha niente da dire non occupa niente. */
+      .dm-mia-lista[data-formato="piccole"] .dm-mia-riga{
+        grid-template-columns:32px minmax(0,1fr) auto auto;gap:9px;padding:8px 11px;
+        border-radius:14px}
+      .dm-mia-lista[data-formato="piccole"] .dm-mia-ic{width:32px;height:32px;font-size:15px;border-radius:11px}
+      .dm-mia-lista[data-formato="piccole"] .dm-mia-nome strong{font-size:12.5px}
+      .dm-mia-lista[data-formato="piccole"] .dm-mia-nome small{display:none}
+      .dm-mia-lista[data-formato="piccole"] .dm-mia-val b{font-size:14px}
+      .dm-mia-lista[data-formato="piccole"] .dm-mia-lev{width:38px;height:22px}
+      .dm-mia-lista[data-formato="piccole"] .dm-mia-lev i{width:16px;height:16px}
+      .dm-mia-lista[data-formato="piccole"] .dm-mia-riga[data-on="true"] .dm-mia-lev i{
+        transform:translateX(16px)}
+      /* Il posto vuoto di chi non ha leva non allarga la tessera. */
+      .dm-mia-lista[data-formato="piccole"] .dm-mia-vuoto{width:0}
+      @media(max-width:560px){
+        .dm-mia-lista[data-formato="piccole"]{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+        .dm-mia-lista[data-formato="piccole"] .dm-mia-riga{
+          grid-template-columns:28px minmax(0,1fr) auto auto;gap:7px;padding:7px 9px}
+        .dm-mia-lista[data-formato="piccole"] .dm-mia-ic{width:28px;height:28px;font-size:14px}
       }
     `,
   );

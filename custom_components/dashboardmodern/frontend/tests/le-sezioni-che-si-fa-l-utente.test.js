@@ -13,11 +13,13 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 
 import {
+  FORMATI_SEZIONE,
   MASSIMO_SEZIONI,
   chiaveDellaSezione,
   contoDellaSezione,
   entitaDelleSezioni,
   lettureDellaSezione,
+  formatoDellaSezione,
   normalizzaSezioni,
   sezioniDaMostrare,
 } from "../src/core/sezioni-mie.js";
@@ -161,4 +163,43 @@ test("l'intestazione la disegna chi disegna tutte le altre", () => {
   assert.match(pagina, /registraPaginaARuntime\(/);
   const masthead = leggi("sections/page-masthead-section.js");
   assert.match(masthead, /export function registraPaginaARuntime/);
+});
+
+/* ── il formato delle voci (#515) ──────────────────────────────────────── */
+
+test("una sezione senza formato scritto sta a righe, come è sempre stata", () => {
+  /* «Si potrebbe poter scegliere il tipo di scheda? Magari averle più piccole»
+   * (#515). Chi non sceglie niente non deve accorgersi di niente: tutte le
+   * sezioni che esistono oggi non hanno il campo, e devono restare com'erano. */
+  assert.equal(normalizzaSezioni([UPS])[0].formato, "righe");
+  assert.equal(formatoDellaSezione(""), "righe");
+  assert.equal(formatoDellaSezione("gigante"), "righe");
+  assert.equal(formatoDellaSezione(undefined), "righe");
+});
+
+test("il formato scelto si tiene, e sono due", () => {
+  assert.deepEqual([...FORMATI_SEZIONE], ["righe", "piccole"]);
+  assert.equal(normalizzaSezioni([{ ...UPS, formato: "piccole" }])[0].formato, "piccole");
+  assert.equal(formatoDellaSezione("piccole"), "piccole");
+});
+
+test("il formato lo porta la pagina in un attributo, non un secondo disegno", () => {
+  /* La riga disegnata resta una sola — stessa icona, stesso nome, stesso
+   * valore, stessa leva — e cambia come si dispone. Due disegni per la stessa
+   * voce sarebbero due disegni da tenere allineati. */
+  const sezione = leggi("sections/sezioni-mie-section.js");
+  assert.match(sezione, /data-formato="\$\{esc\(formato\)\}"/);
+  assert.match(sezione, /\.dm-mia-lista\[data-formato="piccole"\]\{/);
+  assert.equal((sezione.match(/function rigaMarkup\(/g) || []).length, 1);
+  /* E il ridisegno lo vede: senza il formato nella firma, cambiarlo non
+   * avrebbe ridipinto niente finché non cambiava anche uno stato. */
+  assert.match(sezione, /JSON\.stringify\(\[sezione\.titolo, sezione\.icona, sezione\.formato, letture\]\)/);
+});
+
+test("la scelta sta nell'editor della sezione, accanto a quella della barra", () => {
+  const editor = leggi("sections/sezioni-mie-editor-section.js");
+  assert.match(editor, /data-mia-formato="\$\{esc\(formato\)\}"/);
+  assert.match(editor, /letto\.formato = formatoDellaSezione\(/);
+  /* Una sezione nuova nasce a righe: è il formato che hanno tutte le altre. */
+  assert.match(editor, /formato: FORMATI_SEZIONE\[0\]/);
 });

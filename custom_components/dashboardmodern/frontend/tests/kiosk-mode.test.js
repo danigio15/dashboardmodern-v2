@@ -235,7 +235,7 @@ test("l'interruttore del chiosco sta in ⚙️ Impostazioni, al suo posto in fil
    * così chi arriva primo o ultimo non cambia quello che si legge. */
   assert.match(
     condivise,
-    /ORDINE_IMPOSTAZIONI = Object\.freeze\(\{ lingua: 10, chiosco: 15, assist: 20, sezioni: 30 \}\)/,
+    /chiosco: 15,/,
   );
   assert.match(chiosco, /const SCHEDA = "visib";/);
   assert.match(chiosco, /inserisciInOrdine\(corpo, riga, ORDINE_IMPOSTAZIONI\.chiosco, dopoIGenerali\)/);

@@ -39,6 +39,27 @@ export const CHIAVE_SEZIONI_MIE = "cd_sezioni_mie";
  * cui i due si allontanano senza che nessuno se ne accorga. */
 const PREFISSO = "mia-";
 
+/* Come si dispongono le voci in pagina.
+ *
+ * «Si potrebbe poter scegliere il tipo di scheda? Magari averle piu' piccole»
+ * (#515). Una riga a tutta larghezza per un interruttore che dice acceso o
+ * spento e' una riga sprecata: chi ne ha dodici ne vede tre per schermata, e
+ * per le altre nove scorre.
+ *
+ * Due formati e non cinque. A RIGHE e' quello di sempre — icona, nome, valore
+ * e leva in fila, tutta la larghezza — e resta il difetto, perche' e' quello
+ * che tutti hanno adesso e nessuno deve ritrovarsi la pagina cambiata senza
+ * averlo chiesto. PICCOLE mette la stessa voce in una tessera, e le tessere
+ * vanno a capo: la stessa roba, tre o quattro per riga. Un terzo modo nessuno
+ * l'ha chiesto, e un terzo modo e' una scelta in piu' da fare per tutti. */
+export const FORMATI_SEZIONE = Object.freeze(["righe", "piccole"]);
+
+/** Il formato di una sezione, ripulito: quello di sempre se non si capisce. */
+export function formatoDellaSezione(valore) {
+  const detto = pulito(valore);
+  return FORMATI_SEZIONE.includes(detto) ? detto : FORMATI_SEZIONE[0];
+}
+
 /** La chiave con cui la voce di una sezione si accende e si spegne. */
 export const chiaveDellaSezione = (id) => `${PREFISSO}${pulito(id)}`;
 
@@ -102,6 +123,7 @@ export function normalizzaSezioni(stored) {
       id: pulito(riga.id) || `sezione-${indice + 1}`,
       titolo: pulito(riga.titolo ?? riga.title),
       icona: pulito(riga.icona ?? riga.icon) || "⭐",
+      formato: formatoDellaSezione(riga.formato),
       /* Si mostra nella barra a meno che non si sia detto di no: una sezione
        * appena creata deve comparire, o non si capisce che e' stata creata. */
       mostra: riga.mostra !== false,

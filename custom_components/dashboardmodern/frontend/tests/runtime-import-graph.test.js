@@ -1261,8 +1261,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // e quella della persona al 55%, e si vedeva — «sullo sfondo resta la dash
   // sfocata, con le altre invece e' nero». Due ricette per la stessa cosa
   // danno due aspetti diversi, sempre; adesso e' una.
+  // 359 con l'intestazione fissa (#521): «un'opzione che tiene ferma tutta la
+  // parte iniziale, e se uno scorre verso il basso vede il resto». E' un file
+  // in piu' perche' e' una cosa in piu' — un interruttore per apparecchio, come
+  // il modo chiosco, con la sua casella e la sua regola. Metterla dentro un
+  // modulo che c'e' gia' vorrebbe dire metterla dentro qualcosa che parla
+  // d'altro: il chiosco manda la plancia a tutto schermo, questa la tiene
+  // ferma, e sono due domande diverse che si accendono separate.
   assert.ok(
-    relative.length <= 358,
+    relative.length <= 359,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
