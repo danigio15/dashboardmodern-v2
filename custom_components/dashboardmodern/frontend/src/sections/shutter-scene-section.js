@@ -605,13 +605,28 @@ function cardMarkup(view) {
  *
  * E quell'intestazione, li', non diceva niente: la card stampa gia' la sua
  * stanza sotto il nome. Un'intestazione che nomina una card sola ripete la
- * card e costa la riga intera.
+ * card e costa la riga intera. Percio' la scritta compariva solo per le stanze
+ * con piu' di una finestra.
  *
- * Percio': la scritta di stanza compare dove serve a distinguere — una stanza
- * con piu' finestre — e sparisce dove ripete. Restano due eccezioni, che sono
- * la stessa: una pagina dove nessuno ha una stanza non raggruppa affatto (era
- * gia' cosi'), e il gruppo «Senza stanza» tiene la sua scritta anche da solo,
- * perche' quelle card la stanza non ce l'hanno da stampare.
+ * Ma il separatore prende TUTTA la riga, e chi non ce l'ha non ne comincia
+ * una: le card delle stanze senza scritta finivano sotto la scritta di
+ * un'ALTRA stanza. Dal campo, con nove finestre in otto stanze: una sola
+ * intestazione, «SOGGIORNO · 2 finestre», e sotto tutte e nove le card. Il
+ * numero era giusto per il suo gruppo e falso per quello che gli stava sotto,
+ * che e' il modo peggiore di essere giusti.
+ *
+ * Darla a tutte le stanze rimetterebbe la #424 — «persiste la visualizzazione
+ * sempre in colonna da monitor piu' grandi» — perche' con una finestra per
+ * stanza tornerebbero un'intestazione e una card per riga.
+ *
+ * Quindi: o separa tutte, o non separa nessuna. Le scritte ci sono quando
+ * OGNI stanza ne ha una — li' distinguono davvero e nessuna card finisce sotto
+ * il nome di un'altra — e spariscono tutte insieme appena una stanza avrebbe
+ * la sua card sola sotto il nome di qualcun altro. Quando spariscono non si
+ * perde niente: la stanza ogni card se la stampa gia' sotto il proprio nome.
+ *
+ * Il gruppo «Senza stanza» non conta per questa domanda: quelle card la stanza
+ * non ce l'hanno da stampare, e la loro scritta e' l'unica che le nomina.
  */
 export function stanzeConIntestazione(views) {
   const elenco = Array.isArray(views) ? views : [];
@@ -623,9 +638,13 @@ export function stanzeConIntestazione(views) {
     if (!gruppi.has(chiave)) gruppi.set(chiave, []);
     gruppi.get(chiave).push(view);
   });
-  gruppi.forEach((insieme, chiave) => {
-    if (insieme.length > 1 || !clean(insieme[0]?.room)) chiavi.add(chiave);
-  });
+  /* Una stanza sola non ha nessuno da cui separarsi. */
+  if (gruppi.size < 2) return chiavi;
+  /* Basta una stanza che resterebbe muta perche' tacciano tutte: e' quella la
+   * card che finirebbe sotto il nome sbagliato. */
+  for (const insieme of gruppi.values())
+    if (insieme.length < 2 && clean(insieme[0]?.room)) return chiavi;
+  gruppi.forEach((_insieme, chiave) => chiavi.add(chiave));
   return chiavi;
 }
 

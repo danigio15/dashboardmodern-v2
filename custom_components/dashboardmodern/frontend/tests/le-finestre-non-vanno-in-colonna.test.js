@@ -29,17 +29,42 @@ test("una tapparella per stanza: nessuna intestazione, e le card riempiono la gr
   assert.equal(stanzeConIntestazione(views).size, 0);
 });
 
-test("una stanza con più finestre la scritta se la tiene: lì distingue davvero", () => {
+test("una scritta sola sopra le card di tutti è peggio di nessuna scritta", () => {
+  /* Questo contratto è cambiato, e il motivo arriva dal campo: una casa con
+   * nove finestre in otto stanze vedeva UNA sola intestazione — «SOGGIORNO ·
+   * 2 finestre» — e sotto tutte e nove le card, perché il separatore prende
+   * tutta la riga e chi non ce l'ha non ne comincia una. Il numero era giusto
+   * per il suo gruppo e falso per tutto quello che gli stava sotto.
+   *
+   * Darla anche alle stanze con una finestra sola rimetterebbe la #424 —
+   * «persiste la visualizzazione sempre in colonna da monitor più grandi» —
+   * perché tornerebbero un'intestazione e una card per riga.
+   *
+   * Quindi o separa tutte o non separa nessuna: qui Cucina e Camera ne hanno
+   * una a testa, e tacciono tutte. Non si perde niente, la stanza ogni card se
+   * la stampa già sotto il proprio nome. */
   const views = [
     finestra("a", "Salone"),
     finestra("b", "Salone"),
     finestra("c", "Cucina"),
     finestra("d", "Camera"),
   ];
+  assert.equal(stanzeConIntestazione(views).size, 0);
+});
+
+test("quando OGNI stanza ne ha più d'una, le scritte ci sono tutte", () => {
+  /* Lì distinguono davvero, e nessuna card finisce sotto il nome di un'altra
+   * stanza: ogni gruppo comincia la sua riga. */
+  const views = [
+    finestra("a", "Salone"),
+    finestra("b", "Salone"),
+    finestra("c", "Cucina"),
+    finestra("d", "Cucina"),
+  ];
   const con = stanzeConIntestazione(views);
-  assert.equal(con.size, 1);
-  assert.ok(con.has(chiave(finestra("a", "Salone"))), "il Salone ne ha due, e si annuncia");
-  assert.equal(con.has(chiave(finestra("c", "Cucina"))), false);
+  assert.equal(con.size, 2);
+  assert.ok(con.has(chiave(finestra("a", "Salone"))));
+  assert.ok(con.has(chiave(finestra("c", "Cucina"))));
 });
 
 test("«Senza stanza» tiene la sua scritta anche da sola: la card non ha niente da stampare", () => {
