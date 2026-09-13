@@ -18,6 +18,7 @@ import {
   MASSIMO_STAMPANTI,
   cartucceTrovate,
   coloreDellaCartuccia,
+  tintaDellaCartuccia,
   entitaDelleStampanti,
   letturaDellaCartuccia,
   letturaDellaStampante,
@@ -215,4 +216,62 @@ test("una stampante ferma e agli sgoccioli si conta una volta sola", async () =>
     tessere,
     /const daDire = new Set\(\s*\n?\s*\[\.\.\.riassunto\.ferme, \.\.\.riassunto\.sgoccioli\]\.map\(\(lettura\) => lettura\.entity\),\s*\n?\s*\)\.size;/,
   );
+});
+
+/* ── «per i due colori uno mi fa la slide colorata e l'altra no» ───────── */
+
+test("la barra del nero si vede anche sulla plancia scura", async () => {
+  /* Una HP DeskJet 4100 ha due cartucce: il nero e la tricromia. Il colore del
+   * nero è `#0f2942`, cioè quasi il fondo di una tavolozza scura — e la barra
+   * del nero spariva dentro la sua stessa pista, mentre quella a colori si
+   * vedeva benissimo. Due cartucce, una barra sola. */
+  const nera = letturaDellaCartuccia("sensor.hp_deskjet_4100_series_black_ink", {
+    "sensor.hp_deskjet_4100_series_black_ink": {
+      state: "60",
+      attributes: { unit_of_measurement: "%", friendly_name: "Black ink" },
+    },
+  });
+  const colori = letturaDellaCartuccia("sensor.hp_deskjet_4100_series_tri_color_ink", {
+    "sensor.hp_deskjet_4100_series_tri_color_ink": {
+      state: "50",
+      attributes: { unit_of_measurement: "%", friendly_name: "Tri-color ink" },
+    },
+  });
+  assert.equal(nera.tinta, "nero");
+  assert.equal(colori.tinta, "colore");
+  /* Il colore vero resta quello: sul chiaro il nero è nero. */
+  assert.equal(nera.colore, "#0f2942");
+
+  const pagina = await leggi("sections/stampanti-section.js");
+  assert.ok(
+    pagina.includes('data-tinta="${esc(cartuccia.tinta)}"'),
+    "la barra non dice quale cartuccia sta disegnando",
+  );
+  /* `${P}` in mezzo porta una graffa: la regola si cerca a pezzi, non con
+   * un\'espressione che si ferma alla prima. */
+  const scuro = pagina
+    .split("\n")
+    .findIndex(
+      (riga) =>
+        riga.includes('html[data-theme="dark"]') &&
+        riga.includes('.dm-stampante-cart[data-tinta="nero"]'),
+    );
+  assert.ok(scuro >= 0, "sul fondo scuro non c\'e\' una regola per il nero");
+  assert.match(
+    pagina.split("\n").slice(scuro, scuro + 3).join("\n"),
+    /--dm-cart:#e2e8f0/,
+    "sul fondo scuro il nero resta nero, e non si vede",
+  );
+});
+
+test("la tinta e il colore escono dallo stesso elenco", async () => {
+  /* Erano due elenchi da tenere allineati a mano: il giorno che se ne aggiunge
+   * una, una delle due dimentica. */
+  const modello = await leggi("core/stampanti-model.js");
+  assert.equal((modello.match(/nero\|black\|k/g) || []).length, 1);
+  for (const nome of ["nero", "ciano", "magenta", "giallo", "colore", "foto"]) {
+    assert.equal(tintaDellaCartuccia(`sensor.stampante ${nome}`), nome);
+  }
+  assert.equal(tintaDellaCartuccia("sensor.stampante boh"), "altra");
+  assert.equal(coloreDellaCartuccia("sensor.stampante boh"), "#0ea5e9");
 });

@@ -76,26 +76,42 @@ export function statoDellaStampante(grezzo) {
   return "altro";
 }
 
-/* Il colore di una cartuccia, dal suo nome. Sono i colori veri delle
+/* Quale cartuccia e' e di che colore si disegna. Sono i colori veri delle
  * cartucce, non una tinta scelta qui: chi guarda la barra riconosce prima il
- * colore del nome. */
-const COLORI = Object.freeze([
-  [/\b(nero|black|k)\b/, "#0f2942"],
-  [/\b(ciano|cyan|c)\b/, "#06b6d4"],
-  [/\b(magenta|m)\b/, "#d946ef"],
-  [/\b(giallo|yellow|y)\b/, "#eab308"],
-  [/\b(colore|colour|color|tricromia|tri-?color)\b/, "#0ea5e9"],
-  [/\b(foto|photo)\b/, "#64748b"],
+ * colore del nome.
+ *
+ * La CHIAVE sta accanto al colore perche' il colore vero non basta sempre a
+ * disegnare: il nero, su una plancia scura, e' il colore dello sfondo — e la
+ * barra del nero spariva, mentre quella a colori si vedeva. «Per i due colori
+ * uno mi fa la slide colorata e l'altra no.» Con la chiave la sezione sa QUALE
+ * cartuccia sta disegnando, e sul fondo scuro il nero lo scrive come si scrive
+ * l'inchiostro nero su carta nera: chiaro. Il colore resta uno, la chiave
+ * resta una, e stanno nello stesso elenco. */
+const CARTUCCE = Object.freeze([
+  ["nero", /\b(nero|black|k)\b/, "#0f2942"],
+  ["ciano", /\b(ciano|cyan|c)\b/, "#06b6d4"],
+  ["magenta", /\b(magenta|m)\b/, "#d946ef"],
+  ["giallo", /\b(giallo|yellow|y)\b/, "#eab308"],
+  ["colore", /\b(colore|colour|color|tricromia|tri-?color)\b/, "#0ea5e9"],
+  ["foto", /\b(foto|photo)\b/, "#64748b"],
 ]);
+
+/* I punti e i trattini bassi contano come spazi: dentro `sensor.hp_cyan_ink`
+ * la parola «cyan» c'e', ma per una regola sui confini di parola non c'e' —
+ * l'underscore e' una lettera come le altre. */
+function qualeCartuccia(nome) {
+  const testo = minuscolo(nome).replace(/[^a-z]+/g, " ");
+  return CARTUCCE.find(([, indizio]) => indizio.test(testo)) || null;
+}
+
+/** Quale cartuccia e', dal suo nome; «altra» se non si capisce. */
+export function tintaDellaCartuccia(nome) {
+  return qualeCartuccia(nome)?.[0] || "altra";
+}
 
 /** Il colore di una cartuccia dal suo nome; l'accento se non si capisce. */
 export function coloreDellaCartuccia(nome) {
-  /* I punti e i trattini bassi contano come spazi: dentro
-   * `sensor.hp_cyan_ink` la parola «cyan» c'e', ma per una regola sui confini
-   * di parola non c'e' — l'underscore e' una lettera come le altre. */
-  const testo = minuscolo(nome).replace(/[^a-z]+/g, " ");
-  for (const [indizio, colore] of COLORI) if (indizio.test(testo)) return colore;
-  return "#0ea5e9";
+  return qualeCartuccia(nome)?.[2] || "#0ea5e9";
 }
 
 /* Come si riconosce l'entita' di una cartuccia: il nome lo dice, e l'unita' e'
@@ -161,6 +177,7 @@ export function letturaDellaCartuccia(entity, states = {}) {
     nome,
     quanta,
     colore: coloreDellaCartuccia(`${entity} ${nome}`),
+    tinta: tintaDellaCartuccia(`${entity} ${nome}`),
     /* Sotto il dieci per cento una cartuccia non finisce domani: finisce a
      * meta' del documento che stai per mandare. */
     agliSgoccioli: quanta !== null && quanta <= 10,

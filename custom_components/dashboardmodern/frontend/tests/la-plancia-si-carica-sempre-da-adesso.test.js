@@ -84,14 +84,25 @@ test("la card non si carica piu' dal proprio indirizzo", () => {
   assert.doesNotMatch(card, /loaded from the live versioned static mount/);
 });
 
-test("il modulo della card sta davvero sul prefisso stabile", () => {
-  /* La prova di sopra vale solo se questo resta vero. Il giorno che il modulo
-     tornasse versionato, `runtimeStaticBase()` ridiventerebbe una risposta
-     giusta — ma finche' e' stabile, non lo e'. */
+test("il percorso della card e' stabile, e rimanda alla firma di adesso", () => {
+  /* L'indirizzo con cui il frontend chiede la card non porta la firma nel
+     percorso — se la portasse, una pagina vecchia in cache chiederebbe una
+     firma che non c'e' piu' e l'elemento non verrebbe mai definito (#372).
+
+     Quel percorso, pero', non serve il file: rimanda al prefisso versionato.
+     Senza il rimando tutto quello che la card importa — cioe' `src/` intero e
+     `legacy/` intero — arriverebbe dal prefisso stabile, che Home Assistant
+     serve senza nemmeno un `Cache-Control`: e da li' «l'integrazione portava
+     1.4.24 ma la plancia 1.4.23». */
   const integrazione = readFileSync(
     new URL("../../frontend.py", import.meta.url),
     "utf8",
   );
-  assert.match(integrazione, /PERCORSO_DELLA_CARD = f"\{STATIC_URL_PATH\}\/dashboard-card\.js"/);
+  assert.match(integrazione, /PERCORSO_DELLA_CARD = f"\{STATIC_URL_PATH\}\/\{NOME_DELLA_CARD\}"/);
   assert.match(integrazione, /return f"\{PERCORSO_DELLA_CARD\}\?v=\{asset_version\}"/);
+  /* Sul prefisso stabile la card NON si monta come file: ci sarebbero due
+     gestori per lo stesso indirizzo, e aiohttp rifiuterebbe il secondo. */
+  assert.match(integrazione, /configs\(STATIC_URL_PATH, senza_la_card\(runtime\), False\)/);
+  assert.match(integrazione, /"Location": f"\{versionato\}\/\{NOME_DELLA_CARD\}"/);
+  assert.match(integrazione, /"Cache-Control": "no-cache"/);
 });

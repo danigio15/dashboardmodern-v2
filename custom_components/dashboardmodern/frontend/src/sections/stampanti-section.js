@@ -174,7 +174,7 @@ export function titoloDelleStampanti(riassunto) {
 function cartucciaMarkup(cartuccia) {
   const quanta = cartuccia.quanta === null ? 0 : cartuccia.quanta;
   return `<div class="dm-stampante-cart" data-scarsa="${cartuccia.agliSgoccioli ? "molto" : cartuccia.scarsa ? "si" : "no"}"
-    style="--dm-cart:${esc(cartuccia.colore)}">
+    data-tinta="${esc(cartuccia.tinta)}" style="--dm-cart:${esc(cartuccia.colore)}">
     <span class="dm-stampante-cart-nome">${esc(cartuccia.nome)}</span>
     <span class="dm-stampante-cart-barra"><i style="width:${quanta}%"></i></span>
     <b class="dm-stampante-cart-val">${cartuccia.quanta === null ? "—" : `${quanta}%`}</b>
@@ -343,6 +343,11 @@ function installStyles() {
       background:color-mix(in srgb,var(--dm-cart,#0ea5e9) 16%,var(--surface-3,#f1f5f9))}
     ${P} .dm-stampante-cart-barra i{display:block;height:100%;border-radius:999px;
       background:var(--dm-cart,#0ea5e9)}
+    /* Il nero su fondo scuro e' il fondo: la barra del nero spariva, e chi ha
+     * una stampante a due cartucce ne vedeva una sola colorata. L'inchiostro
+     * nero scritto su una pagina nera si scrive chiaro — come il testo. */
+    html[data-theme="dark"] ${P} .dm-stampante-cart[data-tinta="nero"],
+    body.dark-theme ${P} .dm-stampante-cart[data-tinta="nero"]{--dm-cart:#e2e8f0}
     ${P} .dm-stampante-cart-val{font-size:11.5px;font-weight:900;text-align:right;
       font-variant-numeric:tabular-nums;color:var(--text,#0f172a)}
     ${P} .dm-stampante-cart[data-scarsa="molto"] .dm-stampante-cart-val{color:#b91c1c}
