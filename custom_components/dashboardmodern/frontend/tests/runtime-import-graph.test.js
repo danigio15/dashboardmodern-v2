@@ -1255,8 +1255,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // l'allarme di sempre e per le entita' scelte, perche' due elenchi di
   // dialetti si scollano e allora la stessa entita' colora la card e non conta
   // fra gli allarmi.
+  // 358 col velo delle finestre: un file solo, e di nuovo e' un file in meno
+  // di ricetta. Il velo dietro una finestra aperta era scritto ogni volta da
+  // capo, e ogni volta con numeri diversi: il guscio copre all'82% sullo scuro
+  // e quella della persona al 55%, e si vedeva — «sullo sfondo resta la dash
+  // sfocata, con le altre invece e' nero». Due ricette per la stessa cosa
+  // danno due aspetti diversi, sempre; adesso e' una.
   assert.ok(
-    relative.length <= 357,
+    relative.length <= 358,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
