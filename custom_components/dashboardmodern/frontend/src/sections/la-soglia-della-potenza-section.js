@@ -265,7 +265,12 @@ function laHome() {
  * contatore — chi ha il fotovoltaico puo' avere il primo alto e il secondo
  * fermo. Il disegno lo dice prima delle parole. */
 function disegnoDellaSorgente(sorgente) {
-  return disegnoDelCatalogo(sorgente === SORGENTE_RETE ? "rete" : "casa", 40);
+  /* «rete» nel catalogo e' il router: la rete di CASA, quella dei cavi e del
+   * wi-fi. Qui si parla della rete ELETTRICA, e un router sopra un allarme di
+   * sovraccarico dice una cosa falsa. Il disegno della potenza e' quello
+   * giusto — e' la stessa grandezza che la card misura — e la parola sotto
+   * distingue i due allarmi senza bisogno di due disegni. */
+  return disegnoDelCatalogo(sorgente === SORGENTE_RETE ? "potenza" : "casa", 40);
 }
 
 function ensureAllertaInHome() {

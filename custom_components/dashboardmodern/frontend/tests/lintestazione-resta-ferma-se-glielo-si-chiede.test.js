@@ -59,3 +59,20 @@ test("l'interruttore sta in ⚙️ Impostazioni accanto al chiosco", () => {
   assert.match(runtime, /import \{ installTestaFissa \} from "\.\/testa-fissa-section\.js";/);
   assert.match(runtime, /installTestaFissa\(\);/);
 });
+
+test("vale in tutti e due i posti dove l'intestazione può stare", () => {
+  /* L'intestazione sta sotto body, ma chi la mette in fila fra i blocchi della
+   * Home la sposta dentro #page-home (`portaLaTestataInPagina`). Col solo
+   * `body > header` la testa ferma smetteva di funzionare proprio nella pagina
+   * in cui l'utente l'aveva spostata, e tornava a funzionare uscendo dalla
+   * Home — il contrario di quello che chiede chi la accende. */
+  assert.match(sezione, /body > header,\s*\n\s*html\[\$\{ATTRIBUTO\}="true"\] #page-home > header\{/);
+  assert.match(
+    sezione,
+    /body > header::before,\s*\n\s*html\[\$\{ATTRIBUTO\}="true"\] #page-home > header::before\{/,
+  );
+  /* E quel trasloco esiste davvero: se un giorno cambia nome o destinazione,
+   * questa riga lo dice prima che la testa ferma smetta di funzionare. */
+  const blocchi = leggi("sections/home-blocchi-section.js");
+  assert.match(blocchi, /pagina\.prepend\(testata\)/);
+});

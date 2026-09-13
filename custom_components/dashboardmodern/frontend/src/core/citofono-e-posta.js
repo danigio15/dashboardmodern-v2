@@ -74,6 +74,19 @@ export const CAMPI_DELLA_CASSETTA = Object.freeze(["posta", "ritiro", "contatore
  * presa io, l'ho presa anche per chi guarda dal tablet in cucina. */
 export const CHIAVE_RITIRO_A_MANO = "cd_posta_ritirata";
 
+/* Quando la posta e' arrivata, scritto la prima volta che si vede il
+ * rilevatore acceso.
+ *
+ * Serve perche' `last_changed` di un rilevatore dice l'ULTIMO cambio, non
+ * l'arrivo: quando il PIR si spegne dopo i suoi trenta secondi, quel momento
+ * diventa piu' recente del ritiro appena dichiarato, e la cassetta tornerebbe
+ * piena da sola. Il fronte di SALITA e' l'arrivo; quello di discesa non e'
+ * niente. Si ricorda il primo e si ignora il secondo.
+ *
+ * Viaggia coi ritiri, e per lo stesso motivo: l'arrivo e' un fatto della casa.
+ * La posta e' arrivata per tutti, non per il vetro che l'ha vista per primo. */
+export const CHIAVE_ARRIVO_VISTO = "cd_posta_arrivata";
+
 /* Quanta luce vuol dire «sportello aperto».
  *
  * Dentro una cassetta chiusa ci sono zero lux. Venti e' la luce di un
@@ -255,11 +268,22 @@ export function letturaDelCitofono(voce = {}, states = {}) {
 }
 
 /** Una cassetta come sta adesso: se c'e' posta, da quando, e se e' aperta. */
-export function letturaDellaCassetta(voce = {}, states = {}, ritiriAMano = null) {
+export function letturaDellaCassetta(
+  voce = {},
+  states = {},
+  ritiriAMano = null,
+  arriviVisti = null,
+) {
   const conf = normalizzaCassetta(voce);
   const posta = conf.posta ? states?.[conf.posta] : null;
   const ritiro = conf.ritiro ? states?.[conf.ritiro] : null;
-  const arrivata = conf.posta ? quando(posta) : null;
+  /* Acceso: il cambio che si vede E' l'arrivo, ed e' il piu' fresco che ci
+   * sia. Spento: vale quello che ci si era segnati, perche' `last_changed`
+   * adesso dice quando il rilevatore ha smesso — che non e' un arrivo. Chi
+   * non ha ancora visto niente si tiene il cambio buono in mancanza d'altro:
+   * e' quello che faceva prima, e senza ritiri dichiarati non sbaglia. */
+  const visto = numero(arriviVisti?.[conf.id]);
+  const arrivata = !conf.posta ? null : acceso(posta) ? quando(posta) : (visto ?? quando(posta));
   /* Il ritiro puo' dirlo lo sportello o puo' dirlo una persona: e' lo stesso
    * fatto, e conta il piu' recente dei due. Chi ha tutti e due i sensori non
    * si accorge di niente — il momento dichiarato, se non c'e', non esiste. */
@@ -305,19 +329,51 @@ function cePosta({ posta, arrivata, ritirata, aperta }) {
   if (!posta) return null;
   if (muto(posta)) return null;
   if (aperta === true) return false;
-  if (acceso(posta)) return true;
-  if (arrivata === null) return null;
+  /* Senza un arrivo da confrontare resta solo il presente: il rilevatore
+   * acceso adesso dice «c'e'», spento non dice niente. */
+  if (arrivata === null) return acceso(posta) ? true : null;
   /* Mai ritirata e mai svuotata: qualcosa si e' mosso e nessuno l'ha tolto. */
   if (ritirata === null) return true;
+  /* Il confronto vale anche col rilevatore ancora acceso: chi dice «l'ho
+   * presa» mentre il PIR e' ancora caldo l'ha presa davvero, e i suoi trenta
+   * secondi residui non sono una seconda consegna. */
   return arrivata > ritirata;
 }
 
+/* Il registro degli arrivi aggiornato con quello che si vede adesso.
+ *
+ * Si scrive solo sul fronte di SALITA — rilevatore acceso — perche' e' l'unico
+ * momento in cui `last_changed` significa «e' arrivato qualcosa». Torna la
+ * stessa mappa quando non c'e' niente da aggiungere, cosi' chi la salva non
+ * riscrive per niente. */
+export function arriviDaRicordare(input = {}, states = {}, visti = null) {
+  const conf = normalizzaIngresso(input);
+  const prima = visti && typeof visti === "object" && !Array.isArray(visti) ? visti : {};
+  let dopo = prima;
+  for (const voce of conf.cassette) {
+    const posta = voce.posta ? states?.[voce.posta] : null;
+    if (!posta || !acceso(posta)) continue;
+    const salita = quando(posta);
+    if (salita === null || numero(prima[voce.id]) === salita) continue;
+    if (dopo === prima) dopo = { ...prima };
+    dopo[voce.id] = salita;
+  }
+  return dopo;
+}
+
 /** Tutto insieme, nell'ordine in cui la pagina lo disegna. */
-export function lettureDellIngresso(input = {}, states = {}, ritiriAMano = null) {
+export function lettureDellIngresso(
+  input = {},
+  states = {},
+  ritiriAMano = null,
+  arriviVisti = null,
+) {
   const conf = normalizzaIngresso(input);
   return {
     citofoni: conf.citofoni.map((voce) => letturaDelCitofono(voce, states)),
-    cassette: conf.cassette.map((voce) => letturaDellaCassetta(voce, states, ritiriAMano)),
+    cassette: conf.cassette.map((voce) =>
+      letturaDellaCassetta(voce, states, ritiriAMano, arriviVisti),
+    ),
   };
 }
 

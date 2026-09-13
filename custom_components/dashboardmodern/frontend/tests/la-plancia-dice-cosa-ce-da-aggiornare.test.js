@@ -208,3 +208,19 @@ test("la tessera porta un disegno nostro, non un'emoji del telefono", () => {
   /* L'ambra della tessera, non il rosso: un aggiornamento non è un guasto. */
   assert.match(disegno, /#f59e0b/);
 });
+
+test("se il servizio rifiuta, il tasto Installa torna com'era", () => {
+  /* `callHa` inghiotte l'errore e torna `undefined` — Home Assistant
+   * scollegato, entità non raggiungibile, permesso negato. Senza rimettere il
+   * tasto a posto la riga restava spenta su «In corso» per sempre, e l'unico
+   * modo di riprovare era chiudere e riaprire la finestra. È la stessa regola
+   * che `completeItem` segue già in questo file per la lista della spesa. */
+  assert.match(sorgente, /const parola = aggiornamento\.textContent;/);
+  assert.match(
+    sorgente,
+    /callHa\("update", "install", \{ entity_id: quale \}\)\.then\(\(esito\) => \{/,
+  );
+  assert.match(sorgente, /if \(esito !== undefined\) return;/);
+  assert.match(sorgente, /aggiornamento\.disabled = false;/);
+  assert.match(sorgente, /aggiornamento\.textContent = parola;/);
+});

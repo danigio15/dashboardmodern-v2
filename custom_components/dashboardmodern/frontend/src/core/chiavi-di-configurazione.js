@@ -244,7 +244,15 @@
  * card. E' un fatto della CASA, non del vetro: se la posta l'ho presa io,
  * l'ho presa anche per il tablet appeso in cucina, che se no continuerebbe a
  * dire che c'e' posta a chi ce l'ha gia' in mano. */
-export const CONFIG_KEYS_REVISION = 51;
+/* La revisione 52 aggiunge il momento in cui la posta e' ARRIVATA
+ * (`cd_posta_arrivata`). Va insieme al ritiro della 51 e per lo stesso motivo:
+ * il rilevatore dice `last_changed`, cioe' l'ultimo cambio, e quando il PIR si
+ * spegne dopo i suoi trenta secondi quel momento diventa piu' recente del
+ * ritiro appena dichiarato — la cassetta tornerebbe piena da sola. L'arrivo e'
+ * il fronte di salita, e va ricordato perche' dopo non si puo' piu' leggere.
+ * E' un fatto della casa come il ritiro: la posta e' arrivata per tutti, non
+ * per il vetro che l'ha vista per primo. */
+export const CONFIG_KEYS_REVISION = 52;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -308,6 +316,7 @@ export const CONFIG_KEYS = Object.freeze([
    * solo — e chi la configura dal telefono la deve ritrovare dal computer. */
   "cd_citofono",
   "cd_posta_ritirata",
+  "cd_posta_arrivata",
   // Le voci della parte Caldo del Clima (caldaia, pompe): lista libera.
   "cd_termico_caldo",
   // I programmi rapidi della lavatrice: nome, entita', icona.

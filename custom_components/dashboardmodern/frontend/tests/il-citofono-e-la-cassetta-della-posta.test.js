@@ -13,9 +13,11 @@ import {
   CAMPI_DELLA_CASSETTA,
   CAMPI_DEL_CITOFONO,
   CASSETTE_MASSIME,
+  CHIAVE_ARRIVO_VISTO,
   CHIAVE_CITOFONO,
   CITOFONI_MASSIMI,
   LUCE_CHE_APRE,
+  arriviDaRicordare,
   comandoDiApertura,
   entitaDellIngresso,
   letturaDelCitofono,
@@ -267,4 +269,84 @@ test("il riassunto è quello che la tessera racconta in tre parole", () => {
   assert.equal(riassunto.citofoni, 1);
   assert.equal(riassunto.cassette, 1);
   assert.equal(riassunto.arrivata, ORA - 30 * 60000);
+});
+
+
+/* Il ritiro dichiarato a mano vale, e vale anche dopo che il PIR si spegne.
+ *
+ * Il rilevatore dice `last_changed`, cioe' l'ULTIMO cambio. Finche' e' acceso
+ * quel momento e' l'arrivo; quando si spegne diventa il momento della discesa,
+ * che non e' un arrivo — ma e' piu' recente del ritiro appena dichiarato, e
+ * senza ricordare la salita la cassetta tornava piena da sola. Chi aveva detto
+ * «l'ho presa» doveva dirlo una seconda volta, e solo dopo i trenta secondi
+ * del PIR.
+ *
+ * La sequenza qui sotto e' quella intera, nell'ordine in cui succede in casa.
+ */
+test("la chiave dell'arrivo sta accanto a quella del ritiro", () => {
+  assert.equal(CHIAVE_ARRIVO_VISTO, "cd_posta_arrivata");
+});
+
+test("il registro degli arrivi si scrive sulla salita e ignora la discesa", () => {
+  const conf = { cassette: [{ id: "c1", posta: "binary_sensor.pir" }] };
+
+  const acceso = arriviDaRicordare(conf, { "binary_sensor.pir": stato("on", 5) }, {});
+  assert.deepEqual(acceso, { c1: ORA - 5 * 60000 }, "il rilevatore acceso e' l'arrivo");
+
+  /* Spento: non si scrive niente, e quello che c'era resta. */
+  const dopo = arriviDaRicordare(conf, { "binary_sensor.pir": stato("off", 0) }, acceso);
+  assert.equal(dopo, acceso, "la discesa non tocca il registro, nemmeno la mappa");
+
+  /* E un secondo giro sullo stesso fronte non riscrive per niente. */
+  const uguale = arriviDaRicordare(conf, { "binary_sensor.pir": stato("on", 5) }, acceso);
+  assert.equal(uguale, acceso, "stesso fronte, stessa mappa: niente da salvare");
+});
+
+test("«l'ho presa» vale subito, anche col rilevatore ancora acceso", () => {
+  const conf = { posta: "binary_sensor.pir" };
+  const states = { "binary_sensor.pir": stato("on", 1) };
+  const visti = { c1: ORA - 1 * 60000 };
+
+  const prima = letturaDellaCassetta({ id: "c1", ...conf }, states, null, visti);
+  assert.equal(prima.ce, true, "si e' appena mosso e nessuno ha detto niente");
+
+  /* Si tocca «L'ho presa» adesso: il ritiro e' piu' recente dell'arrivo. */
+  const presa = letturaDellaCassetta({ id: "c1", ...conf }, states, { c1: ORA }, visti);
+  assert.equal(presa.ce, false, "l'ha presa lei, i trenta secondi del PIR non contano");
+});
+
+test("e quando il rilevatore si spegne la cassetta resta vuota", () => {
+  const conf = { id: "c1", posta: "binary_sensor.pir" };
+  /* Il PIR e' sceso adesso: `last_changed` dice ORA, piu' recente del ritiro.
+   * Senza il registro questo bastava a rimettere la posta dentro. */
+  const states = { "binary_sensor.pir": stato("off", 0) };
+  const visti = { c1: ORA - 1 * 60000 };
+  const letta = letturaDellaCassetta(conf, states, { c1: ORA - 0.5 * 60000 }, visti);
+  assert.equal(letta.arrivata, ORA - 1 * 60000, "l'arrivo e' la salita, non la discesa");
+  assert.equal(letta.ce, false, "presa mezzo minuto fa, e nessuno ha portato altro");
+});
+
+test("ma un movimento nuovo dopo il ritiro riempie di nuovo la cassetta", () => {
+  const conf = { id: "c1", posta: "binary_sensor.pir" };
+  const states = { "binary_sensor.pir": stato("off", 0) };
+  /* Ritirata un'ora fa, e mezz'ora fa e' passato di nuovo il postino. */
+  const letta = letturaDellaCassetta(conf, states, { c1: ORA - 60 * 60000 }, {
+    c1: ORA - 30 * 60000,
+  });
+  assert.equal(letta.ce, true, "la posta non se ne va da sola");
+});
+
+test("senza registro si legge quello che c'e', come prima del ricordo", () => {
+  /* Prima volta che questa plancia guarda la cassetta: il rilevatore e' gia'
+   * spento e non si e' visto niente salire. Resta il cambio buono in mancanza
+   * d'altro — che e' quello che si faceva prima, e senza ritiri dichiarati non
+   * sbaglia. */
+  const letta = letturaDellaCassetta(
+    { id: "c1", posta: "binary_sensor.pir" },
+    { "binary_sensor.pir": stato("off", 30) },
+    null,
+    null,
+  );
+  assert.equal(letta.arrivata, ORA - 30 * 60000);
+  assert.equal(letta.ce, true);
 });

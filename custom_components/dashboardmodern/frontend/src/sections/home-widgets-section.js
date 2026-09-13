@@ -8405,10 +8405,22 @@ function onClick(event) {
     /* Si spegne subito e dice che sta andando: il servizio ci mette un attimo
      * a farsi sentire, e due tocchi sulla stessa riga sono due installazioni
      * della stessa cosa. Quando gli stati tornano, la riga si riscrive da
-     * sola con quello che dice Home Assistant. */
+     * sola con quello che dice Home Assistant.
+     *
+     * Ma se il servizio rifiuta — Home Assistant scollegato, entita' non
+     * raggiungibile, permesso negato — `callHa` inghiotte l'errore e torna
+     * `undefined`: senza rimettere il tasto com'era, la riga resterebbe
+     * spenta su «In corso» per sempre, e l'unico modo di riprovare sarebbe
+     * chiudere e riaprire la finestra. Il tasto torna come prima. E' la
+     * stessa regola che segue `completeItem` qui sopra. */
+    const parola = aggiornamento.textContent;
     aggiornamento.disabled = true;
     aggiornamento.textContent = t("In corso", "Installing");
-    callHa("update", "install", { entity_id: quale });
+    callHa("update", "install", { entity_id: quale }).then((esito) => {
+      if (esito !== undefined) return;
+      aggiornamento.disabled = false;
+      aggiornamento.textContent = parola;
+    });
     return;
   }
   if (event.target?.closest?.("[data-dm-widget-close]")) {

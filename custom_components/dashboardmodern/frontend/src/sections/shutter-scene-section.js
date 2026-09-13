@@ -647,19 +647,40 @@ function cardMarkup(view) {
  * nome di una stanza che non era la loro: nove finestre in otto stanze, UNA
  * intestazione, e sotto tutte e nove le card.
  *
- * Adesso ce l'hanno tutte, e il motivo e' che quella scritta ha smesso di
- * ripetere la card: dice quante cose sono APERTE in quella stanza, che e'
- * l'unica cosa che le sue card, una per una, non dicono insieme. Un avviso lo
- * si vuole per ogni stanza, se no non si sa di quali stanze taccia.
+ * Darla a TUTTE le stanze — provato, e la prova della #424 l'ha bocciato — non
+ * risolve: con una finestra per stanza torna esattamente il difetto di sopra,
+ * intestazione e card a righe alterne anche dove di colonne ce ne stanno
+ * quattro. Quella scritta dice una cosa che le card non dicono insieme, ma non
+ * al prezzo di rimettere in colonna la pagina che la #424 aveva raddrizzato.
  *
- * Resta fuori solo la pagina dove nessuno ha una stanza: li' non c'e' niente
- * da separare, e il conto lo fa gia' la fascia in cima.
+ * Percio' vale la regola del separatore: o separa tutti o non separa nessuno.
+ * Le scritte ci sono quando OGNI stanza ha piu' di una finestra — li'
+ * distinguono davvero, e ogni gruppo comincia la sua riga senza lasciare card
+ * orfane sotto il nome sbagliato — e tacciono tutte insieme appena una stanza
+ * resterebbe muta. Quando tacciono non si perde niente: una stanza con una
+ * finestra sola ha la sua card, e la card la stanza la stampa gia'. Il conto
+ * degli aperti, per chi non ha le intestazioni, lo fa la fascia in cima.
+ *
+ * Resta fuori anche la pagina dove nessuno ha una stanza: li' non c'e' niente
+ * da separare.
  */
 export function stanzeConIntestazione(views) {
   const elenco = Array.isArray(views) ? views : [];
   const chiavi = new Set();
   if (!elenco.some((view) => clean(view?.room))) return chiavi;
-  elenco.forEach((view) => chiavi.add(groupKey(view)));
+  const gruppi = new Map();
+  elenco.forEach((view) => {
+    const chiave = groupKey(view);
+    if (!gruppi.has(chiave)) gruppi.set(chiave, []);
+    gruppi.get(chiave).push(view);
+  });
+  /* Una stanza sola non ha nessuno da cui separarsi. */
+  if (gruppi.size < 2) return chiavi;
+  /* Basta una stanza che resterebbe muta perche' tacciano tutte: e' quella la
+   * card che finirebbe sotto il nome sbagliato. */
+  for (const insieme of gruppi.values())
+    if (insieme.length < 2 && clean(insieme[0]?.room)) return chiavi;
+  gruppi.forEach((_insieme, chiave) => chiavi.add(chiave));
   return chiavi;
 }
 

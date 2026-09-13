@@ -208,10 +208,21 @@ test("togliere una chiave non alza la revisione", async () => {
    * e quel momento lo dice una persona toccando la card. È un fatto della casa:
    * se la posta l'ho presa io, il tablet in cucina non deve continuare a dire
    * che c'è posta a chi ce l'ha già in mano. */
-  assert.equal(CONFIG_KEYS_REVISION, 51);
+  /* E la 52 col momento in cui la posta è ARRIVATA (`cd_posta_arrivata`). Va
+   * con la 51 e per lo stesso motivo, ed è la metà che mancava: il rilevatore
+   * dice `last_changed`, cioè l'ultimo cambio, e quando il PIR si spegne dopo i
+   * suoi trenta secondi quel momento diventa più recente del ritiro appena
+   * dichiarato — la cassetta tornerebbe piena da sola, e chi ha detto «l'ho
+   * presa» dovrebbe dirlo una seconda volta. L'arrivo è il fronte di salita, e
+   * va ricordato perché dopo non si può più leggere. */
+  assert.equal(CONFIG_KEYS_REVISION, 52);
   assert.ok(
     CONFIG_KEYS.includes("cd_posta_ritirata"),
     "la posta presa è un fatto della casa, non del vetro da cui l'hanno detto",
+  );
+  assert.ok(
+    CONFIG_KEYS.includes("cd_posta_arrivata"),
+    "la posta è arrivata per tutti, non per il vetro che l'ha vista per primo",
   );
   assert.ok(
     CONFIG_KEYS.includes("cd_energia_soglia"),

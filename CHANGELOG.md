@@ -107,6 +107,69 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Il dettaglio di un elettrodomestico non viene più tagliato sul telefono**
+
+  «Tutti i popup e sezioni e card, qualsiasi cosa, deve avere adattamento
+  schermo: non può essere tagliata.» Con la fotografia: la lavastoviglie, i
+  nomi dei comandi e i loro menù che finiscono oltre il bordo destro e
+  spariscono.
+
+  Sparire è la parola giusta. La finestra del guscio non scorre di lato — è una
+  scelta sensata, una finestra che scivola orizzontalmente è peggio del problema
+  che risolve — quindi quello che non ci sta non si vede e non si raggiunge in
+  nessun modo.
+
+  La causa non erano le righe: era l'elenco che le contiene. Una griglia senza
+  colonne dichiarate se ne fa una implicita che cresce fino al contenuto più
+  largo, invece di fermarsi a quanto spazio ha. Misurato a 430 px: l'elenco
+  veniva 403 px dentro uno spazio da 384, e venti elementi finivano oltre il
+  bordo; a 320 px ne restavano fuori 114. Adesso la colonna si dichiara
+  stringibile, e a 320, 360, 390 e 430 px l'elenco è largo esattamente quanto lo
+  spazio che ha: zero elementi tagliati.
+
+  E la riga di un comando va a capo invece di schiacciare il comando: su uno
+  schermo stretto un menù largo quaranta pixel non si tocca.
+
+- **Il tasto Installa torna com'era se Home Assistant rifiuta**
+
+  Il servizio può non partire — Home Assistant scollegato, entità non
+  raggiungibile, permesso negato — e in quel caso l'errore non arriva a
+  nessuno: la riga restava spenta su «In corso» per sempre, e l'unico modo di
+  riprovare era chiudere e riaprire la finestra. Adesso, se la chiamata non va
+  a buon fine, il tasto torna premibile.
+
+- **Chi dice «l'ho presa» viene creduto subito**
+
+  Col solo rilevatore di movimento, toccare «L'ho presa» mentre il PIR era
+  ancora acceso non svuotava la cassetta — e quando il rilevatore si spegneva,
+  trenta secondi dopo, la posta ci tornava dentro da sola. Il motivo è che un
+  rilevatore dice quando è cambiato l'ultima volta, non quando è arrivato
+  qualcosa: spegnendosi, quel momento diventava più recente del ritiro appena
+  dichiarato.
+
+  Adesso l'arrivo è il momento in cui il rilevatore si è ACCESO, e la plancia se
+  lo segna: il fronte di discesa non è un arrivo, e un ritiro dichiarato dopo
+  l'arrivo vince. Un movimento nuovo, invece, riempie di nuovo la cassetta —
+  che è come funziona una cassetta vera.
+
+- **La scritta sopra le finestre non rimette la pagina in colonna**
+
+  La scritta di stanza col conto degli aperti era stata data a tutte le stanze.
+  Ma quell'intestazione prende tutta la riga della griglia, e con una finestra
+  per stanza tornavano un'intestazione e una card per riga anche da PC — cioè
+  di nuovo la #424. Vale la regola del separatore: o separa tutti o non separa
+  nessuno. Le scritte ci sono quando ogni stanza ha più di una finestra, e
+  tacciono tutte insieme appena una stanza resterebbe muta; il conto degli
+  aperti resta quello giusto, e la stanza ogni card se la stampa comunque sotto
+  il proprio nome.
+
+- **Il sovraccarico di rete non si disegna più con un router**
+
+  Nel catalogo «rete» è la rete di casa, quella dei cavi e del wi-fi. Qui si
+  parla della rete elettrica, e un router sopra un allarme di sovraccarico dice
+  una cosa falsa: adesso c'è il disegno della potenza, che è la grandezza che
+  quella card misura.
+
 - **La barra della cartuccia si vede davvero, anche col tema scuro**
 
   «Nell'ultimo aggiornamento c'è scritto che è stato sistemato il problema del

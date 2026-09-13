@@ -179,3 +179,14 @@ test("il posto dove si scrive la soglia e' dentro le impostazioni dell'Energia",
   const runtime = sorgente("src/sections/section-runtime.js");
   assert.match(runtime, /installLaSogliaDellaPotenza\(\);/);
 });
+
+test("il sovraccarico di rete non si disegna con un router", () => {
+  /* «rete» nel catalogo è un alias di «router»: la rete di casa, quella dei
+   * cavi e del wi-fi. Qui si parla della rete ELETTRICA, e un router sopra un
+   * allarme di sovraccarico dice una cosa falsa. */
+  const catalogo = sorgente("src/core/catalogo-disegni.js");
+  assert.match(catalogo, /rete: "router",/, "l'alias è ancora quello: il disegno non va chiesto lì");
+  const sezione = sorgente("src/sections/la-soglia-della-potenza-section.js");
+  assert.match(sezione, /SORGENTE_RETE \? "potenza" : "casa"/);
+  assert.doesNotMatch(sezione, /SORGENTE_RETE \? "rete"/);
+});

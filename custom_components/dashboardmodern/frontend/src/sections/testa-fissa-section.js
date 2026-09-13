@@ -167,17 +167,27 @@ function installStili() {
      * riempimento in basso, o fra lei e la prima card si aprirebbe una fessura
      * da cui si vede scorrere quello che passa.
      *
+     * Due genitori e non uno. L'intestazione sta sotto «body», ma chi la mette
+     * in fila fra i blocchi della Home la sposta dentro «#page-home»
+     * (portaLaTestataInPagina): con il solo «body > header» la testa ferma
+     * smetteva di funzionare proprio nella pagina in cui l'utente l'aveva
+     * spostata, e tornava a funzionare uscendo dalla Home — il contrario di
+     * quello che chiede chi la accende. Si dichiarano tutti e due i posti che
+     * la plancia le conosce, invece di un selettore che ne indovina uno.
+     *
      * Sopra i 900 px di altezza e basta: su uno schermo basso — un telefono
      * coricato, una finestra stretta — una testa ferma alta un quinto lascia
      * per il resto una feritoia, e chi l'ha accesa non voleva quello. */
     @media (min-height:560px){
-      html[${ATTRIBUTO}="true"] body > header{
+      html[${ATTRIBUTO}="true"] body > header,
+      html[${ATTRIBUTO}="true"] #page-home > header{
         position:sticky;top:0;z-index:30;
         margin-bottom:0;padding-bottom:18px;
         background:var(--bg-sculpted,#f0f4f8)}
       /* L'intestazione ha il suo riquadro dentro di se': il fondo della
          striscia sta dietro, e la card resta quella di prima. */
-      html[${ATTRIBUTO}="true"] body > header::before{
+      html[${ATTRIBUTO}="true"] body > header::before,
+      html[${ATTRIBUTO}="true"] #page-home > header::before{
         content:"";position:absolute;inset:-14px -14px 0;z-index:-1;
         background:var(--bg-sculpted,#f0f4f8)}
     }

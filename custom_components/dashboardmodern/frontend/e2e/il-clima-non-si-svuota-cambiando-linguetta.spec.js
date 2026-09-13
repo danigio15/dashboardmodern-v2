@@ -194,15 +194,13 @@ test("con lo stato termico configurato le card non spariscono", async ({ page },
   await page.click("#page-clima .dm-cl-shell [data-dm-cl-zone='caldo']");
   await page.waitForTimeout(900);
   const suCaldo = await foto(page);
-  console.log("CALDO", JSON.stringify(suCaldo));
-  await page.screenshot({ path: process.env.SC + "/e2e-caldo.png", fullPage: false });
+  await page.screenshot({ path: testInfo.outputPath("clima-caldo.png") });
   expect(suCaldo.inVista, "sul Caldo si vedono le dieci card").toBe(10);
 
   await page.click("#page-clima .dm-cl-shell [data-dm-cl-zone='freddo']");
   await page.waitForTimeout(900);
   const tornato = await foto(page);
-  console.log("FREDDO", JSON.stringify(tornato));
-  await page.screenshot({ path: process.env.SC + "/e2e-freddo.png", fullPage: false });
+  await page.screenshot({ path: testInfo.outputPath("clima-freddo.png") });
   expect(tornato.inVista, "tornando sul Freddo le card tornano").toBe(3);
 });
 

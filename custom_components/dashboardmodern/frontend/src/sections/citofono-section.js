@@ -16,8 +16,10 @@
  * impararne tre.
  */
 import {
+  CHIAVE_ARRIVO_VISTO,
   CHIAVE_CITOFONO,
   CHIAVE_RITIRO_A_MANO,
+  arriviDaRicordare,
   lettureDellIngresso,
   riassuntoDellIngresso,
 } from "../core/citofono-e-posta.js";
@@ -56,9 +58,27 @@ function ritiriAMano() {
   return dato && typeof dato === "object" ? dato : {};
 }
 
+/* Quando la posta e' arrivata, cassetta per cassetta: lo si segna appena si
+ * vede il rilevatore acceso, perche' dopo non si potra' piu' sapere. */
+function arriviVisti() {
+  const dato = readJson(CHIAVE_ARRIVO_VISTO, {});
+  return dato && typeof dato === "object" ? dato : {};
+}
+
+/* Il registro si tiene mentre si legge: e' l'unico momento in cui la plancia
+ * ha davanti lo stato acceso, e chi guarda una pagina sola non deve perdere
+ * l'arrivo che ha visto un'altra. `writeJsonIfChanged` non scrive se il giro
+ * non ha aggiunto niente, e senza cassette non si scomoda nemmeno. */
+function segnaGliArrivi(conf, states) {
+  if (!conf?.cassette?.length) return;
+  writeJsonIfChanged(CHIAVE_ARRIVO_VISTO, arriviDaRicordare(conf, states, arriviVisti()));
+}
+
 /** Il citofono e le cassette di casa, letti adesso. */
 export function ingressoInPlancia(states = allStates()) {
-  return lettureDellIngresso(configurazione(), states, ritiriAMano());
+  const conf = configurazione();
+  segnaGliArrivi(conf, states);
+  return lettureDellIngresso(conf, states, ritiriAMano(), arriviVisti());
 }
 
 /** Se c'è qualcosa da mostrare: senza configurazione questa pagina non esiste. */
