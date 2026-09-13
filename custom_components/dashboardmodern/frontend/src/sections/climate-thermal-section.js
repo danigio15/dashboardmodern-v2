@@ -640,13 +640,28 @@ function signature(units) {
   );
 }
 
+/* La firma dice cosa c'e' DENTRO la griglia, non cosa ci abbiamo scritto una
+ * volta.
+ *
+ * Erano due cose diverse, e la differenza si paga tutta insieme: la firma
+ * stava su una proprieta' del nodo, e bastava che qualcun altro ne
+ * riscrivesse il contenuto — il disegno storico del guscio, un pezzo di
+ * editor, qualunque mano che passi di li' — perche' quella proprieta'
+ * restasse a dire «gia' fatto» sopra una griglia svuotata. Da quel momento
+ * non si ridisegnava piu' niente: «l'elenco sparisce e non torna, nemmeno
+ * tornando sulla linguetta di partenza» (#541).
+ *
+ * Contare i figli non dice CHI ha svuotato la griglia — quello resta da
+ * trovare — ma toglie a chiunque lo faccia il potere di renderlo definitivo:
+ * al giro dopo la griglia si riscrive da sola. */
 function syncGrid(grid, units, labels) {
   const current = signature(units);
-  if (grid._dmClimaSig === current) return false;
+  if (grid._dmClimaSig === current && grid._dmClimaFigli === grid.childElementCount) return false;
   grid.innerHTML = units.length
     ? groupedMarkup(units, labels)
     : emptyMarkup(grid.dataset.dmClZone, labels);
   grid._dmClimaSig = current;
+  grid._dmClimaFigli = grid.childElementCount;
   return true;
 }
 

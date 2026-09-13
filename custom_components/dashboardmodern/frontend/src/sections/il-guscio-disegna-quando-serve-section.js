@@ -238,10 +238,21 @@ export const TIMER_DEL_GUSCIO = Object.freeze([
   { nome: "ponte-elettrodomestici", period: 15000, firma: /^function cdApplBridge\b/ },
   /* renderInverterTemp ogni due secondi a vista aperta: dopo il disegno. */
   { nome: "inverter", period: 2000, firma: /renderInverterTemp\(\)/ },
-  /* updateClimaCards e updateDeviceCards ogni venti secondi: girano gia'
-   * dentro ogni render(). */
-  { nome: "clima", period: 20000, firma: /updateClimaCards\(\)/ },
+  /* updateDeviceCards ogni venti secondi: gira gia' dentro ogni render(). */
   { nome: "dispositivi", period: 20000, firma: /updateDeviceCards\(\)/ },
+  /* Il gemello del Clima invece NON si pota, e la ragione per cui lo si era
+   * potato — «gira gia' dentro ogni render()» — e' vera solo a meta'.
+   *
+   * `updateClimaCards()` sta in fondo a un `try` lunghissimo del guscio, che
+   * dipinge mezza plancia e finisce con un `catch` che scrive «Errore UI» e
+   * tira dritto: qualunque cosa si rompa prima — una sezione, un'entita' che
+   * non risponde — quella riga non viene mai raggiunta, e la pagina Clima
+   * resta come sta. Finche' nessuno la svuota non si nota; il giorno che
+   * qualcuno la svuota, non torna piu': «l'elenco sparisce e non torna,
+   * nemmeno tornando sulla linguetta di partenza» (#541).
+   *
+   * Venti secondi non sono un disegno in piu' — sono la rete sotto l'unico
+   * filo che dipinge quella pagina. Restano. */
   /* cdAutoHide ogni minuto: tutto il documento con `[onclick]` e scritture
    * di stile. Si rifa' quando cambia la configurazione, che e' l'unica cosa
    * che lo puo' cambiare. */
