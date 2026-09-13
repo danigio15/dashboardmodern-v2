@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 DATA_STATIC_REGISTERED = "static_registered"
 DATA_STATIC_BASE_REGISTERED = "static_base_registered"
 DATA_DASHBOARD_CARD_REGISTERED = "dashboard_card_registered"
+DATA_VIA_STABILE_DELLA_CARD = "via_stabile_della_card"
 DATA_PANEL_PATHS = "panel_paths"
 PANEL_URL_PATH = DOMAIN
 PANEL_COMPONENT_NAME = "dashboardmodern-panel"
@@ -318,6 +319,90 @@ def _mounts_on_disk() -> tuple[list[str], list[str]]:
     return existing(RUNTIME_MOUNTS), existing(SHARED_DIRECTORIES)
 
 
+# Il file della card sul prefisso stabile non si monta come statico: al suo
+# posto c'e' una nostra vista. Vedi `_pubblica_la_via_stabile_della_card`.
+NOME_DELLA_CARD = "dashboard-card.js"
+
+
+def senza_la_card(nomi: list[str]) -> list[str]:
+    """Gli stessi montaggi, meno la card."""
+    return [nome for nome in nomi if nome != NOME_DELLA_CARD]
+
+
+def _pubblica_la_via_stabile_della_card(
+    hass: HomeAssistant, domain_data: dict[str, Any]
+) -> None:
+    """Il percorso stabile della card rimanda alla firma di adesso.
+
+    «L'integrazione portava versione 1.4.24 ma nella plancia 1.4.23»: la
+    plancia aperta dalla barra laterale era nuova, la stessa plancia aperta
+    come dashboard predefinita era vecchia. Due strade, due destini.
+
+    Il pannello si carica da un indirizzo che porta dentro la firma degli
+    asset: cambia a ogni aggiornamento, quindi quello che il browser aveva in
+    cache non c'entra piu' niente e si riscarica tutto. La card, invece, sta
+    sul percorso STABILE — e deve starci, perche' una pagina vecchia in cache
+    che chiede una firma che non esiste piu' non troverebbe l'elemento e
+    scriverebbe «Custom element doesn't exist» (#372).
+
+    Il difetto non era la card: era quello che la card si porta dietro. Un
+    modulo risolve i suoi `import` relativi rispetto a se stesso, quindi da
+    `/dashboardmodern_static/dashboard-card.js` tutto `src/` e tutto `legacy/`
+    venivano chiesti sul prefisso stabile — che Home Assistant serve, quando
+    glielo si chiede senza cache, SENZA NEMMENO UN `Cache-Control`. Un file
+    senza istruzioni il browser se lo tiene per conto suo, a spanne, per una
+    frazione della sua eta': dopo un aggiornamento continuava a usare quello
+    di prima, per ore. Aggiornata l'integrazione, la plancia restava indietro.
+
+    Adesso quel percorso non serve piu' il file: rimanda — con «non fidarti
+    della cache, richiedimelo» — all'indirizzo versionato di adesso. Da li' in
+    poi ogni `import` e' versionato, quindi sempre nuovo dopo un
+    aggiornamento e tenuto in cache un mese quando non cambia niente. E la
+    pagina vecchia che chiede la firma dell'altro ieri riceve lo stesso la
+    card di oggi, che e' esattamente quello per cui il percorso stabile
+    esiste.
+    """
+    if domain_data.get(DATA_VIA_STABILE_DELLA_CARD):
+        return
+
+    from aiohttp import web
+    from homeassistant.components.http import HomeAssistantView
+
+    class _ViaStabileDellaCard(HomeAssistantView):
+        """Il percorso stabile della card, che rimanda a quello versionato."""
+
+        url = PERCORSO_DELLA_CARD
+        name = "dashboardmodern:card"
+        # Gli asset della plancia si sono sempre serviti senza autenticazione,
+        # come ogni altro file del frontend: qui si tiene la stessa porta.
+        requires_auth = False
+        cors_allowed = True
+
+        async def get(self, request: Any) -> Any:
+            versionato = hass.data.get(DOMAIN, {}).get(DATA_STATIC_REGISTERED)
+            if not versionato:
+                # Non si sa ancora qual e' la firma di adesso: si serve il file
+                # com'era prima, ma dicendo di richiederlo ogni volta.
+                return web.FileResponse(
+                    FRONTEND_DIR / NOME_DELLA_CARD,
+                    headers={"Cache-Control": "no-cache"},
+                )
+            return web.Response(
+                status=302,
+                headers={
+                    "Location": f"{versionato}/{NOME_DELLA_CARD}",
+                    # «no-cache» non vuol dire «non tenerlo»: vuol dire
+                    # «chiedimi ogni volta se e' ancora buono». Senza, il
+                    # browser si terrebbe il rimando vecchio e questo giro non
+                    # servirebbe a niente.
+                    "Cache-Control": "no-cache",
+                },
+            )
+
+    hass.http.register_view(_ViaStabileDellaCard())
+    domain_data[DATA_VIA_STABILE_DELLA_CARD] = True
+
+
 async def _ensure_static_registered(
     hass: HomeAssistant, domain_data: dict[str, Any], static_url_path: str
 ) -> None:
@@ -333,6 +418,13 @@ async def _ensure_static_registered(
     (`host.js`, `loadHostedDocument`) quando l'indirizzo versionato che un
     browser ha in mano non esiste piu' dopo un aggiornamento. Senza cache,
     perche' li' i file cambiano sotto lo stesso indirizzo.
+
+    Una sola cosa non si monta li': la card. Quella e' la porta da cui si
+    entra nella plancia come dashboard predefinita, e i suoi `import` si
+    risolvono rispetto a dove la si e' presa — cioe' tutto il resto verrebbe
+    dal prefisso stabile, dove un aggiornamento fatica ore ad arrivare. Al suo
+    posto c'e' una vista che rimanda alla firma di adesso: il perche' per
+    disteso sta in `_pubblica_la_via_stabile_della_card`.
     """
     if domain_data.get(DATA_STATIC_REGISTERED) == static_url_path:
         return
@@ -362,8 +454,12 @@ async def _ensure_static_registered(
 
     paths = configs(static_url_path, runtime, True)
     if not domain_data.get(DATA_STATIC_BASE_REGISTERED):
-        paths = configs(STATIC_URL_PATH, runtime, False) + paths
+        # Sul prefisso stabile va tutto TRANNE la card: quella la serve una
+        # nostra vista, e la serve rimandando alla firma di adesso. Il perche'
+        # sta in `_pubblica_la_via_stabile_della_card`.
+        paths = configs(STATIC_URL_PATH, senza_la_card(runtime), False) + paths
         paths += configs(STATIC_URL_PATH, shared, True)
+        _pubblica_la_via_stabile_della_card(hass, domain_data)
 
     await hass.http.async_register_static_paths(paths)
     domain_data[DATA_STATIC_BASE_REGISTERED] = True
@@ -373,7 +469,7 @@ async def _ensure_static_registered(
 # Il percorso della card, senza la firma: e' quello che resta uguale fra un
 # aggiornamento e l'altro, ed e' con quello che la si riconosce fra le risorse
 # di Lovelace — dove la firma della riga scritta ieri non e' quella di oggi.
-PERCORSO_DELLA_CARD = f"{STATIC_URL_PATH}/dashboard-card.js"
+PERCORSO_DELLA_CARD = f"{STATIC_URL_PATH}/{NOME_DELLA_CARD}"
 
 
 def _dashboard_card_module_url(asset_version: str) -> str:
@@ -391,8 +487,11 @@ def _dashboard_card_module_url(asset_version: str) -> str:
     Adesso il PERCORSO e' quello stabile, che c'e' sempre, e la firma sta nella
     domanda: una pagina vecchia chiede una firma vecchia allo stesso percorso e
     riceve la card di adesso invece di un 404, e una pagina nuova chiede una
-    firma nuova e non riusa quella in cache. La card ricava da se' la sua base
-    per il resto degli asset, quindi non le cambia niente.
+    firma nuova e non riusa quella in cache.
+
+    Quel percorso, pero', non serve il file: rimanda all'indirizzo versionato
+    di adesso, cosi' che tutto quello che la card importa arrivi da li' e non
+    dal prefisso stabile — vedi `_pubblica_la_via_stabile_della_card`.
     """
     return f"{PERCORSO_DELLA_CARD}?v={asset_version}"
 
