@@ -171,17 +171,33 @@ test("un contatto al posto del luxmetro dice la stessa cosa senza soglia da tara
   assert.equal(lettura.aperta, true);
 });
 
-test("col solo rilevatore non si inventa un «no»", () => {
+test("col solo rilevatore la posta resta li' finché non la si prende", () => {
+  /* Questo contratto è cambiato con la #536, e il cambio è la richiesta:
+   * «vorrei che la gestione della posta sia gestita anche tramite sensore di
+   * movimento nella cassetta». Prima, col solo rilevatore, «c'è» valeva finché
+   * il rilevatore era acceso e poi tornava «non si sa» — e un PIR si spegne
+   * dopo trenta secondi, quindi la posta arrivata alle nove era dimenticata
+   * alle nove e un minuto. Con quella regola il rilevatore da solo non
+   * gestiva proprio niente.
+   *
+   * Adesso l'ultimo movimento vale finché qualcuno non dice di aver preso la
+   * posta: è come si comporta una cassetta vera, la posta non se ne va da
+   * sola. Quello che non si fa — e non si faceva nemmeno prima — è inventare
+   * un «no»: senza rilevatore, o col rilevatore muto, resta «non si sa». */
   const states = { "binary_sensor.vallhorn_motion": stato("off", 30) };
   const spenta = letturaDellaCassetta({ posta: "binary_sensor.vallhorn_motion" }, states);
-  assert.equal(spenta.ce, null, "senza sapere dei ritiri, «non c'è posta» sarebbe una bugia");
-  assert.equal(spenta.arrivata, ORA - 30 * 60000, "ma quando si è mosso si sa");
+  assert.equal(spenta.ce, true, "si è mosso mezz'ora fa e nessuno l'ha tolta");
+  assert.equal(spenta.arrivata, ORA - 30 * 60000, "e quando si è mosso si sa");
 
   const accesa = letturaDellaCassetta(
     { posta: "binary_sensor.vallhorn_motion" },
     { "binary_sensor.vallhorn_motion": stato("on", 0) },
   );
   assert.equal(accesa.ce, true, "mentre si muove, qualcosa è appena entrato");
+
+  /* Il «no» continua a non inventarsi: senza il rilevatore non si sa. */
+  const senza = letturaDellaCassetta({ ritiro: "sensor.lux" }, {});
+  assert.equal(senza.ce, null, "senza rilevatore non c'è niente da dire");
 });
 
 test("un rilevatore che non risponde non è una cassetta vuota", () => {

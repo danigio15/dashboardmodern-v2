@@ -236,7 +236,15 @@
  * dove salvarsi e si ripuliva da sola. Va con `cd_ev_motore`, che e' l'altra
  * cosa che si sa dell'auto di casa e non delle sue entita': quanti kilowattora
  * tiene la batteria non cambia col vetro da cui lo si scrive. */
-export const CONFIG_KEYS_REVISION = 50;
+/* La revisione 51 aggiunge il momento in cui si e' presa la posta
+ * (`cd_posta_ritirata`, #536): «vorrei che la gestione della posta sia gestita
+ * anche tramite sensore di movimento nella cassetta e non solo tramite sensore
+ * porta». Chi ha il solo rilevatore non ha un sensore che dica quando la
+ * cassetta e' stata svuotata, e quel momento lo dice una persona toccando la
+ * card. E' un fatto della CASA, non del vetro: se la posta l'ho presa io,
+ * l'ho presa anche per il tablet appeso in cucina, che se no continuerebbe a
+ * dire che c'e' posta a chi ce l'ha gia' in mano. */
+export const CONFIG_KEYS_REVISION = 51;
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
 // true per-device preferences (connection credentials, theme/navbar mode) stay
@@ -299,6 +307,7 @@ export const CONFIG_KEYS = Object.freeze([
    * suona, e i due sensori della cassetta. E' roba di casa — il cancello e' uno
    * solo — e chi la configura dal telefono la deve ritrovare dal computer. */
   "cd_citofono",
+  "cd_posta_ritirata",
   // Le voci della parte Caldo del Clima (caldaia, pompe): lista libera.
   "cd_termico_caldo",
   // I programmi rapidi della lavatrice: nome, entita', icona.
