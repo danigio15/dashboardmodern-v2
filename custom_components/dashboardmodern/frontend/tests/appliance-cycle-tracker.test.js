@@ -1,6 +1,7 @@
 // DM-FIX-20260816A
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { createCycleTracker } from "../src/core/appliance-cycle-tracker.js";
 
 function fakeStorage(seed = {}) {
@@ -125,4 +126,103 @@ test("unavailable freezes the cycle instead of closing or integrating it", () =>
   clock.advance(120000);
   tracker.update([{ id: "washer", mode: "off", watts: 0 }]);
   assert.equal(tracker.record("washer").last.startMs, T0);
+});
+
+/* «Alcune volte la durata dell'ultimo ciclo non rimane memorizzata... questa
+ *  mattina la lavatrice è stata accesa per più di un'ora, dopo la fine del
+ *  ciclo indicava la durata giusta e un costo coerente con il consumo. Dopo
+ *  qualche ora ho notato che era tutto azzerato.» (#518)
+ *
+ * Non è un ciclo contato male: è un ciclo contato bene e poi cancellato da chi
+ * non lo aveva visto. La mappa si leggeva una volta sola, all'accensione, e da
+ * lì in poi ogni scrittura la sovrascriveva intera con quella copia. Basta una
+ * seconda scheda del browser rimasta aperta — il Config a parte, una linguetta
+ * lasciata indietro, il telefono che non si chiude mai — perché la sua copia
+ * di un'ora prima finisca sopra il ciclo appena registrato dall'altra.
+ */
+test("una seconda scheda non cancella il ciclo registrato dalla prima", () => {
+  const storage = fakeStorage();
+  const clock = fakeClock(T0);
+  /* Due schede sullo stesso browser: stesso magazzino, due memorie. */
+  const prima = createCycleTracker({ storage, now: clock });
+  const seconda = createCycleTracker({ storage, now: clock });
+
+  /* La seconda scheda ha guardato una volta e poi è rimasta lì. */
+  seconda.update([{ id: "washer", mode: "off", watts: 0 }]);
+
+  /* Intanto la prima segue il ciclo intero e lo chiude. */
+  prima.update([{ id: "washer", mode: "running", watts: 2000 }]);
+  for (let i = 0; i < 70; i += 1) {
+    clock.advance(60000);
+    prima.update([{ id: "washer", mode: "running", watts: 2000 }]);
+  }
+  clock.advance(60000);
+  prima.update([{ id: "washer", mode: "off", watts: 0 }]);
+  const registrato = prima.record("washer").last;
+  assert.equal(registrato.durationMinutes, 71);
+
+  /* Ore dopo, la seconda scheda si sveglia su una raffica qualunque. Prima
+   * riscriveva la sua mappa di allora, e il ciclo spariva. */
+  clock.advance(3 * 3600000);
+  seconda.update([{ id: "washer", mode: "off", watts: 0 }]);
+
+  const salvato = JSON.parse(storage.dump().dm_appliance_cycles);
+  assert.deepEqual(
+    salvato.washer.last,
+    registrato,
+    "la scheda rimasta indietro ha cancellato il ciclo dell'altra",
+  );
+  /* E lo vede anche lei, senza dover ricaricare niente. */
+  assert.deepEqual(seconda.record("washer").last, registrato);
+});
+
+test("e il ciclo aperto resta di chi lo sta misurando", () => {
+  /* Rileggere il magazzino non deve far perdere il ciclo in corso: quello lo
+   * segue chi campiona, campione per campione, e la copia salvata da un'altra
+   * scheda è ferma a quando l'ha scritta. */
+  const storage = fakeStorage();
+  const clock = fakeClock(T0);
+  const prima = createCycleTracker({ storage, now: clock });
+  const seconda = createCycleTracker({ storage, now: clock });
+
+  prima.update([{ id: "washer", mode: "running", watts: 2000 }]);
+  clock.advance(60000);
+  /* L'altra scheda scrive qualcosa di suo su un apparecchio diverso. */
+  seconda.update([{ id: "dryer", mode: "off", watts: 0 }]);
+
+  clock.advance(60000);
+  prima.update([{ id: "washer", mode: "running", watts: 2000 }]);
+  assert.equal(prima.record("washer").active.startMs, T0, "il ciclo in corso si è perso");
+
+  clock.advance(60000);
+  prima.update([{ id: "washer", mode: "off", watts: 0 }]);
+  assert.equal(prima.record("washer").last.durationMinutes, 3);
+  /* E quello che l'altra aveva scritto non è stato buttato via. */
+  assert.ok("dryer" in JSON.parse(storage.dump().dm_appliance_cycles));
+});
+
+test("e l'aggancio alla raffica di stati si riprova quando il guscio è pronto", () => {
+  /* «L'orario di inizio ciclo parte solo quando apro la scheda.»
+   *
+   * Il contatore non guarda le schede: guarda `render`, che gira a ogni
+   * raffica di stati qualunque pagina si stia guardando. Ma l'aggancio era un
+   * colpo solo, e `render` è del guscio storico — un altro documento, che si
+   * accende quando si accende. Se non c'era ancora, non si agganciava niente e
+   * non lo sapeva nessuno: da lì in poi il contatore non vedeva più una
+   * raffica in vita sua. Riprovare quando il guscio dice di essere pronto
+   * costa una riga e non fa niente se l'aggancio c'è già. */
+  const sorgente = readFileSync(
+    new URL("../src/sections/appliance-showcase-section.js", import.meta.url),
+    "utf8",
+  );
+  const agganci = [...sorgente.matchAll(/wrapFunction\("render", "__dmApplianceCycles"/g)];
+  assert.ok(agganci.length >= 3, "l'aggancio si tenta una volta sola");
+  for (const evento of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready"])
+    assert.match(
+      sorgente,
+      new RegExp(
+        `addEventListener\\?\\.\\("${evento}", \\(\\) => \\{[\\s\\S]{0,700}?wrapFunction\\("render", "__dmApplianceCycles"`,
+      ),
+      `l'aggancio non si riprova su ${evento}`,
+    );
 });
