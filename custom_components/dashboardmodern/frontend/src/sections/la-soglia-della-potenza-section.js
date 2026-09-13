@@ -296,7 +296,11 @@ function ensureAllertaInHome() {
   const firma = `${dove}|${misura}`;
   if (allerta.dataset.firma !== firma) {
     allerta.dataset.firma = firma;
-    allerta.innerHTML = `<span class="dm-soglia-allerta-ic">${disegnoDelCatalogo("energia", 40)}</span>
+    /* «potenza», non «energia»: il catalogo non ha una voce «energia» e
+     * restituiva la stringa vuota — in pagina si vedeva il riquadro colorato
+     * senza niente dentro. Un disegno che non c'e' e' peggio di nessun
+     * riquadro, perche' sembra rotto. */
+    allerta.innerHTML = `<span class="dm-soglia-allerta-ic">${disegnoDelCatalogo("potenza", 40)}</span>
       <span class="dm-soglia-allerta-testo">
         <strong>${esc(t("Sovraccarico", "Overload"))} · ${esc(dove)}</strong>
         <b>${esc(misura)}</b>
@@ -416,22 +420,27 @@ function installStyles() {
          pagina invece di esserci appiccicata sopra — piu' il rosso e un alone
          che respira. */
       ${tokenDellaCarta("body #page-home > .dm-soglia-allerta")}
+      /* Larga quanto quello che dice, non quanto lo schermo: su un monitor da
+         scrivania una fascia rossa da bordo a bordo non e' un avviso, e' un
+         cartello stradale. Si tiene la riga per se' e si ferma dove finisce il
+         testo, come la fila delle pastiglie che le sta sotto. */
       #page-home > .dm-soglia-allerta{
-        display:flex;align-items:center;gap:14px;width:100%;
-        margin:0 0 14px;padding:14px 16px;border:0;border-radius:22px;
+        display:inline-flex;align-items:center;gap:12px;
+        width:max-content;max-width:100%;
+        margin:0 0 14px;padding:11px 16px 11px 12px;border:0;border-radius:18px;
         text-align:left;cursor:pointer;font:inherit;color:#b91c1c;
         background:${FONDO_DELLA_CARTA};
         box-shadow:${OMBRA_DELLA_CARTA},0 0 0 1.5px color-mix(in srgb,#dc2626 55%,transparent);
         animation:dm-soglia-respiro 2.4s ease-in-out infinite}
       #page-home > .dm-soglia-allerta:active{transform:scale(.99)}
       .dm-soglia-allerta-ic{
-        flex:0 0 auto;display:grid;place-items:center;width:44px;height:44px;border-radius:14px;
+        flex:0 0 auto;display:grid;place-items:center;width:38px;height:38px;border-radius:12px;
         background:color-mix(in srgb,#dc2626 14%,transparent)}
-      .dm-soglia-allerta-ic svg{display:block;width:28px;height:28px}
+      .dm-soglia-allerta-ic svg{display:block;width:24px;height:24px}
       .dm-soglia-allerta-testo{display:grid;gap:2px;min-width:0}
       .dm-soglia-allerta-testo strong{
         font-size:11px;font-weight:900;letter-spacing:.09em;text-transform:uppercase}
-      .dm-soglia-allerta-testo b{font-size:21px;font-weight:900;line-height:1.1;
+      .dm-soglia-allerta-testo b{font-size:18px;font-weight:900;line-height:1.15;
         font-variant-numeric:tabular-nums}
       .dm-soglia-allerta-testo small{
         font-size:11px;font-weight:700;color:var(--text-dim,#64748b)}
