@@ -77,6 +77,20 @@ function scegli(id) {
      * leggere i contatori della casa di prima. */
     root.cdApplyCanonicalOverrides?.(magazzino?.getSection?.("entityOverrides") || {});
   } catch (_error) {}
+  /* E le voci del Report, che sono i carichi di QUESTO impianto (#527).
+   *
+   * «Ho configurato 2 contatori di energia; quando vado su report → analisi
+   *  vedo il consumo mensile di tutti i dispositivi di entrambi i contatori,
+   *  non solo del contatore selezionato.»
+   *
+   * Il guscio storico tiene quell'elenco in una variabile costruita una volta
+   * sola, e la ricostruisce al salvataggio di un elettrodomestico — non al
+   * cambio di linguetta, che quel guscio non conosce. Adesso l'elenco sa di
+   * impianti; qui gli si dice che l'impianto e' cambiato. */
+  try {
+    root.cdRebuildReportDevices?.();
+    root.buildReportSelect?.();
+  } catch (_error) {}
   /* Cambiare impianto cambia cosa leggono tutti: il modo piu' onesto di dirlo
    * a diciassette moduli e' l'evento che gia' ascoltano quando la
    * configurazione cambia. */

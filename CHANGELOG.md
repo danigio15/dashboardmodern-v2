@@ -5,6 +5,126 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.26
+
+### Corretto
+
+- **La plancia non sparisce più dopo l'aggiornamento**
+
+  «Dopo l'ultimo aggiornamento non si vedono più i widget in home page»;
+  «dopo l'ultimo aggiornamento non compaiono più i flussi e le potenze»;
+  «non ci sono più la grafica e i nomi corretti nel pop-up del widget delle
+  finestre».
+
+  Tre segnalazioni diverse, un difetto solo, e nessuna delle tre riguardava
+  davvero la sezione che nominava.
+
+  La migrazione dello stato si chiama una volta, all'accensione, e sopra quella
+  riga ci passa tutto: il ponte verso le chiavi storiche, la proiezione delle
+  sostituzioni, il coordinatore dei disegni e — alla fine — l'oggetto che tiene
+  insieme tutta la plancia moderna. Dentro di lei, il recupero della
+  configurazione dell'energia scriveva in un gruppo che nella forma dello stato
+  non era mai stato dichiarato: il raffreddamento dell'inverter. A chi aveva
+  quelle cinque entità collegate, e il gruppo perso in un ripristino, quella
+  scrittura sollevava — e da lì in poi non nasceva più niente.
+
+  Non era «una migrazione a metà»: era una plancia senza niente di moderno,
+  perché il modulo smetteva di essere letto.
+
+  Adesso il gruppo del raffreddamento sta nella forma dello stato; il giro lo
+  apre comunque se non c'è, così un gruppo aggiunto domani e dimenticato lì non
+  rifà lo stesso scherzo; e una migrazione che inciampa si scrive in console e
+  lascia partire tutto il resto. Fermare il resto non ripara niente: aggiunge un
+  secondo guasto, molto più grande, al primo.
+
+- **Il Report guarda un impianto per volta**
+
+  «Ho configurato 2 contatori di energia; quando vado su report → analisi vedo
+  il consumo mensile di tutti i dispositivi di entrambi i contatori, non solo
+  del contatore selezionato.»
+
+  Di quale impianto sia un carico sta scritto addosso al carico da quando gli
+  impianti esistono, e il flusso lo guarda da sempre. Il Report no: prendeva
+  tutto, e con due case sotto lo stesso tetto sommava le due — che è esattamente
+  la cosa che avere due contatori serve a non fare. Adesso passa dalla stessa
+  regola del flusso, e cambiare linguetta rifà l'elenco.
+
+- **La durata dell'ultimo ciclo non viene più cancellata**
+
+  «Dopo la fine del ciclo indicava la durata giusta e un costo coerente col
+  consumo. Dopo qualche ora ho notato che era tutto azzerato.»
+
+  Non era un ciclo contato male: era un ciclo contato bene e poi cancellato da
+  chi non lo aveva visto. La mappa dei cicli si leggeva una volta all'accensione
+  e ogni scrittura la sovrascriveva intera con quella copia; bastava una seconda
+  scheda del browser rimasta aperta perché la sua copia di un'ora prima finisse
+  sopra il ciclo appena registrato. Adesso si rilegge prima di scrivere.
+
+  E l'aggancio che conta i cicli — «l'orario di inizio parte solo quando apro la
+  scheda» — era un colpo solo, e falliva in silenzio quando il guscio non era
+  ancora acceso. Adesso si riprova.
+
+- **Il velo dietro una finestra aperta è uno solo**
+
+  «Se apro alcune card, come quella della persona, sullo sfondo resta la
+  dashboard sfocata; se apro tutte le altre invece lo sfondo è nero.»
+
+  Il velo se lo scriveva ogni finestra da capo, con numeri diversi: il guscio
+  copre all'82% sullo scuro, quella della persona al 55%. Adesso si scrive in un
+  posto solo.
+
+- **L'allerta del sovraccarico non contraddice più se stessa**
+
+  La tessera diceva «⚠️ Sovraccarico in casa · 389 W / 300 W» e il pallino sopra
+  diceva verde: il motore di analisi poteva abbassare il tono di una tessera che
+  stava già dando un allarme. Adesso, fra i due, vince il tono più serio.
+
+- **Altri otto rilievi**, trovati leggendo il codice: la pressione «0 hPa»
+  inventata da un valore assente; la riprova del meteo che teneva il timer del
+  primo fallimento e mangiava i successivi; la percentuale di ricarica che il
+  browser sceglieva da solo su una tendina muta; il tasto «Pausa» mandato a
+  lettori che la pausa non ce l'hanno; la capacità di un'auto in bozza
+  abbandonata che finiva su un'altra vettura; l'ascolto del catalogo che
+  sopravviveva alla scheda chiusa; e un ordine dei blocchi della Home che il
+  documento non sapeva disegnare.
+
+### Aggiunto
+
+- **La plancia appena installata nasce senza niente**
+
+  «Quando si parte da zero le sezioni sotto non devono rilevare automaticamente
+  le cose e inserirle: tutto deve partire senza nulla, e le sezioni che non
+  hanno entità valorizzate devono essere nascoste.»
+
+  Varchi, Presenza e Batterie erano le uniche sezioni il cui elenco non lo
+  scrive l'utente — lo dichiara Home Assistant col `device_class` — e una casa
+  le porte, il movimento e le pile ce le ha dal primo minuto. Comparivano nella
+  barra di chi non aveva ancora configurato niente.
+
+  Adesso nascono spente. Chi le ha in barra da mesi non perde niente
+  aggiornando: nascere succede una volta sola, e succede alla plancia mai
+  configurata. Da spente si riaccendono dalla loro scheda del Config, dalla
+  fascia verde dell'elenco delle sezioni, o dal 🪄 del rilevamento automatico —
+  che è la funzione fatta apposta, e prima non le toccava.
+
+- **Si sceglie quali entità accendono la card di un elettrodomestico**
+
+  «Ci sarebbe modo di aggiungere un'opzione per scegliere se quell'entità fa
+  colorare la card? Frigorifero: sensore porta. Lavatrice: fine ciclo.»
+
+  A colorare la card c'era una casella sola, e la porta del frigo di proposito
+  non ci passava: un frigo aperto per prendere il latte non è un guasto. Ma
+  «non è un guasto» non vuol dire «non me ne importa». Accanto a «cosa mostrare
+  nella finestra» c'è adesso «cosa accende la card»: lo stesso elenco di entità,
+  un tocco per scegliere. Chi non sceglie niente non cambia niente.
+
+- **Il titolo anche sopra l'intestazione principale**, quando la si sposta giù
+  in pagina: era l'unico blocco della Home che restava senza nome.
+
+- **L'allerta del sovraccarico in primo piano**: sopra la soglia rossa, in cima
+  alla Home, una card che si vede da lontano e se ne va da sola quando il carico
+  rientra. Un tocco apre l'Energia.
+
 ## 1.4.25
 
 ### Corretto

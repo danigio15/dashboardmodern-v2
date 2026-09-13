@@ -33,8 +33,13 @@ import { APPLIANCE_BINDING_FIELDS } from "../core/device-model.js";
 import { comandiVicini, elencoComandi, genereDelComando } from "../core/comandi-accanto.js";
 import { elencoLetture, eUnaLettura, lettureVicine } from "../core/letture-accanto.js";
 import { elencoNascoste } from "../core/le-voci-nascoste.js";
+import { elencoColorano } from "../core/le-voci-che-colorano.js";
 import { nomeAccantoAlDispositivo } from "../core/nome-accanto-al-dispositivo.js";
-import { apriMenuIntegrazioni, entitaDelDispositivo } from "./appliance-integration-section.js";
+import {
+  EVENTO_CATALOGO,
+  apriMenuIntegrazioni,
+  entitaDelDispositivo,
+} from "./appliance-integration-section.js";
 import { CAMPI_SCELTI } from "../core/energy-loads-config.js";
 import {
   eDiUnAltroApparecchio,
@@ -813,6 +818,79 @@ function nascosteMarkup(device) {
 }
 
 const NASCOSTE_CAMPO = "nascoste";
+const COLORANO_CAMPO = "colorano";
+
+/* Cosa accende la card (#519, #520).
+ *
+ * «Ci sarebbe modo di aggiungere un'opzione per scegliere se quell'entita' fa
+ *  colorare la card nei widget? Esempio: frigorifero, aggiunto sensore porta
+ *  frigo (opzione colore sfondo se ON); lavatrice, aggiungo sensore fine ciclo
+ *  (opzione colore sfondo se ON).»
+ *
+ * Sta qui accanto a «cosa mostrare» perche' sono la stessa domanda fatta due
+ * volte sullo stesso elenco: una dice se quella voce si vede, questa se quella
+ * voce merita di farsi notare. Di serie non e' scelta nessuna — e' il motivo
+ * per cui la porta del frigo era solo una pastiglia — e chi ha il congelatore
+ * in garage la sceglie in un tocco.
+ *
+ * I due segni sono tipografici e non disegni: qui non c'e' niente da
+ * illustrare, c'e' da dire acceso o spento, e il catalogo dei disegni non
+ * c'entra. */
+function coloranoMarkup(device) {
+  return `<section class="ed-slot dm-appl-colorano" data-appl-colorano>
+    <span class="ed-slot-lbl">${t("Cosa accende la card", "What lights the card up")}</span>
+    <input type="hidden" name="colorano" value="${esc(elencoColorano(device[COLORANO_CAMPO]).join(","))}">
+    <div class="dm-appl-cmd-chips" data-appl-colorano-voci></div>
+    <small>${t(
+      "Un tocco sceglie: finché quell'entità è accesa, la card dell'apparecchio e la sua tessera in Home si colorano per farsi notare. Di serie non è scelta nessuna — un frigo aperto per prendere il latte non è un guasto — ma la porta del congelatore in garage, o il fine ciclo della lavatrice, si mettono qui.",
+      "One tap picks it: while that entity is on, the appliance card and its Home tile take on a colour so you notice them. None is picked by default — a fridge opened to get the milk is not a fault — but the garage freezer door, or the washing machine finishing, belong here.",
+    )}</small>
+  </section>`;
+}
+
+function disegnaColorano(modal, form) {
+  const blocco = modal.querySelector("[data-appl-colorano]");
+  if (!blocco) return;
+  const states = allStates();
+  const values = Object.fromEntries(new FormData(form).entries());
+  const scelte = new Set(elencoColorano(values.colorano));
+  const voci = vociDellApparecchio(values);
+  const apparecchio = apparecchioDelleLetture(values, elencoLetture(values.letture));
+  const cassetto = blocco.querySelector("[data-appl-colorano-voci]");
+  if (!cassetto) return;
+  cassetto.innerHTML = voci.length
+    ? voci
+        .map((entity) => {
+          const accende = scelte.has(entity);
+          return `<button type="button" class="dm-appl-cmd-chip dm-appl-colora" data-appl-colora="${esc(entity)}"
+            data-on="${accende ? "true" : "false"}" aria-pressed="${accende ? "true" : "false"}"
+            title="${esc(entity)}"><span>${esc(nomeAccantoAlDispositivo(entity, apparecchio, states))}</span><i aria-hidden="true">${accende ? "●" : "○"}</i></button>`;
+        })
+        .join("")
+    : `<small class="dm-appl-cmd-vuoto">${esc(t("Niente da scegliere: l'apparecchio non ha ancora entità.", "Nothing to choose: the appliance has no entities yet."))}</small>`;
+}
+
+function wireColorano(modal, form) {
+  const blocco = modal.querySelector("[data-appl-colorano]");
+  if (!blocco) return;
+  const nascosto = form.elements.colorano;
+  blocco.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-appl-colora]");
+    if (!chip) return;
+    event.preventDefault();
+    const entity = clean(chip.dataset.applColora);
+    const scelte = new Set(elencoColorano(nascosto.value));
+    /* Il tocco ribalta, e niente si salva finche' non si preme il tasto della
+     * scheda: come per i comandi, le letture e le voci nascoste. */
+    if (scelte.has(entity)) scelte.delete(entity);
+    else scelte.add(entity);
+    nascosto.value = [...scelte].join(",");
+    disegnaColorano(modal, form);
+  });
+  /* Il catalogo arriva dopo, e questo elenco si rifa' con l'altro: sono le
+   * stesse entita', e l'ascolto e' gia' legato alla vita della scheda. */
+  disegnaColorano(modal, form);
+}
 
 function disegnaNascoste(modal, form) {
   const blocco = modal.querySelector("[data-appl-nascoste]");
@@ -854,7 +932,65 @@ function wireNascoste(modal, form) {
     nascosto.value = [...nascoste].join(",");
     disegnaNascoste(modal, form);
   });
+  /* Il catalogo arriva dopo, e l'elenco si rifa'.
+   *
+   * `entitaDelDispositivo` con la cache fredda mette in moto una lettura e
+   * intanto risponde `null`: il primo disegno vede solo lo scatto vecchio. Il
+   * catalogo vero arriva poco dopo con questo evento — e qui nessuno lo
+   * ascoltava. L'entita' pubblicata dall'integrazione dopo il collegamento era
+   * l'unica che non si poteva nascondere finche' non si chiudeva e riapriva la
+   * scheda.
+   *
+   * L'ascolto se ne va con la finestra, e se ne va DAVVERO.
+   *
+   * Prima si toglieva da solo, ma solo al catalogo successivo: nel giro
+   * normale il catalogo arriva mentre la scheda e' ancora aperta, quel giro
+   * ridisegna e non si toglie niente, e chiudendo la scheda l'ascolto restava
+   * attaccato a una finestra staccata dal documento — che quindi non si poteva
+   * buttare. Col catalogo gia' in memoria un giro successivo puo' non arrivare
+   * mai, e allora ogni apertura ne lasciava indietro uno.
+   *
+   * Adesso la vita dell'ascolto e' quella della finestra, scritta una volta:
+   * `chiudiLaScheda` interrompe, e chi chiude la scheda passa di li'. Il
+   * controllo sul nodo staccato resta come rete, per una chiusura che un
+   * domani non passasse da quella porta. */
+  const stacca = new AbortController();
+  vitaDellaScheda(modal, stacca);
+  const alCatalogo = () => {
+    if (!modal.isConnected) {
+      stacca.abort();
+      return;
+    }
+    disegnaNascoste(modal, form);
+    disegnaColorano(modal, form);
+  };
+  globalThis.addEventListener?.(EVENTO_CATALOGO, alCatalogo, { signal: stacca.signal });
   disegnaNascoste(modal, form);
+}
+
+/* Chi tiene in vita gli ascolti di una scheda, e chi li interrompe.
+ *
+ * Sta sul nodo della finestra perche' e' lui che nasce e muore: chiunque
+ * chiuda la scheda — il tasto, l'invio della forma, un `remove()` da un altro
+ * punto — passa da `chiudiLaScheda`, e da li' cade tutto insieme. */
+const VITA_DELLA_SCHEDA = "__dmVitaDellaScheda";
+
+function vitaDellaScheda(modal, controller) {
+  if (!modal) return;
+  const gia = modal[VITA_DELLA_SCHEDA];
+  modal[VITA_DELLA_SCHEDA] = Array.isArray(gia) ? [...gia, controller] : [controller];
+}
+
+/** Chiude la scheda e con lei tutto quello che stava in ascolto per conto suo. */
+export function chiudiLaScheda(modal) {
+  if (!modal) return;
+  for (const controller of modal[VITA_DELLA_SCHEDA] || []) {
+    try {
+      controller.abort();
+    } catch (_error) {}
+  }
+  modal[VITA_DELLA_SCHEDA] = [];
+  modal.remove();
 }
 
 function bindingSnapshot(values) {
@@ -977,7 +1113,10 @@ function wireBinding(modal, form, device) {
 export function openApplianceEditor(index) {
   const device = appliances()[index];
   if (!device) return false;
-  doc?.getElementById("dm-appliance-editor-modal")?.remove();
+  /* Una scheda gia' aperta si chiude dalla stessa porta di sempre: toglierla
+   * dal documento e basta le lascerebbe addosso i suoi ascolti, ed e' proprio
+   * riaprendo la scheda molte volte che se ne accumulavano. */
+  chiudiLaScheda(doc?.getElementById("dm-appliance-editor-modal"));
   const visual = deviceVisualKey(device);
   const totalInitial =
     [device.total_energy_entity, device.history_entity, device.report_entity]
@@ -1013,6 +1152,7 @@ export function openApplianceEditor(index) {
       ${comandiExtraMarkup(device)}
       ${lettureExtraMarkup(device)}
       ${nascosteMarkup(device)}
+      ${coloranoMarkup(device)}
       ${cardFieldsMarkup(device)}
       <output data-error></output>
       <footer><button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button><button type="submit" class="ed-save-btn">💾 ${t("Salva modifiche", "Save changes")}</button></footer>
@@ -1020,12 +1160,13 @@ export function openApplianceEditor(index) {
   </section>`;
   doc.body.append(modal);
   const form = modal.querySelector("[data-form]");
-  const close = () => modal.remove();
+  const close = () => chiudiLaScheda(modal);
   updateEditType(modal, visual);
   wireBinding(modal, form, device);
   wireComandi(modal, form);
   wireLetture(modal, form);
   wireNascoste(modal, form);
+  wireColorano(modal, form);
   modal.querySelector("[data-type-trigger]")?.addEventListener("click", () => {
     openTypePicker({
       selected: form.elements.icon.value,
@@ -1147,6 +1288,13 @@ export function openApplianceEditor(index) {
     const nascoste = elencoNascoste(values.nascoste);
     if (nascoste.length) next[NASCOSTE_CAMPO] = nascoste;
     else delete next[NASCOSTE_CAMPO];
+    /* Cosa accende la card (#519, #520), con la stessa regola ancora: un
+     * elenco vuoto non e' una configurazione, e il campo se ne va — cosi' chi
+     * non ha scelto niente ha una card che si comporta esattamente come
+     * prima, e nessuno si ritrova la casa accesa per un aggiornamento. */
+    const colorano = elencoColorano(values.colorano);
+    if (colorano.length) next[COLORANO_CAMPO] = colorano;
+    else delete next[COLORANO_CAMPO];
     if (next.threshold_standby === "") delete next.threshold_standby;
     for (const key of [
       "cycle_minutes",

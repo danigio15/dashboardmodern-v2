@@ -4,10 +4,16 @@
 import { applianceArtwork } from "../core/appliance-artwork.js";
 import { TAB_SECTION_KEYS, activeTab as schedaAttiva } from "./config-uniformity-section.js";
 import { canonicalApplianceVisualKey } from "../core/device-model.js";
+import { batterieDiCasa } from "../core/batterie-di-casa.js";
 import {
+  SEZIONI_CHE_LEGGONO_LA_CASA,
   contenutoDelleSezioni,
+  planciaGiaConfigurata,
+  sceltaSullaSezione,
   sezioniGovernate,
 } from "../core/contenuto-delle-sezioni.js";
+import { CHIAVE_PRESENZA, presenzaConfigurata } from "../core/presenza-in-casa.js";
+import { CHIAVE_VARCHI, varchiConfigurati } from "../core/varchi-di-casa.js";
 import { sectionForEditorSlot } from "../core/editor-slots.js";
 import { humidityEntry } from "../core/room-overview.js";
 import {
@@ -44,6 +50,7 @@ const state = (root[KEY] ||= {
   temperatureGridObserved: null,
   temperatureFilterReentrant: false,
   visibilityTimer: 0,
+  treSeminate: false,
   loadsRendering: false,
   editingChild: null,
   popupGroup: "",
@@ -466,7 +473,35 @@ export function legacyVisibilityTargets() {
     if (!clean(value).includes(".")) continue;
     if (!sectionForEditorSlot(String(slot))) targets.add("home");
   }
+
+  /* Varchi, Presenza e Batterie non hanno un elenco da riempire — lo fa Home
+   * Assistant — e quindi non hanno un «contenuto» da cui accendersi. La loro
+   * porta e' la scheda del Config: toccarla — un contatto tolto, uno aggiunto,
+   * un nome, una soglia — e' chiedere di vedere quella sezione. */
+  for (const sezione of SEZIONI_CHE_LEGGONO_LA_CASA)
+    if (sceltaSullaSezione(sezione, magazzino)) targets.add(sezione);
+
   return [...targets];
+}
+
+/* Cosa dichiara la casa, per le tre sezioni che leggono lei invece della
+ * configurazione. Torna `null` quando gli stati non sono ancora arrivati:
+ * prima che arrivino la casa sembra senza porte, senza rilevatori e senza
+ * batterie, e seminare su quella risposta vorrebbe dire spegnere tre sezioni
+ * piene a chi le aveva. Chi non sa non semina. */
+function cosaDichiaraLaCasa() {
+  const states = allStates();
+  if (!states || typeof states !== "object" || !Object.keys(states).length) return null;
+  return {
+    varchi: varchiConfigurati(states, magazzino(CHIAVE_VARCHI)),
+    presenza: presenzaConfigurata(states, magazzino(CHIAVE_PRESENZA)),
+    batterie:
+      batterieDiCasa({
+        configurate: magazzino("cd_gruppi_extra")?.batt,
+        stati: states,
+        tolte: magazzino("cd_gruppi_removed")?.batt,
+      }).length > 0,
+  };
 }
 
 /* Una sezione vuota non sta nella barra.
@@ -563,6 +598,39 @@ export function ensureConfiguredSectionsVisible({
   return changed;
 }
 
+/* Le tre che leggono la casa, accese perche' qualcuno l'ha chiesto.
+ *
+ * Nascono spente, e la porta per riaverle e' la loro scheda del Config. Ma la
+ * porta grande e' l'altra — «per questo c'e' la funzione in config che rileva
+ * automaticamente» — e quella non scrive ne' `cd_varchi` ne' `cd_presenza`:
+ * premere il 🪄 e accettarne il riassunto lasciava fuori proprio le tre
+ * sezioni che il rilevamento saprebbe riempire meglio di chiunque.
+ *
+ * Le accende quindi lei, e solo quelle che la casa dichiara davvero: una casa
+ * senza rilevatori non si prende la voce Presenza per aver premuto un tasto. E
+ * una scelta fatta a mano resta sacra anche qui. */
+export function accendiLeSezioniCheLeggonoLaCasa({ sync = true } = {}) {
+  const casa = cosaDichiaraLaCasa();
+  if (!casa) return false;
+  const visibility = readJson("cd_sections", {});
+  const next =
+    visibility && typeof visibility === "object" && !Array.isArray(visibility)
+      ? { ...visibility }
+      : {};
+  const manual = manualVisibilityChoices();
+  let changed = false;
+  for (const chiave of SEZIONI_CHE_LEGGONO_LA_CASA) {
+    if (!casa[chiave] || manual[chiave] === true || next[chiave] === true) continue;
+    next[chiave] = true;
+    changed = true;
+  }
+  if (changed) {
+    writeJsonIfChanged("cd_sections", next, { sync });
+    root.cdApplyNavVis?.();
+  }
+  return changed;
+}
+
 /* L'esordio: ogni sezione nasce spenta se non ha niente dentro.
  *
  * Il guscio semina le sue undici voci, ma quelle nate dai moduli (Stanze,
@@ -587,6 +655,25 @@ export function seedModernSectionVisibility() {
     next[key] = targets.includes(key);
     changed = true;
   }
+
+  /* E le tre che leggono la casa — Varchi, Presenza, Batterie — che fino a qui
+   * nascevano accese perche' una casa le porte ce le ha sempre, anche sopra
+   * una plancia appena installata: erano le tre voci che comparivano nella
+   * barra di chi non aveva ancora configurato niente.
+   *
+   * Nascono spente. «Nascere» pero' e' una cosa che succede una volta, e
+   * succede alla plancia mai configurata: quella gia' in uso non nasce, e le
+   * sue tre voci restano come stavano — chi ha i varchi in barra da mesi non
+   * li perde aggiornando. Da spente si riaccendono dalla loro scheda del
+   * Config, che e' `legacyVisibilityTargets` qui sopra, o dalla fascia verde. */
+  const casa = cosaDichiaraLaCasa();
+  const inUso = casa ? planciaGiaConfigurata(magazzino) : false;
+  for (const key of casa ? SEZIONI_CHE_LEGGONO_LA_CASA : []) {
+    if (key in next) continue;
+    next[key] = targets.includes(key) || (inUso && casa[key]);
+    changed = true;
+  }
+
   if (changed) {
     writeJsonIfChanged("cd_sections", next);
     root.cdApplyNavVis?.();
@@ -1430,6 +1517,28 @@ export function installBeta26RealDeviceStability() {
       ensureConfiguredSectionsVisible({ render: false, spegni: true });
     } catch (_error) {}
   });
+  /* E la semina delle tre che leggono la casa si riprova finche' la casa non
+   * risponde.
+   *
+   * Quelle tre non si seminano al buio: senza stati la casa sembra senza porte
+   * e senza pile anche a chi ne ha cinquanta. Su un avvio lento pero' i due
+   * giri qui sopra passano tutti e due prima che Home Assistant abbia mandato
+   * qualcosa, e allora non si seminava mai piu': le tre chiavi restavano da
+   * scrivere, e da non scritte le tre voci si vedono — cioe' il difetto di
+   * partenza, su una plancia appena installata. Adesso si riguarda quando la
+   * casa parla, e appena seminate non si riguarda piu'. */
+  for (const eventName of ["dashboardmodern:states-ready", "dashboardmodern:state-changed"])
+    root.addEventListener?.(eventName, () => {
+      if (state.treSeminate) return;
+      try {
+        const visibility = readJson("cd_sections", {});
+        if (SEZIONI_CHE_LEGGONO_LA_CASA.every((chiave) => chiave in (visibility || {}))) {
+          state.treSeminate = true;
+          return;
+        }
+        seedModernSectionVisibility();
+      } catch (_error) {}
+    });
   state.installed = true;
   return true;
 }

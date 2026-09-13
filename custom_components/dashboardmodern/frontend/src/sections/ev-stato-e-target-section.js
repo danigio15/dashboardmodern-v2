@@ -179,6 +179,12 @@ export function targetDiSolaLettura() {
  * passo — e quando l'entita' non dice niente non si inventa niente: la
  * tendina resta com'e', e il cartello non si mette, cosi' il guscio puo'
  * ancora fare la sua parte. */
+/** Se l'entita' del target non sta pubblicando nessuna lettura. */
+function senzaLettura(stato) {
+  const valore = clean(stato?.state);
+  return !valore || MUTO.test(valore);
+}
+
 function assicuraLeVoci(select, stato) {
   const { voci, padrone } = vociDelTarget(stato);
   if (!padrone) return;
@@ -195,12 +201,24 @@ function assicuraLeVoci(select, stato) {
     );
     select.dataset.populated = "true";
   }
-  const valore = clean(stato?.state);
-  if (!valore || MUTO.test(valore)) return;
+  if (senzaLettura(stato)) {
+    /* Nessuna lettura, nessuna scelta.
+     *
+     * Appena si mettono le opzioni dentro un `select`, il browser ne sceglie
+     * una da solo: la prima. Uscendo di qui senza dire niente, quella prima
+     * voce diventava «il target di adesso» — un 50% scritto in grande che
+     * Home Assistant non ha mai pubblicato, su una tendina che restava viva.
+     * Chi la toccava mandava all'auto un limite nato dal nulla.
+     *
+     * Un'entita' muta non ha un valore da mostrare: la tendina resta vuota, e
+     * `paintTarget` la spegne finche' una lettura non arriva. */
+    if (select.selectedIndex !== -1) select.selectedIndex = -1;
+    return;
+  }
   /* La voce di adesso si sceglie per valore, non per stringa: «95.0» e «95»
    * sono lo stesso limite, e sceglierla per uguaglianza di parola lasciava la
    * tendina sulla prima voce — cioe' su un numero che nessuno ha scelto. */
-  const scelta = voceDiAdesso(voci, valore);
+  const scelta = voceDiAdesso(voci, clean(stato?.state));
   if (scelta && select.value !== scelta) select.value = scelta;
 }
 
@@ -214,12 +232,16 @@ export function paintTarget() {
         "This target is a read-only sensor: to change it from here connect evcc, or a number/select entity, in the Car tab.",
       )
     : "";
+  /* Un'entita' che non pubblica niente non si comanda: mandarle un limite
+   * vorrebbe dire scriverlo sopra una lettura che non c'e'. */
+  const muta = Boolean(entita) && senzaLettura(stato);
+  const spenta = solaLettura || muta;
   for (const id of TENDINE_DEL_TARGET) {
     const select = doc.getElementById(id);
     if (!select) continue;
-    if (select.disabled !== solaLettura) select.disabled = solaLettura;
+    if (select.disabled !== spenta) select.disabled = spenta;
     if (select.title !== titolo) select.title = titolo;
-    const segno = solaLettura ? "sola-lettura" : entita ? "comando" : "";
+    const segno = solaLettura ? "sola-lettura" : muta ? "muta" : entita ? "comando" : "";
     if (select.dataset.dmTarget !== segno) select.dataset.dmTarget = segno;
     if (!solaLettura && stato) assicuraLeVoci(select, stato);
   }

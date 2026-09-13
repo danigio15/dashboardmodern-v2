@@ -53,6 +53,24 @@ export function parolaDelVerdetto(tono, traduci = IN_ITALIANO) {
   return traduci(parole[0], parole[1]);
 }
 
+/* Quanto e' serio un tono. Serve a metterne due a confronto. */
+const GRAVITA = Object.freeze({ bene: 0, corso: 1, guarda: 2 });
+
+/**
+ * Fra due toni, il piu' serio.
+ *
+ * Il motore d'analisi puo' ALZARE il verdetto — una piscina col pH fuori norma
+ * e' «da guardare» anche se non c'e' niente di acceso — ed e' per questo che
+ * esiste. Non deve poterlo ABBASSARE: con la soglia di potenza superata la
+ * tessera dice «da guardare», ma il racconto dell'energia guardava il sole e
+ * concludeva «tutto regolare», e quella parola vinceva. Si vedeva una pastiglia
+ * verde con scritto «Tutto regolare» e, due righe sotto, «⚠️ Sovraccarico in
+ * casa · 389 W / 300 W»: la stessa finestra che si contraddice.
+ */
+export function tonoPiuSerio(uno, altro) {
+  return (GRAVITA[altro] || 0) > (GRAVITA[uno] || 0) ? altro : uno;
+}
+
 /* Il verdetto di una tessera.
  *
  * L'ordine conta: se c'e' qualcosa da guardare lo si dice, anche se nel

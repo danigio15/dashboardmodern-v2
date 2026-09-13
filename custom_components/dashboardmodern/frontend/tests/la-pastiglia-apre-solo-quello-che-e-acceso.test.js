@@ -80,8 +80,9 @@ test("ogni dominio si spegne come sa spegnersi lui", () => {
     parola: "chiudi",
   });
   /* Una cassa che suona si mette in pausa: spegnerla vorrebbe dire spegnere
-     anche la TV a cui e' attaccata. */
-  assert.deepEqual(comandoPerSpegnere("media_player.soggiorno"), {
+     anche la TV a cui e' attaccata. Ma solo se la pausa ce l'ha. */
+  const sa = (bandiere) => ({ attributes: { supported_features: bandiere } });
+  assert.deepEqual(comandoPerSpegnere("media_player.soggiorno", sa(1)), {
     dominio: "media_player",
     servizio: "media_pause",
     parola: "pausa",
@@ -115,4 +116,37 @@ test("l'elenco e' una finestra sua, non quella del guscio", () => {
     tocco.indexOf("apriLElenco(chiave)") < tocco.indexOf('data-dm-widget="${CSS.escape(tessera)}"'),
     "l'elenco viene prima della tessera",
   );
+});
+
+test("un lettore riceve solo il tasto che sa premere", () => {
+  /* Ogni `media_player` riceveva «Pausa». Un altoparlante da annunci, una
+     radio via rete, certe TV: la pausa non ce l'hanno, Home Assistant
+     rispondeva «non supportato» e l'entita' restava accesa — un tasto che c'e'
+     e non serve a niente.
+
+     Le sigle sono quelle di `MediaPlayerEntityFeature`: pausa 1, spegni 256,
+     ferma 4096. Si sceglie in ordine di gentilezza. */
+  const sa = (bandiere) => ({ attributes: { supported_features: bandiere } });
+
+  assert.deepEqual(comandoPerSpegnere("media_player.tv", sa(1 | 4096 | 256)), {
+    dominio: "media_player",
+    servizio: "media_pause",
+    parola: "pausa",
+  });
+  /* Senza pausa ma con lo stop: si ferma. */
+  assert.deepEqual(comandoPerSpegnere("media_player.radio", sa(4096 | 256)), {
+    dominio: "media_player",
+    servizio: "media_stop",
+    parola: "ferma",
+  });
+  /* Ne' pausa ne' stop: resta lo spegnimento. */
+  assert.deepEqual(comandoPerSpegnere("media_player.annunci", sa(256)), {
+    dominio: "media_player",
+    servizio: "turn_off",
+    parola: "spegni",
+  });
+  /* E chi non sa fare nessuna delle tre non prende un tasto che non
+     funzionerebbe — nemmeno quando lo stato non si conosce affatto. */
+  assert.equal(comandoPerSpegnere("media_player.muto", sa(0)), null);
+  assert.equal(comandoPerSpegnere("media_player.muto"), null);
 });

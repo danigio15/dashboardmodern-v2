@@ -44,6 +44,31 @@ export function createCycleTracker({
 
   let records = readAll();
 
+  /* Il magazzino e' di tutte le schede; la memoria e' di una sola (#518).
+   *
+   * «Alcune volte la durata dell'ultimo ciclo non rimane memorizzata... questa
+   *  mattina la lavatrice e' stata accesa per piu' di un'ora, dopo la fine del
+   *  ciclo indicava la durata giusta e un costo coerente. Dopo qualche ora ho
+   *  notato che era tutto azzerato.»
+   *
+   * `records` si leggeva una volta, all'accensione, e da li' in poi ogni
+   * scrittura sovrascriveva la mappa INTERA con quella copia. Basta una
+   * seconda scheda del browser aperta sulla plancia — quella lasciata indietro
+   * su un'altra linguetta, il Config aperto a parte, il telefono che non si
+   * chiude mai — perche' la sua copia di un'ora prima finisca sopra il ciclo
+   * che l'altra ha appena registrato. Non e' un ciclo contato male: e' un
+   * ciclo contato bene e poi cancellato da chi non lo aveva visto.
+   *
+   * Il ciclo APERTO pero' e' di chi lo sta misurando: lo segue campione per
+   * campione, e quello salvato e' fermo a quando l'ha scritto un altro. Quindi
+   * si rilegge tutto e si tiene in mano solo quello. */
+  const rileggi = () => {
+    const salvati = readAll();
+    for (const [id, record] of Object.entries(records))
+      if (record?.active) salvati[id] = { ...(salvati[id] || {}), active: record.active };
+    records = salvati;
+  };
+
   const persist = () => {
     try {
       const serialized = JSON.stringify(records);
@@ -110,6 +135,7 @@ export function createCycleTracker({
      * Returns the updated records map.
      */
     update(entries = []) {
+      rileggi();
       const timestamp = now();
       let changed = false;
       const seen = new Set();

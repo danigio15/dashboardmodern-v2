@@ -1,5 +1,6 @@
 // DM-FIX-20260812B
 import { getDeviceVisual } from "./device-model.js";
+import { plantLoads } from "./energy-plants.js";
 import { isCumulativeEnergyEntity } from "./period-service.js";
 
 /* La scheda Temperature di Energia: inverter, batteria e ventola. Vive fuori
@@ -368,13 +369,32 @@ export function reportIconForDevice(item = {}) {
   return visual?.kind === "icon" && visual.value ? glyphForMdi(visual.value) : "⚡";
 }
 
+/* Un impianto per volta (#527).
+ *
+ * «Ho configurato 2 contatori di energia; quando vado su report → analisi vedo
+ *  il consumo mensile di tutti i dispositivi di entrambi i contatori, non solo
+ *  del contatore selezionato.»
+ *
+ * Ha ragione, ed era l'ultimo posto rimasto indietro: di quale impianto sia un
+ * carico sta scritto addosso al carico, e il flusso lo guarda da sempre. Il
+ * Report no — prendeva tutto — e con due case sotto lo stesso tetto sommava le
+ * due, che e' proprio la cosa che avere due contatori serve a non fare.
+ *
+ * Chi non ha chiesto un secondo impianto non passa di qui: senza `impianto`
+ * l'elenco resta quello di sempre. E la regola di appartenenza e' la stessa
+ * del flusso — `plantLoads` — perche' due elenchi che rispondono alla stessa
+ * domanda prima o poi rispondono in modo diverso, e allora un apparecchio
+ * sparisce da tutte e due le case.
+ */
 export function canonicalReportDevices(
   appliances = [],
   loads = [],
   states = globalThis.STATES || {},
+  impianto = null,
 ) {
   const seenEntities = new Set();
-  return [...appliances, ...loads]
+  const tutti = [...appliances, ...loads];
+  return (impianto?.plant ? plantLoads(tutti, impianto.plant, impianto.index || 0) : tutti)
     .filter(
       (item) =>
         item.show_in_report !== false &&

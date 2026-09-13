@@ -1178,10 +1178,22 @@ export function installApplianceShowcaseSection() {
     doc.addEventListener("change", onShellChange);
     doc.addEventListener("keydown", onShellKeydown);
     root.addEventListener?.("dashboardmodern:legacy-ready", () => {
+      /* E ci si riprova qui.
+       *
+       * `wrapFunction` e' un colpo solo: se `render` non esiste ancora — il
+       * guscio storico e' un altro documento, e l'ordine in cui i due si
+       * accendono non e' garantito — non aggancia niente e non lo dice a
+       * nessuno. Da li' in poi il contatore dei cicli non vedrebbe piu' una
+       * raffica di stati in vita sua. Riprovare costa una riga e non fa niente
+       * quando l'aggancio c'e' gia'. */
+      wrapFunction("render", "__dmApplianceCycles", campionaICicli);
       installOverrides();
       renderShowcase(true);
     });
-    root.addEventListener?.("dashboardmodern:runtime-ready", installOverrides);
+    root.addEventListener?.("dashboardmodern:runtime-ready", () => {
+      wrapFunction("render", "__dmApplianceCycles", campionaICicli);
+      installOverrides();
+    });
     root.addEventListener?.("pageshow", installOverrides);
     doc.addEventListener(
       "click",

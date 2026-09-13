@@ -11,6 +11,7 @@
  * configura passa dall'editor (people-editor-section), che scrive `cd_people`;
  * qui si legge quella chiave e la si disegna.
  */
+import { VELO_DELLE_FINESTRE, tokenDelVelo } from "../core/il-velo-delle-finestre.js";
 import { fermaRitrattiPersi, installAvatar3dStyle, ritrattoVivo } from "./person-avatar-section.js";
 import { normalizePeople, personViewModel } from "../core/person-model.js";
 import {
@@ -694,9 +695,12 @@ function installStyles() {
       #dm-people .dm-person-trip>span{font-size:9.5px;padding:2px 8px}
     }
 
-    /* Il popup: overlay sfumato, card che sale, e dentro le stesse classi
-     * della card cosi' ritratto, anello e pastiglia vestono uguale. */
-    .dm-person-pop-overlay{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:18px;background:rgba(9,14,24,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .22s ease}
+    /* Il popup: il velo di tutte le finestre della plancia, la card che sale,
+     * e dentro le stesse classi della card cosi' ritratto, anello e pastiglia
+     * vestono uguale. Il velo non e' piu' scritto qui: era il piu' trasparente
+     * della plancia — 55% contro l'82% del guscio — e si vedeva (#522). */
+    ${tokenDelVelo(".dm-person-pop-overlay")}
+    .dm-person-pop-overlay{${VELO_DELLE_FINESTRE};z-index:1200;display:grid;place-items:center;padding:18px;opacity:0;pointer-events:none;transition:opacity .22s ease}
     .dm-person-pop-overlay.show{opacity:1;pointer-events:auto}
     .dm-person-pop-card{--dm-presence:148,163,184;position:relative;width:min(420px,100%);max-height:88dvh;overflow:auto;padding:30px 22px 22px;border-radius:30px;border:1px solid color-mix(in srgb,rgb(var(--dm-presence)) 30%,var(--card-border,#e8edf3));background:radial-gradient(140% 90% at 50% -10%,rgba(var(--dm-presence),.16),transparent 55%),var(--card-bg,#fff);box-shadow:0 30px 70px -30px rgba(9,14,24,.8);transform:translateY(18px) scale(.97);transition:transform .24s cubic-bezier(.2,.9,.3,1.2)}
     .dm-person-pop-overlay.show .dm-person-pop-card{transform:translateY(0) scale(1)}

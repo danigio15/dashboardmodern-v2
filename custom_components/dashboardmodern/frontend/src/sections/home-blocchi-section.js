@@ -25,6 +25,7 @@ import {
   lIntestazioneStaInCima,
   CHIAVE_ORDINE_BLOCCHI,
   ordineDeiBlocchi,
+  ordinePossibile,
 } from "../core/ordine-dei-blocchi.js";
 import { CHIAVE_PASTIGLIE, lePastiglieSiVedono } from "../core/pastiglie-di-stato.js";
 import {
@@ -80,7 +81,11 @@ function pezziDelBlocco(nome, pagina) {
    * sta sopra la pagina non e' figlia sua, quindi qui non c'e' niente da
    * mettere in fila — ed e' giusto: li' sta sopra tutto, per tutte le
    * pagine. */
-  if (nome === BLOCCO_INTESTAZIONE) return [dentro(laTestata())].filter(Boolean);
+  if (nome === BLOCCO_INTESTAZIONE)
+    /* Due pezzi come il meteo: il nome e la striscia. Il nome esiste solo da
+     * scesa, e spostare la striscia lasciandolo indietro darebbe una scritta
+     * staccata da quello che annuncia. */
+    return [dentro(titoloDellaTestata()), dentro(laTestata())].filter(Boolean);
   /* Il riquadro col meteo e l'ora (#492) e' un blocco solo quando e' sceso in
    * pagina. Finche' sta nell'intestazione non e' figlio della Home, quindi qui
    * non c'e' niente da mettere in fila — ed e' giusto: li' sta sopra tutto. */
@@ -136,10 +141,42 @@ function laTestata() {
   return doc?.querySelector?.("body > header") || doc?.querySelector?.("header") || null;
 }
 
+/* Il nome scritto sopra l'intestazione, e solo quando e' scesa.
+ *
+ * Lassu' non serve e non si mette: e' la prima cosa della pagina, non annuncia
+ * niente. Scesa fra i blocchi invece e' una striscia in mezzo alle altre, e
+ * senza nome e' l'unica senza — «metti il titolo anche per etichetta
+ * principale quando non e' piu' in alto». La parola e' quella che si legge
+ * nella scheda del riordino, cosi' chi l'ha spostata ritrova lo stesso nome
+ * dove l'ha messa. E' la stessa regola del meteo, che il titolo se lo mette
+ * scendendo e se lo toglie risalendo. */
+export const CLASSE_DEL_TITOLO_DELLA_TESTATA = "dm-testata-nome";
+
+function titoloDellaTestata() {
+  return doc?.querySelector?.(`.${CLASSE_DEL_TITOLO_DELLA_TESTATA}`) || null;
+}
+
+function togliIlTitoloDellaTestata() {
+  titoloDellaTestata()?.remove();
+}
+
+function metteIlTitoloDellaTestata(testata) {
+  if (!testata) return;
+  let titolo = titoloDellaTestata();
+  if (!titolo) {
+    titolo = doc.createElement("h3");
+    titolo.className = `section-title ${CLASSE_DEL_TITOLO_DELLA_TESTATA}`;
+  }
+  const parola = t("Intestazione e menù", "Header and menu");
+  if (titolo.textContent !== parola) titolo.textContent = parola;
+  if (titolo.nextElementSibling !== testata) testata.before(titolo);
+}
+
 /* Il suo posto di sempre: subito prima della barra delle linguette. */
 function rimettiLaTestata() {
   const testata = laTestata();
   const barra = doc?.querySelector?.("nav.tabs");
+  togliIlTitoloDellaTestata();
   if (!testata || !barra || testata.nextElementSibling === barra) return false;
   barra.before(testata);
   return true;
@@ -149,9 +186,11 @@ function rimettiLaTestata() {
  * `applicaLOrdineDeiBlocchi`, insieme agli altri. */
 function portaLaTestataInPagina(pagina) {
   const testata = laTestata();
-  if (!testata || !pagina || testata.parentElement === pagina) return false;
-  pagina.prepend(testata);
-  return true;
+  if (!testata || !pagina) return false;
+  const gia = testata.parentElement === pagina;
+  if (!gia) pagina.prepend(testata);
+  metteIlTitoloDellaTestata(testata);
+  return !gia;
 }
 
 /**
@@ -434,9 +473,7 @@ function onClickFreccia(event) {
   /* La spunta di una stanza (#493): si scrive l'elenco, il blocco si rifa'
    * subito e si rimette in fila insieme agli altri — la prima stanza spuntata
    * lo fa nascere, l'ultima tolta lo fa sparire. */
-  const stanza = event.target?.closest?.(
-    "[data-dm-home-blocchi] [data-dm-stanza-plancia-scelta]",
-  );
+  const stanza = event.target?.closest?.("[data-dm-home-blocchi] [data-dm-stanza-plancia-scelta]");
   if (stanza) {
     const id = clean(stanza.getAttribute("data-dm-stanza-plancia-scelta"));
     /* Le stanze di casa servono a contare il tetto su quelle che esistono
@@ -461,8 +498,13 @@ function onClickFreccia(event) {
   const fila = ordineSalvato();
   const indice = fila.indexOf(clean(freccia.closest("[data-blocco]")?.dataset?.blocco));
   if (indice < 0) return;
-  const prossima = spostaNellElenco(fila, indice, freccia.hasAttribute("data-blocco-su") ? -1 : 1);
-  if (!prossima) return;
+  const mossa = spostaNellElenco(fila, indice, freccia.hasAttribute("data-blocco-su") ? -1 : 1);
+  if (!mossa) return;
+  /* E la fila dev'essere una che il documento sa mostrare: il meteo, finche'
+   * e' figlio della testata, non puo' disegnarsi prima di lei. Senza questo, la
+   * freccia su del meteo salvava un ordine e non muoveva niente. */
+  const prossima = ordinePossibile(mossa);
+  if (prossima.join("\u0000") === fila.join("\u0000")) return;
   writeJsonIfChanged(CHIAVE_ORDINE_BLOCCHI, prossima);
   try {
     /* Il riquadro col meteo (#492) cambia casa prima che si metta in fila:
@@ -470,6 +512,15 @@ function onClickFreccia(event) {
      * altrimenti qui non c'e' niente da spostare e lo si vedrebbe muoversi
      * solo al prossimo giro di stati. */
     rigaDellaTestata();
+    /* E l'intestazione con lui, per la stessa ragione. Qui mancava: la freccia
+     * scriveva l'ordine nuovo e metteva in fila mentre la testata era ancora
+     * sopra la pagina, cioe' fuori dai gruppi da ordinare. L'ordine salvato
+     * era quello giusto, ma sullo schermo la testata restava in cima finche'
+     * non passava di qui un evento qualunque — uno stato, un salvataggio — e
+     * chi aveva appena premuto la freccia vedeva una freccia che non fa
+     * niente. E' la stessa coppia di righe del giro in coda, nello stesso
+     * ordine. */
+    sistemaLaTestata();
     applicaLOrdineDeiBlocchi();
   } catch (_error) {}
   ensurePannelloDeiBlocchi();
