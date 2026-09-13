@@ -1239,8 +1239,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // tessere; il meteo sceso in pagina se n'era vestito un altro, ed e' uscito
   // «piatto» dove le altre erano «in rilievo». Due ricette per la stessa cosa
   // danno due aspetti diversi, sempre. Adesso e' una, e la leggono tutti.
+  // 356 con la base viva della plancia: un file solo, e risponde a una domanda
+  // che prima nessuno faceva — «da dove mi carico ADESSO?». La card la ricavava
+  // dal proprio indirizzo, che dalla #372 sta sul prefisso stabile: quello
+  // servito senza `Cache-Control`, che un browser si tiene per giorni. Da li'
+  // l'integrazione nuova e la plancia vecchia nella stessa casa.
   assert.ok(
-    relative.length <= 355,
+    relative.length <= 356,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);

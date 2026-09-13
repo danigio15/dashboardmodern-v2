@@ -1,5 +1,6 @@
 /* Full-screen Lovelace wrapper used by the generated DashboardModern dashboard. */
 import { legacyVariantForLocale, mountLegacyHost } from "./src/legacy/host.js";
+import { baseDellaPlancia } from "./src/core/la-base-della-plancia.js";
 
 export function canAccess(config = {}, user = {}) {
   const allowed = Array.isArray(config.allowed_user_ids)
@@ -66,12 +67,24 @@ export class DashboardModernCard extends HTMLElement {
       return;
     }
     const variant = legacyVariantForLocale(this._hass?.locale?.language);
-    // Never trust the static_base persisted inside the generated Lovelace
-    // dashboard. It contains an asset digest and can outlive that digest after
-    // an integration update/restart. The currently executing dashboard-card.js
-    // is itself loaded from the live versioned static mount, so its own module
-    // URL is the authoritative base for the complete runtime graph.
-    const staticBase = runtimeStaticBase() || this._config.static_base;
+    // Da dove si monta: la base VIVA, quella che i pannelli pubblicano adesso.
+    //
+    // Qui c'era `runtimeStaticBase()`, con scritto accanto che il modulo di
+    // questa card arriva dal prefisso versionato. Non è più vero: il modulo è
+    // stato spostato sul prefisso STABILE per la #372, e quel prefisso è
+    // servito senza `Cache-Control` — cioè il browser se lo tiene per giorni
+    // senza chiedere se è cambiato. Da lì «l'integrazione portava 1.4.24 ma la
+    // plancia 1.4.23»: il pannello si caricava nuovo, questa card vecchia.
+    //
+    // L'elenco dei pannelli arriva dal websocket a ogni pagina, e porta la
+    // base di adesso. L'indirizzo del modulo resta solo come ripiego, per
+    // quando un pannello non si vede. E il `static_base` scritto dentro la
+    // dashboard non si guarda: è di quando la dashboard è stata scritta.
+    const staticBase = baseDellaPlancia(
+      this._hass?.panels,
+      this._config.entry_id,
+      runtimeStaticBase(),
+    );
     if (!staticBase) return;
     const key = `${this._config.entry_id}|${staticBase}|${variant}`;
     if (this.host && this.mountedKey === key) return;
