@@ -31,7 +31,7 @@ import { apri as apriAssistenza } from "../src/sections/assistenza-section.js";
 import { getDeviceDisplayName, getDeviceVisual, normalizeDevice } from "../src/core/device-model.js";
 import { createEnergyReportRows, createEntityPickerField, createRenderCoordinator, loadPopupMetrics, renderDeviceCard, renderEnergyEditor } from "../src/core/renderers.js";
 import { energyWriteInFlight, flushEnergyWrites, persistEnergyField, persistSignedSource } from "../src/core/energy-writer.js";
-import { IMPIANTO_SCELTO_KEY, plantModel } from "../src/core/energy-plants.js";
+import { IMPIANTO_SCELTO_KEY, plantAt, plantModel } from "../src/core/energy-plants.js";
 import { SCHEMA_VERSION } from "../src/core/device-model.js";
 import { BUILD_INFO } from "./build-info.js";
 import { getLocale, pick } from "../src/core/i18n.js";
@@ -204,6 +204,20 @@ let activeEnergyPanel = "flows";
  * secondo». Con un impianto solo esce la stringa vuota, cioe' il primo, cioe'
  * esattamente com'era prima. */
 const impiantoAperto = () => String(globalThis.localStorage?.getItem(IMPIANTO_SCELTO_KEY) ?? "").trim();
+
+/* Le voci del Report, dell'impianto che si sta guardando (#527).
+ *
+ * Il guscio storico chiede questa lista con due argomenti soli e non sa niente
+ * di impianti: l'impianto quindi glielo si mette qui, che e' l'unico punto in
+ * cui la funzione pura incontra la plancia viva. Con un impianto solo `plantAt`
+ * torna il primo e non cambia niente per nessuno. */
+const reportDelPiano = (appliances, loads, states) =>
+  canonicalReportDevices(
+    appliances,
+    loads,
+    states,
+    plantAt(store.getSection("energy") || {}, impiantoAperto()),
+  );
 function renderEnergyEditorTab(target) {
   const model = plantModel(store.getSection("energy"), impiantoAperto());
   renderEnergyEditor(globalThis.document, target, model, store.getSection("appliances"), globalThis.STATES || {},
@@ -892,7 +906,7 @@ const DashboardModernModules = Object.freeze({
    * si installa da se': questa e' la maniglia, non l'interruttore. */
   apriAssistenza,
   data: Object.freeze({
-    canonicalReportDevices,
+    canonicalReportDevices: reportDelPiano,
     getDeviceDisplayName,
     getDeviceVisual,
     normalizeDevice,
