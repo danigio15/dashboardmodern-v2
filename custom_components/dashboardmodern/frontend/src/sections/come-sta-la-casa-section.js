@@ -365,11 +365,46 @@ function firmaDellaRiga(pastiglie) {
 /* La riga sta subito sotto il meteo. Nasce solo quando c'e' qualcosa da dire e
  * se ne va quando non ce n'e' piu': una fascia vuota sotto il meteo sarebbe
  * spazio speso per niente. */
-function ospite() {
+/* La corsia in cima alla Home: gli avvisi e la fascia di cosa e' acceso.
+ *
+ * «I dispositivi accesi affianco, con una differenza: gli alert restano fissi,
+ * i dispositivi accesi scorrono. Rendi omogenea la grafica.»
+ *
+ * Sono due cose diverse e vanno lette insieme, quindi stanno sulla stessa
+ * riga: a sinistra quello che chiede attenzione adesso, subito accanto quello
+ * che la casa sta facendo. La differenza e' nel modo, non nel vestito — un
+ * avviso che scorresse via mentre lo leggi non sarebbe un avviso, e una fila
+ * di stati ferma dovrebbe stare tutta dentro lo schermo.
+ *
+ * Sta qui e non in chi fa gli avvisi perche' il POSTO e' questo: sotto il
+ * meteo e sopra le pastiglie del guscio, che e' il punto da cui l'ordine dei
+ * blocchi riparte a impaginare. Chi vuole mettere un avviso in cima alla Home
+ * chiede la corsia a questa funzione e ci appende il suo — cosi' il secondo
+ * avviso che nascera' si mettera' in fila accanto al primo invece di
+ * inventarsi un altro posto. */
+export function corsiaDegliAvvisi() {
   const pagina = doc?.getElementById?.("page-home");
   if (!pagina) return null;
-  const gia = doc.getElementById("dm-casa-riga");
+  const gia = doc.getElementById("dm-casa-fascia");
   if (gia?.parentElement === pagina) return gia;
+  const corsia = gia || doc.createElement("div");
+  corsia.id = "dm-casa-fascia";
+  corsia.className = "dm-casa-fascia";
+  /* Sotto il meteo vuol dire due posti diversi, e sono lo stesso posto: quando
+   * il meteo sta ancora nella pagina, subito dopo di lui; quando invece e'
+   * salito nella testata — la fascia in cima, che sta fuori dalla pagina — il
+   * primo posto della Home E' quello sotto il meteo. */
+  const meteo = pagina.querySelector(":scope > .weather-widget");
+  if (meteo) meteo.after(corsia);
+  else pagina.prepend(corsia);
+  return corsia;
+}
+
+function ospite() {
+  const corsia = corsiaDegliAvvisi();
+  if (!corsia) return null;
+  const gia = doc.getElementById("dm-casa-riga");
+  if (gia?.parentElement === corsia) return gia;
   const riga = gia || doc.createElement("div");
   riga.id = "dm-casa-riga";
   riga.className = "dm-casa-riga";
@@ -381,13 +416,9 @@ function ospite() {
     nastro.className = "dm-casa-nastro";
     riga.append(nastro);
   }
-  /* Sotto il meteo vuol dire due posti diversi, e sono lo stesso posto: quando
-   * il meteo sta ancora nella pagina, subito dopo di lui; quando invece e'
-   * salito nella testata — la fascia in cima, che sta fuori dalla pagina — il
-   * primo posto della Home E' quello sotto il meteo. */
-  const meteo = pagina.querySelector(":scope > .weather-widget");
-  if (meteo) meteo.after(riga);
-  else pagina.prepend(riga);
+  /* Nella corsia sta sempre DOPO gli avvisi: quello che chiede attenzione si
+   * legge prima di quello che descrive. */
+  corsia.append(riga);
   return riga;
 }
 
@@ -951,6 +982,19 @@ function stile() {
        La deriva si ferma appena qualcuno la tocca — chi ha preso in mano la
        fascia comanda lui — e non parte affatto per chi ha chiesto meno
        animazioni. Il velo sul bordo dice che c'e' altro anche da ferma. */
+    /* La corsia: gli avvisi e la fascia, sulla stessa riga. Gli avvisi non si
+       stringono, perche' un avviso illeggibile non e' un
+       avviso; la fascia prende quello che resta e dentro scorre da se'. Sotto
+       i 560 pixel vanno una sopra l'altra: affiancare due cose strette su uno
+       schermo stretto vuol dire non leggerne nessuna delle due. */
+    .dm-casa-fascia{
+      display:flex;align-items:stretch;gap:10px;
+      margin:0 0 18px;max-width:100%;min-width:0}
+    .dm-casa-fascia:empty{display:none}
+    .dm-casa-fascia > #dm-casa-riga{flex:0 1 auto;min-width:0;margin:0}
+    @media (max-width:560px){
+      .dm-casa-fascia{flex-direction:column;align-items:flex-start}
+      .dm-casa-fascia > #dm-casa-riga{max-width:100%}}
     #dm-casa-riga{
       display:block;overflow:hidden;
       /* Stretta quanto quello che dice: una casa tranquilla ha due voci, e una

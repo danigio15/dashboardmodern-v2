@@ -27,11 +27,7 @@ import {
 } from "../core/la-soglia-della-potenza.js";
 import { intlLocale } from "../core/i18n.js";
 import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
-import {
-  FONDO_DELLA_CARTA,
-  OMBRA_DELLA_CARTA,
-  tokenDellaCarta,
-} from "../core/le-vesti-della-carta.js";
+import { corsiaDegliAvvisi } from "./come-sta-la-casa-section.js";
 import { formatWatts as wattScritti } from "../core/subload-popup-model.js";
 import { lettureDiCasa, renderHomeWidgets } from "./home-widgets-section.js";
 import {
@@ -261,6 +257,17 @@ function laHome() {
   return pagina?.classList?.contains("active") ? pagina : null;
 }
 
+/* Il disegno dice DI CHE sovraccarico si tratta.
+ *
+ * «In questo caso il sovraccarico e' casa, devi mettere quell'icona; se
+ * sovraccarico rete la cambi.» Sono due allarmi diversi: il carico di casa e'
+ * quanto stanno tirando gli apparecchi, il carico di rete e' quanto passa dal
+ * contatore — chi ha il fotovoltaico puo' avere il primo alto e il secondo
+ * fermo. Il disegno lo dice prima delle parole. */
+function disegnoDellaSorgente(sorgente) {
+  return disegnoDelCatalogo(sorgente === SORGENTE_RETE ? "rete" : "casa", 40);
+}
+
 function ensureAllertaInHome() {
   const pagina = laHome();
   const gia = doc?.getElementById?.(ID_ALLERTA);
@@ -293,23 +300,28 @@ function ensureAllertaInHome() {
   }
   const dove = nomeDellaSorgente(verdetto.sorgente);
   const misura = `${formatWatts(verdetto.watt)} / ${formatWatts(verdetto.limite)}`;
-  const firma = `${dove}|${misura}`;
+  const firma = `${verdetto.sorgente}|${dove}|${misura}`;
   if (allerta.dataset.firma !== firma) {
     allerta.dataset.firma = firma;
-    /* «potenza», non «energia»: il catalogo non ha una voce «energia» e
-     * restituiva la stringa vuota — in pagina si vedeva il riquadro colorato
-     * senza niente dentro. Un disegno che non c'e' e' peggio di nessun
-     * riquadro, perche' sembra rotto. */
-    allerta.innerHTML = `<span class="dm-soglia-allerta-ic">${disegnoDelCatalogo("potenza", 40)}</span>
-      <span class="dm-soglia-allerta-testo">
-        <strong>${esc(t("Sovraccarico", "Overload"))} · ${esc(dove)}</strong>
-        <b>${esc(misura)}</b>
-        <small>${esc(t("Tocca per aprire l'Energia", "Tap to open Energy"))}</small>
+    /* La stessa anatomia delle pastiglie che le stanno accanto — il disegno
+     * nel riquadro tinto, il numero grosso, la parolina maiuscola sotto —
+     * perche' stanno sulla stessa riga e due grammatiche diverse a dieci pixel
+     * di distanza si vedono. Quello che cambia e' il tono, ed e' giusto che
+     * cambi solo quello: e' l'unica differenza che conta. */
+    allerta.innerHTML = `<span class="dm-casa-chip" aria-hidden="true">${disegnoDellaSorgente(
+      verdetto.sorgente,
+    )}</span>
+      <span class="dm-casa-testo">
+        <b class="dm-casa-testa">${esc(misura)}</b>
+        <small class="dm-casa-coda">${esc(t("Sovraccarico", "Overload"))} · ${esc(dove)}</small>
       </span>`;
+    allerta.title = t("Tocca per aprire l'Energia", "Tap to open Energy");
   }
-  /* Sempre per prima, sopra anche le pastiglie: e' l'unica cosa della pagina
-     che non puo' aspettare. */
-  if (pagina.firstElementChild !== allerta) pagina.prepend(allerta);
+  /* Nella corsia, e sempre per prima: quello che chiede attenzione si legge
+     prima di quello che descrive come sta la casa. */
+  const corsia = corsiaDegliAvvisi() || pagina;
+  if (allerta.parentElement !== corsia || corsia.firstElementChild !== allerta)
+    corsia.prepend(allerta);
 }
 
 /* ─────────────────────────────────── giro ───────────────────────────────── */
@@ -416,40 +428,35 @@ function installStyles() {
         background:color-mix(in srgb,#dc2626 16%,var(--card-bg,#fff));
         color:#b91c1c;box-shadow:inset 0 0 0 1px color-mix(in srgb,#dc2626 45%,transparent)}
 
-      /* L'allerta in Home: le vesti delle altre card — cosi' appartiene alla
-         pagina invece di esserci appiccicata sopra — piu' il rosso e un alone
-         che respira. */
-      ${tokenDellaCarta("body #page-home > .dm-soglia-allerta")}
-      /* Larga quanto quello che dice, non quanto lo schermo: su un monitor da
-         scrivania una fascia rossa da bordo a bordo non e' un avviso, e' un
-         cartello stradale. Si tiene la riga per se' e si ferma dove finisce il
-         testo, come la fila delle pastiglie che le sta sotto. */
-      #page-home > .dm-soglia-allerta{
-        display:inline-flex;align-items:center;gap:12px;
-        width:max-content;max-width:100%;
-        margin:0 0 14px;padding:11px 16px 11px 12px;border:0;border-radius:18px;
-        text-align:left;cursor:pointer;font:inherit;color:#b91c1c;
-        background:${FONDO_DELLA_CARTA};
-        box-shadow:${OMBRA_DELLA_CARTA},0 0 0 1.5px color-mix(in srgb,#dc2626 55%,transparent);
+      /* L'allerta accanto alla fascia di cosa e' acceso: stesso vestito —
+         stesso raggio, stesso bordo, stesso fondo, stessa ombra — piu' il filo
+         rosso e un alone che respira. Omogenea si', confondibile no: e' la
+         sola cosa della riga che chiede di fare qualcosa adesso.
+
+         Non si stringe e non scorre: la fascia accanto deriva da se', questa
+         resta ferma dove la si e' letta. */
+      .dm-soglia-allerta{
+        flex:0 0 auto;display:inline-flex;align-items:center;gap:10px;
+        margin:0;padding:6px 14px 6px 6px;border-radius:20px;
+        border:1px solid color-mix(in srgb,#dc2626 42%,transparent);
+        background:var(--card-bg,#fff);
+        text-align:left;cursor:pointer;font:inherit;color:var(--text,#0f172a);
+        box-shadow:0 6px 18px -12px rgba(15,23,42,.28);
         animation:dm-soglia-respiro 2.4s ease-in-out infinite}
-      #page-home > .dm-soglia-allerta:active{transform:scale(.99)}
-      .dm-soglia-allerta-ic{
-        flex:0 0 auto;display:grid;place-items:center;width:38px;height:38px;border-radius:12px;
-        background:color-mix(in srgb,#dc2626 14%,transparent)}
-      .dm-soglia-allerta-ic svg{display:block;width:24px;height:24px}
-      .dm-soglia-allerta-testo{display:grid;gap:2px;min-width:0}
-      .dm-soglia-allerta-testo strong{
-        font-size:11px;font-weight:900;letter-spacing:.09em;text-transform:uppercase}
-      .dm-soglia-allerta-testo b{font-size:18px;font-weight:900;line-height:1.15;
-        font-variant-numeric:tabular-nums}
-      .dm-soglia-allerta-testo small{
-        font-size:11px;font-weight:700;color:var(--text-dim,#64748b)}
+      .dm-soglia-allerta:active{transform:scale(.98)}
+      /* Il riquadro del disegno e le due righe sono quelli delle pastiglie —
+         le classi sono le loro, non una seconda copia scritta di qua — e qui
+         si tinge soltanto. */
+      .dm-soglia-allerta .dm-casa-chip{
+        background:color-mix(in srgb,#dc2626 14%,transparent);color:#dc2626}
+      .dm-soglia-allerta .dm-casa-testa{color:#b91c1c}
+      .dm-soglia-allerta .dm-casa-coda{color:#dc2626}
       @keyframes dm-soglia-respiro{
-        0%,100%{box-shadow:${OMBRA_DELLA_CARTA},0 0 0 1.5px color-mix(in srgb,#dc2626 55%,transparent)}
-        50%{box-shadow:${OMBRA_DELLA_CARTA},0 0 0 1.5px color-mix(in srgb,#dc2626 55%,transparent),
-          0 0 0 7px color-mix(in srgb,#dc2626 12%,transparent)}}
+        0%,100%{box-shadow:0 6px 18px -12px rgba(15,23,42,.28)}
+        50%{box-shadow:0 6px 18px -12px rgba(15,23,42,.28),
+          0 0 0 6px color-mix(in srgb,#dc2626 12%,transparent)}}
       @media(prefers-reduced-motion:reduce){
-        #page-home > .dm-soglia-allerta{animation:none}}
+        .dm-soglia-allerta{animation:none}}
     `,
   );
 }
