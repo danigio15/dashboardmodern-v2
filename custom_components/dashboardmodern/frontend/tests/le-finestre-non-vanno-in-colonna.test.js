@@ -22,24 +22,47 @@ import { stanzeConIntestazione } from "../src/sections/shutter-scene-section.js"
 const finestra = (name, room, floor = "") => ({ entity: `cover.${name}`, name, room, floor });
 const chiave = (view) => `${view.floor}|${view.room}`;
 
-test("una tapparella per stanza: nessuna intestazione, e le card riempiono la griglia", () => {
+test("con una finestra per stanza non si annuncia nessuno: è la #424", () => {
+  /* Questo contratto è stato scritto in tre modi, e il terzo è quello che
+   * regge tutte e due le segnalazioni.
+   *
+   * (1) La scritta solo alle stanze con più di una finestra: il separatore
+   * prende tutta la riga, ma chi non lo riceve non ne comincia una nuova, e le
+   * card delle stanze mute finivano sotto il nome di una stanza che non era la
+   * loro — nove finestre in otto stanze, UNA intestazione, e sotto tutte e
+   * nove. Segnalato con la fotografia.
+   *
+   * (2) La scritta a TUTTE le stanze: con una finestra per stanza tornano
+   * un'intestazione e una card per riga, a qualunque larghezza. È la #424,
+   * «persiste la visualizzazione sempre in colonna da monitor più grandi», e
+   * la sua prova e2e l'ha bocciata.
+   *
+   * (3) O separa tutti o non separa nessuno. È questa. */
   const views = ["Salone", "Cucina", "Camera", "Studio", "Bagno", "Corridoio"].map((stanza, i) =>
     finestra(`t${i}`, stanza),
   );
   assert.equal(stanzeConIntestazione(views).size, 0);
 });
 
-test("una stanza con più finestre la scritta se la tiene: lì distingue davvero", () => {
+test("basta una stanza che resterebbe muta perché tacciano tutte", () => {
+  /* La Cucina, con la sua unica finestra, non avrebbe scritta: la sua card
+   * finirebbe sulla riga del Salone, sotto il nome del Salone. Perciò non ce
+   * l'ha nemmeno il Salone. */
+  const views = [finestra("a", "Salone"), finestra("b", "Salone"), finestra("c", "Cucina")];
+  assert.equal(stanzeConIntestazione(views).size, 0);
+});
+
+test("quando ogni stanza ne ha più d'una, le scritte ci sono tutte", () => {
   const views = [
     finestra("a", "Salone"),
     finestra("b", "Salone"),
     finestra("c", "Cucina"),
-    finestra("d", "Camera"),
+    finestra("d", "Cucina"),
   ];
   const con = stanzeConIntestazione(views);
-  assert.equal(con.size, 1);
-  assert.ok(con.has(chiave(finestra("a", "Salone"))), "il Salone ne ha due, e si annuncia");
-  assert.equal(con.has(chiave(finestra("c", "Cucina"))), false);
+  assert.equal(con.size, 2);
+  assert.ok(con.has(chiave(finestra("a", "Salone"))));
+  assert.ok(con.has(chiave(finestra("c", "Cucina"))), "la Cucina non finisce sotto il Salone");
 });
 
 test("«Senza stanza» tiene la sua scritta anche da sola: la card non ha niente da stampare", () => {
@@ -56,10 +79,18 @@ test("una pagina dove nessuno ha una stanza non raggruppa affatto, come prima", 
 
 test("lo stesso nome a due piani resta due stanze", () => {
   /* «Camera» al piano terra e «Camera» al primo sono due posti diversi: se si
-   * confondessero, due card sparse diventerebbero un gruppo da due e si
-   * riprenderebbero l'intestazione — e la riga. */
-  const views = [finestra("a", "Camera", "Terra"), finestra("b", "Camera", "Primo")];
-  assert.equal(stanzeConIntestazione(views).size, 0);
+   * confondessero, le due card diventerebbero un gruppo solo e il conto degli
+   * aperti di sopra finirebbe scritto sopra la camera di sotto. */
+  const views = [
+    finestra("a", "Camera", "Terra"),
+    finestra("b", "Camera", "Terra"),
+    finestra("c", "Camera", "Primo"),
+    finestra("d", "Camera", "Primo"),
+  ];
+  const con = stanzeConIntestazione(views);
+  assert.equal(con.size, 2, "due stanze, due scritte");
+  assert.ok(con.has(chiave(finestra("a", "Camera", "Terra"))));
+  assert.ok(con.has(chiave(finestra("c", "Camera", "Primo"))));
 });
 
 test("un elenco vuoto o storto non fa scrivere niente", () => {

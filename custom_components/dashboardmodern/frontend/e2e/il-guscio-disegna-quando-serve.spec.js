@@ -31,11 +31,16 @@ const SEME = {
   visibility: { home: true, clima: true, security: true },
 };
 
+/* Il Clima NON e' in questo elenco, e non ci deve tornare: il suo timer di
+ * venti secondi e' l'unica rete di riserva di quella pagina (#541). La
+ * motivazione con cui era stato potato — «gira gia' dentro ogni render()» — e'
+ * vera solo a meta': quella riga sta in fondo a un `try` lunghissimo che
+ * finisce in un `catch` che scrive «Errore UI» e tira dritto, e qualunque cosa
+ * si rompa prima lascia il Clima senza disegno. */
 const TIMER_SPENTI = [
   "auto",
   "auto-nascondi",
   "barra",
-  "clima",
   "dispositivi",
   "inverter",
   "irrigazione",

@@ -16,7 +16,10 @@
  * impararne tre.
  */
 import {
+  CHIAVE_ARRIVO_VISTO,
   CHIAVE_CITOFONO,
+  CHIAVE_RITIRO_A_MANO,
+  arriviDaRicordare,
   lettureDellIngresso,
   riassuntoDellIngresso,
 } from "../core/citofono-e-posta.js";
@@ -32,6 +35,7 @@ import {
   readJson,
   root,
   t,
+  writeJsonIfChanged,
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CITOFONO__";
@@ -46,9 +50,35 @@ function configurazione() {
   return readJson(CHIAVE_CITOFONO, {});
 }
 
+/* Quando si e' detto «l'ho presa», cassetta per cassetta (#536). Viaggia fra i
+ * dispositivi: se la posta l'ho presa io, l'ho presa anche per il tablet in
+ * cucina. */
+function ritiriAMano() {
+  const dato = readJson(CHIAVE_RITIRO_A_MANO, {});
+  return dato && typeof dato === "object" ? dato : {};
+}
+
+/* Quando la posta e' arrivata, cassetta per cassetta: lo si segna appena si
+ * vede il rilevatore acceso, perche' dopo non si potra' piu' sapere. */
+function arriviVisti() {
+  const dato = readJson(CHIAVE_ARRIVO_VISTO, {});
+  return dato && typeof dato === "object" ? dato : {};
+}
+
+/* Il registro si tiene mentre si legge: e' l'unico momento in cui la plancia
+ * ha davanti lo stato acceso, e chi guarda una pagina sola non deve perdere
+ * l'arrivo che ha visto un'altra. `writeJsonIfChanged` non scrive se il giro
+ * non ha aggiunto niente, e senza cassette non si scomoda nemmeno. */
+function segnaGliArrivi(conf, states) {
+  if (!conf?.cassette?.length) return;
+  writeJsonIfChanged(CHIAVE_ARRIVO_VISTO, arriviDaRicordare(conf, states, arriviVisti()));
+}
+
 /** Il citofono e le cassette di casa, letti adesso. */
 export function ingressoInPlancia(states = allStates()) {
-  return lettureDellIngresso(configurazione(), states);
+  const conf = configurazione();
+  segnaGliArrivi(conf, states);
+  return lettureDellIngresso(conf, states, ritiriAMano(), arriviVisti());
 }
 
 /** Se c'è qualcosa da mostrare: senza configurazione questa pagina non esiste. */
@@ -202,7 +232,11 @@ function cassettaMarkup(voce) {
     voce.arrivata
       ? `${t("Ultimo movimento", "Last movement")} · ${daQuandoTesto(voce.arrivata)}`
       : "",
-    voce.ritirata ? `${t("Ultima apertura", "Last opening")} · ${daQuandoTesto(voce.ritirata)}` : "",
+    voce.ritirata
+      ? `${
+          voce.ritiroAMano ? t("Ritirata", "Collected") : t("Ultima apertura", "Last opening")
+        } · ${daQuandoTesto(voce.ritirata)}`
+      : "",
     voce.contatore === null
       ? ""
       : `${t("Lettere", "Letters")} · ${voce.contatore.toLocaleString()}`,
@@ -214,6 +248,13 @@ function cassettaMarkup(voce) {
       ${righe.map((riga) => `<small>${esc(riga)}</small>`).join("")}
     </div>
     <b class="dm-cassetta-stato">${esc(parolaDellaCassetta(voce))}</b>
+    ${
+      voce.ce === true
+        ? `<button type="button" class="dm-cassetta-presa" data-dm-cassetta-presa="${esc(
+            voce.id,
+          )}">${esc(t("L'ho presa", "Got it"))}</button>`
+        : ""
+    }
   </article>`;
 }
 
@@ -296,6 +337,7 @@ function dipingi() {
 /* ── il tasto che apre ────────────────────────────────────────────────── */
 
 export function handleCitofonoClick(event) {
+  if (handleCassettaPresa(event)) return true;
   const tasto = event.target?.closest?.("[data-dm-citofono-apri]");
   if (!tasto) return false;
   const id = tasto.dataset.dmCitofonoApri;
@@ -308,6 +350,24 @@ export function handleCitofonoClick(event) {
    * dica qualcosa: chi apre un cancello vuole sapere che il dito è arrivato. */
   tasto.classList.add("dm-citofono-apri-premuto");
   root.setTimeout?.(() => tasto.classList.remove("dm-citofono-apri-premuto"), 900);
+  return true;
+}
+
+/* «L'ho presa»: il momento del ritiro lo dice chi l'ha ritirata (#536).
+ *
+ * Serve a chi ha il solo rilevatore di movimento e nessun sensore sullo
+ * sportello: senza questo, la posta vista dal PIR non se ne andrebbe mai. Chi
+ * ha anche lo sportello non lo vede quasi mai — la cassetta si svuota da se'
+ * appena lo sportello si apre. */
+export function handleCassettaPresa(event) {
+  const tasto = event.target?.closest?.("[data-dm-cassetta-presa]");
+  if (!tasto) return false;
+  const id = tasto.dataset.dmCassettaPresa;
+  if (!id) return false;
+  event.preventDefault?.();
+  root.navigator?.vibrate?.(15);
+  writeJsonIfChanged(CHIAVE_RITIRO_A_MANO, { ...ritiriAMano(), [id]: Date.now() });
+  schedule();
   return true;
 }
 
@@ -370,6 +430,14 @@ function installStyles() {
     ${P} .dm-cassetta[data-stato="piena"]{--dm-ingresso:#2563eb}
     ${P} .dm-cassetta[data-stato="aperta"]{--dm-ingresso:#eab308}
     ${P} .dm-cassetta[data-stato="vuota"]{--dm-ingresso:#16a34a}
+    ${P} .dm-cassetta-presa{
+      grid-column:2/-1;justify-self:start;margin-top:6px;
+      border:1px solid color-mix(in srgb,var(--dm-ingresso) 45%,transparent);
+      background:color-mix(in srgb,var(--dm-ingresso) 12%,transparent);
+      color:var(--dm-ingresso);border-radius:999px;
+      padding:6px 14px;font:600 12px/1 inherit;letter-spacing:.02em;cursor:pointer
+    }
+    ${P} .dm-cassetta-presa:hover{background:color-mix(in srgb,var(--dm-ingresso) 22%,transparent)}
 
     ${P} .dm-citofono-ic,${P} .dm-cassetta-ic{
       display:grid;place-items:center;width:44px;height:44px;border-radius:14px;font-size:20px;

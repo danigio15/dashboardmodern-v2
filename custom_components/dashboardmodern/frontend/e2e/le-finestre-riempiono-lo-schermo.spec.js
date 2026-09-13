@@ -151,14 +151,38 @@ test("una tapparella per stanza non le manda in colonna (#424)", async ({ page }
   await expect(page.locator("#page-tapparelle .dm-tapp-group")).toHaveCount(0);
 });
 
-test("la stanza con piu' finestre si annuncia ancora", async ({ page }, testInfo) => {
+/* Questa prova diceva il contrario: con due finestre in salone e le altre
+ * sparse si annunciava «il salone e basta». Quella regola e' stata segnalata
+ * come sbagliata, con la fotografia: «SALONE · 2 FINESTRE» stampato sopra una
+ * riga che conteneva anche Cucina e Sala Cinema.
+ *
+ * Il conto era giusto — il salone quelle due finestre ce le ha — ed era falso
+ * dove stava. L'intestazione prende tutta la riga della griglia, ed e' giusto
+ * che la prenda: e' un separatore. Ma chi non la riceve non comincia una riga
+ * nuova, quindi le card delle stanze mute finivano sotto il nome di una stanza
+ * che non era la loro.
+ *
+ * Un separatore o separa tutti o non separa nessuno. Le due prove qui sotto
+ * sono le due meta' di quella regola. */
+test("con una stanza che resterebbe muta non si annuncia nessuno", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === "mobile", "e' una prova di larghezza");
-  /* L'intestazione non e' stata tolta: e' rimasta dove distingue qualcosa. Con
-   * due finestre in salone e le altre sparse, si annuncia il salone e basta. */
   await avvia(page, testInfo, seme(["Salone", "Salone", "Cucina", "Camera", "Studio", "Bagno"]));
   await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(page.locator("#page-tapparelle .dm-tapp-group")).toHaveCount(0);
+  /* E non si perde niente: la stanza ogni card se la stampa gia' sotto il
+   * proprio nome, che e' la ragione per cui quella scritta, sopra una card
+   * sola, non diceva niente. */
+  const stanze = await page
+    .locator("#page-tapparelle .tapp-card .dm-tapp-room")
+    .evaluateAll((nodi) => nodi.map((n) => n.textContent.trim()));
+  expect(new Set(stanze)).toEqual(new Set(["Salone", "Cucina", "Camera", "Studio", "Bagno"]));
+});
+
+test("quando ogni stanza ne ha piu' d'una si annunciano tutte", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "mobile", "e' una prova di larghezza");
+  await avvia(page, testInfo, seme(["Salone", "Salone", "Cucina", "Cucina", "Camera", "Camera"]));
+  await page.setViewportSize({ width: 1280, height: 900 });
   const gruppi = page.locator("#page-tapparelle .dm-tapp-group");
-  await expect(gruppi).toHaveCount(1);
+  await expect(gruppi).toHaveCount(3);
   await expect(gruppi.first()).toContainText("Salone");
-  await expect(gruppi.first()).toContainText("2");
 });

@@ -133,9 +133,68 @@ test("aprendo la tessera si vedono tutti, uno per uno, con le loro versioni", ()
   assert.match(finestra, /const a = clean\(voce\?\.a\);/);
   assert.match(finestra, /da \&\& a \?/);
 
-  /* E nessun tasto per installare: si installa da Home Assistant, dove accanto
-   * al tasto ci sono le note di rilascio. */
-  assert.doesNotMatch(finestra, /chiamaHa|call_service|cdApplEntTog/);
+  /* E il tasto per installare, che prima non c'era: «gli aggiornamenti vengono
+   * segnalati ma non è possibile avviarli, è necessario andarli a fare
+   * dall'interfaccia di HA» (#540). Con le note accanto, che erano la ragione
+   * per cui il tasto non c'era: adesso ci sono tutt'e due, in quest'ordine. */
+  assert.match(finestra, /data-dm-w-update="\$\{esc\(entity\)\}"/);
+  assert.match(finestra, /dm-w-agg-note/);
+  /* Nel disegno, non nel codice: le note stanno PRIMA del tasto, perché è
+   * l'ordine in cui si fanno le due cose. */
+  const disegno = finestra.slice(finestra.indexOf("return rowShell("));
+  assert.ok(
+    disegno.indexOf("dm-w-agg-note") < disegno.indexOf("${coda}"),
+    "il tasto viene prima delle note, e si preme senza averle lette",
+  );
+  /* Il servizio è quello di Home Assistant, chiamato dalla sezione. */
+  assert.match(sorgente, /callHa\("update", "install", \{ entity_id: quale \}\)/);
+});
+
+test("il tasto c'è solo dove l'aggiornamento si installa davvero", () => {
+  /* Un firmware che si porta col cacciavite pubblica la sua entità `update.`
+   * come tutti, ma non si installa chiamando un servizio: Home Assistant lo
+   * dice col primo bit di `supported_features`. Un tasto lì sarebbe una
+   * promessa che non si mantiene. */
+  const righe = aggiornamentiDaFare({
+    "update.col_tasto": stato("update.col_tasto", "on", {
+      title: "Con tasto",
+      supported_features: 1,
+      release_url: "https://example.invalid/note",
+    }),
+    "update.a_mano": stato("update.a_mano", "on", { title: "A mano", supported_features: 0 }),
+  });
+  const conTasto = righe.find((voce) => voce.entity === "update.col_tasto");
+  const aMano = righe.find((voce) => voce.entity === "update.a_mano");
+  assert.equal(conTasto.installabile, true);
+  assert.equal(conTasto.note, "https://example.invalid/note");
+  assert.equal(aMano.installabile, false);
+  assert.equal(aMano.note, "");
+});
+
+test("un aggiornamento che sta già andando lo dice, in tutti i dialetti", () => {
+  /* `in_progress` oggi è un sì o un no; ieri era la percentuale, e uno zero lì
+   * vuol dire «fermo», non «allo zero per cento». La percentuale, quando c'è,
+   * arriva a parte. Leggerne uno solo lascia indietro metà delle case. */
+  const quale = (attributes) =>
+    aggiornamentiDaFare({ "update.x": stato("update.x", "on", attributes) })[0].inCorso;
+  assert.equal(quale({ in_progress: true }), true);
+  assert.equal(quale({ in_progress: 40 }), true);
+  assert.equal(quale({ update_percentage: 12 }), true);
+  assert.equal(quale({ in_progress: false }), false);
+  assert.equal(quale({ in_progress: 0 }), false);
+  assert.equal(quale({}), false);
+});
+
+test("la tessera degli aggiornamenti nasce accesa", () => {
+  /* Questa tessera esiste solo quando c'è qualcosa da fare, e allora c'è
+   * sempre qualcosa da fare. Senza dirlo nasceva calma come una tessera che
+   * non ha niente sotto: «ci sono aggiornamenti ma la card resta spenta»
+   * (#540). Il colore ambra ce l'aveva già, non lo accendeva nessuno. */
+  const modello = sorgente.slice(
+    sorgente.indexOf("function aggiornamentiModel("),
+    sorgente.indexOf("function porteModel("),
+  );
+  assert.match(modello, /\n    attiva: true,/);
 });
 
 test("la tessera porta un disegno nostro, non un'emoji del telefono", () => {
@@ -148,4 +207,20 @@ test("la tessera porta un disegno nostro, non un'emoji del telefono", () => {
   assert.match(disegno, /<svg class="dm-oggetto"/);
   /* L'ambra della tessera, non il rosso: un aggiornamento non è un guasto. */
   assert.match(disegno, /#f59e0b/);
+});
+
+test("se il servizio rifiuta, il tasto Installa torna com'era", () => {
+  /* `callHa` inghiotte l'errore e torna `undefined` — Home Assistant
+   * scollegato, entità non raggiungibile, permesso negato. Senza rimettere il
+   * tasto a posto la riga restava spenta su «In corso» per sempre, e l'unico
+   * modo di riprovare era chiudere e riaprire la finestra. È la stessa regola
+   * che `completeItem` segue già in questo file per la lista della spesa. */
+  assert.match(sorgente, /const parola = aggiornamento\.textContent;/);
+  assert.match(
+    sorgente,
+    /callHa\("update", "install", \{ entity_id: quale \}\)\.then\(\(esito\) => \{/,
+  );
+  assert.match(sorgente, /if \(esito !== undefined\) return;/);
+  assert.match(sorgente, /aggiornamento\.disabled = false;/);
+  assert.match(sorgente, /aggiornamento\.textContent = parola;/);
 });

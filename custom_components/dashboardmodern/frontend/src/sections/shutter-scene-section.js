@@ -419,15 +419,37 @@ function heroMarkup() {
   </section>`;
 }
 
-/* Il conto di un gruppo dice cosa c'e' davvero (#299): una finestra col solo
- * sensore di contatto non e' una tapparella, e «1 tapparella» sopra una
- * persiana a mano era una bugia. Le tapparelle e le finestre si contano a
- * parte, e ognuna compare solo se c'e'. */
+/* Il conto di un gruppo dice cosa e' APERTO, non quante cose ci sono.
+ *
+ * «2 finestre significa quelle aperte, non totale. Quello e' un avviso di cose
+ * aperte o chiuse, e devi segnalare sia quante finestre aperte sia quante
+ * tapparelle.»
+ *
+ * Contava i pezzi configurati, e sopra una stanza con due finestre scriveva
+ * «2 finestre» tanto con tutte e due spalancate quanto con tutte e due
+ * chiuse. Un numero che non cambia mai non e' un avviso: e' un inventario, e
+ * l'inventario lo si vede gia' guardando le card.
+ *
+ * Aperto lo dice la stessa regola della pastiglia sulla card — per una
+ * copertura la posizione sopra la sua soglia, per una finestra col solo
+ * contatto lo stato — perche' il conto in cima e la pastiglia sotto devono
+ * dire la stessa cosa. Le due specie restano separate (#299): una finestra col
+ * solo sensore non e' una tapparella, e «1 tapparella» sopra una persiana a
+ * mano era una bugia.
+ */
 export function contoDelGruppo(views) {
   const elenco = Array.isArray(views) ? views : [];
+  const infissi = elenco.filter((view) => Boolean(view?.soloInfisso));
+  const motori = elenco.filter((view) => view && !view.soloInfisso);
   return {
-    tapparelle: elenco.filter((view) => !view?.soloInfisso).length,
-    finestre: elenco.filter((view) => Boolean(view?.soloInfisso)).length,
+    /* Le tapparelle «aperte» sono quelle alzate: la pastiglia della card dice
+     * aperta appena una delle sue coperture lo e'. */
+    tapparelle: motori.filter((view) => statoCarta(view).stato === "open").length,
+    finestre: infissi.filter((view) => statoCarta(view).stato === "open").length,
+    /* Quanti pezzi ci sono, per sapere di cosa parlare quando non c'e' niente
+     * di aperto: una stanza di sole tapparelle non dice «nessuna finestra». */
+    quanteTapparelle: motori.length,
+    quanteFinestre: infissi.length,
   };
 }
 
@@ -437,12 +459,27 @@ export function paroleDelConto(conto) {
       ? { tapparelle: conto, finestre: 0 }
       : conto || { tapparelle: 0, finestre: 0 };
   const parti = [];
-  const n = dato.tapparelle || 0;
-  const f = dato.finestre || 0;
-  if (n)
-    parti.push(n === 1 ? t("1 tapparella", "1 shutter") : t(`${n} tapparelle`, `${n} shutters`));
-  if (f) parti.push(f === 1 ? t("1 finestra", "1 window") : t(`${f} finestre`, `${f} windows`));
-  return parti.join(" · ");
+  const alzate = dato.tapparelle || 0;
+  /* Il nome della variabile fa parte della chiave di traduzione: si chiama
+   * come quella della fascia in cima, cosi' la frase e' una sola in tutti e
+   * tredici i cataloghi invece di due che dicono la stessa cosa. */
+  const infissi = dato.finestre || 0;
+  if (alzate)
+    parti.push(
+      alzate === 1
+        ? t("1 tapparella alzata", "1 shutter up")
+        : t(`${alzate} tapparelle alzate`, `${alzate} shutters up`),
+    );
+  if (infissi)
+    parti.push(
+      infissi === 1
+        ? t("1 finestra aperta", "1 window open")
+        : t(`${infissi} finestre aperte`, `${infissi} windows open`),
+    );
+  /* Niente di aperto e' una notizia quanto il contrario: e' la meta' della
+   * domanda «aperto o chiuso», e senza scritta la stanza sembrerebbe non
+   * avere risposta. */
+  return parti.length ? parti.join(" · ") : t("Tutto chiuso", "All closed");
 }
 
 function groupMarkup(view, conto) {
@@ -603,15 +640,29 @@ function cardMarkup(view) {
  * rotta — la #349 l'aveva sistemata e la sua prova regge ancora — era il
  * separatore a ricominciare la riga sei volte.
  *
- * E quell'intestazione, li', non diceva niente: la card stampa gia' la sua
- * stanza sotto il nome. Un'intestazione che nomina una card sola ripete la
- * card e costa la riga intera.
+ * E quell'intestazione, li', ripeteva la card: la stanza la card la stampa
+ * gia' sotto il proprio nome. Percio' compariva solo per le stanze con piu' di
+ * una finestra — e siccome il separatore prende tutta la riga mentre chi non
+ * ce l'ha non ne comincia una, le card delle altre stanze finivano sotto il
+ * nome di una stanza che non era la loro: nove finestre in otto stanze, UNA
+ * intestazione, e sotto tutte e nove le card.
  *
- * Percio': la scritta di stanza compare dove serve a distinguere — una stanza
- * con piu' finestre — e sparisce dove ripete. Restano due eccezioni, che sono
- * la stessa: una pagina dove nessuno ha una stanza non raggruppa affatto (era
- * gia' cosi'), e il gruppo «Senza stanza» tiene la sua scritta anche da solo,
- * perche' quelle card la stanza non ce l'hanno da stampare.
+ * Darla a TUTTE le stanze — provato, e la prova della #424 l'ha bocciato — non
+ * risolve: con una finestra per stanza torna esattamente il difetto di sopra,
+ * intestazione e card a righe alterne anche dove di colonne ce ne stanno
+ * quattro. Quella scritta dice una cosa che le card non dicono insieme, ma non
+ * al prezzo di rimettere in colonna la pagina che la #424 aveva raddrizzato.
+ *
+ * Percio' vale la regola del separatore: o separa tutti o non separa nessuno.
+ * Le scritte ci sono quando OGNI stanza ha piu' di una finestra — li'
+ * distinguono davvero, e ogni gruppo comincia la sua riga senza lasciare card
+ * orfane sotto il nome sbagliato — e tacciono tutte insieme appena una stanza
+ * resterebbe muta. Quando tacciono non si perde niente: una stanza con una
+ * finestra sola ha la sua card, e la card la stanza la stampa gia'. Il conto
+ * degli aperti, per chi non ha le intestazioni, lo fa la fascia in cima.
+ *
+ * Resta fuori anche la pagina dove nessuno ha una stanza: li' non c'e' niente
+ * da separare.
  */
 export function stanzeConIntestazione(views) {
   const elenco = Array.isArray(views) ? views : [];
@@ -623,9 +674,13 @@ export function stanzeConIntestazione(views) {
     if (!gruppi.has(chiave)) gruppi.set(chiave, []);
     gruppi.get(chiave).push(view);
   });
-  gruppi.forEach((insieme, chiave) => {
-    if (insieme.length > 1 || !clean(insieme[0]?.room)) chiavi.add(chiave);
-  });
+  /* Una stanza sola non ha nessuno da cui separarsi. */
+  if (gruppi.size < 2) return chiavi;
+  /* Basta una stanza che resterebbe muta perche' tacciano tutte: e' quella la
+   * card che finirebbe sotto il nome sbagliato. */
+  for (const insieme of gruppi.values())
+    if (insieme.length < 2 && clean(insieme[0]?.room)) return chiavi;
+  gruppi.forEach((_insieme, chiave) => chiavi.add(chiave));
   return chiavi;
 }
 

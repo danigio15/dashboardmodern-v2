@@ -12,7 +12,12 @@
  * Fare il contrario — chiedere tutto prima di creare qualcosa — e' il modo in
  * cui una finestra di configurazione diventa un modulo da compilare.
  */
-import { MASSIMO_SEZIONI, normalizzaSezioni } from "../core/sezioni-mie.js";
+import {
+  FORMATI_SEZIONE,
+  MASSIMO_SEZIONI,
+  formatoDellaSezione,
+  normalizzaSezioni,
+} from "../core/sezioni-mie.js";
 import { CHIAVE_SEZIONI_MIE, ridisegnaSezioniMie, SEZIONI_MIE_TAB } from "./sezioni-mie-section.js";
 import {
   clean,
@@ -94,6 +99,31 @@ function vociDi(sezione) {
  * le due cose sono. Sola lettura perche' il valore lo scrive il catalogo: una
  * casella che si puo' anche battere a mano vorrebbe dire due verita' per lo
  * stesso campo. */
+/* Come si dispongono le voci: a righe o piccole (#515).
+ *
+ * «Si potrebbe poter scegliere il tipo di scheda? Magari averle piu' piccole.»
+ * Due tasti e non una tendina: le scelte sono due, e una tendina per due cose
+ * si apre per far vedere quello che si poteva gia' leggere. Sta accanto alla
+ * spunta della barra perche' sono le due domande sulla sezione intera — dove
+ * si vede, e come si vede — e non sulle entita' che ci stanno dentro. */
+function formatoMarkup(sezione) {
+  const scelto = formatoDellaSezione(sezione?.formato);
+  const parole = {
+    righe: t("A righe", "Rows"),
+    piccole: t("Piccole", "Small"),
+  };
+  const tasti = FORMATI_SEZIONE.map(
+    (formato) => `<button type="button" class="dm-mia-ed-formato-t"
+       data-mia-formato="${esc(formato)}" aria-pressed="${formato === scelto}">${esc(
+         parole[formato],
+       )}</button>`,
+  ).join("");
+  return `<div class="dm-mia-ed-formato">
+    <span>${esc(t("Come si vedono le entità", "How the entities look"))}</span>
+    <span class="dm-mia-ed-formato-tasti" data-mia-campo-formato="${esc(scelto)}">${tasti}</span>
+  </div>`;
+}
+
 function rigaVoceMarkup(voce, sezione, riga) {
   const id = `dm-mia-${sezione}-${riga}`;
   return `<div class="dm-mia-ed-voce" data-mia-voce="${riga}">
@@ -145,6 +175,7 @@ function rigaSezioneMarkup(sezione, indice) {
         <input type="checkbox" data-mia-campo="mostra"${sezione?.mostra === false ? "" : " checked"}>
         <span>${esc(t("Mostrala nella barra", "Show it in the bar"))}</span>
       </label>
+      ${formatoMarkup(sezione)}
       <div class="dm-mia-ed-titolo-voci">${esc(t("Le entità", "The entities"))}</div>
       <div class="dm-mia-ed-voci">${voci
         .map((voce, riga) => rigaVoceMarkup(voce, indice, riga))
@@ -214,6 +245,8 @@ function leggiLaRiga(riga) {
     letto[clean(campo.dataset.miaCampo)] = clean(campo.value);
   const spunta = riga.querySelector('[data-mia-campo="mostra"]');
   if (spunta) letto.mostra = spunta.checked === true;
+  const formato = riga.querySelector("[data-mia-campo-formato]");
+  if (formato) letto.formato = formatoDellaSezione(formato.dataset.miaCampoFormato);
   letto.voci = [...riga.querySelectorAll("[data-mia-voce]")].map((nodo) => {
     const voce = {};
     for (const campo of nodo.querySelectorAll("[data-mia-campo]"))
@@ -252,6 +285,7 @@ function onClick(event) {
       titolo: "",
       icona: "⭐",
       mostra: true,
+      formato: FORMATI_SEZIONE[0],
       voci: [{}],
     });
     state.aperta = lista.length - 1;
@@ -269,6 +303,18 @@ function onClick(event) {
     event.preventDefault();
     const input = body.querySelector(`#${CSS.escape(clean(pick.dataset.miaPick))}`);
     if (input) root.wzPickEntity?.(input);
+    return;
+  }
+
+  const formato = event.target.closest("[data-mia-formato]");
+  if (formato) {
+    event.preventDefault();
+    /* Prima si tiene quello che c'e' scritto: il formato si sceglie in mezzo a
+     * un titolo battuto a meta', e ridisegnare senza rileggere lo butterebbe. */
+    const letto = leggiLaRiga(riga);
+    letto.formato = formatoDellaSezione(formato.dataset.miaFormato);
+    sostituisci(indice, letto);
+    ridisegna();
     return;
   }
 
@@ -343,6 +389,19 @@ function installStyles() {
       #ed-body .dm-mia-ed-testa{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px;margin-bottom:8px}
       /* Si apre il catalogo, quindi si vede che si tocca. */
       #ed-body .dm-mia-ed-icona{text-align:center;font-size:18px;cursor:pointer}
+      /* Il formato: la domanda a sinistra, i due tasti a destra — la stessa
+         forma della spunta qui sopra, perche' e' la stessa cosa: una scelta
+         che riguarda la sezione, non le sue entita'. */
+      #ed-body .dm-mia-ed-formato{
+        display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+        margin:2px 0 4px;font-size:12.5px;font-weight:700;color:var(--text-dim,#64748b)}
+      #ed-body .dm-mia-ed-formato-tasti{display:inline-flex;gap:6px}
+      #ed-body .dm-mia-ed-formato-t{
+        padding:7px 13px;border-radius:11px;cursor:pointer;
+        border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff);
+        font-size:12px;font-weight:800;color:var(--text-dim,#64748b)}
+      #ed-body .dm-mia-ed-formato-t[aria-pressed="true"]{
+        border-color:transparent;background:linear-gradient(135deg,#fb923c,#ea580c);color:#fff}
       #ed-body .dm-mia-ed-voci{display:grid;gap:14px}
       /* Ogni entita' e' un blocchetto: sopra chi e' — icona e nome — sotto da
          dove si legge. Le due domande sono diverse e vanno su due righe. */

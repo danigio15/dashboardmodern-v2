@@ -14,8 +14,15 @@
  * mano invecchierebbe al primo add-on installato.
  *
  * Il modulo e' puro: riceve gli stati e risponde. Non chiama niente e non
- * aggiorna niente — installare e' un gesto che si fa da Home Assistant, dove
- * c'e' il tasto e ci sono le note di rilascio.
+ * aggiorna niente — a chiamare il servizio ci pensa la sezione. Qui si dice
+ * soltanto se quell'aggiornamento si puo' far partire da fuori, e dove stanno
+ * le sue note.
+ *
+ * Perche' il tasto ci vuole: «gli aggiornamenti vengono segnalati ma non e'
+ * possibile avviarli, e' necessario andarli a fare dall'interfaccia di HA»
+ * (#540). Un avviso che dice solo «vai da un'altra parte» fa fare due volte la
+ * stessa strada. Le note di rilascio non si perdono per questo: viaggiano con
+ * la riga, accanto al tasto, ed e' li' che si leggono prima di premerlo.
  */
 
 const pulito = (valore) => String(valore ?? "").trim();
@@ -34,6 +41,35 @@ export function aspettaDiEssereFatto(stato) {
    * si contano: un'integrazione che non risponde non e' un aggiornamento da
    * fare, e' un'integrazione che non risponde. */
   return pulito(stato.state).toLowerCase() === "on";
+}
+
+/* Quello che un'entita' `update.` sa fare, come lo numera Home Assistant: il
+ * primo bit e' «si installa chiamando un servizio». Chi non ce l'ha si aggiorna
+ * altrove — un firmware che si porta col cacciavite non ha un tasto, e
+ * mostrarglielo sarebbe una promessa che non si mantiene. */
+const SI_INSTALLA = 1;
+
+function numero(valore) {
+  const quanto = Number(valore);
+  return Number.isFinite(quanto) ? quanto : 0;
+}
+
+/** Se questo aggiornamento si puo' far partire da qui. */
+function siInstalla(attributi) {
+  return (numero(attributi?.supported_features) & SI_INSTALLA) !== 0;
+}
+
+/* Se sta gia' andando.
+ *
+ * Home Assistant lo dice in due modi, e nel tempo li ha cambiati: `in_progress`
+ * oggi e' un si' o un no, ieri era la percentuale — e uno zero li' vuol dire
+ * «fermo», non «allo zero per cento». La percentuale, quando c'e', arriva a
+ * parte. Vanno letti tutt'e due: una versione sola lascia indietro meta' delle
+ * case. */
+function staAndando(attributi) {
+  if (attributi?.in_progress === true) return true;
+  if (numero(attributi?.in_progress) > 0) return true;
+  return numero(attributi?.update_percentage) > 0;
 }
 
 /** Il nome da mostrare: quello che l'utente legge nella pagina Aggiornamenti. */
@@ -62,7 +98,8 @@ function eLaNostra(stato) {
  * data non si puo', perche' un'entita' `update.` non dice da quando aspetta.
  *
  * @param {object} states gli stati di Home Assistant
- * @returns {Array<{entity:string,nome:string,da:string,a:string,nostra:boolean}>}
+ * @returns {Array<{entity:string,nome:string,da:string,a:string,nostra:boolean,
+ *   installabile:boolean,inCorso:boolean,note:string}>}
  */
 export function aggiornamentiDaFare(states) {
   const dentro = states && typeof states === "object" ? Object.values(states) : [];
@@ -74,6 +111,11 @@ export function aggiornamentiDaFare(states) {
       da: pulito(stato.attributes?.installed_version),
       a: pulito(stato.attributes?.latest_version),
       nostra: eLaNostra(stato),
+      installabile: siInstalla(stato.attributes),
+      inCorso: staAndando(stato.attributes),
+      /* Dove sono scritte le note di questa versione: e' l'indirizzo che Home
+       * Assistant si porta dietro, non uno che indoviniamo noi. */
+      note: pulito(stato.attributes?.release_url),
     }))
     .sort((una, altra) => {
       if (una.nostra !== altra.nostra) return una.nostra ? -1 : 1;

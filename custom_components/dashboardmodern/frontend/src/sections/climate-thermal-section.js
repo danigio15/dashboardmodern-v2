@@ -640,13 +640,28 @@ function signature(units) {
   );
 }
 
+/* La firma dice cosa c'e' DENTRO la griglia, non cosa ci abbiamo scritto una
+ * volta.
+ *
+ * Erano due cose diverse, e la differenza si paga tutta insieme: la firma
+ * stava su una proprieta' del nodo, e bastava che qualcun altro ne
+ * riscrivesse il contenuto — il disegno storico del guscio, un pezzo di
+ * editor, qualunque mano che passi di li' — perche' quella proprieta'
+ * restasse a dire «gia' fatto» sopra una griglia svuotata. Da quel momento
+ * non si ridisegnava piu' niente: «l'elenco sparisce e non torna, nemmeno
+ * tornando sulla linguetta di partenza» (#541).
+ *
+ * Contare i figli non dice CHI ha svuotato la griglia — quello resta da
+ * trovare — ma toglie a chiunque lo faccia il potere di renderlo definitivo:
+ * al giro dopo la griglia si riscrive da sola. */
 function syncGrid(grid, units, labels) {
   const current = signature(units);
-  if (grid._dmClimaSig === current) return false;
+  if (grid._dmClimaSig === current && grid._dmClimaFigli === grid.childElementCount) return false;
   grid.innerHTML = units.length
     ? groupedMarkup(units, labels)
     : emptyMarkup(grid.dataset.dmClZone, labels);
   grid._dmClimaSig = current;
+  grid._dmClimaFigli = grid.childElementCount;
   return true;
 }
 
@@ -1015,8 +1030,16 @@ export function renderClimate({ rebuild = false, force = false } = {}) {
   });
   const units = stagione.dentro;
   state.fuoriStagione = stagione.fuori.length;
-  // Marked here, on the shell this pass owns: paintSummary can switch the page
-  // to the other zone, and the render that follows replaces the shell under it.
+  /* Marcato qui, sul guscio che questa passata ha in mano: `paintSummary` puo'
+   * mandare la pagina sull'altra zona, e di li' riparte un disegno.
+   *
+   * Ma non riparte DENTRO questo: `wrapFunction` rimanda il richiamo a un
+   * microtask, cosi' il giro nuovo comincia quando questo e' finito — e non
+   * rifa' nemmeno il guscio, che `ensureSkeleton` rifa' solo se non c'e'. La
+   * prima stesura di questa riga diceva il contrario, e una segnalazione ci si
+   * e' appoggiata per spiegare le card sparite (#541): quella rientranza non
+   * esiste, e le card non spariscono — la prova sta in
+   * `e2e/il-clima-non-si-svuota-cambiando-linguetta.spec.js`. */
   paintZoneTabs(shell, units);
   for (const zone of ["freddo", "caldo"]) {
     const grid = doc.getElementById(`clima-grid-${zone}`);

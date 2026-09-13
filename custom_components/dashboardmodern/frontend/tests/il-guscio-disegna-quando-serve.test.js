@@ -316,12 +316,12 @@ test("i timer del guscio che un modulo fa gia' si spengono; gli altri restano", 
   );
   assert.deepEqual(
     timer.cancellati.slice().sort((a, b) => a - b),
-    [11, 12, 14, 16, 17, 18, 19, 20, 21, 23, 24],
+    [11, 12, 14, 16, 17, 18, 19, 21, 23, 24],
   );
   assert.deepEqual(
     elenco.filter((voce) => !voce.cleared).map((voce) => voce.id),
-    [13, 15, 22, 25],
-    "il programma dell'irrigazione, il conto della piscina, gli aggiornamenti e i totali restano",
+    [13, 15, 20, 22, 25],
+    "l'irrigazione, la piscina, il CLIMA, gli aggiornamenti e i totali restano",
   );
   assert.equal(elenco[6].owner, "barra");
   assert.deepEqual(potaITimerDelGuscio(elenco), [], "una seconda passata non tocca niente");
@@ -546,4 +546,23 @@ test("il runtime delle sezioni la installa per prima, prima di ogni involucro", 
   assert.ok(installazione > 0);
   assert.ok(installazione < SECTION_RUNTIME.indexOf("installIndirizzoDiCasa();"));
   assert.match(SECTION_RUNTIME, /sections: Object\.freeze\(\[\s*"il-guscio-disegna-quando-serve",/);
+});
+
+test("il timer del Clima non si pota: è l'unica rete sotto quella pagina", () => {
+  /* `updateClimaCards()` sta in fondo a un `try` lunghissimo del guscio che
+   * dipinge mezza plancia e finisce con un `catch` che scrive «Errore UI» e
+   * tira dritto: qualunque cosa si rompa prima, quella riga non viene mai
+   * raggiunta. Era stato potato perché «gira già dentro ogni render()» — vero
+   * solo finché nessuno si rompe, e finché nessuno svuota la griglia. Il
+   * giorno che succedono tutt'e due, la pagina Clima resta vuota per sempre
+   * (#541). */
+  const timer = [
+    { id: 1, period: 20000, fn: "function () { try { if (Object.keys(_RAW_STATES).length) updateClimaCards(); } catch(e) {} }" },
+    { id: 2, period: 20000, fn: "function () { updateDeviceCards(); }" },
+  ];
+  const potati = potaITimerDelGuscio(timer);
+  assert.ok(!potati.includes("clima"), "il Clima resta senza rete");
+  assert.ok(potati.includes("dispositivi"), "i dispositivi si potano ancora");
+  assert.equal(timer[0].cleared, undefined, "il timer del Clima è rimasto acceso");
+  assert.equal(timer[1].cleared, true);
 });

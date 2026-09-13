@@ -62,6 +62,7 @@ import {
   letturaDellAria,
   normalizzaAria,
   parolaDelGrado,
+  valoreScritto,
 } from "../core/aria-model.js";
 import { nomeDellaLettura } from "../core/nome-della-lettura.js";
 import { cavoDalloStato, codiceDellaRicarica } from "../core/stato-della-ricarica.js";
@@ -1394,6 +1395,11 @@ function aggiornamentiModel(states) {
     key: "aggiornamenti",
     accent: "#d97706",
     icon: "⬆️",
+    /* Questa tessera esiste solo quando c'e' qualcosa da fare — e allora c'e'
+     * sempre qualcosa da fare. Non dicendolo nasceva calma come una tessera
+     * senza niente sotto: «ci sono aggiornamenti ma la card resta spenta»
+     * (#540). Il colore ambra ce l'aveva gia', non lo accendeva nessuno. */
+    attiva: true,
     label: t("Aggiornamenti", "Updates"),
     value: String(fila.length),
     /* Si nomina il primo — la plancia quando c'e', che e' quella per cui
@@ -3773,7 +3779,7 @@ function ariaModel(states) {
     label: t("Aria", "Air"),
     /* Il numero e la sua unita' nella stessa casella: la tessera le separa da
      * se', come fa coi gradi della temperatura. */
-    value: `${formatNumber(copertina.valore, copertina.valore >= 100 ? 0 : 1)}${copertina.unita ? ` ${copertina.unita}` : ""}`,
+    value: `${valoreScritto(copertina, locale())}${copertina.unita ? ` ${copertina.unita}` : ""}`,
     caption: `${parola} · ${copertina.misura}`,
     ring: copertina.quanto,
     grado: giudizio.grado,
@@ -3784,7 +3790,7 @@ function ariaModel(states) {
       entity: lettura.entity,
       name: lettura.name,
       glyph: lettura.glifo,
-      value: `${formatNumber(lettura.valore, lettura.valore >= 100 ? 0 : 1)}${lettura.unita ? ` ${lettura.unita}` : ""}`,
+      value: `${valoreScritto(lettura, locale())}${lettura.unita ? ` ${lettura.unita}` : ""}`,
       grado: lettura.grado,
     })),
   };
@@ -6255,19 +6261,48 @@ function fumoDetail(widget) {
  * questa funzione la finestra rispondeva «niente da mostrare», che con la
  * tessera accesa su sei aggiornamenti e' la risposta sbagliata.
  *
- * Il tasto per installare non c'e' e non ci va: si installa da Home Assistant,
- * dove accanto al tasto ci sono le note di rilascio — e un aggiornamento
- * lanciato da qui, senza averle lette, e' un aggiornamento fatto al buio. */
+ * Il tasto per installare qui non c'era: si installava da Home Assistant, dove
+ * accanto al tasto ci sono le note di rilascio — e un aggiornamento lanciato
+ * al buio e' un aggiornamento fatto al buio. Il ragionamento reggeva, la
+ * conclusione no: «gli aggiornamenti vengono segnalati ma non e' possibile
+ * avviarli, e' necessario andarli a fare dall'interfaccia di HA» (#540). Un
+ * avviso che sa tutto e non fa niente fa rifare la stessa strada a mano.
+ *
+ * Le note non si perdono per questo: viaggiano con la riga e stanno ACCANTO al
+ * tasto, che e' il posto dove si leggono — prima di premerlo, non dopo. E il
+ * tasto c'e' solo dove Home Assistant dice che quell'aggiornamento si installa
+ * chiamando un servizio: dove si fa col cacciavite, un tasto sarebbe una
+ * promessa che non si mantiene. */
 function aggiornamentiDetail(widget) {
   return (widget.aggiornamenti || [])
     .map((voce) => {
       const da = clean(voce?.da);
       const a = clean(voce?.a);
       const versioni = da && a ? `${da} \u2192 ${a}` : a || da;
+      const note = clean(voce?.note);
+      const entity = clean(voce?.entity);
+      const coda = voce?.inCorso
+        ? `<b class="dm-w-agg-corso">${esc(t("In corso", "Installing"))}</b>`
+        : voce?.installabile
+          ? `<button type="button" class="dm-w-agg-via" data-dm-w-update="${esc(entity)}"
+               title="${esc(t("Installa questo aggiornamento", "Install this update"))}">${esc(
+                 t("Installa", "Install"),
+               )}</button>`
+          : "";
       return rowShell(
         `<span class="dm-w-glyph" data-on="true" aria-hidden="true">\u2B06\uFE0F</span>
-         <span class="dm-w-name">${esc(clean(voce?.nome) || clean(voce?.entity))}</span>
-         <span class="dm-w-val">${esc(versioni || t("Disponibile", "Available"))}</span>`,
+         <span class="dm-w-name">${esc(clean(voce?.nome) || entity)}</span>
+         <span class="dm-w-val">${esc(versioni || t("Disponibile", "Available"))}</span>
+         ${
+           note
+             ? `<a class="dm-w-agg-note" href="${esc(note)}" target="_blank" rel="noopener noreferrer"
+                  title="${esc(t("Le note di questa versione", "This version's notes"))}">${esc(
+                    t("Note", "Notes"),
+                  )}</a>`
+             : ""
+         }
+         ${coda}`,
+        'data-dm-w-agg=""',
       );
     })
     .join("");
@@ -7405,17 +7440,23 @@ function apriGliAvvisiAppenaAccesi(models) {
 export function renderHomeWidgets() {
   const states = allStates();
   const tutti = modelliDelleTessere(states);
+  const models = applyWidgetPreferences(tutti);
   /* La riga sotto il meteo (#356) si disegna qui, coi modelli appena fatti e
-   * prima di ogni scorciatoia: le tessere possono non esserci — plancia
-   * appena installata, tutte nascoste — e la pastiglia della posta deve
-   * comparire lo stesso. Un secondo giro sugli stati per contare le stesse
-   * cose sarebbe il doppio del lavoro per la stessa risposta. */
+   * prima di ogni scorciatoia: la griglia puo' non esserci — una plancia
+   * appena installata, o chi l'ha spenta tutta — e la riga deve comparire lo
+   * stesso. Un secondo giro sugli stati per contare le stesse cose sarebbe il
+   * doppio del lavoro per la stessa risposta.
+   *
+   * Ma i modelli sono quelli SCELTI, non tutti quelli possibili: prima
+   * arrivavano qui prima di passare dalla scheda Widget, e una tessera spenta
+   * li' continuava a comparire nella riga. «I varchi li ho anche deflaggati
+   * dai widget» e si vedevano lo stesso (#538). Spegnere una tessera vuol
+   * dire non vederla — ne' in griglia ne' nella riga. */
   try {
-    disegnaComeStaLaCasa(tutti, states);
+    disegnaComeStaLaCasa(models, states);
   } catch (error) {
     root.console?.warn?.("[DashboardModern] barra di casa", error);
   }
-  const models = applyWidgetPreferences(tutti);
   apriGliAvvisiAppenaAccesi(models);
   const host = doc?.getElementById?.("dm-widgets");
   if (!models.length) {
@@ -8354,6 +8395,32 @@ function onClick(event) {
     // Stessa strada della pagina Sicurezza: il tastierino PIN dell'antifurto
     // chiede il codice e poi chiama lui il servizio scelto.
     root.promptPinAndSet?.(clean(alarm.dataset.dmWAlarm));
+    return;
+  }
+  const aggiornamento = event.target?.closest?.("[data-dm-w-update]");
+  if (aggiornamento) {
+    event.preventDefault();
+    const quale = clean(aggiornamento.dataset.dmWUpdate);
+    if (!quale) return;
+    /* Si spegne subito e dice che sta andando: il servizio ci mette un attimo
+     * a farsi sentire, e due tocchi sulla stessa riga sono due installazioni
+     * della stessa cosa. Quando gli stati tornano, la riga si riscrive da
+     * sola con quello che dice Home Assistant.
+     *
+     * Ma se il servizio rifiuta — Home Assistant scollegato, entita' non
+     * raggiungibile, permesso negato — `callHa` inghiotte l'errore e torna
+     * `undefined`: senza rimettere il tasto com'era, la riga resterebbe
+     * spenta su «In corso» per sempre, e l'unico modo di riprovare sarebbe
+     * chiudere e riaprire la finestra. Il tasto torna come prima. E' la
+     * stessa regola che segue `completeItem` qui sopra. */
+    const parola = aggiornamento.textContent;
+    aggiornamento.disabled = true;
+    aggiornamento.textContent = t("In corso", "Installing");
+    callHa("update", "install", { entity_id: quale }).then((esito) => {
+      if (esito !== undefined) return;
+      aggiornamento.disabled = false;
+      aggiornamento.textContent = parola;
+    });
     return;
   }
   if (event.target?.closest?.("[data-dm-widget-close]")) {
@@ -9539,6 +9606,30 @@ ${tokenDellaCarta(":is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup))")}
 :is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-w-appl-ic svg rect,:is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-w-appl-ic svg circle,
 :is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-w-appl-ic svg line{stroke:currentColor}
 :is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-w-appl-ic svg [fill="currentColor"]{fill:currentColor}
+/* L'aggiornamento: le note prima, il tasto dopo. Si leggono in quest'ordine
+   perche' in quest'ordine si fanno.
+   La riga puo' andare a capo: nome, versioni, note e tasto su un telefono in
+   fila non ci stanno, e quello che esce dal bordo non si preme. E le versioni
+   non sono un numero da incolonnare — sono un'etichetta, e come etichetta
+   lasciano il posto al tasto. */
+:is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-w-row[data-dm-w-agg]{flex-wrap:wrap}
+:is(#dm-widget-popup,#dm-casa-popup) .dm-w-row[data-dm-w-agg] .dm-w-val{
+  font-family:inherit;font-size:12px;font-weight:800;color:var(--text-dim,#64748b)}
+:is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-w-agg-note{
+  flex:0 0 auto;font-size:10.5px;font-weight:800;letter-spacing:.02em;text-decoration:none;
+  padding:4px 8px;border-radius:9px;border:1px solid var(--card-border,#e2e8f0);
+  background:var(--surface-2,#f8fafc);color:var(--text-dim,#64748b)}
+:is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-w-agg-note:hover{color:var(--text,#0f172a)}
+:is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-w-agg-via{
+  flex:0 0 auto;padding:5px 11px;border-radius:9px;border:0;cursor:pointer;
+  font-size:10.5px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;
+  background:var(--dm-widget-accent,#d97706);color:#fff;
+  transition:filter .2s ease,opacity .2s ease}
+:is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-w-agg-via:hover{filter:brightness(1.06)}
+:is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-w-agg-via[disabled]{opacity:.55;cursor:default}
+:is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-w-agg-corso{
+  flex:0 0 auto;font-size:10.5px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--dm-widget-accent,#d97706)}
 :is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-w-alarm{display:inline-flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-left:auto}
 :is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-w-alarm button{
   width:32px;height:28px;border-radius:9px;border:1px solid var(--card-border,#e2e8f0);

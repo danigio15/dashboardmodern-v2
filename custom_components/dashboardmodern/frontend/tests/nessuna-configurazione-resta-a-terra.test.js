@@ -50,6 +50,8 @@ const SOLO_DI_QUESTO_DISPOSITIVO = Object.freeze({
   cd_sync_ts: "orologio della vecchia sincronizzazione, disinnescata",
   cd_sync_dirty: "segno della vecchia sincronizzazione, disinnescata",
   dm_fresh_start: "segno che la plancia e' appena stata svuotata",
+  dm_testa_fissa:
+    "l'intestazione ferma su questo vetro: il tablet al muro la vuole, il telefono no",
   dm_persistence_meta: "cosa sa questo dispositivo dell'ultimo salvataggio",
 });
 

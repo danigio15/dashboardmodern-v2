@@ -86,7 +86,12 @@ export function statoDellaStampante(grezzo) {
  * uno mi fa la slide colorata e l'altra no.» Con la chiave la sezione sa QUALE
  * cartuccia sta disegnando, e sul fondo scuro il nero lo scrive come si scrive
  * l'inchiostro nero su carta nera: chiaro. Il colore resta uno, la chiave
- * resta una, e stanno nello stesso elenco. */
+ * resta una, e stanno nello stesso elenco.
+ *
+ * L'elenco esce di qui perche' il colore lo deve scrivere il foglio di
+ * stile e non l'attributo `style` della riga: una tinta scritta sull'elemento
+ * vince su qualunque regola, e la riga del fondo scuro non sarebbe mai
+ * arrivata a valere. Chi disegna prende l'elenco e ne fa le sue regole. */
 const CARTUCCE = Object.freeze([
   ["nero", /\b(nero|black|k)\b/, "#0f2942"],
   ["ciano", /\b(ciano|cyan|c)\b/, "#06b6d4"],
@@ -104,6 +109,14 @@ function qualeCartuccia(nome) {
   return CARTUCCE.find(([, indizio]) => indizio.test(testo)) || null;
 }
 
+/** Il colore di una cartuccia che non si riconosce: l'accento, non il nero. */
+export const COLORE_SENZA_TINTA = "#0ea5e9";
+
+/** Le tinte da disegnare, in ordine: la chiave e il colore vero. */
+export const TINTE_DELLE_CARTUCCE = Object.freeze(
+  CARTUCCE.map(([tinta, , colore]) => Object.freeze({ tinta, colore })),
+);
+
 /** Quale cartuccia e', dal suo nome; «altra» se non si capisce. */
 export function tintaDellaCartuccia(nome) {
   return qualeCartuccia(nome)?.[0] || "altra";
@@ -111,7 +124,7 @@ export function tintaDellaCartuccia(nome) {
 
 /** Il colore di una cartuccia dal suo nome; l'accento se non si capisce. */
 export function coloreDellaCartuccia(nome) {
-  return qualeCartuccia(nome)?.[2] || "#0ea5e9";
+  return qualeCartuccia(nome)?.[2] || COLORE_SENZA_TINTA;
 }
 
 /* Come si riconosce l'entita' di una cartuccia: il nome lo dice, e l'unita' e'
@@ -167,7 +180,7 @@ export function cartucceTrovate(entity, states = {}) {
   return trovate.sort();
 }
 
-/** Una cartuccia letta: nome, quanta ne resta, di che colore e' e se e' agli sgoccioli. */
+/** Una cartuccia letta: nome, quanta ne resta, che tinta e' e se e' agli sgoccioli. */
 export function letturaDellaCartuccia(entity, states = {}) {
   const stato = states?.[entity] || null;
   const quanta = percentuale(stato);
@@ -176,7 +189,8 @@ export function letturaDellaCartuccia(entity, states = {}) {
     entity,
     nome,
     quanta,
-    colore: coloreDellaCartuccia(`${entity} ${nome}`),
+    /* La tinta, non il colore: il colore lo mette il foglio di stile, che e'
+     * l'unico posto da cui il fondo scuro puo' cambiarlo. */
     tinta: tintaDellaCartuccia(`${entity} ${nome}`),
     /* Sotto il dieci per cento una cartuccia non finisce domani: finisce a
      * meta' del documento che stai per mandare. */

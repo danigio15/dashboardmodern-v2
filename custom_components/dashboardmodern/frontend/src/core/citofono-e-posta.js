@@ -57,6 +57,36 @@ export const CAMPI_DEL_CITOFONO = Object.freeze(["apri", "campanello", "telecame
 /** Le entita' di una cassetta, nello stesso ordine. */
 export const CAMPI_DELLA_CASSETTA = Object.freeze(["posta", "ritiro", "contatore"]);
 
+/* Quando la posta e' stata ritirata, detto da chi l'ha ritirata (#536).
+ *
+ * «Vorrei che la gestione della posta sia gestita anche tramite sensore di
+ * movimento nella cassetta e non solo tramite sensore porta.»
+ *
+ * Il rilevatore c'era gia' — la cassetta nasce intorno a un PIR — ma da solo
+ * non bastava a gestirla: senza il sensore dello sportello non esiste il
+ * momento del ritiro, e il verdetto reggeva solo finche' il PIR restava
+ * acceso. Un PIR si spegne dopo trenta secondi: la posta arrivata alle nove
+ * era gia' dimenticata alle nove e un minuto.
+ *
+ * Il momento del ritiro puo' dirlo una persona, e allora la regola non cambia
+ * di una riga: restano due momenti da confrontare, e il piu' recente vince.
+ * Viaggia fra i dispositivi perche' e' un fatto della casa — se la posta l'ho
+ * presa io, l'ho presa anche per chi guarda dal tablet in cucina. */
+export const CHIAVE_RITIRO_A_MANO = "cd_posta_ritirata";
+
+/* Quando la posta e' arrivata, scritto la prima volta che si vede il
+ * rilevatore acceso.
+ *
+ * Serve perche' `last_changed` di un rilevatore dice l'ULTIMO cambio, non
+ * l'arrivo: quando il PIR si spegne dopo i suoi trenta secondi, quel momento
+ * diventa piu' recente del ritiro appena dichiarato, e la cassetta tornerebbe
+ * piena da sola. Il fronte di SALITA e' l'arrivo; quello di discesa non e'
+ * niente. Si ricorda il primo e si ignora il secondo.
+ *
+ * Viaggia coi ritiri, e per lo stesso motivo: l'arrivo e' un fatto della casa.
+ * La posta e' arrivata per tutti, non per il vetro che l'ha vista per primo. */
+export const CHIAVE_ARRIVO_VISTO = "cd_posta_arrivata";
+
 /* Quanta luce vuol dire «sportello aperto».
  *
  * Dentro una cassetta chiusa ci sono zero lux. Venti e' la luce di un
@@ -238,12 +268,29 @@ export function letturaDelCitofono(voce = {}, states = {}) {
 }
 
 /** Una cassetta come sta adesso: se c'e' posta, da quando, e se e' aperta. */
-export function letturaDellaCassetta(voce = {}, states = {}) {
+export function letturaDellaCassetta(
+  voce = {},
+  states = {},
+  ritiriAMano = null,
+  arriviVisti = null,
+) {
   const conf = normalizzaCassetta(voce);
   const posta = conf.posta ? states?.[conf.posta] : null;
   const ritiro = conf.ritiro ? states?.[conf.ritiro] : null;
-  const arrivata = conf.posta ? quando(posta) : null;
-  const ritirata = conf.ritiro ? quando(ritiro) : null;
+  /* Acceso: il cambio che si vede E' l'arrivo, ed e' il piu' fresco che ci
+   * sia. Spento: vale quello che ci si era segnati, perche' `last_changed`
+   * adesso dice quando il rilevatore ha smesso — che non e' un arrivo. Chi
+   * non ha ancora visto niente si tiene il cambio buono in mancanza d'altro:
+   * e' quello che faceva prima, e senza ritiri dichiarati non sbaglia. */
+  const visto = numero(arriviVisti?.[conf.id]);
+  const arrivata = !conf.posta ? null : acceso(posta) ? quando(posta) : (visto ?? quando(posta));
+  /* Il ritiro puo' dirlo lo sportello o puo' dirlo una persona: e' lo stesso
+   * fatto, e conta il piu' recente dei due. Chi ha tutti e due i sensori non
+   * si accorge di niente — il momento dichiarato, se non c'e', non esiste. */
+  const daSensore = conf.ritiro ? quando(ritiro) : null;
+  const aMano = numero(ritiriAMano?.[conf.id]);
+  const ritirata =
+    daSensore === null ? aMano : aMano === null ? daSensore : Math.max(daSensore, aMano);
   const aperta = conf.ritiro ? apertaAdesso(ritiro, conf.soglia) : null;
   const contatore = conf.contatore ? numero(states?.[conf.contatore]?.state) : null;
   return {
@@ -256,31 +303,77 @@ export function letturaDellaCassetta(voce = {}, states = {}) {
     arrivata,
     ritirata,
     muta: Boolean(conf.posta) && muto(posta),
+    /* Se il ritiro l'ha detto una persona e non lo sportello: la pagina lo
+     * scrive con parole sue, perche' «ultima apertura» sarebbe una bugia. */
+    ritiroAMano: daSensore === null && aMano !== null,
     ce: cePosta({ posta: conf.posta ? posta : null, arrivata, ritirata, aperta }),
   };
 }
 
 /* Il verdetto: c'e' posta, non c'e', o non si sa.
  *
- * Con tutti e due i sensori e' un confronto fra due momenti. Con il solo
- * rilevatore si sa che qualcosa si e' mosso, non se e' stato ritirato: allora
- * «c'e'» vale finche' il rilevatore e' acceso, e dopo torna a «non si sa».
- * Nessuno dei due casi inventa un «no» che non c'e'. */
+ * E' sempre un confronto fra due momenti: quando e' arrivato qualcosa, e
+ * quando e' stato tolto. Chi li dice cambia — lo sportello che si apre, o la
+ * persona che dice «l'ho presa» — ma la domanda e la regola sono le stesse.
+ *
+ * Restava scoperto il caso di chi ha il solo rilevatore (#536): «c'e'» valeva
+ * finche' il rilevatore era acceso, e un PIR si spegne dopo trenta secondi,
+ * quindi la posta arrivata alle nove era dimenticata alle nove e un minuto.
+ * Adesso, quando il momento del ritiro puo' esistere, l'ultimo movimento vale
+ * finche' qualcuno non dice di averla presa — che e' come funziona una
+ * cassetta vera: la posta non se ne va da sola.
+ *
+ * Quello che non si fa, e non si e' mai fatto, e' inventare un «no»: senza il
+ * rilevatore, o con il rilevatore muto, la risposta resta «non si sa». */
 function cePosta({ posta, arrivata, ritirata, aperta }) {
   if (!posta) return null;
   if (muto(posta)) return null;
   if (aperta === true) return false;
-  if (ritirata === null) return acceso(posta) ? true : null;
-  if (arrivata === null) return null;
+  /* Senza un arrivo da confrontare resta solo il presente: il rilevatore
+   * acceso adesso dice «c'e'», spento non dice niente. */
+  if (arrivata === null) return acceso(posta) ? true : null;
+  /* Mai ritirata e mai svuotata: qualcosa si e' mosso e nessuno l'ha tolto. */
+  if (ritirata === null) return true;
+  /* Il confronto vale anche col rilevatore ancora acceso: chi dice «l'ho
+   * presa» mentre il PIR e' ancora caldo l'ha presa davvero, e i suoi trenta
+   * secondi residui non sono una seconda consegna. */
   return arrivata > ritirata;
 }
 
+/* Il registro degli arrivi aggiornato con quello che si vede adesso.
+ *
+ * Si scrive solo sul fronte di SALITA — rilevatore acceso — perche' e' l'unico
+ * momento in cui `last_changed` significa «e' arrivato qualcosa». Torna la
+ * stessa mappa quando non c'e' niente da aggiungere, cosi' chi la salva non
+ * riscrive per niente. */
+export function arriviDaRicordare(input = {}, states = {}, visti = null) {
+  const conf = normalizzaIngresso(input);
+  const prima = visti && typeof visti === "object" && !Array.isArray(visti) ? visti : {};
+  let dopo = prima;
+  for (const voce of conf.cassette) {
+    const posta = voce.posta ? states?.[voce.posta] : null;
+    if (!posta || !acceso(posta)) continue;
+    const salita = quando(posta);
+    if (salita === null || numero(prima[voce.id]) === salita) continue;
+    if (dopo === prima) dopo = { ...prima };
+    dopo[voce.id] = salita;
+  }
+  return dopo;
+}
+
 /** Tutto insieme, nell'ordine in cui la pagina lo disegna. */
-export function lettureDellIngresso(input = {}, states = {}) {
+export function lettureDellIngresso(
+  input = {},
+  states = {},
+  ritiriAMano = null,
+  arriviVisti = null,
+) {
   const conf = normalizzaIngresso(input);
   return {
     citofoni: conf.citofoni.map((voce) => letturaDelCitofono(voce, states)),
-    cassette: conf.cassette.map((voce) => letturaDellaCassetta(voce, states)),
+    cassette: conf.cassette.map((voce) =>
+      letturaDellaCassetta(voce, states, ritiriAMano, arriviVisti),
+    ),
   };
 }
 

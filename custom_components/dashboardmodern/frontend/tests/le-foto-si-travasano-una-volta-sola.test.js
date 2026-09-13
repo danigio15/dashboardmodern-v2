@@ -201,7 +201,29 @@ test("togliere una chiave non alza la revisione", async () => {
    * (`cd_ev_kwh`): la casella si vedeva anche senza vettura ma non aveva dove
    * salvarsi, e il tempo di fine carica restava sui settanta assunti. Quanti
    * kilowattora tiene la batteria non cambia col vetro da cui lo si scrive. */
-  assert.equal(CONFIG_KEYS_REVISION, 50);
+  /* E la 51 col momento in cui si è presa la posta (#536, `cd_posta_ritirata`):
+   * «vorrei che la gestione della posta sia gestita anche tramite sensore di
+   * movimento nella cassetta e non solo tramite sensore porta». Chi ha il solo
+   * rilevatore non ha un sensore che dica quando la cassetta è stata svuotata,
+   * e quel momento lo dice una persona toccando la card. È un fatto della casa:
+   * se la posta l'ho presa io, il tablet in cucina non deve continuare a dire
+   * che c'è posta a chi ce l'ha già in mano. */
+  /* E la 52 col momento in cui la posta è ARRIVATA (`cd_posta_arrivata`). Va
+   * con la 51 e per lo stesso motivo, ed è la metà che mancava: il rilevatore
+   * dice `last_changed`, cioè l'ultimo cambio, e quando il PIR si spegne dopo i
+   * suoi trenta secondi quel momento diventa più recente del ritiro appena
+   * dichiarato — la cassetta tornerebbe piena da sola, e chi ha detto «l'ho
+   * presa» dovrebbe dirlo una seconda volta. L'arrivo è il fronte di salita, e
+   * va ricordato perché dopo non si può più leggere. */
+  assert.equal(CONFIG_KEYS_REVISION, 52);
+  assert.ok(
+    CONFIG_KEYS.includes("cd_posta_ritirata"),
+    "la posta presa è un fatto della casa, non del vetro da cui l'hanno detto",
+  );
+  assert.ok(
+    CONFIG_KEYS.includes("cd_posta_arrivata"),
+    "la posta è arrivata per tutti, non per il vetro che l'ha vista per primo",
+  );
   assert.ok(
     CONFIG_KEYS.includes("cd_energia_soglia"),
     "la soglia di potenza è dell'impianto, non del vetro da cui la si è scritta",

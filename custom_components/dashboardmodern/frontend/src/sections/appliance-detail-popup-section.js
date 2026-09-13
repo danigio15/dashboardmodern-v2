@@ -793,7 +793,24 @@ function aggancia() {
 
 function css() {
   return `
-    #details-list[data-dm-apde-owner="moduli"]{display:grid;gap:0}
+    /* La colonna si DICHIARA stringibile, e non e' un dettaglio.
+     *
+     * «Tutti i popup e sezioni e card, qualsiasi cosa, deve avere adattamento
+     * schermo: non puo' essere tagliata.» Sulla lavastoviglie il nome del
+     * comando e il suo menu uscivano dal bordo destro, e la finestra li
+     * TAGLIAVA invece di farli scorrere — «.modal-card» ha «overflow-x:hidden»,
+     * che e' giusto (una finestra che scorre di lato e' peggio) ma vuol dire
+     * che quello che non ci sta non si vede e basta.
+     *
+     * La causa: una griglia senza colonne dichiarate ne fa una implicita
+     * «auto», e una traccia «auto» si allarga fino al contenuto piu' largo
+     * invece di fermarsi al contenitore. Misurato a 430 px: la lista era 403 px
+     * dentro uno spazio da 384, e venti elementi finivano fuori — a 320 px ne
+     * restavano fuori 114. Con «minmax(0,1fr)» la traccia puo' stringersi e la
+     * lista torna larga esattamente quanto la finestra, a ogni misura provata
+     * (320, 360, 390, 430). */
+    #details-list[data-dm-apde-owner="moduli"]{
+      display:grid;grid-template-columns:minmax(0,1fr);gap:0}
     #details-list .dm-apde-racconto{
       display:grid;gap:10px;margin:0 0 16px;padding:14px 15px 13px;border-radius:16px;
       border:1px solid color-mix(in srgb,var(--dm-verdetto,#10b981) 24%,transparent);
@@ -839,8 +856,10 @@ function css() {
       background:color-mix(in srgb,#10b981 12%,transparent);
       color:color-mix(in srgb,#10b981 76%,#0f172a)}
     #details-list .dm-apde-pillola b{font-weight:900;color:inherit}
+    /* E la riga va a capo invece di stringere il comando fino a non usarlo:
+       su uno schermo stretto un menu largo quaranta pixel non si tocca. */
     #details-list .dm-apde-comando{
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;
       margin:0 0 8px;padding:10px 12px;border-radius:14px;
       border:1px solid var(--card-border,#e2e8f0);background:var(--card-bg,#fff)}
     #details-list .dm-apde-comando-nome{
@@ -866,7 +885,7 @@ function css() {
     #details-list .dm-apde-integrazione strong{font-size:12.5px;font-weight:900;color:#0369a1}
     #details-list .dm-apde-integrazione span{font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8)}
     #details-list .dm-apde-menu,#details-list .dm-apde-numero{
-      flex:0 1 55%;min-width:0;max-width:220px;height:32px;padding:0 8px;border-radius:10px;
+      flex:1 1 140px;min-width:0;max-width:220px;height:32px;padding:0 8px;border-radius:10px;
       border:1px solid var(--card-border,#e2e8f0);background:var(--surface-2,#f8fafc);
       color:var(--text,#0f172a);font:inherit;font-size:12px;font-weight:700}
     #details-list .dm-apde-numero{flex-basis:96px;text-align:right;font-variant-numeric:tabular-nums}

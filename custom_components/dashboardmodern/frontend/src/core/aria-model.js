@@ -343,12 +343,58 @@ export function letturaDellAria(entity, stato, locale = "it", config) {
     unita,
     /* E come sono stati giudicati: il valore nella scala delle soglie. */
     confronto,
+    /* La scala su cui e' stato giudicato: la portano con se' perche' e' lei a
+     * dire con quante cifre il numero va scritto (#530). */
+    soglie: soglie.slice(),
     unitaDiRiferimento: propria ? unita : misura.unita,
     grado,
     /* Quanto e' lontana dal primo gradino, in centesimi, per l'anello della
      * tessera: pieno vuol dire «guarda qui», non «va tutto bene». */
     quanto: Math.max(0, Math.min(100, Math.round((confronto / (soglie[2] || 1)) * 100))),
   };
+}
+
+/* Con quante cifre dopo la virgola si scrive una misura.
+ *
+ * Dal campo, la #530: «0,11 ppm ma la dashboard visualizza 1,1». I numeri
+ * erano altri — il difetto vero lo dicono i suoi dati — ma la domanda che ha
+ * fatto e' giusta, ed e' nel titolo: le cifre decimali.
+ *
+ * Si scriveva con una cifra sola sotto il cento, e per quasi tutte le misure
+ * va bene: l'anidride carbonica si misura a centinaia di ppm, le polveri a
+ * decine di microgrammi. Ma i composti organici volatili in ppm hanno i
+ * gradini a 0,065, 0,22 e 0,66: con una cifra sola «0,065» diventa «0,1» e
+ * «0,04» diventa «0,0» — la plancia non riesce a stampare il numero che
+ * decide il suo stesso colore, e l'aria buona e l'aria cattiva si scrivono
+ * uguali.
+ *
+ * Le cifre le detta la scala su cui si giudica, non il valore: e' quella che
+ * dice quanto fine e' la differenza che conta. Sopra l'unita' resta tutto
+ * com'era — nessuna misura cambia aspetto se non ne aveva bisogno.
+ */
+function cifreDellaMisura(soglie, valore) {
+  const primo = Number(soglie?.[0]);
+  if (Number.isFinite(primo) && primo > 0 && primo < 1)
+    return Math.min(3, Math.ceil(-Math.log10(primo)) + 1);
+  return Math.abs(Number(valore) || 0) >= 100 ? 0 : 1;
+}
+
+/* Il numero di una lettura, scritto.
+ *
+ * Sta qui e non in chi disegna perche' era in tre posti — la copertina della
+ * tessera, le righe della finestra e la frase — e tre copie della stessa
+ * regola sono tre modi di scriverla diversa. Gli zeri in coda si tolgono solo
+ * dove le cifre le ha chieste la scala: «0,100» non dice niente piu' di
+ * «0,1», ma «20,0» di una polvere sottile e' come si e' sempre letto.
+ */
+export function valoreScritto(lettura, locale = "it") {
+  const valore = Number(lettura?.valore);
+  if (!Number.isFinite(valore)) return "";
+  const cifre = cifreDellaMisura(lettura?.soglie, valore);
+  return valore.toLocaleString(locale || "it", {
+    minimumFractionDigits: cifre > 1 ? 0 : cifre,
+    maximumFractionDigits: cifre,
+  });
 }
 
 /* Il tono della finestra: verde quando va bene, ambra quando c'e' da tenere
@@ -376,9 +422,7 @@ export function fraseDellAria(giudizio, locale = "it") {
   const dove = clean(peggiore.name);
   /* La sostanza, quanto, e in che unita': senza il numero la frase diceva
    * «la peggiore e' Anidride carbonica ppm», che non e' una frase. */
-  const quanto = peggiore.valore.toLocaleString(locale || "it", {
-    maximumFractionDigits: peggiore.valore >= 100 ? 0 : 1,
-  });
+  const quanto = valoreScritto(peggiore, locale);
   const misura = `${peggiore.misura} ${quanto}${peggiore.unita ? ` ${peggiore.unita}` : ""}`;
   const testa =
     quante > 1

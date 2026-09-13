@@ -15,7 +15,9 @@ import { readFile } from "node:fs/promises";
 
 import {
   CHIAVE_STAMPANTI,
+  COLORE_SENZA_TINTA,
   MASSIMO_STAMPANTI,
+  TINTE_DELLE_CARTUCCE,
   cartucceTrovate,
   coloreDellaCartuccia,
   tintaDellaCartuccia,
@@ -239,29 +241,58 @@ test("la barra del nero si vede anche sulla plancia scura", async () => {
   });
   assert.equal(nera.tinta, "nero");
   assert.equal(colori.tinta, "colore");
-  /* Il colore vero resta quello: sul chiaro il nero è nero. */
-  assert.equal(nera.colore, "#0f2942");
+  /* Il colore vero resta quello: sul chiaro il nero è nero. Sta nell'elenco,
+   * non nella lettura — a disegnarlo ci pensa il foglio di stile. */
+  assert.equal(coloreDellaCartuccia("sensor.hp_deskjet_4100_series_black_ink"), "#0f2942");
 
   const pagina = await leggi("sections/stampanti-section.js");
   assert.ok(
     pagina.includes('data-tinta="${esc(cartuccia.tinta)}"'),
     "la barra non dice quale cartuccia sta disegnando",
   );
-  /* `${P}` in mezzo porta una graffa: la regola si cerca a pezzi, non con
+  /* Questa è la prova che la prima volta è mancata: la regola del fondo scuro
+   * c'era già, e non valeva niente. Un colore scritto nell'attributo `style`
+   * della riga vince su qualunque regola del foglio — è una regola della
+   * cascata, non una svista del browser — e la barra del nero restava nera su
+   * fondo nero. Finché la riga non porta un colore addosso, la regola vale. */
+  assert.ok(
+    !/style="--dm-cart/.test(pagina),
+    "la riga si scrive il colore addosso: nessuna regola potrà più cambiarlo",
+  );
+  /* `${P}` in mezzo porta una graffa: le regole si cercano a pezzi, non con
    * un\'espressione che si ferma alla prima. */
-  const scuro = pagina
-    .split("\n")
-    .findIndex(
-      (riga) =>
-        riga.includes('html[data-theme="dark"]') &&
-        riga.includes('.dm-stampante-cart[data-tinta="nero"]'),
-    );
+  const righe = pagina.split("\n");
+  const chiaro = righe.findIndex((riga) =>
+    riga.includes('.dm-stampante-cart[data-tinta="${tinta}"]{--dm-cart:${colore}}'),
+  );
+  assert.ok(chiaro >= 0, "il colore della tinta non lo scrive il foglio di stile");
+  const scuro = righe.findIndex(
+    (riga) =>
+      riga.includes('html[data-theme="dark"]') &&
+      riga.includes('.dm-stampante-cart[data-tinta="nero"]'),
+  );
   assert.ok(scuro >= 0, "sul fondo scuro non c\'e\' una regola per il nero");
+  /* E dopo, non prima: a parità di peso vince l'ultima scritta. */
+  assert.ok(scuro > chiaro, "la regola del fondo scuro viene prima di quella che deve scavalcare");
   assert.match(
-    pagina.split("\n").slice(scuro, scuro + 3).join("\n"),
+    righe.slice(scuro, scuro + 3).join("\n"),
     /--dm-cart:#e2e8f0/,
     "sul fondo scuro il nero resta nero, e non si vede",
   );
+});
+
+test("il colore della cartuccia non finisce mai nella lettura", () => {
+  /* La lettura dice che cartuccia è; di che colore si disegna lo sa il foglio
+   * di stile. Se il colore torna nella lettura, torna anche l'attributo
+   * `style` che se lo scrive addosso, e con quello il bug. */
+  const nera = letturaDellaCartuccia("sensor.stampante_nero", {
+    "sensor.stampante_nero": {
+      state: "40",
+      attributes: { unit_of_measurement: "%", friendly_name: "Nero" },
+    },
+  });
+  assert.equal(nera.tinta, "nero");
+  assert.ok(!("colore" in nera), "la lettura si porta dietro un colore che nessuno disegna");
 });
 
 test("la tinta e il colore escono dallo stesso elenco", async () => {
@@ -273,5 +304,13 @@ test("la tinta e il colore escono dallo stesso elenco", async () => {
     assert.equal(tintaDellaCartuccia(`sensor.stampante ${nome}`), nome);
   }
   assert.equal(tintaDellaCartuccia("sensor.stampante boh"), "altra");
-  assert.equal(coloreDellaCartuccia("sensor.stampante boh"), "#0ea5e9");
+  assert.equal(coloreDellaCartuccia("sensor.stampante boh"), COLORE_SENZA_TINTA);
+  /* L'elenco che va a disegnarsi è lo stesso, non una copia da tenere allineata. */
+  assert.deepEqual(
+    TINTE_DELLE_CARTUCCE.map(({ tinta }) => tinta),
+    ["nero", "ciano", "magenta", "giallo", "colore", "foto"],
+  );
+  for (const { tinta, colore } of TINTE_DELLE_CARTUCCE) {
+    assert.equal(coloreDellaCartuccia(`sensor.stampante ${tinta}`), colore);
+  }
 });

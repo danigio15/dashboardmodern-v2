@@ -5,6 +5,315 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.27
+
+### Aggiunto
+
+- **Le mie entità in due formati, a righe o piccole**
+
+  «Si potrebbe poter scegliere il tipo di scheda? Magari averle più piccole»
+  (#515).
+
+  Una riga a tutta larghezza per un interruttore che dice acceso o spento è
+  larghezza spesa per niente: chi ha dodici voci ne vede tre per schermata e per
+  le altre nove scorre. Due formati, non cinque. A RIGHE è quello di sempre e
+  resta il predefinito — nessuno deve ritrovarsi la pagina cambiata senza averlo
+  chiesto. PICCOLE stringe la tessera e ne mette due per riga: su sei voci a
+  390 px l'elenco passa da 410 px a 146 px, la singola voce da 60 px a 44 px.
+
+  Si sceglie dall'editor della sezione, accanto alla casella della barra.
+
+- **L'intestazione può restare ferma mentre il resto scorre**
+
+  «Un'opzione che tiene fissa tutta la parte iniziale, e se uno scorre verso il
+  basso vede il resto» (#521).
+
+  L'intestazione — hamburger, nome della casa, meteo — è anche la riga da cui si
+  esce dalla plancia: scorrendo una Home lunga se ne va, e per tornarci si
+  risale tutto. Adesso può restare.
+
+  Nasce spenta, e sta in ⚙️ Impostazioni subito sotto il modo chiosco: sono la
+  stessa famiglia di scelte, come si vede la plancia su QUESTO vetro e non come
+  è configurata la casa. Il tablet al muro la vuole ferma, il telefono no, e
+  sincronizzarla renderebbe impossibile averle tutt'e due: la scelta resta su
+  questo apparecchio. Non sotto i 560 px di altezza, dove una testa ferma
+  lascerebbe al resto una feritoia.
+
+- **Gli aggiornamenti si avviano dalla plancia**
+
+  «Gli aggiornamenti vengono segnalati ma non è possibile avviarli, è necessario
+  andarli a fare dall'interfaccia di HA» (#540).
+
+  Il tasto non c'era per una ragione scritta: si installa da Home Assistant,
+  dove accanto al tasto ci sono le note di rilascio, e un aggiornamento lanciato
+  al buio è un aggiornamento fatto al buio. La ragione regge, la conclusione no:
+  un avviso che sa tutto e non fa niente fa rifare la stessa strada a mano.
+  Adesso il tasto c'è, e le note stanno accanto — nel disegno vengono prima, che
+  è l'ordine in cui si fanno le due cose.
+
+  Compare solo dove Home Assistant dichiara che quell'aggiornamento si installa
+  chiamando un servizio: un firmware che si porta col cacciavite non ha un
+  tasto, e mostrarglielo sarebbe una promessa che non si mantiene. Quelli già in
+  corso lo scrivono invece di offrirsi una seconda volta.
+
+- **La posta gestita anche dal solo sensore di movimento**
+
+  «Vorrei che la gestione della posta sia gestita anche tramite sensore di
+  movimento nella cassetta e non solo tramite sensore porta» (#536).
+
+  Il rilevatore c'era già; quello che non c'era è il resto della gestione. Senza
+  il sensore sullo sportello non esiste il momento del ritiro, e il verdetto
+  reggeva solo finché il PIR restava acceso: un PIR si spegne dopo trenta
+  secondi, quindi la posta arrivata alle nove era già dimenticata alle nove e un
+  minuto.
+
+  Adesso il ritiro può dirlo una persona — sulla card compare «L'ho presa»
+  quando c'è qualcosa da togliere — e l'ultimo movimento vale finché qualcuno
+  non lo dice. È come si comporta una cassetta vera: la posta non se ne va da
+  sola. Quello che non si fa è inventare un «no»: senza rilevatore, o col
+  rilevatore muto, la risposta resta «non si sa».
+
+- **Le stanze in plancia su due colonne dal telefono**
+
+  «Would it be possible to view the cards in two columns on smartphones? To save
+  space» (#524).
+
+  Una stanza per riga, su uno schermo da sei pollici, vuol dire scorrere mezza
+  pagina per leggere sei nomi — e il blocco delle stanze serve a dare un colpo
+  d'occhio, non una lista. Sotto i 560 px le colonne adesso sono due, larghe
+  uguali; la card si stringe con loro e la pastiglia degli accesi va a capo
+  sotto invece che di fianco, perché a metà larghezza si sarebbe mangiata la
+  colonna e il nome della stanza sarebbe uscito tagliato dopo tre lettere. Sopra
+  i 560 px non cambia niente.
+
+### Modificato
+
+- **Gli avvisi e i dispositivi accesi sulla stessa riga, con lo stesso vestito**
+
+  «I dispositivi accesi affianco, con una differenza: gli alert restano fissi, i
+  dispositivi accesi scorrono. Rendi omogenea la grafica.»
+
+  L'allerta si prependeva alla Home per conto suo, sopra ogni altra cosa. Adesso
+  entra nella fascia che c'era già: a sinistra quello che chiede attenzione
+  adesso, subito accanto quello che la casa sta facendo. Sono due cose che si
+  leggono insieme e stavano su due righe.
+
+  L'avviso non si stringe e non scorre — un avviso che scivolasse via mentre lo
+  leggi non sarebbe un avviso — e usa le classi delle pastiglie invece di una
+  seconda copia scritta di là: stesso raggio, stesso bordo, stesso fondo, stessa
+  ombra. Cambia solo il tono. Il disegno dice anche quale sovraccarico è, quello
+  di casa o quello di rete: sono due allarmi diversi e col fotovoltaico possono
+  dire cose opposte. Sotto i 560 px vanno una sopra l'altra.
+
+### Corretto
+
+- **Il dettaglio di un elettrodomestico non viene più tagliato sul telefono**
+
+  «Tutti i popup e sezioni e card, qualsiasi cosa, deve avere adattamento
+  schermo: non può essere tagliata.» Con la fotografia: la lavastoviglie, i
+  nomi dei comandi e i loro menù che finiscono oltre il bordo destro e
+  spariscono.
+
+  Sparire è la parola giusta. La finestra del guscio non scorre di lato — è una
+  scelta sensata, una finestra che scivola orizzontalmente è peggio del problema
+  che risolve — quindi quello che non ci sta non si vede e non si raggiunge in
+  nessun modo.
+
+  La causa non erano le righe: era l'elenco che le contiene. Una griglia senza
+  colonne dichiarate se ne fa una implicita che cresce fino al contenuto più
+  largo, invece di fermarsi a quanto spazio ha. Misurato a 430 px: l'elenco
+  veniva 403 px dentro uno spazio da 384, e venti elementi finivano oltre il
+  bordo; a 320 px ne restavano fuori 114. Adesso la colonna si dichiara
+  stringibile, e a 320, 360, 390 e 430 px l'elenco è largo esattamente quanto lo
+  spazio che ha: zero elementi tagliati.
+
+  E la riga di un comando va a capo invece di schiacciare il comando: su uno
+  schermo stretto un menù largo quaranta pixel non si tocca.
+
+- **Il tasto Installa torna com'era se Home Assistant rifiuta**
+
+  Il servizio può non partire — Home Assistant scollegato, entità non
+  raggiungibile, permesso negato — e in quel caso l'errore non arriva a
+  nessuno: la riga restava spenta su «In corso» per sempre, e l'unico modo di
+  riprovare era chiudere e riaprire la finestra. Adesso, se la chiamata non va
+  a buon fine, il tasto torna premibile.
+
+- **Chi dice «l'ho presa» viene creduto subito**
+
+  Col solo rilevatore di movimento, toccare «L'ho presa» mentre il PIR era
+  ancora acceso non svuotava la cassetta — e quando il rilevatore si spegneva,
+  trenta secondi dopo, la posta ci tornava dentro da sola. Il motivo è che un
+  rilevatore dice quando è cambiato l'ultima volta, non quando è arrivato
+  qualcosa: spegnendosi, quel momento diventava più recente del ritiro appena
+  dichiarato.
+
+  Adesso l'arrivo è il momento in cui il rilevatore si è ACCESO, e la plancia se
+  lo segna: il fronte di discesa non è un arrivo, e un ritiro dichiarato dopo
+  l'arrivo vince. Un movimento nuovo, invece, riempie di nuovo la cassetta —
+  che è come funziona una cassetta vera.
+
+- **La scritta sopra le finestre non rimette la pagina in colonna**
+
+  La scritta di stanza col conto degli aperti era stata data a tutte le stanze.
+  Ma quell'intestazione prende tutta la riga della griglia, e con una finestra
+  per stanza tornavano un'intestazione e una card per riga anche da PC — cioè
+  di nuovo la #424. Vale la regola del separatore: o separa tutti o non separa
+  nessuno. Le scritte ci sono quando ogni stanza ha più di una finestra, e
+  tacciono tutte insieme appena una stanza resterebbe muta; il conto degli
+  aperti resta quello giusto, e la stanza ogni card se la stampa comunque sotto
+  il proprio nome.
+
+- **Il sovraccarico di rete non si disegna più con un router**
+
+  Nel catalogo «rete» è la rete di casa, quella dei cavi e del wi-fi. Qui si
+  parla della rete elettrica, e un router sopra un allarme di sovraccarico dice
+  una cosa falsa: adesso c'è il disegno della potenza, che è la grandezza che
+  quella card misura.
+
+- **La barra della cartuccia si vede davvero, anche col tema scuro**
+
+  «Nell'ultimo aggiornamento c'è scritto che è stato sistemato il problema del
+  colore della stampante ma io ce l'ho ancora, non si vede lo slide.»
+
+  Aveva ragione. La correzione della 1.4.25 c'era ed era giusta, e non valeva
+  niente: il colore della cartuccia veniva scritto addosso alla riga, nel suo
+  attributo `style`, e quello che si scrive addosso a un elemento vince su
+  qualunque regola del foglio di stile. La riga del tema scuro non poteva
+  arrivarci — la barra del nero restava `#0f2942` su un fondo `#0c1322`, cioè
+  invisibile, esattamente come prima.
+
+  Adesso il colore lo scrive il foglio di stile, una regola per tinta, e la
+  regola del fondo scuro scavalca: il nero si scrive chiaro.
+
+- **La riga della caldaia, in configurazione, non si spezza più sul telefono**
+
+  Sotto i 560 px la riga della scheda termica andava su due piani ma di posti ne
+  dichiarava uno solo: la colonna dell'icona tornava a 44 px — il tasto del
+  catalogo la riempiva tutta e l'icona scelta spariva — e il cestino, rimasto
+  senza posto in fondo alla seconda fila, scendeva su una fila sua, un tasto
+  rosso staccato da quello che cancella. Ora i posti si dicono tutti e quattro.
+
+- **Il Clima non resta vuoto dopo il cambio FREDDO/CALDO**
+
+  «Al primo tocco su una delle due linguette l'elenco delle card sparisce, e non
+  torna più nemmeno tornando sulla linguetta di partenza» (#541).
+
+  Due difetti in fila. Il primo è un invariante sbagliato: la firma sulla
+  griglia diceva «questo l'ho scritto io l'ultima volta», ed era appiccicata al
+  nodo — bastava che qualcun altro ne riscrivesse il contenuto perché quella
+  firma restasse a dire «già fatto» sopra una griglia svuotata, e da lì non si
+  ridisegnasse mai più. «Ho scritto io» e «c'è quello che ho scritto» non sono
+  la stessa cosa: adesso si contano anche i figli, e una griglia svuotata da
+  fuori si riscrive al giro dopo.
+
+  Il secondo è una rete che avevamo tolto noi. Il timer di venti secondi che
+  chiama `updateClimaCards()` era stato potato con la motivazione «gira già
+  dentro ogni render()». È vero solo a metà: quella riga sta in fondo a un `try`
+  lunghissimo che dipinge mezza plancia e finisce con un `catch` che scrive
+  «Errore UI» e tira dritto — qualunque cosa si rompa prima, al Clima non ci si
+  arriva. Quel timer non era un disegno in più, era l'unico filo di riserva di
+  quella pagina. Torna.
+
+  Chi svuoti la griglia resta da trovare: questo gli toglie il potere di
+  renderlo definitivo.
+
+- **In modo chiosco l'hamburger risponde di nuovo**
+
+  «Premendo i 3 trattini in alto non fa più niente, non si riesce più a tornare
+  in HA: lo noto solo mettendo la modalità chiosco» (#535).
+
+  A far scendere la plancia sotto il menu di Home Assistant era il cassetto di
+  Home Assistant, cercato dentro le sue ombre. Dove quel cassetto non si trova
+  non si scendeva mai: il menu si apriva sotto la plancia a tutto schermo, cioè
+  da nessuna parte, e il tasto sembrava rotto.
+
+  Adesso comanda il gesto, che c'è sempre: l'hamburger inverte, e un tocco sulla
+  plancia la rimanda a tutto schermo. Il cassetto, quando si trova, resta la via
+  più precisa e dice l'unica cosa che i due gesti non possono sapere — che è
+  stato chiuso dal velo — ma parla solo dopo essersi fatto vedere aperto.
+
+- **Il lucchetto vale anche nella finestra sotto il meteo**
+
+  «Ho bloccato una entità luci che non si deve spegnere. Sotto la barra meteo,
+  sul riassunto di casa, quell'entità mi mette il pulsante spegni e la spengo»
+  (#539).
+
+  Il lucchetto c'era e funzionava: la pagina delle Luci, le Prese, gli impianti
+  termici e il widget della Home lo chiedono tutti alla stessa funzione. La
+  finestra che la fascia sotto il meteo apre — nata dopo, con la 1.4.24 — non lo
+  chiedeva a nessuno. Un blocco che vale in un posto e non nell'altro non è un
+  blocco: è una cosa in più da ricordarsi, e la si scopre nel momento peggiore.
+
+  Adesso lo chiede anche lei, alla stessa funzione. La riga resta in elenco —
+  vedere che quella luce è accesa è il motivo per cui la si tiene — e sparisce
+  il tasto; e il comando si rifiuta anche se parte lo stesso.
+
+- **Una tessera spenta non compare nemmeno nella riga sotto il meteo**
+
+  «I varchi li ho anche deflaggati dai widget» — e si vedevano lo stesso (#538).
+
+  La riga sotto il meteo si disegna prima della griglia, e per una ragione
+  giusta: deve comparire anche dove la griglia non c'è. Ma «prima della griglia»
+  era diventato «prima della scheda Widget», e i modelli le arrivavano ancora
+  tutti, comprese le tessere spente apposta. Spegnere una tessera vuol dire non
+  vederla, né in griglia né nella riga.
+
+- **La scritta sopra le finestre conta le cose aperte, non quelle configurate**
+
+  «2 finestre significa quelle aperte, non totale: devi segnalare sia quante
+  finestre aperte sia quante tapparelle.»
+
+  Contava i pezzi. Sopra una stanza con due finestre scriveva «2 finestre» tanto
+  con tutte e due spalancate quanto con tutte e due chiuse: un numero che non
+  cambia mai non è un avviso, è un inventario. Adesso è il conto degli aperti,
+  le due specie restano separate — «1 tapparella alzata · 2 finestre aperte» — e
+  quando non c'è niente di aperto lo dice: «Tutto chiuso».
+
+  E la scritta o ce l'hanno tutte le stanze o non ce l'ha nessuna. Prima
+  l'avevano solo quelle con più di una finestra, e siccome il separatore prende
+  tutta la riga mentre chi non ce l'ha non ne comincia una, le card delle altre
+  stanze finivano sotto il nome di una stanza che non era la loro: nove finestre
+  in otto stanze, UNA intestazione e sotto tutte e nove le card.
+
+- **L'allerta del sovraccarico: il disegno si vede, e non prende tutta la riga**
+
+  «Non si vede icona dell'allerta sovraccarico e poi non farlo così grande tutta
+  la linea schermo.»
+
+  Il catalogo lo si interrogava con la chiave «energia», che non esiste: restava
+  il riquadro col fondo rosso e dentro niente, e un disegno che non c'è è peggio
+  di nessun riquadro perché sembra rotto. La chiave che disegna davvero è
+  «potenza», ed è anche quella giusta: quella card parla di watt. E la larghezza
+  era da bordo a bordo — su un monitor da scrivania una fascia rossa lunga
+  duemila pixel non è un avviso, è un cartello stradale.
+
+- **Le cifre di una misura le detta la scala su cui si giudica**
+
+  «I valori grezzi sono ad esempio Volatile organic compounds 0,11 ppm ma la
+  dashboard visualizza 1,1 ppm» (#530).
+
+  I numeri di quella frase non erano i nostri — la plancia stampava lo stato di
+  Home Assistant senza toccarlo, e fra quello che vedeva lui e quello che
+  leggevamo noi c'era un'unità di mezzo. Ma la domanda era giusta, ed è nel
+  titolo: le cifre decimali. Si scriveva con una cifra sola sotto il cento, e
+  per quasi tutte le misure va bene; i composti organici volatili in ppm però
+  hanno i gradini a 0,065, 0,22 e 0,66, e con una cifra sola «0,065» diventa
+  «0,1» e «0,04» diventa «0,0». La plancia non riusciva a stampare il numero che
+  decide il suo stesso colore, e l'aria buona e quella cattiva si scrivevano
+  uguali.
+
+  Adesso le cifre le detta la scala, non il valore, e la regola sta in un posto
+  solo invece che in tre. Sopra l'unità non cambia niente per nessuno.
+
+- **La tessera degli aggiornamenti si accende quando ce n'è uno**
+
+  «Ci sono aggiornamenti ma la card resta spenta» (#540).
+
+  Una tessera si accende se dichiara un allarme, oppure di essere «attiva»,
+  oppure una quota maggiore di zero: quella degli aggiornamenti non diceva
+  nessuna delle tre, e nasceva calma come una tessera che non ha niente sotto.
+  Eppure esiste solo quando c'è qualcosa da fare. Adesso lo dice.
+
 ## 1.4.26
 
 ### Corretto

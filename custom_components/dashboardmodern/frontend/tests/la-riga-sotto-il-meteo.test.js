@@ -324,3 +324,28 @@ test("le parole delle due voci nuove stanno nella sezione, con la loro coppia", 
     assert.ok(sorgente.includes(coppia[0]), `manca la coppia ${coppia[0]}`);
   }
 });
+
+test("una tessera spenta nella scheda Widget non compare nemmeno nella riga", () => {
+  /* «I varchi li ho anche deflaggati dai widget» — e si vedevano lo stesso
+   * nella riga sotto il meteo (#538).
+   *
+   * La riga si disegna prima della griglia, perché deve comparire anche dove
+   * la griglia non c'è: una plancia appena installata, o una spenta tutta. Ma
+   * «prima della griglia» era diventato «prima della scheda Widget», e i
+   * modelli le arrivavano ancora tutti — comprese le tessere che qualcuno
+   * aveva spento apposta. Spegnere una tessera vuol dire non vederla: né in
+   * griglia né nella riga. */
+  const sorgente = readFileSync(
+    new URL("../src/sections/home-widgets-section.js", import.meta.url),
+    "utf8",
+  );
+  const giro = sorgente.slice(
+    sorgente.indexOf("export function renderHomeWidgets("),
+    sorgente.indexOf("const host = doc?.getElementById?.(\"dm-widgets\")"),
+  );
+  assert.match(giro, /disegnaComeStaLaCasa\(models, states\)/);
+  assert.ok(
+    giro.indexOf("applyWidgetPreferences(tutti)") < giro.indexOf("disegnaComeStaLaCasa("),
+    "la riga riceve i modelli prima che la scheda Widget dica la sua",
+  );
+});
