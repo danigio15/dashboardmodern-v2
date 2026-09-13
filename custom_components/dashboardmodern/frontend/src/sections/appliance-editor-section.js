@@ -867,18 +867,55 @@ function wireNascoste(modal, form) {
    * l'unica che non si poteva nascondere finche' non si chiudeva e riapriva la
    * scheda.
    *
-   * L'ascolto se ne va con la finestra: quando il nodo non e' piu' attaccato
-   * al documento la scheda e' chiusa, e restare in ascolto vorrebbe dire
-   * disegnare dentro una finestra che non c'e' piu'. */
+   * L'ascolto se ne va con la finestra, e se ne va DAVVERO.
+   *
+   * Prima si toglieva da solo, ma solo al catalogo successivo: nel giro
+   * normale il catalogo arriva mentre la scheda e' ancora aperta, quel giro
+   * ridisegna e non si toglie niente, e chiudendo la scheda l'ascolto restava
+   * attaccato a una finestra staccata dal documento — che quindi non si poteva
+   * buttare. Col catalogo gia' in memoria un giro successivo puo' non arrivare
+   * mai, e allora ogni apertura ne lasciava indietro uno.
+   *
+   * Adesso la vita dell'ascolto e' quella della finestra, scritta una volta:
+   * `chiudiLaScheda` interrompe, e chi chiude la scheda passa di li'. Il
+   * controllo sul nodo staccato resta come rete, per una chiusura che un
+   * domani non passasse da quella porta. */
+  const stacca = new AbortController();
+  vitaDellaScheda(modal, stacca);
   const alCatalogo = () => {
     if (!modal.isConnected) {
-      globalThis.removeEventListener?.(EVENTO_CATALOGO, alCatalogo);
+      stacca.abort();
       return;
     }
     disegnaNascoste(modal, form);
   };
-  globalThis.addEventListener?.(EVENTO_CATALOGO, alCatalogo);
+  globalThis.addEventListener?.(EVENTO_CATALOGO, alCatalogo, { signal: stacca.signal });
   disegnaNascoste(modal, form);
+}
+
+/* Chi tiene in vita gli ascolti di una scheda, e chi li interrompe.
+ *
+ * Sta sul nodo della finestra perche' e' lui che nasce e muore: chiunque
+ * chiuda la scheda — il tasto, l'invio della forma, un `remove()` da un altro
+ * punto — passa da `chiudiLaScheda`, e da li' cade tutto insieme. */
+const VITA_DELLA_SCHEDA = "__dmVitaDellaScheda";
+
+function vitaDellaScheda(modal, controller) {
+  if (!modal) return;
+  const gia = modal[VITA_DELLA_SCHEDA];
+  modal[VITA_DELLA_SCHEDA] = Array.isArray(gia) ? [...gia, controller] : [controller];
+}
+
+/** Chiude la scheda e con lei tutto quello che stava in ascolto per conto suo. */
+export function chiudiLaScheda(modal) {
+  if (!modal) return;
+  for (const controller of modal[VITA_DELLA_SCHEDA] || []) {
+    try {
+      controller.abort();
+    } catch (_error) {}
+  }
+  modal[VITA_DELLA_SCHEDA] = [];
+  modal.remove();
 }
 
 function bindingSnapshot(values) {
@@ -1001,7 +1038,10 @@ function wireBinding(modal, form, device) {
 export function openApplianceEditor(index) {
   const device = appliances()[index];
   if (!device) return false;
-  doc?.getElementById("dm-appliance-editor-modal")?.remove();
+  /* Una scheda gia' aperta si chiude dalla stessa porta di sempre: toglierla
+   * dal documento e basta le lascerebbe addosso i suoi ascolti, ed e' proprio
+   * riaprendo la scheda molte volte che se ne accumulavano. */
+  chiudiLaScheda(doc?.getElementById("dm-appliance-editor-modal"));
   const visual = deviceVisualKey(device);
   const totalInitial =
     [device.total_energy_entity, device.history_entity, device.report_entity]
@@ -1044,7 +1084,7 @@ export function openApplianceEditor(index) {
   </section>`;
   doc.body.append(modal);
   const form = modal.querySelector("[data-form]");
-  const close = () => modal.remove();
+  const close = () => chiudiLaScheda(modal);
   updateEditType(modal, visual);
   wireBinding(modal, form, device);
   wireComandi(modal, form);

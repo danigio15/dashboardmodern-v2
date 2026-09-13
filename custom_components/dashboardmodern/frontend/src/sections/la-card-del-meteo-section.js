@@ -129,13 +129,23 @@ function chiediLePrevisioni() {
        * promesso qui sopra diventava «quando capita». Un'ora di card senza
        * previsioni per una presa che si e' aperta due secondi dopo.
        *
-       * Il tempo lo tiene chi l'ha promesso. Uno solo alla volta: se la
-       * riprova cade mentre un'altra e' gia' in attesa, non se ne accumulano. */
-      if (!state.riprova)
-        state.riprova = setTimeout(() => {
-          state.riprova = 0;
-          chiediLePrevisioni();
-        }, RIPROVA);
+       * Il tempo lo tiene chi l'ha promesso, e lo tiene per l'ULTIMO
+       * fallimento: quella in attesa si butta e se ne mette una nuova.
+       *
+       * Tenere la prima e scartare le successive sembrava la cosa prudente —
+       * una sola riprova alla volta — e invece le mangiava. Cade una domanda,
+       * si programma la riprova; si cambia l'entita' del meteo e cade anche la
+       * seconda, che pero' non puo' programmare niente perche' la prima e'
+       * ancora appesa; quando la prima scade, la seconda ha appena rimesso il
+       * riposo da capo e `chiediLePrevisioni` esce senza chiedere e senza
+       * riprogrammare. Da li' in poi, nessuna previsione finche' non passa un
+       * disegno per conto suo — cioe' esattamente il difetto che questa
+       * riprova esiste per chiudere. */
+      clearTimeout(state.riprova);
+      state.riprova = setTimeout(() => {
+        state.riprova = 0;
+        chiediLePrevisioni();
+      }, RIPROVA);
     })
     .finally(() => {
       state.inVolo = false;

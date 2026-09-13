@@ -37,6 +37,7 @@ import {
   sceltaSullaSezione,
 } from "../src/core/contenuto-delle-sezioni.js";
 import {
+  accendiLeSezioniCheLeggonoLaCasa,
   ensureConfiguredSectionsVisible,
   seedModernSectionVisibility,
 } from "../src/sections/beta26-real-device-stability-section.js";
@@ -281,4 +282,102 @@ test("e le tre sezioni guardano davvero la voce che la semina scrive", () => {
       `${file} non spegne la sua voce quando la semina scrive false`,
     );
   }
+});
+
+/* ─── I rilievi della revisione ──────────────────────────────────────────── */
+
+test("anche una sezione che si governa da sé dice che la plancia è in uso", () => {
+  /* La prima stesura guardava solo il magazzino delle sezioni governate, le
+   * luci e le caselle dell'editor. Ma Agenda, UPS, Rifiuti, Allerte, Citofono,
+   * Stampanti, Musica, Porte e le sezioni che uno si fa da sé stanno fuori da
+   * quel magazzino — la loro voce se la governano da sole — e quindi chi ha
+   * configurato SOLO quelle risultava appena installato: le tre che leggono la
+   * casa gli sparivano aggiornando, che è il danno che questa regola esiste
+   * per evitare. */
+  for (const [chiave, valore] of [
+    ["cd_sezioni_mie", [{ nome: "Garage", glifo: "🚗" }]],
+    ["cd_rifiuti", { giorni: [{ materiale: "carta", giorno: 2 }] }],
+    ["cd_ups", [{ name: "UPS", entity: "sensor.ups" }]],
+    ["cd_security_doors", [{ name: "Cancello", entity: "switch.cancello" }]],
+    ["cd_calendari", ["calendar.famiglia"]],
+    ["cd_todo", ["todo.spesa"]],
+    ["cd_allerte", { categorie: ["pioggia"] }],
+    ["cd_stampanti", [{ name: "HP", entity: "sensor.hp" }]],
+    ["cd_citofono", { campanello: "binary_sensor.citofono" }],
+    ["cd_media_player", [{ entity: "media_player.tv" }]],
+    ["cd_assist", { entity: "assist_satellite.cucina" }],
+  ])
+    assert.equal(
+      planciaGiaConfigurata(magazzino({ [chiave]: valore })),
+      true,
+      `configurando solo "${chiave}" la plancia risulta appena installata`,
+    );
+  /* E una chiave scritta vuota non è configurazione: una plancia nuova resta
+   * nuova anche se qualcuno di quei moduli ci ha lasciato il suo involucro. */
+  assert.equal(planciaGiaConfigurata(magazzino({ cd_rifiuti: {}, cd_ups: [] })), false);
+});
+
+test("il rilevamento automatico accende le tre sezioni che legge la casa", () =>
+  /* «Per questo c'è la funzione in config che rileva automaticamente»: il 🪄
+   * non scrive né `cd_varchi` né `cd_presenza`, quindi da solo non le
+   * riaccendeva — e senza di lui, su una plancia nuova, l'unica strada era la
+   * fascia verde. Adesso premerlo è chiedere quello che c'è in casa. */
+  conPlancia(
+    { cd_sections: { varchi: false, presenza: false, batterie: false } },
+    CASA_PIENA,
+    (leggi) => {
+      assert.equal(accendiLeSezioniCheLeggonoLaCasa({ sync: false }), true);
+      const visibilita = leggi();
+      for (const chiave of SEZIONI_CHE_LEGGONO_LA_CASA)
+        assert.equal(visibilita[chiave], true, `"${chiave}" non si accende col rilevamento`);
+    },
+  ));
+
+test("e accende soltanto quelle che la casa ha davvero", () =>
+  /* Una casa senza rilevatori non si prende la voce Presenza per aver premuto
+   * un tasto: sarebbe una pagina vuota in barra. */
+  conPlancia(
+    {},
+    { "binary_sensor.porta": { state: "off", attributes: { device_class: "door" } } },
+    (leggi) => {
+      accendiLeSezioniCheLeggonoLaCasa({ sync: false });
+      const visibilita = leggi();
+      assert.equal(visibilita.varchi, true);
+      assert.ok(!visibilita.presenza, "Presenza accesa in una casa senza rilevatori");
+      assert.ok(!visibilita.batterie, "Batterie accese in una casa senza pile");
+    },
+  ));
+
+test("e non scavalca chi ha deciso a mano", () =>
+  conPlancia(
+    { cd_sections: { varchi: false }, cd_sections_manual: { varchi: true } },
+    CASA_PIENA,
+    (leggi) => {
+      accendiLeSezioniCheLeggonoLaCasa({ sync: false });
+      assert.equal(leggi().varchi, false, "il rilevamento ha scavalcato una scelta fatta a mano");
+    },
+  ));
+
+test("finché la casa non ha risposto la semina si riprova", () => {
+  /* Su un avvio lento i due giri dell'installazione passano tutti e due prima
+   * che Home Assistant abbia mandato qualcosa: senza questo, le tre chiavi
+   * restavano da scrivere per sempre — e da non scritte le tre voci si vedono,
+   * cioè il difetto di partenza su una plancia appena installata. */
+  const sorgente = readFileSync(
+    new URL("../src/sections/beta26-real-device-stability-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    sorgente,
+    /for \(const eventName of \["dashboardmodern:states-ready", "dashboardmodern:state-changed"\]\)[\s\S]{0,600}?seedModernSectionVisibility\(\);/,
+  );
+  /* E appena seminate non si riguarda più: questi due eventi passano spesso. */
+  assert.match(sorgente, /if \(state\.treSeminate\) return;/);
+
+  /* E il 🪄 le accende: è la funzione del Config di cui parla la richiesta. */
+  const rilevamento = readFileSync(
+    new URL("../src/sections/entity-autodetect-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(rilevamento, /accendiLeSezioniCheLeggonoLaCasa\(\{ sync: false \}\)/);
 });

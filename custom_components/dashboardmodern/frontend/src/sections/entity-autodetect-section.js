@@ -40,6 +40,7 @@ import { impiantoScelto } from "./energy-section.js";
 import { buildEntityIndex } from "../core/entity-search-index.js";
 import { buildPostings, detectCategories, detectSlots, parseSlotPlan } from "../core/entity-autodetect.js";
 import { allStates, clean, dashboardStore, doc, installStyle, lexicalGlobal, readJson, reloadDashboard, root, t } from "./shared.js";
+import { accendiLeSezioniCheLeggonoLaCasa } from "./beta26-real-device-stability-section.js";
 
 const KEY = "__DASHBOARDMODERN_ENTITY_AUTODETECT__";
 const HOSTED_ENOUGH = 200;
@@ -451,6 +452,14 @@ export async function applyProposal(proposal) {
     for (const [name, ids] of Object.entries(proposal.groups)) groups[name] = ids;
     writeJson("cd_gruppi_extra", groups);
   }
+  /* E le tre sezioni il cui elenco non si scrive — Varchi, Presenza,
+   * Batterie: lo dichiara Home Assistant col `device_class`, e proprio per
+   * questo nascono spente, perche' una plancia appena installata non deve
+   * avere in barra sezioni che nessuno ha chiesto. Questo tasto e' il momento
+   * in cui qualcuno le chiede: si accendono quelle che la casa ha davvero. */
+  try {
+    accendiLeSezioniCheLeggonoLaCasa({ sync: false });
+  } catch (_error) {}
   try {
     root.cdMarkDirty?.();
     root.cdSyncPush?.();

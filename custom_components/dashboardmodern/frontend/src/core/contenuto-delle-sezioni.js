@@ -241,6 +241,41 @@ export function sceltaSullaSezione(sezione, leggi) {
   return false;
 }
 
+/* E le sezioni che si governano da sé.
+ *
+ * Nel magazzino qui sopra non ci sono — la loro voce se la accendono e se la
+ * spengono da sole, e due padroni sulla stessa voce litigherebbero — ma la
+ * loro configurazione è configurazione lo stesso. Senza guardarle, chi ha solo
+ * le sue sezioni, o solo i rifiuti, o solo l'UPS, risultava appena installato:
+ * e allora le tre che leggono la casa gli sparivano aggiornando, che è
+ * esattamente il danno che questa regola esiste per evitare.
+ *
+ * Chi dà una sezione nuova a se stessa scrive anche qui la sua chiave. */
+const CHIAVI_DELLE_SEZIONI_CHE_SI_GOVERNANO = Object.freeze([
+  "cd_allerte",
+  "cd_assist",
+  "cd_calendari",
+  "cd_citofono",
+  "cd_media_player",
+  "cd_rifiuti",
+  "cd_security_doors",
+  "cd_sezioni_mie",
+  "cd_stampanti",
+  "cd_todo",
+  "cd_ups",
+]);
+
+/* Qualcosa scritto, senza chiedere cosa: qui la domanda non è «questa sezione
+ * ha entità dentro» — a quella risponde chi la governa — ma «qualcuno ha mai
+ * messo mano a questa plancia». Una riga qualsiasi basta. `metadata` no: quello
+ * se lo scrive il magazzino anche su una chiave vuota. */
+function qualcosaScritto(valore) {
+  if (Array.isArray(valore)) return valore.length > 0;
+  if (valore && typeof valore === "object")
+    return Object.keys(valore).some((chiave) => chiave !== "metadata");
+  return typeof valore === "string" && valore.trim() !== "";
+}
+
 /**
  * Se questa plancia è già stata configurata da qualcuno.
  *
@@ -257,6 +292,8 @@ export function planciaGiaConfigurata(leggi) {
   if (luci && typeof luci === "object" && Object.keys(luci).length) return true;
   const caselle = leggi("cd_entity_overrides");
   if (caselle && typeof caselle === "object" && Object.values(caselle).some(paresEntita))
+    return true;
+  if (CHIAVI_DELLE_SEZIONI_CHE_SI_GOVERNANO.some((chiave) => qualcosaScritto(leggi(chiave))))
     return true;
   return SEZIONI_CHE_LEGGONO_LA_CASA.some((sezione) => sceltaSullaSezione(sezione, leggi));
 }

@@ -41,6 +41,7 @@ import {
   installStyle,
   onEditorRedraw,
   paginaVisibile,
+  quandoSiCambiaPagina,
   readJson,
   root,
   t,
@@ -367,6 +368,14 @@ export function installLaSogliaDellaPotenza() {
     "dashboardmodern:config-reset",
   ])
     root.addEventListener?.(evento, schedule);
+  /* E al cambio di pagina.
+   *
+   * L'allerta vive solo in Home e fuori si toglie da se'. Il sovraccarico
+   * pero' comincia quando comincia: se comincia mentre si sta in Energia, il
+   * disegno di quel momento la toglie (giustamente), e tornando in Home non
+   * c'e' niente che la rimetta finche' non passa un'altra notizia della casa.
+   * Su un contatore che sta per saltare «finche' non passa» e' troppo. */
+  quandoSiCambiaPagina(schedule);
   schedule();
 }
 

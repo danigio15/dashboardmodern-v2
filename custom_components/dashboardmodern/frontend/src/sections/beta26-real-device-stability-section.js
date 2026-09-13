@@ -50,6 +50,7 @@ const state = (root[KEY] ||= {
   temperatureGridObserved: null,
   temperatureFilterReentrant: false,
   visibilityTimer: 0,
+  treSeminate: false,
   loadsRendering: false,
   editingChild: null,
   popupGroup: "",
@@ -593,6 +594,39 @@ export function ensureConfiguredSectionsVisible({
     writeJsonIfChanged("cd_sections", next, { sync });
     root.cdApplyNavVis?.();
     if (render) root.render?.();
+  }
+  return changed;
+}
+
+/* Le tre che leggono la casa, accese perche' qualcuno l'ha chiesto.
+ *
+ * Nascono spente, e la porta per riaverle e' la loro scheda del Config. Ma la
+ * porta grande e' l'altra — «per questo c'e' la funzione in config che rileva
+ * automaticamente» — e quella non scrive ne' `cd_varchi` ne' `cd_presenza`:
+ * premere il 🪄 e accettarne il riassunto lasciava fuori proprio le tre
+ * sezioni che il rilevamento saprebbe riempire meglio di chiunque.
+ *
+ * Le accende quindi lei, e solo quelle che la casa dichiara davvero: una casa
+ * senza rilevatori non si prende la voce Presenza per aver premuto un tasto. E
+ * una scelta fatta a mano resta sacra anche qui. */
+export function accendiLeSezioniCheLeggonoLaCasa({ sync = true } = {}) {
+  const casa = cosaDichiaraLaCasa();
+  if (!casa) return false;
+  const visibility = readJson("cd_sections", {});
+  const next =
+    visibility && typeof visibility === "object" && !Array.isArray(visibility)
+      ? { ...visibility }
+      : {};
+  const manual = manualVisibilityChoices();
+  let changed = false;
+  for (const chiave of SEZIONI_CHE_LEGGONO_LA_CASA) {
+    if (!casa[chiave] || manual[chiave] === true || next[chiave] === true) continue;
+    next[chiave] = true;
+    changed = true;
+  }
+  if (changed) {
+    writeJsonIfChanged("cd_sections", next, { sync });
+    root.cdApplyNavVis?.();
   }
   return changed;
 }
@@ -1483,6 +1517,28 @@ export function installBeta26RealDeviceStability() {
       ensureConfiguredSectionsVisible({ render: false, spegni: true });
     } catch (_error) {}
   });
+  /* E la semina delle tre che leggono la casa si riprova finche' la casa non
+   * risponde.
+   *
+   * Quelle tre non si seminano al buio: senza stati la casa sembra senza porte
+   * e senza pile anche a chi ne ha cinquanta. Su un avvio lento pero' i due
+   * giri qui sopra passano tutti e due prima che Home Assistant abbia mandato
+   * qualcosa, e allora non si seminava mai piu': le tre chiavi restavano da
+   * scrivere, e da non scritte le tre voci si vedono — cioe' il difetto di
+   * partenza, su una plancia appena installata. Adesso si riguarda quando la
+   * casa parla, e appena seminate non si riguarda piu'. */
+  for (const eventName of ["dashboardmodern:states-ready", "dashboardmodern:state-changed"])
+    root.addEventListener?.(eventName, () => {
+      if (state.treSeminate) return;
+      try {
+        const visibility = readJson("cd_sections", {});
+        if (SEZIONI_CHE_LEGGONO_LA_CASA.every((chiave) => chiave in (visibility || {}))) {
+          state.treSeminate = true;
+          return;
+        }
+        seedModernSectionVisibility();
+      } catch (_error) {}
+    });
   state.installed = true;
   return true;
 }
