@@ -211,6 +211,25 @@ async function boot(page, testInfo) {
 
 /* Dall'editor alla sezione: si chiude la configurazione e si accende la
  * pagina, come fa il dito toccando la voce nella barra. */
+/* La pagina Robot aperta a mano, e poi si aspetta che qualcuno la disegni.
+ *
+ * Il `render()` qui sotto e' scritto con l'opzionale e in questo banco non fa
+ * niente: il modulo Robot sotto quel nome non c'e' — provato con una sonda,
+ * `DashboardModernModules.robot` e' `undefined` mentre la configurazione e'
+ * gia' scritta e completa. A disegnare la card e' il giro normale della
+ * plancia, quando la pagina diventa attiva. La riga resta perche' dove il
+ * modulo c'e' accorcia l'attesa, ma non e' lei a garantire il disegno.
+ *
+ * Percio' l'attesa sta QUI, ed e' larga. Prima stava nella prova, con i dieci
+ * secondi di `toBeVisible`: su un runner carico — otto pezzi in parallelo — non
+ * bastavano, e la prova moriva tre tentativi su tre. Aspettare di piu' non
+ * nasconde niente: se la card non arriva, la prova fallisce come prima, solo
+ * senza accusare il codice al posto della macchina.
+ *
+ * Quello che NON si fa e' insistere col disegno finche' la card compare:
+ * rimetterebbe a posto questa pagina e porterebbe via lo stato a chi, dopo, si
+ * aspetta un disegno solo — la mappa che arriva da uno stato nuovo si perdeva
+ * proprio cosi'. */
 async function apriLaPaginaRobot(page) {
   await page.evaluate(() => {
     const modale = document.getElementById("editor-modal");
@@ -221,7 +240,15 @@ async function apriLaPaginaRobot(page) {
     document.querySelectorAll(".page").forEach((n) => n.classList.remove("active"));
     document.getElementById("page-robot")?.classList.add("active");
     window.DashboardModernModules?.robot?.render?.();
+    /* E si avvisa la plancia che c'e' da riguardare, che e' il modo in cui il
+     * disegno arriva in casa: non c'e' nessun timer che ridisegni questa
+     * pagina da se', e senza avviso puo' restare vuota all'infinito. */
+    window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
   });
+  await page
+    .locator("#page-robot .dm-robot-card")
+    .first()
+    .waitFor({ state: "visible", timeout: 30000 });
 }
 
 test("dal menu delle integrazioni nasce il robot gia' compilato", async ({ page }, testInfo) => {
