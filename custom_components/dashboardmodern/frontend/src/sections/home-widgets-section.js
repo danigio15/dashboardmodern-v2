@@ -24,6 +24,12 @@ import {
   pendingTodoItems,
 } from "../core/todo-model.js";
 import { batterieDiCasa, CHIAVE_BATTERIE, sogliaDelleBatterie } from "../core/batterie-di-casa.js";
+import {
+  FONDO_DELLA_CARTA,
+  GRANA_DELLA_CARTA,
+  OMBRA_DELLA_CARTA,
+  tokenDellaCarta,
+} from "../core/le-vesti-della-carta.js";
 import { createApplianceViewModel, onRunHoldExpiry } from "../core/appliance-view-model.js";
 import { applianceVisualKey, canonicalClimateType } from "../core/device-model.js";
 import { applianceArtwork } from "../core/appliance-artwork.js";
@@ -9198,39 +9204,19 @@ html[data-theme="dark"] :is(#dm-widget-popup,#dm-casa-popup) .dm-widget-detail .
  * su quello di sotto, ombra corta attaccata alla carta e ombra lunga sfumata
  * sotto. E' quello che fa sembrare le tessere appoggiate sulla pagina invece
  * che stampate sopra. */
-:is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)){
-  --dm-vetrino:rgba(255,255,255,.72);
-  --dm-velo:9%;
-  --dm-cuscino:15%;
-  --dm-grana:.5;
-  --dm-alone:.26}
-html[data-theme="dark"] :is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)),
-body.dark-theme :is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)){
-  --dm-vetrino:rgba(255,255,255,.06);
-  --dm-velo:14%;
-  --dm-cuscino:22%;
-  --dm-grana:.34;
-  --dm-alone:.55}
+${tokenDellaCarta(":is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup))")}
 :is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-widgets-grid{
   display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
 :is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-tile{
   position:relative;overflow:hidden;display:flex;flex-direction:column;gap:10px;
   min-height:118px;padding:15px 16px 17px;border:0;border-radius:22px;
-  background:linear-gradient(180deg,var(--card-bg,#fff),
-    color-mix(in srgb,var(--card-bg,#fff) 92%,var(--bg-sculpted,#eef2f7)));
+  background:${FONDO_DELLA_CARTA};
   color:var(--text,#0f172a);font:inherit;text-align:left;cursor:pointer;
-  box-shadow:
-    inset 0 1px 0 var(--dm-vetrino),
-    inset 0 0 0 1px color-mix(in srgb,var(--text,#0f172a) 7%,transparent),
-    inset 0 -1px 0 color-mix(in srgb,var(--text,#0f172a) 6%,transparent),
-    0 1px 1px rgba(15,23,42,.05),0 14px 28px -18px rgba(15,23,42,.55);
+  box-shadow:${OMBRA_DELLA_CARTA};
   transition:transform .18s cubic-bezier(.16,1,.3,1),box-shadow .2s ease,background .45s ease}
 /* La grana: la carta vera non e' mai perfettamente liscia, e senza quel velo
    le tessere sembrano vetro stampato. */
-:is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-tile::before{
-  content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E");
-  background-size:140px 140px;mix-blend-mode:soft-light;opacity:var(--dm-grana)}
+:is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-tile::before{${GRANA_DELLA_CARTA}}
 /* Accesa: il velo del suo colore, il bordo che si scalda e l'ombra lunga che
    prende la tinta della sezione. */
 :is(#dm-widgets,:is(#dm-widget-popup,#dm-casa-popup)) .dm-tile[data-acceso="true"],

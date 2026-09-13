@@ -1233,8 +1233,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 354 con le zone e gli ingressi della centrale (#511): un file solo, perche'
   // le righe non sono nuove — sono quelle della Presenza e dei Varchi — e qui
   // si decide soltanto quali appartengono a quest'area.
+  // 355 con le vesti della carta: un file solo, e NON e' un file in piu' di
+  // codice — e' un file in meno di ricetta. Il rilievo di una card (i due fili,
+  // l'ombra corta, quella lunga, la grana) stava scritto in un posto solo, le
+  // tessere; il meteo sceso in pagina se n'era vestito un altro, ed e' uscito
+  // «piatto» dove le altre erano «in rilievo». Due ricette per la stessa cosa
+  // danno due aspetti diversi, sempre. Adesso e' una, e la leggono tutti.
   assert.ok(
-    relative.length <= 354,
+    relative.length <= 355,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
