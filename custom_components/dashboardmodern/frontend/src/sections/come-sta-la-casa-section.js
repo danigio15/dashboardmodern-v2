@@ -49,6 +49,7 @@ import {
   root,
   t,
   writeJsonIfChanged,
+  siComanda,
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_COME_STA_LA_CASA__";
@@ -588,11 +589,22 @@ function rigaDellElenco(voce, states) {
     pausa: t("Pausa", "Pause"),
     ferma: t("Ferma", "Stop"),
   };
-  const tasto = comando
-    ? `<button type="button" class="dm-casa-spegni" data-dm-casa-spegni="${esc(entita)}">${esc(
-        parole[comando.parola] || parole.spegni,
-      )}</button>`
-    : "";
+  /* Il lucchetto vale anche qui (#539).
+   *
+   * «Ho bloccato una entita' luci che non si deve spegnere. Nel widget basso
+   * premendo su LUCI mi rileva accesa e non me la fa spegnere, mentre sotto la
+   * barra meteo, sul riassunto di casa, quell'entita' mi mette il pulsante
+   * spegni e la spengo.»
+   *
+   * Un blocco che vale in un posto e non nell'altro non e' un blocco: e' una
+   * cosa in piu' da ricordarsi. La riga resta — vedere che e' accesa e' il
+   * motivo per cui la si tiene in elenco — e sparisce solo il tasto. */
+  const tasto =
+    comando && siComanda(entita)
+      ? `<button type="button" class="dm-casa-spegni" data-dm-casa-spegni="${esc(entita)}">${esc(
+          parole[comando.parola] || parole.spegni,
+        )}</button>`
+      : "";
   return `<div class="detail-row dm-casa-voce">
       <div class="d-info">
         <div class="d-name">${esc(nome)}</div>
@@ -681,6 +693,10 @@ export function chiudiLElenco() {
  * spenta — e non appena la si tocca: dire «spenta» prima che lo sia vorrebbe
  * dire dire una cosa che magari non succede. */
 function spegni(entita) {
+  /* Il tasto non c'e', ma la regola non sta nel tasto: un comando che parte
+   * lo stesso — da una scorciatoia, da un doppio disegno rimasto in pagina —
+   * va rifiutato qui. E' la stessa scelta di `lightCommand`. */
+  if (!siComanda(entita)) return false;
   const comando = comandoPerSpegnere(entita, (allStates() || {})[entita]);
   if (!comando || typeof root.dmCallHaService !== "function") return false;
   try {
