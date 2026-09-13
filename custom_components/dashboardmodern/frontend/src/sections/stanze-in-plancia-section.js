@@ -249,6 +249,36 @@ function stile() {
     flex:0 0 auto;padding:4px 9px;border-radius:999px;
     font-size:10.5px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;
     color:#b45309;background:color-mix(in srgb,#f59e0b 20%,transparent)}
+
+  /* Due colonne sul telefono (#524).
+   *
+   * «Would it be possible to view the cards in two columns on smartphones? To
+   * save space.» Una stanza per riga, su uno schermo da sei pollici, vuol dire
+   * scorrere mezza pagina per leggere sei nomi — e il blocco delle stanze
+   * serve a dare un colpo d'occhio, non una lista.
+   *
+   * Non bastava abbassare il minimo della griglia: con auto-fit due colonne
+   * ci stanno solo se due minimi piu' il vuoto in mezzo entrano nella pagina,
+   * e su un telefono da 390 pixel, tolti i margini, non entravano mai. Qui le
+   * colonne si dichiarano: due, e larghe uguali.
+   *
+   * La card si stringe con loro — il disegno piu' piccolo, meno aria ai lati,
+   * la pastiglia degli accesi sotto invece che di fianco — perche' a meta'
+   * larghezza, di fianco, resterebbe un nome tagliato dopo tre lettere. */
+  @media (max-width:560px){
+    #${BLOCCO_ID} .dm-stanze-plancia-griglia{
+      grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .dm-stanza-plancia{
+      flex-wrap:wrap;align-items:flex-start;gap:9px;padding:11px 11px}
+    .dm-stanza-plancia-ic{width:34px;height:34px;border-radius:12px;font-size:18px}
+    .dm-stanza-plancia-ic svg{width:21px;height:21px}
+    .dm-stanza-plancia-testo b{font-size:12.5px}
+    .dm-stanza-plancia-testo small{
+      font-size:11px;white-space:normal;overflow-wrap:anywhere}
+    /* La pastiglia va a capo sotto il nome: di fianco mangerebbe meta' della
+       colonna, e il nome della stanza conta piu' del conto. */
+    .dm-stanza-plancia-accese{width:100%;text-align:center;padding:3px 8px}
+  }
   `,
   );
 }
