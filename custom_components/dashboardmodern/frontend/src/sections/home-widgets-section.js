@@ -7440,17 +7440,23 @@ function apriGliAvvisiAppenaAccesi(models) {
 export function renderHomeWidgets() {
   const states = allStates();
   const tutti = modelliDelleTessere(states);
+  const models = applyWidgetPreferences(tutti);
   /* La riga sotto il meteo (#356) si disegna qui, coi modelli appena fatti e
-   * prima di ogni scorciatoia: le tessere possono non esserci — plancia
-   * appena installata, tutte nascoste — e la pastiglia della posta deve
-   * comparire lo stesso. Un secondo giro sugli stati per contare le stesse
-   * cose sarebbe il doppio del lavoro per la stessa risposta. */
+   * prima di ogni scorciatoia: la griglia puo' non esserci — una plancia
+   * appena installata, o chi l'ha spenta tutta — e la riga deve comparire lo
+   * stesso. Un secondo giro sugli stati per contare le stesse cose sarebbe il
+   * doppio del lavoro per la stessa risposta.
+   *
+   * Ma i modelli sono quelli SCELTI, non tutti quelli possibili: prima
+   * arrivavano qui prima di passare dalla scheda Widget, e una tessera spenta
+   * li' continuava a comparire nella riga. «I varchi li ho anche deflaggati
+   * dai widget» e si vedevano lo stesso (#538). Spegnere una tessera vuol
+   * dire non vederla — ne' in griglia ne' nella riga. */
   try {
-    disegnaComeStaLaCasa(tutti, states);
+    disegnaComeStaLaCasa(models, states);
   } catch (error) {
     root.console?.warn?.("[DashboardModern] barra di casa", error);
   }
-  const models = applyWidgetPreferences(tutti);
   apriGliAvvisiAppenaAccesi(models);
   const host = doc?.getElementById?.("dm-widgets");
   if (!models.length) {
