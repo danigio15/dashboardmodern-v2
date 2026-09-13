@@ -34,7 +34,11 @@ import { comandiVicini, elencoComandi, genereDelComando } from "../core/comandi-
 import { elencoLetture, eUnaLettura, lettureVicine } from "../core/letture-accanto.js";
 import { elencoNascoste } from "../core/le-voci-nascoste.js";
 import { nomeAccantoAlDispositivo } from "../core/nome-accanto-al-dispositivo.js";
-import { apriMenuIntegrazioni, entitaDelDispositivo } from "./appliance-integration-section.js";
+import {
+  EVENTO_CATALOGO,
+  apriMenuIntegrazioni,
+  entitaDelDispositivo,
+} from "./appliance-integration-section.js";
 import { CAMPI_SCELTI } from "../core/energy-loads-config.js";
 import {
   eDiUnAltroApparecchio,
@@ -854,6 +858,26 @@ function wireNascoste(modal, form) {
     nascosto.value = [...nascoste].join(",");
     disegnaNascoste(modal, form);
   });
+  /* Il catalogo arriva dopo, e l'elenco si rifa'.
+   *
+   * `entitaDelDispositivo` con la cache fredda mette in moto una lettura e
+   * intanto risponde `null`: il primo disegno vede solo lo scatto vecchio. Il
+   * catalogo vero arriva poco dopo con questo evento — e qui nessuno lo
+   * ascoltava. L'entita' pubblicata dall'integrazione dopo il collegamento era
+   * l'unica che non si poteva nascondere finche' non si chiudeva e riapriva la
+   * scheda.
+   *
+   * L'ascolto se ne va con la finestra: quando il nodo non e' piu' attaccato
+   * al documento la scheda e' chiusa, e restare in ascolto vorrebbe dire
+   * disegnare dentro una finestra che non c'e' piu'. */
+  const alCatalogo = () => {
+    if (!modal.isConnected) {
+      globalThis.removeEventListener?.(EVENTO_CATALOGO, alCatalogo);
+      return;
+    }
+    disegnaNascoste(modal, form);
+  };
+  globalThis.addEventListener?.(EVENTO_CATALOGO, alCatalogo);
   disegnaNascoste(modal, form);
 }
 

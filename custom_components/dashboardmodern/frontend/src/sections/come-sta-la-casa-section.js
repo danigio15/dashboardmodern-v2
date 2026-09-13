@@ -550,11 +550,12 @@ function statoDellaVoce(entity, states) {
 function rigaDellElenco(voce, states) {
   const entita = clean(voce?.entity);
   const nome = clean(voce?.name) || entita;
-  const comando = comandoPerSpegnere(entita);
+  const comando = comandoPerSpegnere(entita, states?.[entita]);
   const parole = {
     spegni: t("Spegni", "Turn off"),
     chiudi: t("Chiudi", "Close"),
     pausa: t("Pausa", "Pause"),
+    ferma: t("Ferma", "Stop"),
   };
   const tasto = comando
     ? `<button type="button" class="dm-casa-spegni" data-dm-casa-spegni="${esc(entita)}">${esc(
@@ -649,7 +650,7 @@ export function chiudiLElenco() {
  * spenta — e non appena la si tocca: dire «spenta» prima che lo sia vorrebbe
  * dire dire una cosa che magari non succede. */
 function spegni(entita) {
-  const comando = comandoPerSpegnere(entita);
+  const comando = comandoPerSpegnere(entita, (allStates() || {})[entita]);
   if (!comando || typeof root.dmCallHaService !== "function") return false;
   try {
     root.navigator?.vibrate?.(10);

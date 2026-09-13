@@ -2486,6 +2486,7 @@ export default Object.freeze({
   "Tap to change the mode": "タップしてモードを変更",
   "Tap to drop it from the chart": "タップしてグラフから外します",
   "Tap to open": "タップで開く",
+  "Tap to open Energy": "タップしてエネルギーを開く",
   "Tap to put it back on the chart": "タップしてグラフに戻します",
   "Tap to rename": "タップで名前を変更",
   "Tap to turn on · cooling 26°C · auto fan": "タップでオン · 冷房 26°C · 風量自動",

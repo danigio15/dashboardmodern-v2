@@ -54,6 +54,8 @@ const state = (root[KEY] ||= {
    * diversi nella stessa card. */
   chiestePer: "",
   inVolo: false,
+  /* Il tempo che aspetta di riprovare, quando una domanda non e' arrivata. */
+  riprova: 0,
 });
 
 /* Mezz'ora fra una domanda e l'altra: le previsioni del giorno cambiano due
@@ -118,6 +120,22 @@ function chiediLePrevisioni() {
        * secondi dopo sarebbe mezz'ora buttata. */
       state.previsioni = [];
       state.chieste = Date.now() - RIPOSO + RIPROVA;
+      /* E la riprova si PROGRAMMA, non si aspetta.
+       *
+       * Qui si spostava solo il momento a partire dal quale una domanda nuova
+       * sarebbe stata lecita, e poi si stava a vedere: la domanda la rifaceva
+       * il prossimo disegno della card, cioe' la prossima notizia della casa.
+       * In una casa tranquilla quella notizia puo' non arrivare, e il minuto
+       * promesso qui sopra diventava «quando capita». Un'ora di card senza
+       * previsioni per una presa che si e' aperta due secondi dopo.
+       *
+       * Il tempo lo tiene chi l'ha promesso. Uno solo alla volta: se la
+       * riprova cade mentre un'altra e' gia' in attesa, non se ne accumulano. */
+      if (!state.riprova)
+        state.riprova = setTimeout(() => {
+          state.riprova = 0;
+          chiediLePrevisioni();
+        }, RIPROVA);
     })
     .finally(() => {
       state.inVolo = false;
@@ -132,6 +150,18 @@ function scesoInPagina(riga) {
 }
 
 const gradi = (valore) => (valore == null ? "" : `${Math.round(valore)}°`);
+
+/* Un numero fra gli attributi, oppure niente.
+ *
+ * `Number(null)` fa zero, e zero passa il controllo di finitezza: un meteo che
+ * la pressione non la pubblica — o la pubblica vuota — si vedeva scritto
+ * «Pressione 0 hPa», che non e' una misura mancante, e' una misura sbagliata.
+ * Il vuoto si riconosce prima di convertire, come fa `gradi` qui sopra. */
+function misura(valore) {
+  if (valore == null || valore === "") return null;
+  const numero = Number(valore);
+  return Number.isFinite(numero) ? numero : null;
+}
 
 /* Il nome corto del giorno, nella lingua della plancia: lo scrive `Intl`,
  * perche' tredici lingue accorciano «martedì» in tredici modi. */
@@ -196,11 +226,11 @@ function misureInPiu(riquadro) {
   if (!destra) return;
   const states = allStates() || {};
   const meteo = states[entitaDelMeteo(states)];
-  const pressione = Number(meteo?.attributes?.pressure);
+  const pressione = misura(meteo?.attributes?.pressure);
   const unita = clean(meteo?.attributes?.pressure_unit) || "hPa";
   const tramonto = Date.parse(clean(states["sun.sun"]?.attributes?.next_setting));
   const voci = [];
-  if (Number.isFinite(pressione))
+  if (pressione !== null)
     voci.push(["pressione", "🧭", t("Pressione", "Pressure"), `${Math.round(pressione)} ${unita}`]);
   if (Number.isFinite(tramonto)) {
     let ora = "";

@@ -70,7 +70,14 @@ import {
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_AUTO_TERMICA__";
-const state = (root[KEY] ||= { installed: false, frame: 0, firma: "" });
+const state = (root[KEY] ||= {
+  installed: false,
+  frame: 0,
+  firma: "",
+  /* La capacita' scritta mentre la vettura non esiste ancora: si tiene qui
+   * finche' non c'e' un profilo a cui attaccarla. Vedi `scriviLaCapacita`. */
+  capacitaInBozza: "",
+});
 
 const ARC_RADIUS = 50;
 const ARC_LENGTH = 2 * Math.PI * ARC_RADIUS;
@@ -424,13 +431,28 @@ function sincronizzaCapacita(casella) {
  * sola e il tempo di fine carica restava sui settanta assunti.
  */
 export function scriviLaCapacita(valore) {
-  const { auto } = diChiParlaLaTendina();
+  const { auto, casa } = diChiParlaLaTendina();
   const scritto = clean(valore).replace(",", ".");
   const numero = Number(scritto);
   /* Un numero che non sta in piedi non si salva e non cancella quello che
    * c'era: chi sta ancora scrivendo «4» di «48» non deve perdere niente. */
   const nuovo = scritto === "" ? "" : Number.isFinite(numero) && numero > 0 ? scritto : null;
   if (nuovo === null) return false;
+  if (!casa && !auto) {
+    /* La bozza: una vettura che non esiste ancora.
+     *
+     * Qui si finiva nel ramo «di casa», perche' guardava solo `auto`: la
+     * capacita' della macchina che stai creando veniva scritta nella casella
+     * della PLANCIA — quella che vale per tutte — e la vettura nuova nasceva
+     * senza. Con due auto in casa, il numero della seconda diventava il
+     * ripiego della prima.
+     *
+     * Si tiene da parte, e si attacca al profilo appena quel profilo c'e':
+     * `posaLaCapacitaDellaBozza` lo fa al primo disegno dopo il salvataggio.
+     * E' la stessa strada del motore, che alla bozza non scrive e aspetta. */
+    state.capacitaInBozza = nuovo;
+    return true;
+  }
   if (!auto) {
     writeJsonIfChanged(CAPACITA_DI_CASA_KEY, nuovo);
     return true;
@@ -640,6 +662,9 @@ function quadroMarkup(lettura, tipo) {
 }
 
 function dipingi() {
+  /* Prima di disegnare: se una capacita' aspettava la sua vettura, adesso
+   * potrebbe esserci. */
+  posaLaCapacitaDellaBozza();
   const page = doc?.getElementById?.("page-ev");
   const hero = doc?.getElementById?.("lm-hero-card");
   if (!page || !hero) return;
@@ -709,6 +734,23 @@ function schedule() {
   };
   state.frame = root.requestAnimationFrame?.(giro) || 0;
   if (!state.frame) giro();
+}
+
+/* La capacita' tenuta da parte trova la sua vettura.
+ *
+ * Si chiama a ogni disegno: costa una lettura, e solo quando c'e' davvero
+ * qualcosa in attesa. Appena la bozza si e' fatta profilo — `editedVehicle()`
+ * risponde e ha un identificativo — il numero ci si posa sopra e la mano si
+ * svuota. Se la bozza viene abbandonata senza salvare, il numero se ne va con
+ * la scheda: non e' mai stato di nessuno. */
+function posaLaCapacitaDellaBozza() {
+  const inAttesa = clean(state.capacitaInBozza);
+  if (!inAttesa || bozzaAperta()) return;
+  state.capacitaInBozza = "";
+  const auto = editedVehicle();
+  const uid = clean(auto?.[VEHICLE_KEY_FIELD]);
+  if (!uid || clean(auto[VEHICLE_CAPACITY_FIELD])) return;
+  salvaAuto(updateVehicle(profiles(), uid, { [VEHICLE_CAPACITY_FIELD]: inAttesa }));
 }
 
 export function renderAutoTermica() {

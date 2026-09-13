@@ -2486,6 +2486,7 @@ export default Object.freeze({
   "Tap to change the mode": "Modu değiştirmek için dokun",
   "Tap to drop it from the chart": "Grafikten çıkarmak için dokunun",
   "Tap to open": "Açmak için dokun",
+  "Tap to open Energy": "Enerji'yi açmak için dokunun",
   "Tap to put it back on the chart": "Grafiğe geri koymak için dokunun",
   "Tap to rename": "Adını değiştirmek için dokunun",
   "Tap to turn on · cooling 26°C · auto fan": "Açmak için dokun · soğutma 26 °C · fan oto",

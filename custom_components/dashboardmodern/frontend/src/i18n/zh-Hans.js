@@ -2486,6 +2486,7 @@ export default Object.freeze({
   "Tap to change the mode": "点一下切换模式",
   "Tap to drop it from the chart": "点按以从图表中移除",
   "Tap to open": "点按开门",
+  "Tap to open Energy": "点按打开能源",
   "Tap to put it back on the chart": "点按以放回图表",
   "Tap to rename": "点一下改名",
   "Tap to turn on · cooling 26°C · auto fan": "点按开启 · 制冷 26°C · 自动风速",

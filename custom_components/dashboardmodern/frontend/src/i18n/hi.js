@@ -2486,6 +2486,7 @@ export default Object.freeze({
   "Tap to change the mode": "मोड बदलने के लिए छुएँ",
   "Tap to drop it from the chart": "चार्ट से हटाने के लिए टैप करें",
   "Tap to open": "खोलने के लिए टैप करें",
+  "Tap to open Energy": "ऊर्जा खोलने के लिए टैप करें",
   "Tap to put it back on the chart": "चार्ट में वापस लाने के लिए टैप करें",
   "Tap to rename": "नाम बदलने के लिए टैप करें",
   "Tap to turn on · cooling 26°C · auto fan": "चालू करने के लिए टैप करें · ठंडक 26°C · पंखा स्वतः",

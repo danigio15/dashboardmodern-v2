@@ -17,6 +17,7 @@
 import {
   LIVELLO_AMBRA,
   LIVELLO_QUIETE,
+  LIVELLO_ROSSA,
   SOGLIA_POTENZA_KEY,
   SORGENTE_CASA,
   SORGENTE_RETE,
@@ -25,6 +26,12 @@ import {
   sogliaScritta,
 } from "../core/la-soglia-della-potenza.js";
 import { intlLocale } from "../core/i18n.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
+import {
+  FONDO_DELLA_CARTA,
+  OMBRA_DELLA_CARTA,
+  tokenDellaCarta,
+} from "../core/le-vesti-della-carta.js";
 import { formatWatts as wattScritti } from "../core/subload-popup-model.js";
 import { lettureDiCasa, renderHomeWidgets } from "./home-widgets-section.js";
 import {
@@ -226,12 +233,87 @@ function ensureStriscia() {
   if (striscia.textContent !== testo) striscia.textContent = testo;
 }
 
+/* ── l'allerta in Home, quando il rosso e' rosso davvero ──────────────── */
+
+/* Il numero che salta non e' una didascalia.
+ *
+ * La soglia colorava la tessera dell'energia e scriveva una striscia nella
+ * pagina Energia. Ma chi apre la plancia guarda la Home, e in Home il
+ * sovraccarico era una tessera arancione fra le altre e una riga di testo che
+ * scorre: si vede se la si cerca. Un contatore che sta per saltare non e' una
+ * cosa da cercare.
+ *
+ * Quindi in Home, e SOLO sul rosso — l'ambra e' un «occhio», il rosso e'
+ * «adesso salta» — sopra ogni altra cosa compare un riquadro che si vede da
+ * lontano: il disegno del nostro catalogo, la parola, i due numeri grandi, e
+ * un alone che respira. Si tocca e porta all'Energia, dove c'e' il resto.
+ *
+ * Non ha un tasto per chiuderla, ed e' voluto: se ne va da sola quando il
+ * carico rientra, che e' l'unico momento in cui non serve piu'. Una chiusura a
+ * mano su una cosa che dura pochi minuti vorrebbe dire nasconderla e
+ * dimenticarsene.
+ */
+const ID_ALLERTA = "dm-soglia-allerta";
+
+function laHome() {
+  const pagina = doc?.getElementById?.("page-home");
+  return pagina?.classList?.contains("active") ? pagina : null;
+}
+
+function ensureAllertaInHome() {
+  const pagina = laHome();
+  const gia = doc?.getElementById?.(ID_ALLERTA);
+  if (!pagina) {
+    /* Fuori dalla Home non si tiene in piedi: la si rifa' rientrando, e
+       intanto non resta appesa a una pagina che nessuno guarda. */
+    gia?.remove();
+    return;
+  }
+  const soglia = sogliaDiCasa();
+  if (!sogliaScritta(soglia)) {
+    gia?.remove();
+    return;
+  }
+  const verdetto = livelloDellaPotenza(soglia, lettureDiCasa());
+  if (verdetto.livello !== LIVELLO_ROSSA) {
+    gia?.remove();
+    return;
+  }
+  const allerta = gia || doc.createElement("button");
+  if (!gia) {
+    allerta.id = ID_ALLERTA;
+    allerta.type = "button";
+    allerta.className = "dm-soglia-allerta";
+    allerta.addEventListener("click", () => {
+      try {
+        root.cdGoTo?.("energy") || doc.querySelector('.tab[data-tab="energy"]')?.click();
+      } catch (_errore) {}
+    });
+  }
+  const dove = nomeDellaSorgente(verdetto.sorgente);
+  const misura = `${formatWatts(verdetto.watt)} / ${formatWatts(verdetto.limite)}`;
+  const firma = `${dove}|${misura}`;
+  if (allerta.dataset.firma !== firma) {
+    allerta.dataset.firma = firma;
+    allerta.innerHTML = `<span class="dm-soglia-allerta-ic">${disegnoDelCatalogo("energia", 40)}</span>
+      <span class="dm-soglia-allerta-testo">
+        <strong>${esc(t("Sovraccarico", "Overload"))} · ${esc(dove)}</strong>
+        <b>${esc(misura)}</b>
+        <small>${esc(t("Tocca per aprire l'Energia", "Tap to open Energy"))}</small>
+      </span>`;
+  }
+  /* Sempre per prima, sopra anche le pastiglie: e' l'unica cosa della pagina
+     che non puo' aspettare. */
+  if (pagina.firstElementChild !== allerta) pagina.prepend(allerta);
+}
+
 /* ─────────────────────────────────── giro ───────────────────────────────── */
 
 function repaint() {
   state.frame = 0;
   ensureScheda();
   ensureStriscia();
+  ensureAllertaInHome();
 }
 
 function schedule() {
@@ -320,6 +402,36 @@ function installStyles() {
       .dm-soglia-striscia[data-livello="rossa"]{
         background:color-mix(in srgb,#dc2626 16%,var(--card-bg,#fff));
         color:#b91c1c;box-shadow:inset 0 0 0 1px color-mix(in srgb,#dc2626 45%,transparent)}
+
+      /* L'allerta in Home: le vesti delle altre card — cosi' appartiene alla
+         pagina invece di esserci appiccicata sopra — piu' il rosso e un alone
+         che respira. */
+      ${tokenDellaCarta("body #page-home > .dm-soglia-allerta")}
+      #page-home > .dm-soglia-allerta{
+        display:flex;align-items:center;gap:14px;width:100%;
+        margin:0 0 14px;padding:14px 16px;border:0;border-radius:22px;
+        text-align:left;cursor:pointer;font:inherit;color:#b91c1c;
+        background:${FONDO_DELLA_CARTA};
+        box-shadow:${OMBRA_DELLA_CARTA},0 0 0 1.5px color-mix(in srgb,#dc2626 55%,transparent);
+        animation:dm-soglia-respiro 2.4s ease-in-out infinite}
+      #page-home > .dm-soglia-allerta:active{transform:scale(.99)}
+      .dm-soglia-allerta-ic{
+        flex:0 0 auto;display:grid;place-items:center;width:44px;height:44px;border-radius:14px;
+        background:color-mix(in srgb,#dc2626 14%,transparent)}
+      .dm-soglia-allerta-ic svg{display:block;width:28px;height:28px}
+      .dm-soglia-allerta-testo{display:grid;gap:2px;min-width:0}
+      .dm-soglia-allerta-testo strong{
+        font-size:11px;font-weight:900;letter-spacing:.09em;text-transform:uppercase}
+      .dm-soglia-allerta-testo b{font-size:21px;font-weight:900;line-height:1.1;
+        font-variant-numeric:tabular-nums}
+      .dm-soglia-allerta-testo small{
+        font-size:11px;font-weight:700;color:var(--text-dim,#64748b)}
+      @keyframes dm-soglia-respiro{
+        0%,100%{box-shadow:${OMBRA_DELLA_CARTA},0 0 0 1.5px color-mix(in srgb,#dc2626 55%,transparent)}
+        50%{box-shadow:${OMBRA_DELLA_CARTA},0 0 0 1.5px color-mix(in srgb,#dc2626 55%,transparent),
+          0 0 0 7px color-mix(in srgb,#dc2626 12%,transparent)}}
+      @media(prefers-reduced-motion:reduce){
+        #page-home > .dm-soglia-allerta{animation:none}}
     `,
   );
 }

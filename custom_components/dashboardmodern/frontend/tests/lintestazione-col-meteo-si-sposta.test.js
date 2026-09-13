@@ -114,9 +114,18 @@ test("chi mette in fila i blocchi sa che il meteo e' uno di loro", () => {
   assert.ok(haOggettoWidget("meteo"), "il blocco del meteo deve avere il suo oggetto");
   /* Alla freccia il riquadro cambia casa PRIMA che si rimetta in fila: dopo,
    * sarebbe una fila con un blocco in meno, e lo si vedrebbe muoversi solo al
-   * prossimo giro di stati. */
+   * prossimo giro di stati.
+   *
+   * E con lui la TESTATA, che mancava: la freccia salvava l'ordine nuovo e
+   * metteva in fila mentre la testata era ancora sopra la pagina, cioe' fuori
+   * dai gruppi da ordinare. Sullo schermo non si muoveva niente finche' non
+   * passava di li' un evento qualunque. Sono le stesse due righe del giro in
+   * coda, nello stesso ordine. */
   assert.match(
     sorgente,
-    /writeJsonIfChanged\(CHIAVE_ORDINE_BLOCCHI, prossima\);[\s\S]{0,500}?rigaDellaTestata\(\);\s*\n\s*applicaLOrdineDeiBlocchi\(\);/,
+    /writeJsonIfChanged\(CHIAVE_ORDINE_BLOCCHI, prossima\);[\s\S]{0,800}?rigaDellaTestata\(\);[\s\S]{0,800}?sistemaLaTestata\(\);\s*\n\s*applicaLOrdineDeiBlocchi\(\);/,
   );
+  /* E la fila salvata dev'essere una che il documento sa mostrare: il meteo,
+   * finche' e' figlio della testata, non puo' disegnarsi prima di lei. */
+  assert.match(sorgente, /const prossima = ordinePossibile\(mossa\);/);
 });

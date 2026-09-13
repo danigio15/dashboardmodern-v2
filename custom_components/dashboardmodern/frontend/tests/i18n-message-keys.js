@@ -2950,6 +2950,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Tap to change the mode",
   "Tap to drop it from the chart",
   "Tap to open",
+  "Tap to open Energy",
   "Tap to put it back on the chart",
   "Tap to rename",
   "tap to say you have collected it",

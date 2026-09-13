@@ -42,6 +42,7 @@ import {
   bricioleDellaSezione,
   fraseDellaTessera,
   parolaDelVerdetto,
+  tonoPiuSerio,
   verdettoDellaTessera,
 } from "../core/racconto-tessera.js";
 import { analisiDellaSezione } from "../core/analisi-sezione.js";
@@ -6836,7 +6837,9 @@ function verdettoEFrase(widget) {
     locale?.(),
   );
   const verdetto = verdettoDellaTessera(widget, t);
-  const tono = lettura?.tono || verdetto.tono;
+  /* Il piu' serio dei due, non l'ultimo che parla: il motore puo' alzare il
+   * verdetto, mai abbassarlo. Vedi `tonoPiuSerio`. */
+  const tono = tonoPiuSerio(verdetto.tono, lettura?.tono || verdetto.tono);
   const parola = tono === verdetto.tono ? verdetto.testo : parolaDelVerdetto(tono, t);
   const misura = clean(widget.value);
   const nota = clean(widget.caption);

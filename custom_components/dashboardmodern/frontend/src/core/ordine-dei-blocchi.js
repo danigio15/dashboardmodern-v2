@@ -115,6 +115,34 @@ export function ordineDeiBlocchi(salvato) {
 const SOPRA_LA_PAGINA = [BLOCCO_INTESTAZIONE, BLOCCO_DEL_METEO];
 
 /**
+ * Un ordine che il documento sa mostrare davvero.
+ *
+ * Il riquadro del meteo, finche' resta sopra la pagina, e' FIGLIO della
+ * testata: un figlio non puo' disegnarsi prima del padre, e il foglio della
+ * testata lo mette comunque dopo il menu. Una fila come «meteo, intestazione,
+ * persone» e' quindi una fila che si puo' scrivere e non si puo' vedere —
+ * premere la freccia su del meteo salvava quell'ordine e sullo schermo non
+ * succedeva niente.
+ *
+ * Qui quella fila torna quella possibile: il meteo dopo la testata. Vale solo
+ * quando fra i due non c'e' niente della PAGINA — se c'e', vuol dire che la
+ * testata e' scesa, il meteo e' un blocco come gli altri e l'ordine fra loro
+ * e' vero.
+ */
+export function ordinePossibile(fila) {
+  const elenco = Array.isArray(fila) ? fila : [];
+  const meteo = elenco.indexOf(BLOCCO_DEL_METEO);
+  const testata = elenco.indexOf(BLOCCO_INTESTAZIONE);
+  if (meteo < 0 || testata < 0 || meteo > testata) return elenco;
+  const scesa = elenco.slice(meteo + 1, testata).some((nome) => !SOPRA_LA_PAGINA.includes(nome));
+  if (scesa) return elenco;
+  const rimessa = [...elenco];
+  rimessa.splice(meteo, 1);
+  rimessa.splice(testata, 0, BLOCCO_DEL_METEO);
+  return rimessa;
+}
+
+/**
  * Questo blocco e' rimasto sopra la pagina?
  *
  * Non basta chiedere «e' il primo»: sopra la pagina ce ne stanno due, e il

@@ -2486,6 +2486,7 @@ export default Object.freeze({
   "Tap to change the mode": "탭해서 모드 변경",
   "Tap to drop it from the chart": "탭하여 차트에서 제외",
   "Tap to open": "탭하여 열기",
+  "Tap to open Energy": "탭하여 에너지 열기",
   "Tap to put it back on the chart": "탭하여 차트에 다시 표시",
   "Tap to rename": "눌러서 이름 바꾸기",
   "Tap to turn on · cooling 26°C · auto fan": "탭하면 켜집니다 · 냉방 26°C · 풍량 자동",

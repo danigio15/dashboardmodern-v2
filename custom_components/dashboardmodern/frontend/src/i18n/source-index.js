@@ -3291,6 +3291,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Tocca la ventola": "Tap the fan",
   "Tocca per accendere · raffrescamento 26°C · ventola auto": "Tap to turn on · cooling 26°C · auto fan",
   "Tocca per aprire": "Tap to open",
+  "Tocca per aprire l'Energia": "Tap to open Energy",
   "Tocca per cambiare modalità": "Tap to change the mode",
   "tocca per dire che l'hai ritirata": "tap to say you have collected it",
   "Tocca per rimetterla nel grafico": "Tap to put it back on the chart",

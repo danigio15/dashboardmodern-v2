@@ -2486,6 +2486,7 @@ export default Object.freeze({
   "Tap to change the mode": "المس لتغيير الوضع",
   "Tap to drop it from the chart": "انقر لإزالته من الرسم البياني",
   "Tap to open": "المس للفتح",
+  "Tap to open Energy": "المس لفتح الطاقة",
   "Tap to put it back on the chart": "انقر لإعادته إلى الرسم البياني",
   "Tap to rename": "انقر لإعادة التسمية",
   "Tap to turn on · cooling 26°C · auto fan": "انقر للتشغيل · تبريد 26°م · مروحة تلقائية",

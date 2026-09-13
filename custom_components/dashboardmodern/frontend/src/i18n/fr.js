@@ -2486,6 +2486,7 @@ export default Object.freeze({
   "Tap to change the mode": "Touche pour changer de mode",
   "Tap to drop it from the chart": "Touchez pour la retirer du graphique",
   "Tap to open": "Appuyer pour ouvrir",
+  "Tap to open Energy": "Appuyer pour ouvrir Énergie",
   "Tap to put it back on the chart": "Touchez pour la remettre sur le graphique",
   "Tap to rename": "Touchez pour renommer",
   "Tap to turn on · cooling 26°C · auto fan": "Touche pour allumer · froid 26 °C · ventilateur auto",
