@@ -36,6 +36,8 @@
 
 import { sectionForEditorSlot } from "./editor-slots.js";
 import { CHIAVE_ENTITA_MIE, sezioniConEntita } from "./entita-mie.js";
+import { CHIAVE_PRESENZA } from "./presenza-in-casa.js";
+import { CHIAVE_VARCHI } from "./varchi-di-casa.js";
 
 /** Un valore che somiglia a un'entita': `dominio.oggetto`. */
 const paresEntita = (valore) => typeof valore === "string" && valore.trim().includes(".");
@@ -166,4 +168,95 @@ export function contenutoDelleSezioni(leggi) {
 export function giudizio(sezione, leggi) {
   if (!MAGAZZINO_DELLE_SEZIONI[sezione]) return null;
   return contenutoDelleSezioni(leggi).piene.has(sezione);
+}
+
+/* ── Le tre sezioni che non si compilano ──────────────────────────────────
+ *
+ * «Quando si parte da zero le sezioni sotto non devono rilevare
+ *  automaticamente le cose e inserirle, per questo c'è la funzione in config
+ *  che rileva automaticamente. Tutto deve partire senza nulla e le sezioni che
+ *  non hanno entità valorizzate devono essere nascoste.»
+ *
+ * Varchi, Presenza e Batterie non hanno un elenco da riempire: l'elenco lo fa
+ * Home Assistant col `device_class`, e la loro scheda del Config serve a
+ * correggerlo — togliere un contatto che porta non è, aggiungerne uno che
+ * nessuno ha etichettato, dare un nome a «Contact 4B». Per questo la regola
+ * qui sopra non le governa: «cosa c'è dentro» per loro non vuol dire «cosa ha
+ * scritto l'utente», perché non c'è niente da scrivere.
+ *
+ * E per questo comparivano nella barra di una plancia appena installata,
+ * insieme alla Home e alla Configurazione e a nient'altro: la casa ha le porte
+ * anche quando la plancia è vuota. Tre voci che nessuno ha chiesto, su una
+ * plancia che doveva essere ancora tutta da fare.
+ *
+ * La regola che le riguarda è una sola, e sta nella semina: **nascono spente**.
+ * Nascere è una cosa che succede una volta — a una plancia mai configurata —
+ * e infatti una plancia già in uso non nasce: le sue voci restano dove sono,
+ * perché chi ha i varchi in barra da mesi non deve perderli aggiornando.
+ *
+ * Da spente si riaccendono come si accende qualunque sezione: dicendo la
+ * propria nella sua scheda del Config — un contatto aggiunto, uno tolto, un
+ * nome dato, una soglia scelta — oppure con la fascia verde dell'elenco delle
+ * sezioni. È `sceltaSullaSezione` a rispondere alla prima delle due.
+ */
+
+/** Le tre sezioni il cui elenco lo fa Home Assistant, non l'utente. */
+export const SEZIONI_CHE_LEGGONO_LA_CASA = Object.freeze(["varchi", "presenza", "batterie"]);
+
+/* I tre campi con cui si corregge un elenco rilevato: chi sta fuori, chi sta
+ * dentro lo stesso, e come si chiama. Varchi e Presenza hanno la stessa
+ * scheda perché è lo stesso problema, e quindi la stessa forma. */
+function haCorrezioni(valore) {
+  if (!valore || typeof valore !== "object" || Array.isArray(valore)) return false;
+  const elenco = (campo) => Array.isArray(valore[campo]) && valore[campo].some(paresEntita);
+  if (elenco("escluse") || elenco("aggiunte")) return true;
+  const nomi = valore.nomi;
+  return Boolean(nomi && typeof nomi === "object" && Object.keys(nomi).length);
+}
+
+/* Le batterie si correggono altrove: aggiunte e tolte stanno nei gruppi degli
+ * avvisi — `cd_gruppi_extra`, `cd_gruppi_removed` — perché è lì che stavano
+ * già, e un secondo elenco per la stessa casa si sarebbe scollato dal primo.
+ * La soglia invece è tutta loro. */
+function haCorrezioniSulleBatterie(leggi) {
+  const nelGruppo = (mappa) =>
+    Boolean(mappa && typeof mappa === "object" && Array.isArray(mappa.batt)) &&
+    mappa.batt.some(paresEntita);
+  if (nelGruppo(leggi("cd_gruppi_extra")) || nelGruppo(leggi("cd_gruppi_removed"))) return true;
+  const soglia = leggi("cd_batterie");
+  return Boolean(soglia && typeof soglia === "object" && Object.keys(soglia).length);
+}
+
+/**
+ * Se l'utente ha detto la sua su una di queste tre sezioni.
+ *
+ * È la porta da cui una sezione nata spenta si riaccende: toccare la sua
+ * scheda del Config è chiedere di vederla. Per ogni altra chiave risponde
+ * `false`, che è la verità — di quelle non parla.
+ */
+export function sceltaSullaSezione(sezione, leggi) {
+  if (sezione === "batterie") return haCorrezioniSulleBatterie(leggi);
+  if (sezione === "varchi") return haCorrezioni(leggi(CHIAVE_VARCHI));
+  if (sezione === "presenza") return haCorrezioni(leggi(CHIAVE_PRESENZA));
+  return false;
+}
+
+/**
+ * Se questa plancia è già stata configurata da qualcuno.
+ *
+ * Serve a distinguere la plancia che nasce — dove le tre sezioni non devono
+ * comparire — da quella che si sta solo aggiornando, dove sparire sarebbe una
+ * perdita. La domanda non si può fare alla casa: le porte di Home Assistant
+ * ci sono sempre, appena installata o da tre anni. Si fa alla plancia, ed è la
+ * stessa risposta che accende le voci: c'è qualcosa, da qualche parte, che
+ * qualcuno ha messo lì.
+ */
+export function planciaGiaConfigurata(leggi) {
+  if (contenutoDelleSezioni(leggi).piene.size) return true;
+  const luci = leggi("cd_luci");
+  if (luci && typeof luci === "object" && Object.keys(luci).length) return true;
+  const caselle = leggi("cd_entity_overrides");
+  if (caselle && typeof caselle === "object" && Object.values(caselle).some(paresEntita))
+    return true;
+  return SEZIONI_CHE_LEGGONO_LA_CASA.some((sezione) => sceltaSullaSezione(sezione, leggi));
 }
