@@ -64,6 +64,30 @@ async function laMisuraSiFerma(page) {
   await page.waitForTimeout(1800);
 }
 
+/* La misura quando ha smesso di muoversi, non a un'ora stabilita.
+ *
+ * `fingiIlFondoDiSistema` aspetta seicento millisecondi e poi si misura. Su
+ * WebKit quel momento a volte cade mentre la barra si sta ancora posando: il
+ * rosso diceva «18 attesi, 16 ricevuti», al tentativo dopo «14», e al terzo di
+ * nuovo «14». Tre numeri diversi per la stessa pagina sono il segno che si sta
+ * guardando un movimento, non un risultato.
+ *
+ * Qui si guarda finche' tre letture di fila non dicono la stessa cosa: quella
+ * e' la misura. Il numero atteso resta esatto — non si allarga la tolleranza,
+ * si aspetta di essere arrivati. */
+async function misuraFerma(page, selettore) {
+  let ultima = null;
+  let uguali = 0;
+  for (let giro = 0; giro < 80; giro += 1) {
+    const adesso = await altezzaDalFondo(page, selettore);
+    uguali = adesso !== null && adesso === ultima ? uguali + 1 : 0;
+    ultima = adesso;
+    if (uguali >= 2) return adesso;
+    await page.waitForTimeout(100);
+  }
+  return ultima;
+}
+
 test("la barra si alza esattamente di quello che il sistema si prende", async ({
   page,
 }, testInfo) => {
@@ -79,19 +103,19 @@ test("la barra si alza esattamente di quello che il sistema si prende", async ({
   /* Senza niente da scansare la barra sta dov'e' sempre stata: chi non ha i
    * tasti non deve vedersela sollevata per un difetto che non ha. */
   await fingiIlFondoDiSistema(page, 0);
-  const aRiposo = await altezzaDalFondo(page, "nav.tabs.bottom-nav-bar");
+  const aRiposo = await misuraFerma(page, "nav.tabs.bottom-nav-bar");
   expect(aRiposo).toBe(18);
 
   /* Con i tasti di sistema — qui quarantotto pixel, la misura tipica di un
    * Android a tre tasti — sale esattamente di quei quarantotto. */
   await fingiIlFondoDiSistema(page, 48);
-  const coiTasti = await altezzaDalFondo(page, "nav.tabs.bottom-nav-bar");
+  const coiTasti = await misuraFerma(page, "nav.tabs.bottom-nav-bar");
   expect(coiTasti).toBe(aRiposo + 48);
 
   /* E torna giu' quando la fascia sparisce: e' un adattamento, non uno
    * spostamento una volta per tutte. */
   await fingiIlFondoDiSistema(page, 0);
-  expect(await altezzaDalFondo(page, "nav.tabs.bottom-nav-bar")).toBe(aRiposo);
+  expect(await misuraFerma(page, "nav.tabs.bottom-nav-bar")).toBe(aRiposo);
 });
 
 test("lo spazio sotto l'ultima card cresce insieme alla barra", async ({ page }, testInfo) => {
@@ -143,7 +167,7 @@ test("anche la maniglia che tira fuori la barra sta sopra i tasti", async ({ pag
    * essersi mossa. Mancava solo qui, ed e' il rosso che andava e veniva. */
   await laMisuraSiFerma(page);
   await fingiIlFondoDiSistema(page, 0);
-  const aRiposo = await altezzaDalFondo(page, maniglia);
+  const aRiposo = await misuraFerma(page, maniglia);
   await fingiIlFondoDiSistema(page, 48);
-  expect(await altezzaDalFondo(page, maniglia)).toBe(aRiposo + 48);
+  expect(await misuraFerma(page, maniglia)).toBe(aRiposo + 48);
 });
