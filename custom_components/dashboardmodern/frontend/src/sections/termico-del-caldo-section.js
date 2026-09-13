@@ -399,8 +399,17 @@ const STILE = `
 .dm-termico-icona-btn{flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;border:0;border-radius:12px;background:linear-gradient(145deg,#12aee4,#047faf);color:#fff;font-size:15px;cursor:pointer}
 .dm-termico-riga .dm-termico-presa{display:flex;gap:6px}
 .dm-termico-riga .dm-termico-presa .dm-termico-entita{flex:1;min-width:0}
-@media(max-width:560px){.dm-termico-riga{grid-template-columns:44px minmax(0,1fr) 38px}
-.dm-termico-riga .dm-termico-presa{grid-column:1/-1}}
+/* Sul telefono la riga sta su due piani, e i posti si dicono tutti.
+   Li diceva solo la casella dell'entita', e le altre tre si mettevano dove
+   capitava: la colonna dell'icona tornava a 44 px — lo stesso sbaglio di
+   sopra, il tasto del catalogo da solo e l'icona sparita — e il cestino,
+   rimasto senza posto in fondo alla seconda fila, scendeva su una fila sua,
+   un tasto rosso staccato da tutto che non si capiva di chi fosse.
+   Sopra il nome, sotto l'entita' col suo cestino in fondo. */
+@media(max-width:560px){.dm-termico-riga{grid-template-columns:96px minmax(0,1fr) 38px}
+.dm-termico-riga .dm-termico-nome{grid-column:2/-1}
+.dm-termico-riga .dm-termico-presa{grid-column:1/3}
+.dm-termico-riga .dm-termico-via{grid-column:3}}
 `;
 
 export function installTermicoDelCaldo() {

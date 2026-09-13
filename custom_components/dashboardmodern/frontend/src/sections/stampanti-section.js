@@ -20,6 +20,8 @@
  */
 import {
   CHIAVE_STAMPANTI,
+  COLORE_SENZA_TINTA,
+  TINTE_DELLE_CARTUCCE,
   lettureDelleStampanti,
   riassuntoDelleStampanti,
   stampantiConfigurate,
@@ -173,8 +175,10 @@ export function titoloDelleStampanti(riassunto) {
 
 function cartucciaMarkup(cartuccia) {
   const quanta = cartuccia.quanta === null ? 0 : cartuccia.quanta;
+  /* La tinta e' un attributo, non un colore scritto qui: il colore lo mette
+   * il foglio di stile, e cosi' sul fondo scuro puo' cambiarlo. */
   return `<div class="dm-stampante-cart" data-scarsa="${cartuccia.agliSgoccioli ? "molto" : cartuccia.scarsa ? "si" : "no"}"
-    data-tinta="${esc(cartuccia.tinta)}" style="--dm-cart:${esc(cartuccia.colore)}">
+    data-tinta="${esc(cartuccia.tinta)}">
     <span class="dm-stampante-cart-nome">${esc(cartuccia.nome)}</span>
     <span class="dm-stampante-cart-barra"><i style="width:${quanta}%"></i></span>
     <b class="dm-stampante-cart-val">${cartuccia.quanta === null ? "—" : `${quanta}%`}</b>
@@ -340,9 +344,15 @@ function installStyles() {
     ${P} .dm-stampante-cart-nome{font-size:11px;font-weight:800;color:var(--text-dim,#64748b);
       overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     ${P} .dm-stampante-cart-barra{display:block;height:9px;border-radius:999px;overflow:hidden;
-      background:color-mix(in srgb,var(--dm-cart,#0ea5e9) 16%,var(--surface-3,#f1f5f9))}
+      background:color-mix(in srgb,var(--dm-cart,${COLORE_SENZA_TINTA}) 16%,var(--surface-3,#f1f5f9))}
     ${P} .dm-stampante-cart-barra i{display:block;height:100%;border-radius:999px;
-      background:var(--dm-cart,#0ea5e9)}
+      background:var(--dm-cart,${COLORE_SENZA_TINTA})}
+    /* Il colore della tinta si scrive qui, e non sulla riga: quello che si
+     * scrive sulla riga vince su ogni regola, e la riga del fondo scuro non
+     * arriverebbe mai a valere. L'elenco e' quello del modello. */
+    ${TINTE_DELLE_CARTUCCE.map(
+      ({ tinta, colore }) => `${P} .dm-stampante-cart[data-tinta="${tinta}"]{--dm-cart:${colore}}`,
+    ).join("\n    ")}
     /* Il nero su fondo scuro e' il fondo: la barra del nero spariva, e chi ha
      * una stampante a due cartucce ne vedeva una sola colorata. L'inchiostro
      * nero scritto su una pagina nera si scrive chiaro — come il testo. */
