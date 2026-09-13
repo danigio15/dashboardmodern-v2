@@ -46,6 +46,8 @@ export default Object.freeze({
   "The sensors the appliance publishes that the fields above do not cover — air temperature and residual humidity of a dryer, a second door on a fridge: sensor.*, binary_sensor.*, number.* entities. They show up in the appliance window, with their own name and unit, in the order you add them.": "上の項目では覛えられない、機器が公開するセンサー — 乾燥機の気温や残留湿度、冷蔵庫の2つ目のドア：sensor.*、binary_sensor.*、number.* のエンティティ。追加した順に、それぞれの名前と単位で機器のウィンドウに表示されます。",
   "The watt sensor of the plug the unit sits under. With the threshold below, it is the one that says whether the unit is running: an air conditioner driven by a plug knows it better than its own thermostat.": "この機器がつながっているプラグのワットセンサー。下のしきい値と併せて、運転中かどうかをこちらが判断します。",
   "There is no reading for this load right now.": "今はこの負荷の測定値がありません。",
+  "What lights the card up": "カードを目立たせるもの",
+  "One tap picks it: while that entity is on, the appliance card and its Home tile take on a colour so you notice them. None is picked by default — a fridge opened to get the milk is not a fault — but the garage freezer door, or the washing machine finishing, belong here.": "ひとつ選ぶだけです。そのエンティティがオンのあいだ、家電のカードとホームのタイルに色がつき、目に留まります。既定では何も選ばれていません — 牛乳を取るために開けた冷蔵庫は故障ではないからです — が、ガレージの冷凍庫の扉や洗濯機の終了はここに入れます。",
   "What to show in the window": "ウィンドウに表示する項目",
   "Which rooms show up on Home, with the temperature and how many things are on: one tap takes you into the room. At most eight; none ticked means no block at all.": "ホームにどの部屋を出すか。温度と、いくつがオンかを一緒に表示し、タップするとその部屋に入ります。最大8つ。ひとつも選ばなければ、このブロックは出ません。",
   "Zones and entry points of the panel": "警備パネルのゾーンと出入口",

@@ -7,6 +7,7 @@
  * optional tracked cycle record. No DOM access, so the whole contract is unit
  * testable and shared verbatim by the Italian and English dashboards.
  */
+import { eAccesa, qualcosaColora } from "./le-voci-che-colorano.js";
 import { pick } from "./i18n.js";
 import { canonicalArtworkType } from "./appliance-artwork.js";
 import { createApplianceViewModel } from "./appliance-view-model.js";
@@ -403,9 +404,19 @@ export function lastCycleInfo(device = {}, states = {}, options = {}) {
 
 export function applianceAlarm(device = {}, states = {}, mode = "") {
   if (mode === "unavailable") return true;
+  /* E le entita' che chi ha la casa ha scelto (#519, #520).
+   *
+   * A colorare la card c'era una casella sola — «Entita' allarme/anomalia» —
+   * e la porta del frigo di proposito non ci passava: un frigo aperto per
+   * prendere il latte non e' un guasto. Solo che «non e' un guasto» non vuol
+   * dire «non me ne importa»: a chi ha il congelatore in garage quella porta
+   * importa eccome, e a chi aspetta la lavatrice importa il fine ciclo. Chi
+   * decide non e' questo codice, e' chi ha la casa, e quello che ha scelto sta
+   * in `colorano`. */
+  if (qualcosaColora(device, states)) return true;
   const snapshot = stateSnapshot(states, device.alert_entity);
   if (!snapshot) return false;
-  return /^(on|problem|triggered|alert|alarm|fault|error|leak|open)$/i.test(clean(snapshot.state));
+  return eAccesa(snapshot.state);
 }
 
 /**

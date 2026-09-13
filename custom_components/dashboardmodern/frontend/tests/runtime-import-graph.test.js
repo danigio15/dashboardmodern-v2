@@ -1244,8 +1244,19 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // dal proprio indirizzo, che dalla #372 sta sul prefisso stabile: quello
   // servito senza `Cache-Control`, che un browser si tiene per giorni. Da li'
   // l'integrazione nuova e la plancia vecchia nella stessa casa.
+  // 357 con chi accende la card: un file solo, e toglie una decisione al
+  // codice invece di aggiungergliene una. A colorare la card di un
+  // elettrodomestico c'era una casella sola — l'allarme — e la porta del frigo
+  // di proposito non ci passava, perche' un frigo aperto per prendere il latte
+  // non e' un guasto. Vero, ma «non e' un guasto» non vuol dire «non me ne
+  // importa»: a chi ha il congelatore in garage quella porta importa eccome.
+  // Adesso l'elenco lo scrive chi abita la casa, e questo file e' l'unico
+  // posto in cui si dice cosa vuol dire «accesa» — la stessa parola per
+  // l'allarme di sempre e per le entita' scelte, perche' due elenchi di
+  // dialetti si scollano e allora la stessa entita' colora la card e non conta
+  // fra gli allarmi.
   assert.ok(
-    relative.length <= 356,
+    relative.length <= 357,
     `production graph unexpectedly grew to ${relative.length} modules`,
   );
   assertAcyclic(edges);
