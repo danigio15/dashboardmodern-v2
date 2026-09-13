@@ -116,7 +116,22 @@ const store = new DashboardStore({
   },
   onStatus: (status) => globalThis.dispatchEvent?.(new CustomEvent("dashboardmodern:status", { detail: status })),
 });
-store.migrate();
+/* La migrazione non puo' portare giu' la plancia (#533).
+ *
+ * Questa riga sta al primo livello del modulo, e sopra ci passa tutto: il ponte
+ * verso le chiavi storiche, la proiezione delle sostituzioni, il coordinatore
+ * dei disegni e — alla fine del file — `DashboardModernModules`. Un'eccezione
+ * qui non lasciava «una migrazione a meta'»: lasciava una plancia senza NIENTE
+ * di moderno, perche' il modulo smetteva di essere valutato e quell'oggetto non
+ * nasceva. E' cosi' che un gruppo mancante nello stato dell'energia ha fatto
+ * sparire i widget della Home, i flussi dell'Energia e la grafica del popup
+ * delle finestre tutti insieme, a chi aveva quei cinque alias configurati.
+ *
+ * Una migrazione che inciampa e' un guaio da guardare — e infatti si scrive in
+ * console — ma lo stato in memoria e' quello che e' e la plancia lo sa
+ * disegnare lo stesso. Fermare tutto il resto non ripara niente: aggiunge un
+ * secondo guasto, molto piu' grande, al primo. */
+try { store.migrate(); } catch (error) { globalThis.console?.error?.("[DashboardModern] migrazione dello stato non riuscita", error); }
 store.installLegacyWriteBridge();
 const applyRuntimeProjection = () =>
   globalThis.cdApplyCanonicalOverrides?.(store.getSection("entityOverrides"));

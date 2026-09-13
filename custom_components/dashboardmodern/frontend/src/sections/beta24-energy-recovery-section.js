@@ -86,6 +86,15 @@ function ensureEnergyShape(state) {
     grid: { ...objectValue(current.grid) },
     solar: { ...objectValue(current.solar) },
     battery: { ...objectValue(current.battery) },
+    /* E il raffreddamento (#533).
+     *
+     * `ENERGY_SLOT_MAP` comincia con i cinque percorsi `cooling.*`, e questa
+     * forma non li conosceva: il giro qui sotto scriveva dentro `undefined` e
+     * sollevava un `TypeError`. Non e' un caso di laboratorio — succede a
+     * chiunque abbia quei cinque alias nelle sostituzioni e il gruppo perso in
+     * un ripristino, che e' esattamente cosa fa una configurazione gia' passata
+     * dalla migrazione «legacy cooling entities migrated». */
+    cooling: { ...objectValue(current.cooling) },
     metadata: { ...objectValue(current.metadata) },
   };
   state.sections.energy = energy;
@@ -114,6 +123,14 @@ export function recoverEnergyConfiguration(state, captured = {}) {
     const [group, key] = path.split(".");
     const value = clean(overrides[slot]);
     if (!value || clean(energy[group]?.[key])) continue;
+    /* E il gruppo si apre se non c'e'.
+     *
+     * La riga sopra ha l'optional chaining e non esplode in LETTURA; quella
+     * sotto scrive, e li' `undefined` esplode. La forma qui sopra dice quali
+     * gruppi esistono, e va tenuta allineata; questa riga fa in modo che il
+     * giorno in cui qualcuno aggiunge un gruppo nuovo alla mappa e si dimentica
+     * di scriverlo li', non porti giu' tutta la plancia. */
+    energy[group] ||= {};
     energy[group][key] = value;
     recovered += 1;
   }
