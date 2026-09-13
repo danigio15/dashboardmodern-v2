@@ -158,6 +158,11 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     questo, si ritroverebbe ogni dashboard di casa a chiedere a ogni apertura
     un modulo che non c'e' piu'.
     """
+    # La sua dashboard di appoggio se ne va con lei: restava sul disco per
+    # sempre, e chi reinstalla o rinomina se ne accumulava una per volta.
+    from .frontend import async_dimentica_la_compagna
+
+    await async_dimentica_la_compagna(hass, entry)
     restanti = [
         candidata
         for candidata in hass.config_entries.async_entries(entry.domain)

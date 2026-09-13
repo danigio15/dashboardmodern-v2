@@ -25,7 +25,10 @@ from custom_components.dashboardmodern import frontend as fe
 
 def _voce(hass: Any, *, title: str = "Casa 3.0", options: dict | None = None) -> Any:
     entry = MagicMock()
-    entry.entry_id = "abcdef1234567890"
+    # Un identificativo come quelli veri: Home Assistant li fa ULID — lettere
+    # fino alla z, non esadecimali. Con un esadecimale finto la forma del
+    # nome della dashboard di appoggio non si prova davvero.
+    entry.entry_id = "01M2CCTJ3ATSJCFJZ869AW6HMD"
     entry.title = title
     entry.data = {"primary": True}
     entry.options = options or {}
@@ -199,6 +202,101 @@ async def test_il_pannello_della_plancia_resta_nella_barra(hass: Any) -> None:
     )
     assert fe._fuori_dalla_barra(hass, fe._lovelace_url_path(entry)) is False
     assert hass.data["frontend_panels"][pannello].sidebar_title == entry.title
+
+
+async def test_la_compagna_se_ne_va_con_la_sua_plancia(hass: Any) -> None:
+    """Tolta la plancia, la sua dashboard di appoggio non resta sul disco.
+
+    «Ho sempre due volte nella barra laterale», con quattro plance in elenco
+    dove di plance ce n'e' una: toglievamo il pannello e basta, e chi
+    reinstalla o rinomina se ne accumulava una per volta.
+    """
+    assert await async_setup_component(hass, "lovelace", {})
+    await hass.async_block_till_done()
+    entry = _voce(hass)
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
+    await hass.async_block_till_done()
+
+    collezione, _plance = _lovelace(hass)
+    assert len(collezione.async_items()) == 1
+    assert await fe.async_dimentica_la_compagna(hass, entry) is True
+    await hass.async_block_till_done()
+    assert collezione.async_items() == []
+    # E una seconda volta non ha piu' niente da togliere, senza lamentarsi.
+    assert await fe.async_dimentica_la_compagna(hass, entry) is False
+
+
+async def test_le_compagne_orfane_se_ne_vanno_all_avvio(hass: Any) -> None:
+    """Quelle gia' accumulate si spazzano da se', all'avvio.
+
+    Sono le quattro dell'elenco: una per ogni voce mai esistita. Nessuno le
+    visita — chi rimette fuori dalla barra una compagna passa dalla voce viva —
+    quindi restano, e una finisce nella barra accanto a quella vera.
+    """
+    assert await async_setup_component(hass, "lovelace", {})
+    await hass.async_block_till_done()
+    entry = _voce(hass)
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is True
+    await hass.async_block_till_done()
+
+    collezione, plance = _lovelace(hass)
+    viva = fe._lovelace_url_path(entry)
+    # La forma del nome deve riconoscere la compagna di una voce VERA. Con un
+    # `[0-9a-f]` qui non ne riconoscerebbe nemmeno una, e la spazzata non
+    # toglierebbe mai niente a nessuno.
+    assert fe._NOME_DELLA_COMPAGNA.match(viva)
+
+    async def _nasce(url_path: str, titolo: str, vista: dict | None) -> None:
+        await collezione.async_create_item(
+            {
+                "allow_single_word": True,
+                "title": titolo,
+                "url_path": url_path,
+                "show_in_sidebar": True,
+                "require_admin": False,
+            }
+        )
+        await hass.async_block_till_done()
+        if vista is not None:
+            await plance[url_path].async_save({"views": [vista]})
+
+    def _nostra(entry_id: str) -> dict:
+        return {"cards": [{"type": fe.TIPO_DELLA_CARD, "entry_id": entry_id}]}
+
+    # Due orfane vere: il nostro nome, e dentro la nostra card con
+    # l'identificativo di una plancia che non c'e' piu'.
+    await _nasce("dashboardmodern-01hvecchi", "DashboardModern", None)
+    await _nasce(
+        "dashboardmodern-01hvecch", "DashboardModern", _nostra("01HVECCHIADAMORIRE01")
+    )
+    await _nasce(
+        "dashboardmodern-01jz9qtp", "DashboardModern v2", _nostra("01JZ9QTPRIMADIORA02")
+    )
+    # E due che NON si toccano: una col nostro nome ma con dentro roba di casa,
+    # e una fatta a mano che al nostro nome somiglia soltanto.
+    await _nasce(
+        "dashboardmodern-01kbcdef",
+        "La mia",
+        {"cards": [{"type": "entities", "entities": ["light.cucina"]}]},
+    )
+    await _nasce("dashboardmodern-di-casa-mia", "La mia dashboard", None)
+    await hass.async_block_till_done()
+    assert len(collezione.async_items()) == 6
+
+    assert await fe._spazza_le_compagne_orfane(hass, collezione, plance) == 2
+    await hass.async_block_till_done()
+    restano = {voce["url_path"] for voce in collezione.async_items()}
+    assert restano == {
+        viva,
+        # Il nome non ha la forma giusta: e' piu' lungo di otto cifre.
+        "dashboardmodern-01hvecchi",
+        # Dentro c'e' roba di casa, non la nostra card.
+        "dashboardmodern-01kbcdef",
+        # E questa e' fatta a mano.
+        "dashboardmodern-di-casa-mia",
+    }
+    # E una seconda passata non ha piu' niente da togliere.
+    assert await fe._spazza_le_compagne_orfane(hass, collezione, plance) == 0
 
 
 async def test_una_scheda_gia_sul_disco_non_si_ricrea(hass: Any) -> None:

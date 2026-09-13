@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -693,6 +694,139 @@ async def _aggiorna_scheda_compagna(
     await aggiorna(voce["id"], cambi)
 
 
+# Come si chiama la dashboard di appoggio di una plancia: il nostro prefisso e
+# le prime otto cifre dell'identificativo della voce, minuscole. E' lo schema di
+# `_lovelace_url_path`, scritto come espressione per pescare le CANDIDATE fra
+# tutte le dashboard di casa — comprese quelle di voci che non ci sono piu'.
+#
+# L'alfabeto e' largo apposta. L'identificativo di una voce e' un ULID —
+# `01M2CCTJ3ATSJCFJZ869AW6HMD` — e le sue lettere arrivano fino alla z: un
+# `[0-9a-f]` qui dentro non riconoscerebbe nemmeno una casa di oggi. Le voci
+# vecchie, nate quando l'identificativo era esadecimale, ci stanno dentro lo
+# stesso.
+#
+# Largo com'e', pero', questo nome non basta a dire «e' nostra»: lo dice la
+# card che c'e' scritta dentro — vedi `_di_chi_e_la_compagna`.
+_NOME_DELLA_COMPAGNA = re.compile(r"^dashboardmodern-[0-9a-z]{8}$")
+
+TIPO_DELLA_CARD = "custom:dashboardmodern-card"
+
+
+async def _togli_la_compagna(collezione: Any, url_path: str) -> bool:
+    """Cancella la scheda della dashboard di appoggio a questo indirizzo.
+
+    Togliere la scheda dalla collezione e' tutto: Home Assistant, quando una
+    plancia se ne va dall'elenco, toglie da se' il pannello dalla barra e
+    cancella il magazzino dal disco.
+    """
+    elenca = getattr(collezione, "async_items", None)
+    cancella = getattr(collezione, "async_delete_item", None)
+    if elenca is None or cancella is None:
+        return False
+    voce = next(
+        (v for v in elenca() if isinstance(v, dict) and v.get("url_path") == url_path),
+        None,
+    )
+    if voce is None:
+        return False
+    await cancella(voce["id"])
+    return True
+
+
+async def _di_chi_e_la_compagna(plance: Any, url_path: str) -> str | None:
+    """Di quale plancia e' questa dashboard di appoggio. `None` se non e' nostra.
+
+    Il nome non basta per decidere di cancellare una dashboard di casa: e' una
+    forma, e quella forma la puo' avere per caso anche una dashboard fatta a
+    mano. Dentro, invece, c'e' la prova: la nostra non ha altro che card
+    nostre, e ogni card si porta scritto l'identificativo della plancia a cui
+    appartiene.
+
+    Nel dubbio — il magazzino non c'e', non si riesce a rileggere, dentro c'e'
+    anche altro, o ci sono due plance diverse — si risponde `None`, e chi
+    chiama non tocca niente.
+    """
+    magazzino = plance.get(url_path) if hasattr(plance, "get") else None
+    leggi = getattr(magazzino, "async_load", None)
+    if leggi is None:
+        return None
+    try:
+        letta = await leggi(False)
+    except Exception:  # noqa: BLE001 - non si riesce a leggere, quindi non si sa
+        return None
+    viste = letta.get("views") if isinstance(letta, dict) else None
+    if not isinstance(viste, list) or not viste:
+        return None
+    suoi: set[str] = set()
+    for vista in viste:
+        schede = vista.get("cards") if isinstance(vista, dict) else None
+        if not isinstance(schede, list) or not schede:
+            return None
+        for card in schede:
+            if not isinstance(card, dict) or card.get("type") != TIPO_DELLA_CARD:
+                return None
+            suoi.add(str(card.get("entry_id") or ""))
+    if len(suoi) != 1:
+        return None
+    (sua,) = suoi
+    return sua or None
+
+
+async def _spazza_le_compagne_orfane(
+    hass: HomeAssistant, collezione: Any, plance: Any
+) -> int:
+    """Togli le dashboard di appoggio delle plance che non ci sono piu'.
+
+    «Ho sempre due volte nella barra laterale», con in elenco quattro plance —
+    due «Casa 3.0», una «DashboardModern», una «DashboardModern v2» — dove di
+    plance ce n'e' una sola.
+
+    Ogni voce si porta la sua dashboard di appoggio, ed e' giusto: e' quella
+    che permette di sceglierla come predefinita. Quando la voce se ne andava,
+    pero', toglievamo il pannello e basta, e la dashboard restava sul disco per
+    sempre, col nome che la voce aveva quel giorno. Chi reinstalla — o
+    rinomina, e con l'integrazione si e' fatto tutt'e due — se ne accumula una
+    per volta.
+
+    E un'orfana e' anche il doppione nella barra: chi rimette fuori dalla barra
+    una compagna lo fa passando dalla voce viva, e un'orfana non ce l'ha piu'.
+    Nessuno la visita, nessuno la rimette a posto.
+
+    Si cancellano solo quelle che sono nostre DUE VOLTE: il nome che scriviamo
+    noi, e dentro soltanto card nostre. E solo quando la plancia di cui portano
+    l'identificativo non esiste piu'.
+    """
+    elenca = getattr(collezione, "async_items", None)
+    if elenca is None:
+        return 0
+    vive = {voce.entry_id for voce in hass.config_entries.async_entries(DOMAIN)}
+    quante = 0
+    for voce in list(elenca()):
+        if not isinstance(voce, dict):
+            continue
+        url_path = str(voce.get("url_path") or "")
+        if not _NOME_DELLA_COMPAGNA.match(url_path):
+            continue
+        try:
+            sua = await _di_chi_e_la_compagna(plance, url_path)
+            if sua is None or sua in vive:
+                continue
+            if not await _togli_la_compagna(collezione, url_path):
+                continue
+        except Exception:  # noqa: BLE001 - una in piu' nell'elenco non ferma la plancia
+            _LOGGER.debug("Non ho potuto togliere l'orfana %s", url_path, exc_info=True)
+            continue
+        quante += 1
+        _LOGGER.warning(
+            "Ho tolto la dashboard di appoggio %s: la plancia %s a cui "
+            "apparteneva non c'e' piu'. Restava nell'elenco delle plance, e "
+            "nella barra laterale accanto a quella vera",
+            url_path,
+            sua,
+        )
+    return quante
+
+
 def _fuori_dalla_barra(hass: HomeAssistant, url_path: str) -> bool:
     """Togli dalla barra laterale il pannello della dashboard di appoggio.
 
@@ -1193,6 +1327,12 @@ async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> boo
                 url_path,
             )
             return False
+        # Il magazzino della nostra c'e': vuol dire che l'ascoltatore della
+        # collezione ha girato, e allora ci sono anche quelli delle altre. E'
+        # il momento di mandare via le compagne delle plance che non ci sono
+        # piu': restavano in elenco per sempre, e una di loro e' il doppione
+        # che si vede nella barra laterale.
+        await _spazza_le_compagne_orfane(hass, collezione, plance)
         vista = _companion_view(
             entry, _config_profile(hass, entry), _entry_is_primary(hass, entry)
         )
@@ -1311,6 +1451,37 @@ async def async_ripara_dashboard_compagna(hass: HomeAssistant, entry_id: str) ->
             exc_info=True,
         )
         return False
+
+
+async def async_dimentica_la_compagna(hass: HomeAssistant, entry: Any) -> bool:
+    """Togli la dashboard di appoggio di una plancia che se ne va davvero.
+
+    Toglievamo il pannello e basta, e la dashboard restava sul disco per
+    sempre: chi reinstalla o rinomina se ne accumulava una per volta, col nome
+    che la plancia aveva quel giorno. In elenco se ne vedono quattro dove di
+    plance ce n'e' una, e una di loro finisce anche nella barra laterale
+    accanto a quella vera.
+
+    Si chiama quando la voce viene TOLTA, non quando si scarica: un riavvio di
+    Home Assistant scarica tutto, e cancellare li' vorrebbe dire buttare la
+    dashboard di una plancia che sta per ritornare.
+    """
+    collezione, _plance, _modo, _dentro = _plance_di_lovelace(hass)
+    if collezione is None:
+        return False
+    url_path = _lovelace_url_path(entry)
+    try:
+        if not await _togli_la_compagna(collezione, url_path):
+            return False
+    except Exception:  # noqa: BLE001 - una dashboard di troppo non ferma la rimozione
+        _LOGGER.warning(
+            "Non sono riuscito a togliere la dashboard di appoggio %s",
+            url_path,
+            exc_info=True,
+        )
+        return False
+    _LOGGER.info("Tolta la dashboard di appoggio %s con la sua plancia", url_path)
+    return True
 
 
 async def async_dimentica_la_card(hass: HomeAssistant) -> bool:
