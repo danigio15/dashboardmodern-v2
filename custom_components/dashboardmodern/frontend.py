@@ -833,7 +833,7 @@ async def _togli_la_compagna(collezione: Any, url_path: str) -> bool:
 
 
 async def _di_chi_e_la_compagna(plance: Any, url_path: str) -> str | None:
-    """Di quale plancia e' questa dashboard di appoggio. `None` se non e' nostra.
+    """Di quale plancia e' questa dashboard di appoggio.
 
     Il nome non basta per decidere di cancellare una dashboard di casa: e' una
     forma, e quella forma la puo' avere per caso anche una dashboard fatta a
@@ -841,21 +841,34 @@ async def _di_chi_e_la_compagna(plance: Any, url_path: str) -> str | None:
     nostre, e ogni card si porta scritto l'identificativo della plancia a cui
     appartiene.
 
-    Nel dubbio — il magazzino non c'e', non si riesce a rileggere, dentro c'e'
-    anche altro, o ci sono due plance diverse — si risponde `None`, e chi
-    chiama non tocca niente.
+    Le risposte sono tre:
+
+    - `None` — non e' nostra, oppure non si e' potuto leggere. Nel dubbio non
+      si tocca niente.
+    - la stringa vuota — l'indirizzo c'e', ma dentro non c'e' scritto NIENTE.
+      Non e' roba di nessuno: e' una dashboard nata e mai riempita, il caso
+      che altrove si chiama «esiste ma resterebbe vuota». Chi sa di averla
+      fatta lui puo' toglierla; chi spazza alla cieca no.
+    - l'identificativo della plancia a cui appartiene.
     """
     magazzino = plance.get(url_path) if hasattr(plance, "get") else None
     leggi = getattr(magazzino, "async_load", None)
     if leggi is None:
         return None
+    from homeassistant.components.lovelace.const import ConfigNotFound
+
     try:
         letta = await leggi(False)
+    except ConfigNotFound:
+        # L'indirizzo c'e' e il magazzino pure, ma nessuno ci ha mai scritto.
+        return ""
     except Exception:  # noqa: BLE001 - non si riesce a leggere, quindi non si sa
         return None
     viste = letta.get("views") if isinstance(letta, dict) else None
-    if not isinstance(viste, list) or not viste:
+    if not isinstance(viste, list):
         return None
+    if not viste:
+        return ""
     suoi: set[str] = set()
     for vista in viste:
         schede = vista.get("cards") if isinstance(vista, dict) else None
@@ -872,7 +885,7 @@ async def _di_chi_e_la_compagna(plance: Any, url_path: str) -> str | None:
 
 
 async def _spazza_le_compagne_orfane(
-    hass: HomeAssistant, collezione: Any, plance: Any
+    hass: HomeAssistant, collezione: Any, plance: Any, tranne: str = ""
 ) -> int:
     """Togli le dashboard di appoggio delle plance che non ci sono piu'.
 
@@ -894,6 +907,16 @@ async def _spazza_le_compagne_orfane(
     Si cancellano solo quelle che sono nostre DUE VOLTE: il nome che scriviamo
     noi, e dentro soltanto card nostre. E solo quando la plancia di cui portano
     l'identificativo non esiste piu'.
+
+    `tranne` e' l'indirizzo da non toccare: quello della compagna che si sta
+    preparando in questo momento. Dentro ci puo' stare la card di una plancia
+    che non c'e' piu' — succede a chi rimette in piedi Lovelace da un backup
+    mentre le voci sono nuove — e allora la spazzata la scambierebbe per
+    un'orfana e la cancellerebbe UN ISTANTE PRIMA che venga rimessa a posto:
+    la si vedrebbe sparire invece che riparata.
+
+    Una dashboard vuota non si tocca: qui non si sa di chi era, e cancellare
+    per un nome che somiglia e' esattamente quello che non si vuole fare.
     """
     elenca = getattr(collezione, "async_items", None)
     if elenca is None:
@@ -904,11 +927,11 @@ async def _spazza_le_compagne_orfane(
         if not isinstance(voce, dict):
             continue
         url_path = str(voce.get("url_path") or "")
-        if not _NOME_DELLA_COMPAGNA.match(url_path):
+        if not _NOME_DELLA_COMPAGNA.match(url_path) or url_path == tranne:
             continue
         try:
             sua = await _di_chi_e_la_compagna(plance, url_path)
-            if sua is None or sua in vive:
+            if not sua or sua in vive:
                 continue
             if not await _togli_la_compagna(collezione, url_path):
                 continue
@@ -1426,12 +1449,6 @@ async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> boo
                 url_path,
             )
             return False
-        # Il magazzino della nostra c'e': vuol dire che l'ascoltatore della
-        # collezione ha girato, e allora ci sono anche quelli delle altre. E'
-        # il momento di mandare via le compagne delle plance che non ci sono
-        # piu': restavano in elenco per sempre, e una di loro e' il doppione
-        # che si vede nella barra laterale.
-        await _spazza_le_compagne_orfane(hass, collezione, plance)
         vista = _companion_view(
             entry, _config_profile(hass, entry), _entry_is_primary(hass, entry)
         )
@@ -1456,6 +1473,34 @@ async def _ensure_companion_dashboard(hass: HomeAssistant, entry_id: str) -> boo
         )
         return False
     return True
+
+
+async def _spazza_le_orfane_se_lovelace_c_e(hass: HomeAssistant, entry_id: str) -> int:
+    """Manda via le compagne orfane, se Lovelace e' in piedi e le espone.
+
+    Si chiama quando Lovelace ha finito di alzarsi, quindi l'ascoltatore della
+    collezione ha gia' girato e i magazzini ci sono: e' quello che serve per
+    poter guardare DENTRO una dashboard prima di cancellarla.
+
+    La compagna di questa voce si risparmia sempre: e' quella che si e' appena
+    preparata.
+    """
+    collezione, plance, _modo, _dentro = _plance_di_lovelace(hass)
+    if collezione is None or plance is None:
+        return 0
+    entry = hass.config_entries.async_get_entry(entry_id)
+    try:
+        return await _spazza_le_compagne_orfane(
+            hass,
+            collezione,
+            plance,
+            tranne=_lovelace_url_path(entry) if entry is not None else "",
+        )
+    except Exception:  # noqa: BLE001 - una pulizia mancata non ferma la plancia
+        _LOGGER.debug(
+            "La spazzata delle compagne orfane non e' riuscita", exc_info=True
+        )
+        return 0
 
 
 async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
@@ -1512,6 +1557,16 @@ async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
         # istante in cui la dashboard esiste e il suo elemento no.
         await _ensure_card_resource_registered(hass, module_url)
         await _ensure_companion_dashboard(hass, entry_id)
+        # E poi si spazza, QUI e non dentro la preparazione della compagna.
+        #
+        # Li' dentro non ci si arriva quando «Registra come plancia di Home
+        # Assistant» e' spento: si torna indietro al controllo dell'opzione. Ma
+        # chi ha spento quell'opzione l'ha spenta magari proprio per via dei
+        # doppioni, e le orfane gia' accumulate resterebbero in elenco per
+        # sempre — cioe' la spazzata non arriverebbe a chi ne ha piu' bisogno.
+        # Togliere quello che abbiamo lasciato in giro non dipende dal fatto
+        # che adesso se ne debba creare una.
+        await _spazza_le_orfane_se_lovelace_c_e(hass, entry_id)
 
     async_when_setup(hass, "lovelace", _quando_lovelace)
 
@@ -1564,12 +1619,29 @@ async def async_dimentica_la_compagna(hass: HomeAssistant, entry: Any) -> bool:
     Si chiama quando la voce viene TOLTA, non quando si scarica: un riavvio di
     Home Assistant scarica tutto, e cancellare li' vorrebbe dire buttare la
     dashboard di una plancia che sta per ritornare.
+
+    E si guarda DENTRO prima di cancellare, come fa la spazzata: l'indirizzo
+    e' prevedibile, quindi qualcuno puo' averci messo una dashboard sua — per
+    esempio chi ha spento «Registra come plancia di Home Assistant» e se l'e'
+    scritta a mano. Il nome non e' una prova di proprieta'. Si toglie solo cio'
+    che dentro porta la card di QUESTA plancia, o cio' che dentro non porta
+    niente: una dashboard mai riempita all'indirizzo che scriviamo noi e' la
+    nostra nata male, e lasciarla vorrebbe dire lasciare in elenco proprio il
+    doppione che si e' venuti a togliere.
     """
-    collezione, _plance, _modo, _dentro = _plance_di_lovelace(hass)
-    if collezione is None:
+    collezione, plance, _modo, _dentro = _plance_di_lovelace(hass)
+    if collezione is None or plance is None:
         return False
     url_path = _lovelace_url_path(entry)
     try:
+        sua = await _di_chi_e_la_compagna(plance, url_path)
+        if sua is None or (sua and sua != entry.entry_id):
+            _LOGGER.info(
+                "La dashboard %s non risulta la compagna di questa plancia: la "
+                "lascio dov'e'",
+                url_path,
+            )
+            return False
         if not await _togli_la_compagna(collezione, url_path):
             return False
     except Exception:  # noqa: BLE001 - una dashboard di troppo non ferma la rimozione

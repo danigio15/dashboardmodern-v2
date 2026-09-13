@@ -299,6 +299,152 @@ async def test_le_compagne_orfane_se_ne_vanno_all_avvio(hass: Any) -> None:
     assert await fe._spazza_le_compagne_orfane(hass, collezione, plance) == 0
 
 
+async def test_non_si_cancella_una_dashboard_che_non_e_nostra(hass: Any) -> None:
+    """L'indirizzo e' prevedibile: il nome non e' una prova di proprieta'.
+
+    Chi ha spento «Registra come plancia di Home Assistant» puo' essersi
+    scritto a mano una dashboard proprio li'. Togliere l'integrazione non deve
+    portarsela via.
+    """
+    assert await async_setup_component(hass, "lovelace", {})
+    await hass.async_block_till_done()
+    entry = _voce(hass)
+    collezione, plance = _lovelace(hass)
+    url_path = fe._lovelace_url_path(entry)
+    await collezione.async_create_item(
+        {
+            "allow_single_word": True,
+            "title": "La mia",
+            "url_path": url_path,
+            "show_in_sidebar": True,
+            "require_admin": False,
+        }
+    )
+    await hass.async_block_till_done()
+    await plance[url_path].async_save(
+        {"views": [{"cards": [{"type": "entities", "entities": ["light.cucina"]}]}]}
+    )
+
+    assert await fe.async_dimentica_la_compagna(hass, entry) is False
+    assert [voce["url_path"] for voce in collezione.async_items()] == [url_path]
+
+
+async def test_una_compagna_nata_vuota_se_ne_va_lo_stesso(hass: Any) -> None:
+    """Dentro non c'e' niente: non e' roba di nessuno, ed e' il doppione.
+
+    «La dashboard di appoggio esiste ma resterebbe vuota» e' un caso che il
+    codice conosce. Se non se ne andasse con la sua plancia resterebbe in
+    elenco per sempre — proprio quello che si e' venuti a togliere.
+    """
+    assert await async_setup_component(hass, "lovelace", {})
+    await hass.async_block_till_done()
+    entry = _voce(hass)
+    collezione, _plance = _lovelace(hass)
+    await collezione.async_create_item(
+        {
+            "allow_single_word": True,
+            "title": "Casa 3.0",
+            "url_path": fe._lovelace_url_path(entry),
+            "show_in_sidebar": False,
+            "require_admin": False,
+        }
+    )
+    await hass.async_block_till_done()
+
+    assert await fe.async_dimentica_la_compagna(hass, entry) is True
+    assert collezione.async_items() == []
+
+
+async def test_la_spazzata_non_tocca_la_compagna_che_si_sta_riparando(
+    hass: Any,
+) -> None:
+    """Dentro la compagna viva c'e' la card di una plancia che non c'e' piu'.
+
+    Succede a chi rimette in piedi Lovelace da un backup mentre le voci sono
+    nuove. Senza il risparmio la spazzata la scambierebbe per un'orfana e la
+    cancellerebbe un istante prima che venga rimessa a posto: chi guarda la
+    vedrebbe sparire invece che riparata.
+    """
+    assert await async_setup_component(hass, "lovelace", {})
+    await hass.async_block_till_done()
+    entry = _voce(hass)
+    collezione, plance = _lovelace(hass)
+    viva = fe._lovelace_url_path(entry)
+    await collezione.async_create_item(
+        {
+            "allow_single_word": True,
+            "title": "Casa 3.0",
+            "url_path": viva,
+            "show_in_sidebar": False,
+            "require_admin": False,
+        }
+    )
+    await hass.async_block_till_done()
+    await plance[viva].async_save(
+        {
+            "views": [
+                {
+                    "cards": [
+                        {"type": fe.TIPO_DELLA_CARD, "entry_id": "01HMORTA00000000"}
+                    ]
+                }
+            ]
+        }
+    )
+
+    assert (
+        await fe._spazza_le_compagne_orfane(hass, collezione, plance, tranne=viva) == 0
+    )
+    assert [voce["url_path"] for voce in collezione.async_items()] == [viva]
+    # Senza il risparmio, invece, sarebbe un'orfana come le altre.
+    assert await fe._spazza_le_compagne_orfane(hass, collezione, plance) == 1
+
+
+async def test_le_orfane_si_spazzano_anche_senza_registrare_la_plancia(
+    hass: Any,
+) -> None:
+    """Chi ha spento l'opzione ha comunque le orfane da togliere.
+
+    La preparazione della compagna torna indietro al controllo dell'opzione, e
+    con la spazzata li' dentro non ci si arrivava mai: chi aveva spento
+    «Registra come plancia di Home Assistant» — magari proprio per via dei
+    doppioni — se le teneva per sempre.
+    """
+    from custom_components.dashboardmodern.config_flow import OPTION_REGISTER_LOVELACE
+
+    assert await async_setup_component(hass, "lovelace", {})
+    await hass.async_block_till_done()
+    entry = _voce(hass, options={OPTION_REGISTER_LOVELACE: False})
+    collezione, plance = _lovelace(hass)
+    await collezione.async_create_item(
+        {
+            "allow_single_word": True,
+            "title": "DashboardModern",
+            "url_path": "dashboardmodern-01hvecch",
+            "show_in_sidebar": True,
+            "require_admin": False,
+        }
+    )
+    await hass.async_block_till_done()
+    await plance["dashboardmodern-01hvecch"].async_save(
+        {
+            "views": [
+                {
+                    "cards": [
+                        {"type": fe.TIPO_DELLA_CARD, "entry_id": "01HVECCHIADAMORIRE01"}
+                    ]
+                }
+            ]
+        }
+    )
+
+    # La preparazione non fa niente: l'opzione e' spenta.
+    assert await fe._ensure_companion_dashboard(hass, entry.entry_id) is False
+    # La spazzata, invece, arriva lo stesso.
+    assert await fe._spazza_le_orfane_se_lovelace_c_e(hass, entry.entry_id) == 1
+    assert collezione.async_items() == []
+
+
 async def test_una_scheda_gia_sul_disco_non_si_ricrea(hass: Any) -> None:
     """La stessa scheda c'e' gia': crearla di nuovo Lovelace la rifiuta.
 
