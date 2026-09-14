@@ -334,6 +334,8 @@ const SIGNED_UI = Object.freeze({
       toggle: "Ho una sola entità con segno per la rete",
       positive: "I valori positivi sono",
       directions: { import: "Prelievo dalla rete", export: "Immissione in rete" },
+      versoHint:
+        "Come scrive il tuo sensore della potenza di rete, qualunque casella tu abbia usato. Se sulla mappa le frecce della rete vanno al contrario di quello che sta succedendo, cambia questa.",
       measures: {
         power: ["Potenza rete con segno", "W", "sensor.rete_potenza"],
         daily: ["Energia rete di oggi con segno", "kWh", "sensor.rete_oggi"],
@@ -348,6 +350,8 @@ const SIGNED_UI = Object.freeze({
       toggle: "Ho una sola entità con segno per la batteria",
       positive: "I valori positivi sono",
       directions: { discharge: "Scarica (batteria → casa)", charge: "Carica (→ batteria)" },
+      versoHint:
+        "Come scrive il tuo sensore della potenza della batteria, qualunque casella tu abbia usato. Se sulla mappa le frecce della batteria vanno al contrario di quello che sta facendo davvero, cambia questa.",
       measures: {
         power: ["Potenza batteria con segno", "W", "sensor.batteria_potenza"],
         daily: ["Energia batteria di oggi con segno", "kWh", "sensor.batteria_oggi"],
@@ -364,6 +368,8 @@ const SIGNED_UI = Object.freeze({
       toggle: "I have a single signed entity for the grid",
       positive: "Positive values mean",
       directions: { import: "Import from grid", export: "Export to grid" },
+      versoHint:
+        "How your grid power sensor writes, whichever field you typed it into. If the grid arrows on the map point the opposite way to what is happening, change this.",
       measures: {
         power: ["Signed grid power", "W", "sensor.grid_power"],
         daily: ["Signed grid energy today", "kWh", "sensor.grid_today"],
@@ -378,6 +384,8 @@ const SIGNED_UI = Object.freeze({
       toggle: "I have a single signed entity for the battery",
       positive: "Positive values mean",
       directions: { discharge: "Discharge (battery → home)", charge: "Charge (→ battery)" },
+      versoHint:
+        "How your battery power sensor writes, whichever field you typed it into. If the battery arrows on the map point the opposite way to what it is really doing, change this.",
       measures: {
         power: ["Signed battery power", "W", "sensor.battery_power"],
         daily: ["Signed battery energy today", "kWh", "sensor.battery_today"],
@@ -411,22 +419,75 @@ export function signedManagedFields(model = {}, group = "") {
   return fields;
 }
 
+/* Da che parte scrive il sensore: una domanda del gruppo, non della scheda.
+ *
+ * Stava dentro «Una sola entita' con segno», e quindi valeva solo per chi
+ * quella scheda l'aveva accesa e ci aveva scritto dentro il sensore. Chi
+ * invece il sensore lo aveva messo nella casella «Potenza» di sempre — che e'
+ * il posto ovvio, ed e' quello che la plancia stessa consiglia — apriva la
+ * scheda solo per raggiungere i due pallini, ne cambiava uno e non cambiava
+ * niente: la #435, «ho provato anche a cambiare il senso ma non cambia».
+ *
+ * Il verso e' una proprieta' del sensore, non della casella: adesso e' una
+ * riga del riquadro, sempre in vista, e governa la potenza del gruppo dovunque
+ * sia scritta. La scheda qui sotto resta quello che dice di essere: il posto
+ * dove si dichiara UNA entita' al posto di due. */
+function createDirectionField(document, group, model, locale, handlers) {
+  const definition = SIGNED_GROUPS[group];
+  const copy = (SIGNED_UI[locale] || SIGNED_UI.it)[group];
+  const source = signedSource(model, group);
+  const positive = source?.positive || definition.positiveDefault;
+  const field = document.createElement("div");
+  field.className = "ed-slot dm-energy-verso";
+  field.dataset.energyDirection = group;
+  field.innerHTML =
+    `<span class="ed-slot-lbl">${copy.positive}</span>` +
+    `<span class="ed-hint">${copy.versoHint}</span>`;
+  const direction = document.createElement("div");
+  direction.className = "dm-energy-signed-direction";
+  const name = `dm-energy-signed-${group}-positive`;
+  for (const value of definition.directions) {
+    const option = document.createElement("label");
+    option.className = "dm-energy-signed-option";
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = name;
+    radio.value = value;
+    radio.checked = positive === value;
+    radio.addEventListener("change", () => {
+      if (!radio.checked) return;
+      handlers.onSignedChange?.(group, { ...(model?.[group]?.signed || {}), positive: value });
+      handlers.onSignedRerender?.(group);
+    });
+    const text = document.createElement("span");
+    text.textContent = copy.directions[value];
+    option.append(radio, text);
+    direction.append(option);
+  }
+  field.append(direction);
+  return field;
+}
+
 function createSignedCard(document, group, model, states, locale, handlers) {
   const definition = SIGNED_GROUPS[group];
   const copy = (SIGNED_UI[locale] || SIGNED_UI.it)[group];
   const source = signedSource(model, group);
   const declared = { ...(model?.[group]?.signed || {}) };
   const positive = source?.positive || definition.positiveDefault;
+  /* La spunta la accendono le entita', non il verso: il verso adesso si
+   * dichiara fuori di qui, e trovarsi la scheda aperta per averlo cambiato
+   * direbbe una cosa che non e' vera. */
+  const dichiarate = Boolean(source && Object.keys(source.entities).length);
   const card = document.createElement("div");
   card.className = "dm-energy-signed";
   card.dataset.energySigned = group;
-  card.dataset.state = source ? "on" : "off";
+  card.dataset.state = dichiarate ? "on" : "off";
 
   const head = document.createElement("label");
   head.className = "dm-energy-signed-head";
   const toggle = document.createElement("input");
   toggle.type = "checkbox";
-  toggle.checked = Boolean(source);
+  toggle.checked = dichiarate;
   toggle.dataset.energySignedToggle = group;
   const title = document.createElement("span");
   title.innerHTML = `<strong>${copy.title}</strong><small>${copy.toggle}</small>`;
@@ -441,31 +502,6 @@ function createSignedCard(document, group, model, states, locale, handlers) {
   body.append(hint);
 
   const emit = () => handlers.onSignedChange?.(group, { ...declared, positive });
-  const readDeclared = () => ({ ...declared, positive });
-
-  const direction = document.createElement("div");
-  direction.className = "dm-energy-signed-direction";
-  direction.innerHTML = `<span class="ed-slot-lbl">${copy.positive}</span>`;
-  const name = `dm-energy-signed-${group}-positive`;
-  for (const value of definition.directions) {
-    const option = document.createElement("label");
-    option.className = "dm-energy-signed-option";
-    const radio = document.createElement("input");
-    radio.type = "radio";
-    radio.name = name;
-    radio.value = value;
-    radio.checked = positive === value;
-    radio.addEventListener("change", () => {
-      if (!radio.checked) return;
-      handlers.onSignedChange?.(group, { ...readDeclared(), positive: value });
-      handlers.onSignedRerender?.(group);
-    });
-    const text = document.createElement("span");
-    text.textContent = copy.directions[value];
-    option.append(radio, text);
-    direction.append(option);
-  }
-  body.append(direction);
 
   for (const measure of SIGNED_MEASURES) {
     const [label, unit, example] = copy.measures[measure];
@@ -505,8 +541,9 @@ function createSignedCard(document, group, model, states, locale, handlers) {
       return;
     }
     for (const measure of SIGNED_MEASURES) delete declared[measure];
-    // Spegnendola non resta niente, verso compreso: e' cosi' che si cancella.
-    handlers.onSignedChange?.(group, {});
+    /* Restano le entita' da cancellare, non il verso: quello lo dice la riga
+     * qui sopra, e vale anche per chi la sorgente unica non ce l'ha. */
+    handlers.onSignedChange?.(group, { positive });
     handlers.onSignedRerender?.(group);
   });
 
@@ -634,8 +671,10 @@ export function renderEnergyEditor(
     block.append(heading);
     const body = document.createElement("div");
     body.className = "ed-acc-body";
-    if (signedHome.get(group) === groupIndex)
+    if (signedHome.get(group) === groupIndex) {
+      body.append(createDirectionField(document, group, model, locale, handlers));
       body.append(createSignedCard(document, group, model, states, locale, handlers));
+    }
     const managed = signedManagedFields(model, group);
     for (const [key, sourceLabel, unit, example] of fields) {
       const chiave = `${group}.${key}`;

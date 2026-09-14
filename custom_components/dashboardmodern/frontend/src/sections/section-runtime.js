@@ -147,7 +147,6 @@ import { installCitofono } from "./citofono-section.js";
 import { installCitofonoEditor } from "./citofono-editor-section.js";
 import { installStampanti } from "./stampanti-section.js";
 import { installStampantiEditor } from "./stampanti-editor-section.js";
-import { installVersoBatteriaEditorSection } from "./verso-batteria-editor-section.js";
 import { installMacchine } from "./macchine-e-rete-section.js";
 import { installMacchineEditor } from "./macchine-editor-section.js";
 import { installNodiSection } from "./nodi-section.js";
@@ -1103,7 +1102,6 @@ export function installSectionRuntime() {
     installCitofonoEditor();
     installStampanti();
     installStampantiEditor();
-    installVersoBatteriaEditorSection();
     installMacchine();
     installMacchineEditor();
     installNodiSection();
@@ -1224,7 +1222,6 @@ export function installSectionRuntime() {
         "presenza-editor",
         "stampanti",
         "stampanti-editor",
-        "verso-batteria-editor",
         "macchine-e-rete",
         "macchine-editor",
       ]),

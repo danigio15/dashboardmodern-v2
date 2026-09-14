@@ -501,7 +501,24 @@ export function allStates() {
   const values = hosted.length ? Object.assign({}, ...hosted) : {};
   for (const name of ["_RAW_STATES", "STATES"]) {
     const lexical = lexicalGlobal(name);
-    if (lexical && typeof lexical === "object") Object.assign(values, lexical);
+    if (!lexical || typeof lexical !== "object") continue;
+    /* Si copiano i DESCRITTORI, non i valori.
+     *
+     * Le letture ricavate dalla sorgente unica con segno — la potenza della
+     * batteria gia' girata, e i due versi dei periodi — stanno qui come
+     * proprieta' con un accessore, e non enumerabili apposta: cosi' non si
+     * affacciano nel selettore delle entita' e non falsano i conteggi di chi
+     * cicla sugli stati. `Object.assign` copia solo le enumerabili, e quindi
+     * questa fusione le buttava via: il guscio storico, che legge il registro
+     * vero, le vedeva; i moduli, che leggono di qui, no. Succedeva soltanto a
+     * plancia OSPITATA dentro Home Assistant — senza `__HASS__` si torna il
+     * registro com'e', senza copiare niente — cioe' nel modo in cui la plancia
+     * gira quasi sempre, ed e' l'altra meta' del «ho provato anche a cambiare
+     * il senso ma non cambia» (#435).
+     *
+     * Col descrittore la lettura resta pigra: risponde col numero di adesso a
+     * ogni accesso, che e' il motivo per cui era stata scritta cosi'. */
+    Object.defineProperties(values, Object.getOwnPropertyDescriptors(lexical));
   }
   return values;
 }

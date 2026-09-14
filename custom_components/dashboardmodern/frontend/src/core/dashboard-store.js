@@ -168,6 +168,7 @@ export class DashboardStore {
       subloads: parse("cd_subloads_extra", {}),
       reportDevices: parse("cd_report_devices", []),
       washerImage: parse("cd_lavatrice_visual", ""),
+      batteryDirection: parse("cd_batteria_verso", null),
     });
     this.state = result.state;
     /* All'avvio le chiavi legacy dettano, la copia canonica segue.

@@ -419,9 +419,11 @@ export const CONFIG_KEYS = Object.freeze([
    * correzioni al rilevamento di casa — e quindi stesso viaggio fra i
    * dispositivi. */
   "cd_presenza",
-  /* Il verso della batteria (#434): se il sensore scrive positivo quando si
-   * carica. E' dell'impianto, non del dispositivo da cui lo si e' detto — la
-   * batteria e' una sola per tutta la casa. */
+  /* Il verso della batteria (#434), in pensione dalla #435: adesso si dichiara
+   * nella scheda Energia, accanto al sensore che descrive, e viaggia dentro il
+   * modello. Nessuno lo scrive piu'; resta in elenco perche' e' quello che la
+   * migrazione legge per travasarlo, e una configurazione ripristinata su un
+   * altro dispositivo deve portarselo dietro fino a quel travaso. */
   "cd_batteria_verso",
   /* Le macchine del server e la rete (#382): quali sensori contano e come si
    * chiamano. Il server e' uno solo per tutta la casa, e il nome che si da' a

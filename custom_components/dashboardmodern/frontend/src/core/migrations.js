@@ -6,6 +6,7 @@ import {
 } from "./device-model.js";
 import { COOLING_SLOT_MAP, ENERGY_SLOT_MAP } from "./energy-projection.js";
 import { normalizeRobots } from "./robot-model.js";
+import { SIGNED_GROUPS } from "./signed-energy.js";
 import { normalizzaPrese } from "./prese-model.js";
 
 export const SECTION_KEYS = Object.freeze({
@@ -454,8 +455,40 @@ export function migrateState(input = {}, legacy = {}) {
       }
       energy.metadata = { ...(energy.metadata || {}), cooling_migrated: true };
     }
+    /* Da che parte scrive la batteria: una domanda, una risposta.
+     *
+     * Si diceva in due posti — l'interruttore `cd_batteria_verso` sotto la
+     * casella della potenza, e «I valori positivi sono» dentro la scheda della
+     * sorgente unica — e due interruttori per lo stesso fatto sono un modo
+     * sicuro di non farne funzionare nessuno: chi ne trovava uno non sapeva
+     * che l'altro esisteva, e chi li toccava tutti e due si annullavano.
+     * Adesso la risposta e' una: sta nel modello Energia, accanto al sensore
+     * che descrive. Chi aveva girato il vecchio interruttore se lo ritrova
+     * qui, una volta sola. */
+    if (!energy.metadata?.battery_direction_migrated) {
+      if (versoGirato(legacy.batteryDirection)) {
+        const battery = { ...(energy.battery || {}) };
+        const signed = { ...(battery.signed || {}) };
+        if (!SIGNED_GROUPS.battery.directions.includes(String(signed.positive || "").trim())) {
+          signed.positive = "charge";
+          battery.signed = signed;
+          energy.battery = battery;
+          changes.push("battery direction migrated from cd_batteria_verso");
+        }
+      }
+      energy.metadata = { ...(energy.metadata || {}), battery_direction_migrated: true };
+    }
   }
   return { state, changes };
+}
+
+/* Il vecchio interruttore diceva «la mia batteria scrive positivo quando si
+ * carica» in tre forme diverse, secondo l'anno in cui era stato scritto. */
+function versoGirato(stored) {
+  if (stored === true || stored === "true" || stored === 1) return true;
+  if (stored && typeof stored === "object" && !Array.isArray(stored))
+    return versoGirato(stored.girata);
+  return false;
 }
 
 export function readLegacyState(storage) {

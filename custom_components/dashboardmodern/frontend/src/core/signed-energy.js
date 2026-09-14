@@ -162,6 +162,27 @@ export function signedSource(energy = {}, group = "") {
   return { group, entities, positive, inverted: positive !== definition.runtimePositive };
 }
 
+/* La potenza a cui il verso dichiarato si applica.
+ *
+ * Il verso e' una cosa che si dice del SENSORE — «il mio scrive positivo
+ * quando la batteria si carica» — non della casella in cui lo si e' scritto.
+ * Finche' valeva solo per la casella della sorgente unica, chi aveva scritto
+ * il sensore nella casella «Potenza» di sempre e poi aveva scelto il verso non
+ * cambiava niente: la mappa continuava a disegnare batteria → casa mentre la
+ * batteria si caricava, ed e' la #435 («ho provato anche a cambiare il senso
+ * ma non cambia»).
+ *
+ * Adesso il verso governa la potenza del gruppo dovunque sia stata scritta.
+ * L'eccezione e' la coppia di sensori: li' i due versi sono due entita'
+ * separate, sempre positive, e il verso non e' una domanda — ci pensa la
+ * sottrazione.
+ */
+function potenzaDelGruppo(energy, group, source) {
+  if (source.entities.power) return source.entities.power;
+  if (powerPairSource(energy, group)) return "";
+  return clean(energy?.[group]?.[SIGNED_GROUPS[group].powerField]);
+}
+
 /**
  * Il modello Energia con le sorgenti uniche gia' risolte nei due versi.
  *
@@ -181,12 +202,13 @@ export function applySignedSources(energy = {}) {
     const source = signedSource(energy, group);
     if (!source) continue;
     const definition = SIGNED_GROUPS[group];
-    if (source.entities.power) {
+    const potenza = potenzaDelGruppo(energy, group, source);
+    if (potenza && (source.inverted || source.entities.power)) {
       /* Col verso gia' giusto l'entita' vale direttamente: nessuna lettura
        * ricavata da tenere aggiornata per un numero identico all'originale. */
       own(group)[definition.powerField] = source.inverted
         ? derivedEntityId(group, definition.powerField)
-        : source.entities.power;
+        : potenza;
     }
     for (const period of definition.periods) {
       if (!source.entities[period.key]) continue;
@@ -299,8 +321,9 @@ export function derivedEnergyStates(energy = {}, states = {}) {
     const source = signedSource(energy, group);
     if (!source) continue;
     const definition = SIGNED_GROUPS[group];
-    if (source.entities.power && source.inverted) {
-      const reading = readingFrom(states, source.entities.power);
+    const potenza = potenzaDelGruppo(energy, group, source);
+    if (potenza && source.inverted) {
+      const reading = readingFrom(states, potenza);
       const id = derivedEntityId(group, definition.powerField);
       result[id] = derivedState(
         id,
@@ -353,6 +376,10 @@ export function signedSourceEntities(energy = {}) {
     const source = signedSource(energy, group);
     if (!source) continue;
     for (const entity of Object.values(source.entities)) ids.add(entity);
+    /* La potenza scritta nella casella di sempre, quando e' lei a girarsi:
+     * senza il suo id la lettura ricavata non troverebbe niente da negare. */
+    const potenza = potenzaDelGruppo(energy, group, source);
+    if (potenza && source.inverted) ids.add(potenza);
   }
   for (const group of Object.keys(POWER_PAIRS)) {
     const pair = powerPairSource(energy, group);

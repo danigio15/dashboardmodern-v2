@@ -5,6 +5,63 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## Non ancora rilasciato
+
+### Corretto
+
+- **Il verso della batteria adesso conta davvero, e si dice in un posto solo**
+
+  «Adesso ho il flusso, ma è sempre da batteria verso casa, ho provato anche a
+  cambiare il senso ma non cambia» (#435).
+
+  Metà degli inverter scrive positivo quando la batteria si CARICA, l'altra metà
+  quando si scarica: da un numero solo non si indovina, e chi guarda vede le
+  frecce all'incontrario. Il verso lo dice la casa — e finora lo diceva in due
+  posti, nessuno dei quali funzionava nel caso più comune.
+
+  - Il verso era chiuso dentro la scheda «Una sola entità con segno», e valeva
+    soltanto per la casella di quella scheda. Chi il sensore lo aveva scritto
+    nella casella **Potenza** di sempre — che è il posto ovvio, ed è quello che
+    la plancia stessa consiglia — apriva la scheda solo per raggiungere i due
+    pallini, ne cambiava uno, e non cambiava niente. Adesso «I valori positivi
+    sono» è una riga del riquadro, sempre in vista, e governa la potenza del
+    gruppo dovunque sia stata scritta. Vale per la rete come per la batteria.
+
+  - Il secondo interruttore, quello sotto la casella della potenza (#434), è
+    andato in pensione: due interruttori per lo stesso fatto sono un modo sicuro
+    di non farne funzionare nessuno. Chi lo aveva girato se lo ritrova nella
+    riga nuova, una volta sola e senza toccare niente.
+
+  - Il verso si applica adesso dove l'entità si risolve, non in chi disegna.
+    Prima lo giravano la mappa dei flussi e la tessera della Home, ciascuna per
+    conto suo, e il guscio storico — che disegna le stesse linee leggendo lo
+    stesso riferimento — non ne sapeva niente. Adesso il numero arriva già
+    girato a tutti e tre.
+
+- **L'istantanea del flusso decide dagli stati, non dal testo delle bolle**
+
+  La bolla della batteria non dice più il numero col segno: dice grandezza e
+  verso, «▼ 201 W». Chi leggeva quel testo per sapere da che parte andasse la
+  linea ritrovava sempre e solo un numero positivo — cioè sempre e solo
+  «batteria → casa», qualunque cosa stesse facendo la batteria. È l'altra metà
+  della #435, e valeva anche con il verso dichiarato giusto.
+
+- **Le letture ricavate non sparivano più dentro Home Assistant**
+
+  Le letture che nascono da una sola entità con segno sono proprietà non
+  enumerabili, apposta: così non si affacciano nel selettore delle entità e non
+  falsano i conteggi. La fusione degli stati le copiava con `Object.assign`, che
+  le enumerabili le prende e le altre no: il guscio storico le vedeva, i moduli
+  no. Succedeva solo a plancia ospitata dentro Home Assistant, cioè nel modo in
+  cui la plancia gira quasi sempre.
+
+- **Cambiare il verso si vede subito**
+
+  Le letture ricavate nascono quando la dichiarazione cambia, e chi disegnava in
+  quell'istante trovava il vuoto e ci restava fino al prossimo stato. In una casa
+  vera si sanava da sé entro un secondo, ma «cambio il verso e non cambia niente»
+  è la frase della segnalazione e non può dipendere da quando parla il contatore.
+
 ## 1.4.27
 
 ### Aggiunto

@@ -201,11 +201,6 @@ import {
   rilevamentiAccesi,
 } from "../core/rilevamenti-telecamera.js";
 import {
-  CHIAVE_VERSO_BATTERIA,
-  batteriaGirata,
-  potenzaDellaBatteria,
-} from "../core/energy-flow-truth.js";
-import {
   CHIAVE_PRESENZA,
   contoDellaPresenza,
   presenzaDiCasa,
@@ -1590,7 +1585,15 @@ function lettureDellImpianto(states, impianto, primo) {
    * pubblica per il PRIMO impianto — il primo livello del documento Energia E'
    * il primo impianto. Per gli altri si legge quello che c'e' scritto, come
    * prima: prendere gli id ricavati vorrebbe dire mostrare la batteria di casa
-   * dentro la casa dell'altro. */
+   * dentro la casa dell'altro.
+   *
+   * Di qui passa anche il verso della batteria e della rete: chi ha dichiarato
+   * che il suo sensore scrive positivo in carica legge da qui il numero gia'
+   * girato, nella convenzione di casa — positivo = scarica. Il numero grezzo
+   * arrivava invece fino a tre letture diverse (la frase della tessera, il
+   * soggetto del racconto, la casella del popup), e girarlo in tre posti
+   * sarebbe stato lo stesso errore tre volte: si gira una volta sola, dove
+   * l'entita' si risolve, e da li' in poi la convenzione e' una. */
   const risolto = primo ? applySignedSources(impianto || {}) : impianto;
   const readings = ENERGY_SLOTS.map(([group, field, slot]) => ({
     group,
@@ -1600,31 +1603,6 @@ function lettureDellImpianto(states, impianto, primo) {
     states,
     clean(risolto?.battery?.soc) || (primo ? "dm.energy_stato_carica_batteria" : ""),
   );
-  /* La batteria entra qui gia' nella convenzione di casa: positivo = scarica.
-   *
-   * Meta' dei sensori scrive positivo quando la batteria si CARICA, e il verso
-   * lo dichiara chi abita la casa una volta sola (#434). Quel verso lo girava
-   * solo la mappa dei flussi; queste righe portavano il numero grezzo, e ci
-   * leggevano sopra tre cose diverse:
-   *
-   *   · la frase della tessera, che con un sensore girato scriveva «La
-   *     batteria copre 3,12 kW» mentre la mappa, accanto, disegnava la stessa
-   *     batteria che si caricava. Dal campo: «segna che la batteria copre la
-   *     casa a 3.12 kW» con il sole a 3,94 kW, la casa a 727 W e la rete a
-   *     zero — cioe' un bilancio in cui quei 3,12 kW non possono che ENTRARE
-   *     nella batteria;
-   *   · il soggetto del racconto, che diventa «quando sara' piena» solo sotto
-   *     i -10 W e quindi non ci arrivava mai;
-   *   · la casella del popup, che stampava il numero grezzo.
-   *
-   * Girarlo in tre posti sarebbe stato lo stesso errore tre volte. Si gira
-   * qui, dove la riga nasce, e da qui in poi c'e' una convenzione sola. */
-  const battuta = readings.find((row) => row.group === "battery");
-  if (battuta)
-    battuta.watts = potenzaDellaBatteria(
-      battuta.watts,
-      batteriaGirata(readJson(CHIAVE_VERSO_BATTERIA, {})),
-    );
   const rows = readings.filter((row) => row.watts != null);
   if (soc != null) {
     const batteria = rows.find((row) => row.group === "battery");

@@ -2094,6 +2094,7 @@ function installStyles() {
       .dm-energy-signed-body{display:grid;gap:10px;margin-top:12px}
       .dm-energy-signed-body[hidden]{display:none!important}
       .dm-energy-signed-hint{margin:0;font-size:11.5px;line-height:1.4}
+      .dm-energy-verso{display:grid;gap:6px;margin:0 0 14px}
       .dm-energy-signed-direction{display:grid;gap:6px}
       .dm-energy-signed-option{display:flex;align-items:center;gap:8px;font-size:12.5px}
       .dm-energy-signed-option input{width:16px;height:16px}

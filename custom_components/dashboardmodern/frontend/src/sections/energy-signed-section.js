@@ -53,14 +53,19 @@ export function refreshDerivedStates() {
   const model = energyModel();
   const sources = signedSourceEntities(model);
   const wanted = new Set(Object.keys(derivedEnergyStates(model, sourceView(states, model))));
+  let cambiato = false;
   for (const id of state.published) {
     if (wanted.has(id)) continue;
     try {
       delete states[id];
     } catch (_error) {}
     state.published.delete(id);
+    cambiato = true;
   }
-  if (!wanted.size) return sources.length === 0;
+  if (!wanted.size) {
+    if (cambiato) ridisegna();
+    return sources.length === 0;
+  }
   for (const id of wanted) {
     if (state.published.has(id)) continue;
     try {
@@ -73,9 +78,31 @@ export function refreshDerivedStates() {
         },
       });
       state.published.add(id);
+      cambiato = true;
     } catch (_error) {}
   }
+  if (cambiato) ridisegna();
   return true;
+}
+
+/* Chi cambia il verso sta guardando le frecce.
+ *
+ * Queste letture nascono e muoiono quando la dichiarazione cambia, e finche'
+ * non nascono l'alias della potenza punta a un'entita' che non c'e' ancora:
+ * chi disegna in quell'istante trova il vuoto e ci resta, perche' nessun altro
+ * evento gli dira' che nel frattempo la lettura e' comparsa. In una casa vera
+ * il prossimo stato arriva entro un secondo e la cosa si sana da sola — ma
+ * «cambio il verso e non cambia niente» e' esattamente la frase della
+ * segnalazione, e non puo' dipendere da quando parla il contatore.
+ *
+ * L'evento e' quello che la plancia usa gia' per «gli stati sono cambiati»:
+ * qui non si aggiunge un canale nuovo, si dice una cosa vera su quello che
+ * c'e'. E si dice solo quando qualcosa e' davvero nato o morto, o sarebbe un
+ * ridisegno in piu' a ogni pacchetto di stati. */
+function ridisegna() {
+  try {
+    root.dispatchEvent?.(new root.CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+  } catch (_error) {}
 }
 
 export function installEnergySignedSection() {

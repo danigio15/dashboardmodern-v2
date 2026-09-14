@@ -3,13 +3,7 @@ import {
   flowRecorderEntity,
   flowStageModel,
 } from "../core/energy-flow-topology.js";
-import {
-  CHIAVE_VERSO_BATTERIA,
-  allocateSourceFlows,
-  batteriaGirata,
-  batteryReadout,
-  potenzaDellaBatteria,
-} from "../core/energy-flow-truth.js";
+import { allocateSourceFlows, batteryReadout } from "../core/energy-flow-truth.js";
 import { specchioDeiCerchi } from "../core/energy-loads-config.js";
 import { applySignedSources, wattsFromState } from "../core/signed-energy.js";
 import { vehicleBatteryEntity } from "./ev-section.js";
@@ -605,25 +599,31 @@ function potenzaViva(reference) {
   return wattsFromState(nodo);
 }
 
-/* La potenza della batteria come la intende questa plancia: positivo =
- * scarica. Il verso lo dice la casa, perche' meta' dei sensori scrive
- * positivo quando la batteria si carica (#434). */
-function potenzaBatteriaViva() {
-  return potenzaDellaBatteria(
-    potenzaViva("dm.energy_potenza_batteria"),
-    batteriaGirata(readJson(CHIAVE_VERSO_BATTERIA, {})),
-  );
-}
+/* Le tre sorgenti istantanee, ciascuna col suo alias.
+ *
+ * Positivo = prelievo per la rete, positivo = scarica per la batteria: e' la
+ * convenzione di qui, e i sensori che la scrivono al contrario si girano una
+ * volta sola, dove l'entita' si risolve — il verso dichiarato nella scheda
+ * Energia fa scendere da `dm.energy_potenza_batteria` la lettura gia' negata.
+ * Qui quindi non si gira piu' niente: girarlo anche in questa pagina vorrebbe
+ * dire due mani sullo stesso segno, e il guscio storico — che disegna le
+ * stesse linee leggendo lo stesso alias — di questa seconda mano non saprebbe
+ * niente. */
+const SORGENTI_ISTANTANEE = Object.freeze({
+  solar: "dm.energy_potenza_fotovoltaico",
+  grid: "dm.energy_potenza_scambio_rete",
+  battery: "dm.energy_potenza_batteria",
+  home: "dm.energy_potenza_consumo_casa",
+});
 
 function instantSourceFlows() {
   const fonti = [
-    "dm.energy_potenza_fotovoltaico",
-    "dm.energy_potenza_scambio_rete",
-    "dm.energy_potenza_batteria",
+    SORGENTI_ISTANTANEE.solar,
+    SORGENTI_ISTANTANEE.grid,
+    SORGENTI_ISTANTANEE.battery,
   ].map((ref) => ({
     configurata: resolvedEntity(ref) !== clean(ref),
-    valore:
-      ref === "dm.energy_potenza_batteria" ? potenzaBatteriaViva() : potenzaViva(ref),
+    valore: potenzaViva(ref),
   }));
   const [sole, rete, batteria] = fonti;
   /* Senza nemmeno una sorgente viva non c'e' niente da spartire: si cede il
@@ -717,32 +717,52 @@ function periodDirectionalValue(node, direction) {
 }
 
 function directionalEndpointValue(kind, node, period) {
+  /* La bolla dice ancora se questa sorgente c'e': un impianto senza batteria
+   * tiene la sua bolla nascosta, e da una bolla nascosta non parte nessuna
+   * linea. Ma il NUMERO, nell'istantanea, non si legge piu' da li'. */
   const valueNode = mainValueNode(kind, period);
   if (!valueNode || !nodeVisible(valueNode)) return null;
   const id = String(node?.id || "").toLowerCase();
 
-  if (kind === "grid") {
-    if (period)
-      return periodDirectionalValue(valueNode, id.includes("solar-grid") ? "export" : "import");
-    const signed = parseNumber(valueNode);
-    return id.includes("solar-grid") ? Math.max(0, -signed) : Math.max(0, signed);
+  if (!period) {
+    /* Il verso dell'istantanea viene dagli stati, mai dal testo della bolla.
+     *
+     * La bolla della batteria non dice piu' il numero col segno: dice
+     * grandezza e verso, «▼ 201 W». Il segno se n'e' andato nella freccia, e
+     * chi leggeva quel testo per sapere da che parte andasse la linea
+     * ritrovava sempre e solo un numero positivo — cioe' sempre e solo
+     * «batteria → casa», qualunque cosa stesse facendo la batteria e
+     * qualunque verso fosse dichiarato. E' la #435: «è sempre da batteria
+     * verso casa, ho provato anche a cambiare il senso ma non cambia».
+     *
+     * Questa strada si percorre quando la spartizione a cascata si fa da
+     * parte — una sorgente configurata ma muta — e allora si torna alla
+     * regola di prima, un numero alla volta: ma il numero lo danno gli stati,
+     * che il verso ce l'hanno. */
+    const signed = potenzaViva(SORGENTI_ISTANTANEE[kind]);
+    if (signed === null) return null;
+    if (kind === "grid") return id.includes("solar-grid") ? Math.max(0, -signed) : Math.max(0, signed);
+    if (kind === "battery")
+      return id.includes("solar-battery") ? Math.max(0, -signed) : Math.max(0, signed);
+    return Math.abs(signed);
   }
 
-  if (kind === "battery") {
-    if (period)
-      return periodDirectionalValue(
-        valueNode,
-        id.includes("solar-battery") ? "charge" : "discharge",
-      );
-    const signed = parseNumber(valueNode);
-    return id.includes("solar-battery") ? Math.max(0, -signed) : Math.max(0, signed);
-  }
+  if (kind === "grid")
+    return periodDirectionalValue(valueNode, id.includes("solar-grid") ? "export" : "import");
+
+  if (kind === "battery")
+    return periodDirectionalValue(valueNode, id.includes("solar-battery") ? "charge" : "discharge");
 
   return numberFrom(valueNode);
 }
 
 function directionalMainFlowValue(node, period) {
   const id = String(node?.id || "").toLowerCase();
+  /* Rete ↔ batteria non si decide da un capo solo: quanta rete stia entrando
+   * nella batteria lo sa soltanto la spartizione a cascata. Quando quella si
+   * fa da parte questi due archi restano spenti, che e' la risposta onesta —
+   * prima si accendevano su tutto il prelievo, cioe' su un fatto diverso. */
+  if (id.includes("grid-battery") || id.includes("battery-grid")) return null;
   if (id.includes("solar-grid")) return directionalEndpointValue("grid", node, period);
   if (id.includes("solar-battery")) return directionalEndpointValue("battery", node, period);
   if (id.includes("grid-home")) return directionalEndpointValue("grid", node, period);
@@ -812,7 +832,7 @@ export function refreshEnergyFlows() {
    * la freccia — sullo zero, o sull'impianto che una batteria non ce l'ha —
    * lasciava inciso il numero di prima, e cambiando impianto si leggeva la
    * carica dell'altra casa. «—» senza lettura, «0 W» da ferma. */
-  const batteria = potenzaBatteriaViva();
+  const batteria = potenzaViva(SORGENTI_ISTANTANEE.battery);
   const testo = batteria === null ? "—" : (batteryReadout(batteria) ?? "0 W");
   for (const id of ["v-battery", "m-v-battery"]) {
     scriviTestoSeCambia(doc.getElementById(id), testo);
