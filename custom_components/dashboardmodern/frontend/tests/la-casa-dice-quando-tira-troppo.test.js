@@ -190,3 +190,32 @@ test("il sovraccarico di rete non si disegna con un router", () => {
   assert.match(sezione, /SORGENTE_RETE \? "potenza" : "casa"/);
   assert.doesNotMatch(sezione, /SORGENTE_RETE \? "rete"/);
 });
+
+test("l'avviso e la fascia stanno sulla stessa riga anche sul telefono", () => {
+  /* Erano su due righe sotto i 560 px, per una regola scritta apposta: «due
+   * cose strette su uno schermo stretto non si leggono». Provata, e sbagliata:
+   * due righe alte 115 px per dire quello che ne vuole 60, e due cose che si
+   * leggono insieme — cosa chiede attenzione adesso, cosa sta facendo la casa —
+   * messe a distanza.
+   *
+   * Adesso restano affiancate: l'avviso si stringe fino al 56% e la fascia
+   * prende quello che resta. Misurato in Chromium col foglio di stile vero a
+   * 360, 390, 414 e 430 px: il numero non si taglia mai e alla fascia resta una
+   * pastiglia intera. */
+  const casa = sorgente("src/sections/come-sta-la-casa-section.js");
+  assert.doesNotMatch(
+    casa,
+    /@media \(max-width:560px\)\{\s*\n?\s*\.dm-casa-fascia\{flex-direction:column/,
+    "la corsia non deve più impilarsi sul telefono",
+  );
+  assert.match(
+    casa,
+    /@media \(max-width:560px\)\{\s*\n\s*\.dm-casa-fascia > #dm-casa-riga\{flex:1 1 0;min-width:0;max-width:none\}\}/,
+  );
+
+  const soglia = sorgente("src/sections/la-soglia-della-potenza-section.js");
+  /* L'avviso si stringe, ma il numero è il motivo per cui esiste: si accorcia
+   * la parolina sotto, non lui. */
+  assert.match(soglia, /flex:0 1 auto;min-width:0;max-width:56%/);
+  assert.match(soglia, /text-overflow:ellipsis;white-space:nowrap\}\}/);
+});

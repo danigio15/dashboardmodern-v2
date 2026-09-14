@@ -462,6 +462,22 @@ function installStyles() {
           0 0 0 6px color-mix(in srgb,#dc2626 12%,transparent)}}
       @media(prefers-reduced-motion:reduce){
         .dm-soglia-allerta{animation:none}}
+      /* Sul telefono l'avviso si stringe, perche' resta accanto alla fascia.
+         Quello che NON si tocca e' il numero: e' il motivo per cui l'avviso
+         esiste, e un «521 W / 300 W» tagliato a meta' non avvisa di niente.
+         Si accorcia la parolina sotto, che a quel punto e' ridondante — quale
+         sovraccarico sia lo dice gia' il disegno, casa o potenza.
+         Il tetto e' il 56%: misurato a 360, 390, 414 e 430 pixel e' il punto
+         in cui il numero non si taglia mai e alla fascia resta una pastiglia
+         intera. Piu' stretto e l'avviso perde il suo peso, piu' largo e la
+         fascia accanto non mostra piu' niente di leggibile. */
+      @media(max-width:560px){
+        .dm-soglia-allerta{
+          flex:0 1 auto;min-width:0;max-width:56%;padding:5px 10px 5px 5px;gap:7px}
+        .dm-soglia-allerta .dm-casa-testo{min-width:0}
+        .dm-soglia-allerta .dm-casa-testa,
+        .dm-soglia-allerta .dm-casa-coda{
+          display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
     `,
   );
 }
