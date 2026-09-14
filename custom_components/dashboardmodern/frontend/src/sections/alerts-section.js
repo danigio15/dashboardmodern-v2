@@ -409,15 +409,30 @@ function clearAlertsAfterReset() {
  * il catalogo da cui la scelta viene. Qui si ripassa dove il guscio ha appena
  * scritto e si mette il disegno al posto del nome. Il segno sul nodo dice che
  * quella casella e' gia' a posto: senza, ogni ridisegno rifarebbe il lavoro. */
-const CASELLE_DELL_ICONA = [
-  "#glance-custom-wrap .g-icon-wrap",
-  "#editor-modal .ed-acc .ed-row>div:first-child",
-  "#details-modal .d-icon",
-];
+const CASELLE_DELL_ICONA = ["#glance-custom-wrap .g-icon-wrap", "#details-modal .d-icon"];
 
 /* E dove il nome mdi non sta da solo: il guscio ci attacca subito dopo il nome
  * dell'avviso, nella riga della configurazione e nella testata della finestra. */
-const NOMI_CON_L_ICONA_IN_TESTA = ["#editor-modal .ed-acc .ed-row .ed-row-new", "#details-title"];
+const NOMI_CON_L_ICONA_IN_TESTA = ["#details-title"];
+
+/* Dentro la configurazione si guardano SOLO le righe degli avvisi.
+ *
+ * Qui si cercava `#editor-modal .ed-acc .ed-row>div:first-child`: la prima
+ * casella di ogni riga di ogni scheda della configurazione. Ma le schede sono
+ * venti, e le righe delle Azioni rapide, delle Stanze, del Clima hanno anche
+ * loro una prima casella — con dentro il nome dell'icona, che qui veniva preso
+ * per un avviso e disegnato. Il motore delle icone quelle righe le aveva gia'
+ * sistemate a modo suo, e il risultato erano due simboli sulla stessa riga:
+ * il disegno a sinistra e un secondo disegno in mezzo ai tasti.
+ *
+ * La riga di un avviso si riconosce dal segno che ci mette `normalizeAlertsEditor`
+ * — che gira solo quando la scheda degli Avvisi e' in scena, e che passa PRIMA
+ * di qui a ogni ridisegno. Non si puo' invece partire dalla scheda: i suoi
+ * gruppi sono `details` separati dal modulo che aggiunge un avviso, e chiedere
+ * il `.ed-acc` del menu dei gruppi non arriva a nessuna riga. */
+const RIGA_DI_UN_AVVISO = "#editor-modal .ed-row[data-alert-entity]";
+const CASELLE_DELL_AVVISO = [`${RIGA_DI_UN_AVVISO}>div:first-child`];
+const NOMI_DELL_AVVISO = [`${RIGA_DI_UN_AVVISO} .ed-row-new`];
 
 const NOME_MDI = /^mdi:[a-z0-9-]+$/i;
 
@@ -470,10 +485,15 @@ export function ridisegnaLeIconeDegliAvvisi() {
 export function disegnaLeIconeDegliAvvisi() {
   if (!doc) return 0;
   let quante = 0;
-  for (const dove of CASELLE_DELL_ICONA)
-    for (const casella of doc.querySelectorAll(dove)) if (disegnaIlNomeMdi(casella)) quante += 1;
-  for (const dove of NOMI_CON_L_ICONA_IN_TESTA)
-    for (const riga of doc.querySelectorAll(dove)) if (disegnaIlNomeInTesta(riga)) quante += 1;
+  const passa = (radice, caselle, nomi) => {
+    if (!radice) return;
+    for (const dove of caselle)
+      for (const casella of radice.querySelectorAll(dove)) if (disegnaIlNomeMdi(casella)) quante += 1;
+    for (const dove of nomi)
+      for (const riga of radice.querySelectorAll(dove)) if (disegnaIlNomeInTesta(riga)) quante += 1;
+  };
+  passa(doc, CASELLE_DELL_ICONA, NOMI_CON_L_ICONA_IN_TESTA);
+  passa(doc, CASELLE_DELL_AVVISO, NOMI_DELL_AVVISO);
   return quante;
 }
 

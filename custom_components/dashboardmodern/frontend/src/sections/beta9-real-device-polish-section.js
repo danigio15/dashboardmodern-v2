@@ -1,4 +1,4 @@
-import { ACTION_ICON_CATALOG, roomVisual } from "../core/personalization-catalog.js";
+import { roomVisual } from "../core/personalization-catalog.js";
 import {
   allStates,
   clean,
@@ -19,46 +19,6 @@ const state = (root[KEY] ||= {
   frame: 0,
   storeUnsubscribe: null,
 });
-
-const ACTION_DEFAULTS = Object.freeze({
-  luci: { glyph: "💡", color: "#f59e0b" },
-  clima: { glyph: "❄️", color: "#0ea5e9" },
-  antifurto: { glyph: "🛡️", color: "#7c3aed" },
-  lavatrice: { glyph: "🧺", color: "#0ea5e9" },
-});
-
-
-function normalize(value) {
-  return clean(value)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9+#]+/g, " ")
-    .trim();
-}
-
-function actionCatalogItem(value) {
-  const token = normalize(value).replace(/^mdi\s*/, "");
-  return ACTION_ICON_CATALOG.find((item) => {
-    const values = [item.id, item.mdi, item.it, item.en, item.glyph]
-      .map((entry) => normalize(entry).replace(/^mdi\s*/, ""));
-    return values.includes(token);
-  }) || null;
-}
-
-function actionVisual(action = {}) {
-  const builtin = clean(action.builtin);
-  const configured = clean(action.icon);
-  const item = actionCatalogItem(configured);
-  const historical = ACTION_DEFAULTS[builtin];
-  const glyph =
-    item?.glyph ||
-    (configured && !configured.toLowerCase().startsWith("mdi:") ? configured : "") ||
-    historical?.glyph ||
-    "⚡";
-  const color = clean(action.color) || historical?.color || "#0ea5e9";
-  return { glyph, color };
-}
 
 function configuredActions() {
   try {

@@ -9,6 +9,7 @@ import {
 import { contactEntity, inferriataEntity } from "../core/shutter-window.js";
 import { SOGLIA_MASSIMA as UMIDITA_MASSIMA, umiditaDellaRiga } from "../core/arieggiare.js";
 import { canonicalClimateType } from "../core/device-model.js";
+import { actionCatalogMatch, azioneDiSerie } from "../core/personalization-catalog.js";
 import {
   FERMI_DELLO_SLIDER,
   durataScritta,
@@ -44,14 +45,14 @@ const state = (root[KEY] ||= { installed: false });
  * traduzioni legge questo letterale, e una parola seguita da una parentesi —
  * «multimediale (#269)» — gli sembra una chiamata di funzione. */
 const ACTION_TYPES = Object.freeze([
-  ["builtin_luci", "💡", "Gestione Luci", "Lights control"],
-  ["builtin_clima", "❄️", "Clima", "Climate"],
-  ["builtin_antifurto", "🛡️", "Antifurto", "Alarm"],
-  ["builtin_lavatrice", "🧺", "Lavatrice", "Washing machine"],
-  ["toggle", "⚡", "Toggle entità", "Toggle entity"],
-  ["script", "▶️", "Script", "Script"],
-  ["scene", "🎬", "Scena", "Scene"],
-  ["media", "🔊", "Lettore multimediale", "Media player"],
+  ["builtin_luci", "Gestione Luci", "Lights control"],
+  ["builtin_clima", "Clima", "Climate"],
+  ["builtin_antifurto", "Antifurto", "Alarm"],
+  ["builtin_lavatrice", "Lavatrice", "Washing machine"],
+  ["toggle", "Toggle entità", "Toggle entity"],
+  ["script", "Script", "Script"],
+  ["scene", "Scena", "Scene"],
+  ["media", "Lettore multimediale", "Media player"],
 ]);
 
 function normalizeClimateList(values) {
@@ -100,14 +101,24 @@ function actionTypeValue(item) {
   return item.type === "builtin" ? `builtin_${item.builtin || "luci"}` : item.type || "toggle";
 }
 
+/* Il nome della voce del catalogo che spetta al tipo: e' quello che si salva,
+ * ed e' la stessa tabella che usa il motore delle icone — qui ce n'era una
+ * terza, con le emoji, e per questo il popup delle luci nella tendina non era
+ * mai la stessa cosa disegnata sulla Home. */
 function actionTypeIcon(value) {
-  return ACTION_TYPES.find(([type]) => type === clean(value))?.[1] || "⚡";
+  return azioneDiSerie(value);
+}
+
+/* Un `<option>` sa tenere solo del testo: qui, e soltanto qui, il segno serve
+ * davvero — e lo si chiede al catalogo invece di riscriverlo a mano. */
+function actionTypeGlyph(value) {
+  return actionCatalogMatch(azioneDiSerie(value))?.glyph || "⚡";
 }
 
 function actionTypeOptions(item) {
   const selected = actionTypeValue(item);
   return ACTION_TYPES
-    .map(([value, icon, it, en]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${icon} ${t(it, en)}</option>`)
+    .map(([value, it, en]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${actionTypeGlyph(value)} ${t(it, en)}</option>`)
     .join("");
 }
 
@@ -192,7 +203,9 @@ function syncActionEditor(form) {
   if (entityField) entityField.hidden = builtin;
   renderIconPreview(form.querySelector("[data-action-icon-preview]"), "action", icon.value, canonical, 36);
   const header = form.closest(".dm-section-dialog")?.querySelector(".dm-editor-header-icon");
-  if (header) header.textContent = canonical;
+  /* Si DISEGNA, non si stampa: da quando qui passa il nome della voce, un
+   * `textContent` scriveva «mdi:snowflake» in cima alla finestra. */
+  if (header) renderIconPreview(header, "action", canonical, "⚡", 24);
 }
 
 function openActionEditor(item, index) {

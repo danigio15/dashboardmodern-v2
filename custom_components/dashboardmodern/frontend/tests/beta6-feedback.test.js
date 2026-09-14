@@ -16,13 +16,12 @@ test("the icon engine owns the quick-action defaults and the visual picking", as
   assert.match(entry, /import "\.\/icon-engine-section\.js";/);
   assert.doesNotMatch(entry, /quickActionGlyphByType|dm-beta6-quick-action-layout/);
   assert.doesNotMatch(entry, /__dmV01525GlyphRepair|dmBeta7IconToken|scheduleV01525QuickActionRepair/);
-  assert.match(engine, /luci_group: \{ glyph: "💡", mdi: "mdi:lightbulb-group" \}/);
-  assert.match(engine, /builtin_clima: \{ glyph: "❄️", mdi: "mdi:snowflake" \}/);
-  assert.match(engine, /builtin_antifurto: \{ glyph: "🛡️", mdi: "mdi:shield-home" \}/);
-  assert.match(engine, /builtin_lavatrice: \{ glyph: "🧺", mdi: "mdi:washing-machine" \}/);
-  assert.match(engine, /toggle: \{ glyph: "🔀", mdi: "mdi:toggle-switch-outline" \}/);
-  assert.match(engine, /script: \{ glyph: "▶️", mdi: "mdi:script-text-play" \}/);
-  assert.match(engine, /scene: \{ glyph: "🎬", mdi: "mdi:movie-open" \}/);
+  /* La tabella di che icona spetta a che tipo il motore non ce l'ha piu': era
+   * la seconda di tre copie, e le tre non dicevano la stessa cosa. Adesso la
+   * chiede al catalogo, che e' anche quello da cui la scelta viene. */
+  assert.doesNotMatch(engine, /AZIONE_DI_SERIE|ACTION_BUILTINS = /);
+  assert.doesNotMatch(engine, /^\s*luci(_group)?: "mdi:/m);
+  assert.match(engine, /azioneDiSerie/);
   assert.match(engine, /modal\.id = "dm-visual-picker"/);
   /* La voce scelta finisce nel campo. Di norma col nome del disegno; dove il
    * consumatore stampa la casella come testo nudo, col segno. */
@@ -39,11 +38,16 @@ test("the quick-action icon field is built, hidden and picked by the icon engine
   assert.match(engine, /\.dm-beta6-qa-icon-trigger/);
   assert.match(engine, /event\.stopImmediatePropagation\(\)/);
   assert.match(engine, /openIconPicker\(activation\.input, activation\.kind/);
-  /* Il valore che si salva resta portatile: chi lo stampa altrove lo stampa
-   * come testo nudo, e un «mdi:snowflake» ci finirebbe scritto per esteso. */
-  assert.match(engine, /function azionePortatile/);
-  assert.match(engine, /if \(portatile !== corrente\) input\.value = portatile;/);
-  assert.match(engine, /input\.dataset\.dmBeta7DefaultGlyph = prossimo\.glyph;/);
+  /* Quello che si salva e' il NOME della voce del catalogo.
+   *
+   * Qui si pretendeva il contrario — che il valore tornasse «portatile», cioe'
+   * il segno al posto del nome — e quella riga teneva ferma la causa del
+   * guasto: dal segno il disegno non si ritrova, e ogni azione rapida usciva
+   * con l'emoji di sistema invece che col disegno di casa. */
+  assert.match(engine, /function azioneDelCatalogo/);
+  assert.match(engine, /if \(delCatalogo !== corrente\) input\.value = delCatalogo;/);
+  assert.match(engine, /input\.dataset\.dmBeta7Serie = prossimo;/);
+  assert.doesNotMatch(engine, /azionePortatile/);
 });
 
 test("manufacturer art is canonical, with a local Leapmotor emblem and no post-render swapping", async () => {

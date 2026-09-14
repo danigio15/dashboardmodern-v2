@@ -2,9 +2,11 @@
 import {
   ACTION_ICON_CATALOG,
   actionCatalogMatch,
+  azioneDiSerie,
   CAR_BRANDS,
   carBrandVisual,
   catalogLabel,
+  chiaveDellAzione,
   directEmoji,
   LOAD_ICON_CATALOG,
   loadGlyph,
@@ -23,20 +25,6 @@ const KEY = "__DASHBOARDMODERN_ICON_ENGINE__";
 const state = (root[KEY] ||= {
   installed: false,
   legacyBridge: null,
-});
-
-const ACTION_BUILTINS = Object.freeze({
-  luci: "mdi:lightbulb",
-  luci_group: "mdi:lightbulb-group",
-  clima: "mdi:snowflake",
-  antifurto: "mdi:shield-home",
-  lavatrice: "mdi:washing-machine",
-  toggle: "mdi:toggle-switch-outline",
-  script: "mdi:script-text-play",
-  scene: "mdi:movie-open",
-  /* Un lettore fra le azioni (#269): senza la sua riga prendeva la stella di
-   * ripiego, cioe' il segno di «non so cos'e' questo». */
-  media: "mdi:speaker",
 });
 
 const ACTION_BUILTIN_COLORS = Object.freeze({
@@ -401,13 +389,11 @@ function quickActionsFromRuntime() {
 }
 
 function actionBuiltinKey(action = {}) {
-  return clean(action.builtin || action.type).replace(/^builtin_/, "").toLowerCase();
+  return chiaveDellAzione(action.builtin || action.type);
 }
 
 function actionToken(action = {}) {
-  const configured = clean(action.icon);
-  if (configured) return configured;
-  return ACTION_BUILTINS[actionBuiltinKey(action)] || "mdi:star";
+  return clean(action.icon) || azioneDiSerie(action.builtin || action.type);
 }
 
 /* Il nome mdi non e' un'etichetta.
@@ -439,30 +425,22 @@ function nascondiIlNomeMdi(row, token) {
  * battuta chiamava gia' questo motore: chi costruiva il tasto e chi lo faceva
  * funzionare stavano in due file diversi. Adesso e' uno solo.
  *
- * Le due tabelle dicono, per ogni voce della tendina del tipo, che segno e che
- * nome mdi le competono: servono a rimettere il valore nella forma portatile
- * (il segno, non `mdi:...`, perche' chi lo stampa altrove lo stampa come testo
- * nudo) e a cambiare il valore di serie quando si cambia tipo, ma solo se
- * quello scritto e' ancora quello di serie di prima. */
-const AZIONE_DI_SERIE = Object.freeze({
-  luci_group: { glyph: "💡", mdi: "mdi:lightbulb-group" },
-  builtin_luci: { glyph: "💡", mdi: "mdi:lightbulb-group" },
-  builtin_clima: { glyph: "❄️", mdi: "mdi:snowflake" },
-  builtin_antifurto: { glyph: "🛡️", mdi: "mdi:shield-home" },
-  builtin_lavatrice: { glyph: "🧺", mdi: "mdi:washing-machine" },
-  toggle: { glyph: "🔀", mdi: "mdi:toggle-switch-outline" },
-  script: { glyph: "▶️", mdi: "mdi:script-text-play" },
-  scene: { glyph: "🎬", mdi: "mdi:movie-open" },
-});
-
-const azioneDiSerie = (type) => AZIONE_DI_SERIE[clean(type)] || { glyph: "⭐", mdi: "mdi:star" };
-
-function azionePortatile(value, type) {
+ * Quello che si salva e' il NOME della voce del catalogo.
+ *
+ * Qui prima si faceva il contrario: si sceglieva «Cancello» dal catalogo e si
+ * salvava il segno ⛩️ al posto di `mdi:gate`, «per portabilita'», perche' un
+ * pezzo di guscio stampava quel valore come testo nudo. Ma il segno non e' un
+ * nome — la stessa 💡 sta sulla lampada e sul gruppo — e dal segno il disegno
+ * non si ritrova piu': ogni azione rapida usciva con l'emoji del telefono
+ * invece che col disegno di casa, cioe' un'icona diversa su ogni telefono e
+ * nessuna delle nostre. Adesso si tiene il nome, e a stampare il segno ci
+ * pensa il motore dove serve davvero. */
+function azioneDelCatalogo(value, type) {
   const token = clean(value);
   const serie = azioneDiSerie(type);
-  if (!token || token === "⚡") return serie.glyph;
-  if (!token.startsWith("mdi:")) return token;
-  return ACTION_ICON_CATALOG.find((item) => item.mdi === token)?.glyph || serie.glyph;
+  if (!token || token === "⚡") return serie;
+  if (token.startsWith("mdi:")) return token;
+  return actionCatalogMatch(token)?.mdi || serie;
 }
 
 function decoraRigaFormAzione() {
@@ -485,18 +463,20 @@ function decoraRigaFormAzione() {
   trigger.title = t("Scegli icona", "Choose icon");
   const serie = azioneDiSerie(type.value);
   const corrente = clean(input.value);
-  const portatile = azionePortatile(corrente, type.value);
-  if (portatile !== corrente) input.value = portatile;
-  if (!input.dataset.dmBeta7DefaultGlyph) input.dataset.dmBeta7DefaultGlyph = serie.glyph;
+  const delCatalogo = azioneDelCatalogo(corrente, type.value);
+  if (delCatalogo !== corrente) input.value = delCatalogo;
+  if (!input.dataset.dmBeta7Serie) input.dataset.dmBeta7Serie = serie;
   input.classList.add("dm-beta6-qa-icon-value");
   if (type.dataset.dmBeta7IconBound !== "true") {
     type.dataset.dmBeta7IconBound = "true";
+    /* Cambiando tipo cambia anche l'icona, ma solo se era ancora quella di
+     * serie del tipo di prima: chi l'ha scelta a mano se la tiene. */
     type.addEventListener("change", () => {
-      const precedente = clean(input.dataset.dmBeta7DefaultGlyph);
+      const precedente = clean(input.dataset.dmBeta7Serie);
       const prossimo = azioneDiSerie(type.value);
       const scritto = clean(input.value);
-      if (!scritto || scritto === precedente || scritto === "⚡") input.value = prossimo.glyph;
-      input.dataset.dmBeta7DefaultGlyph = prossimo.glyph;
+      if (!scritto || scritto === precedente || scritto === "⚡") input.value = prossimo;
+      input.dataset.dmBeta7Serie = prossimo;
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
   }

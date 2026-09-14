@@ -89,11 +89,22 @@ test("la domanda di conferma disegna l'icona dell'azione, non il suo nome", asyn
   });
   await expect.poll(async () => (await iconaDellaFinestra(page)).token).toBe("mdi:lightbulb");
 
-  /* E un'emoji resta un'emoji: chi l'aveva scritta a mano non se la vede
-   * cambiare sotto il naso. */
+  /* Un segno che e' di una NOSTRA voce diventa il nostro disegno: ⚡ e' il
+   * segno della voce «corrente», e chi ce l'ha salvato l'ha scelto dal nostro
+   * catalogo, quando il catalogo salvava il segno invece del nome. Qui si
+   * pretendeva che restasse l'emoji del telefono — cioe' proprio l'icona che
+   * non e' nostra. */
   await page.evaluate(() => {
     forceClose("confirm-modal");
     confermaAzione({ icon: "⚡", title: "Scena", message: "Vai?", onConfirm: () => {} });
   });
-  await expect.poll(async () => (await iconaDellaFinestra(page)).testo).toBe("⚡");
+  await expect.poll(async () => (await iconaDellaFinestra(page)).disegno).toBe(true);
+
+  /* E quello che nostro non e' resta di chi l'ha scritto: un unicorno nel
+   * catalogo non c'e', e nessuno glielo va a cambiare. */
+  await page.evaluate(() => {
+    forceClose("confirm-modal");
+    confermaAzione({ icon: "🦄", title: "Scena", message: "Vai?", onConfirm: () => {} });
+  });
+  await expect.poll(async () => (await iconaDellaFinestra(page)).testo).toBe("🦄");
 });
