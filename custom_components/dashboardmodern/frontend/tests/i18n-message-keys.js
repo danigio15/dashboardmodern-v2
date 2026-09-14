@@ -671,6 +671,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Arm Partial",
   "Arm Vacation",
   "Armed",
+  "ARMED ·",
   "Armed · ${modo}",
   "around ${ora}",
   "Arrived",

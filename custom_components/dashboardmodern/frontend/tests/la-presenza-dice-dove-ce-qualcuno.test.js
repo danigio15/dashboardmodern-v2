@@ -276,3 +276,65 @@ test("la tessera della Home non si accende: chi è in casa non è un allarme", a
    * regola disegna resterebbe grigia in silenzio. */
   assert.match(home, /\.dm-w-pillola\[data-tono="acceso"\]/);
 });
+
+test("due rilevatori nella stessa stanza sono una stanza sola (#549)", () => {
+  /* «Ho due sensori sulla stessa stanza e mi dice in due stanze c'è qualcuno.
+   *  Ovviamente sono assegnati sulla stessa stanza.»
+   *
+   * Il conto guardava una riga alla volta, e una stanza grande — o un
+   * corridoio con un sensore per capo — diventava due stanze occupate. La
+   * didascalia della tessera ci scriveva anche «Salotto · Salotto». */
+  const riga = (name, stato, entity) => ({ name, stato, entity });
+  const conto = contoDellaPresenza([
+    riga("Salotto", "attivo", "binary_sensor.salotto_1"),
+    riga("Salotto", "libero", "binary_sensor.salotto_2"),
+    riga("Cucina", "libero", "binary_sensor.cucina"),
+  ]);
+  assert.equal(conto.attivi, 1, "il salotto è una stanza sola");
+  assert.deepEqual(conto.nomi, ["Salotto"], "e si nomina una volta sola");
+  assert.equal(conto.liberi, 1, "la cucina");
+  assert.equal(conto.totale, 2);
+});
+
+test("il verdetto di una stanza è il più forte dei suoi rilevatori", () => {
+  const riga = (name, stato, entity) => ({ name, stato, entity });
+  /* Basta che uno rilevi perché lì ci sia qualcuno: due sensori che si
+   * contraddicono non fanno una stanza mezza libera. */
+  const uno = contoDellaPresenza([
+    riga("Salotto", "libero", "a.1"),
+    riga("Salotto", "attivo", "a.2"),
+  ]);
+  assert.equal(uno.attivi, 1);
+  assert.equal(uno.liberi, 0);
+  /* E per dirla libera devono dirlo tutti quelli che rispondono. */
+  const liberi = contoDellaPresenza([
+    riga("Salotto", "libero", "a.1"),
+    riga("Salotto", "libero", "a.2"),
+  ]);
+  assert.equal(liberi.liberi, 1);
+  assert.equal(liberi.totale, 1);
+});
+
+test("un rilevatore muto non spegne la stanza che ha anche un rilevatore vivo", () => {
+  const riga = (name, stato, entity) => ({ name, stato, entity });
+  /* Un'assenza di notizie non è una notizia — ma accanto a una notizia vera
+   * non la cancella: la stanza risponde, e si conta fra quelle che rispondono. */
+  const misto = contoDellaPresenza([riga("Salotto", "", "a.1"), riga("Salotto", "libero", "a.2")]);
+  assert.equal(misto.muti, 0);
+  assert.equal(misto.liberi, 1);
+  /* Una stanza in cui NESSUNO risponde resta muta, che è la regola di prima. */
+  const spenta = contoDellaPresenza([riga("Salotto", "", "a.1"), riga("Salotto", "", "a.2")]);
+  assert.equal(spenta.muti, 1);
+  assert.equal(spenta.liberi, 0);
+});
+
+test("senza un nome i rilevatori restano distinti: è la risposta prudente", () => {
+  /* Due righe senza nome non si possono dichiarare lo stesso posto: l'entità
+   * le tiene separate, e chi guarda vede due letture invece di una fusione
+   * inventata. */
+  const conto = contoDellaPresenza([
+    { name: "", stato: "attivo", entity: "binary_sensor.a" },
+    { name: "", stato: "attivo", entity: "binary_sensor.b" },
+  ]);
+  assert.equal(conto.attivi, 2);
+});

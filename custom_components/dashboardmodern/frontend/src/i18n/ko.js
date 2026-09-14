@@ -3595,4 +3595,5 @@ export default Object.freeze({
   "not responding": "응답 없음",
   "nothing on": "켜진 것 없음",
   "The base map is not answering. The rain is there: you can change map under ⚙️ → Weather and radar.": "배경 지도가 응답하지 않습니다. 비는 표시되고 있습니다: ⚙️ → 날씨와 레이더에서 지도를 바꿀 수 있습니다.",
+  "ARMED ·": "경계 중 ·",
 });

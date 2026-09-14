@@ -3595,4 +3595,5 @@ export default Object.freeze({
   "not responding": "لا يستجيب",
   "nothing on": "لا شيء قيد التشغيل",
   "The base map is not answering. The rain is there: you can change map under ⚙️ → Weather and radar.": "خريطة الأساس لا تستجيب. المطر موجود: يمكنك تغيير الخريطة من ⚙️ ← الطقس والرادار.",
+  "ARMED ·": "مُفعَّل ·",
 });

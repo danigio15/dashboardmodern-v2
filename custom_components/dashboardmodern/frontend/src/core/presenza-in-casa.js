@@ -167,18 +167,46 @@ export function presenzaDiCasa(states = {}, config, nomeDi = (entity) => entity)
 /**
  * Il conto: quante stanze hanno qualcuno, quante sono libere, quante mute.
  *
+ * Si contano i POSTI, non i rilevatori (#549).
+ *
+ * «Ho due sensori sulla stessa stanza e mi dice in due stanze c'è qualcuno.
+ *  Ovviamente sono assegnati sulla stessa stanza.» Il conto guardava una riga
+ * alla volta: due rilevatori in salotto facevano due stanze occupate, e la
+ * didascalia scriveva «Salotto · Salotto». Una stanza grande, o un corridoio
+ * con due sensori ai due capi, è il caso normale — non l'eccezione.
+ *
+ * Il posto è il nome: due rilevatori che si chiamano uguale sono lo stesso
+ * posto, sia che il nome arrivi da Home Assistant sia che l'abbia scritto chi
+ * abita la casa nella scheda. E il verdetto del posto è il più forte dei suoi
+ * rilevatori: basta che uno rilevi perché lì ci sia qualcuno, e perché sia
+ * libero devono dirlo tutti quelli che rispondono.
+ *
  * Chi non risponde non conta né fra le attive né fra le libere: contarlo libero
  * sarebbe una bugia tranquillizzante, ed è la stessa regola con cui li conta la
- * configurazione dei varchi.
+ * configurazione dei varchi. Un posto è muto solo se non ha nessun'altra
+ * lettura: un sensore giù accanto a uno che risponde non spegne la risposta.
  */
 export function contoDellaPresenza(righe = []) {
-  const attivi = righe.filter((riga) => riga.stato === "attivo");
+  const posti = new Map();
+  for (const riga of Array.isArray(righe) ? righe : []) {
+    const nome = pulito(riga?.name);
+    /* Senza un nome non si può dire che due righe siano lo stesso posto:
+     * l'entità le tiene distinte, che è la risposta prudente. */
+    const chiave = nome ? `nome:${nome.toLocaleLowerCase()}` : `entita:${pulito(riga?.entity)}`;
+    const posto = posti.get(chiave) || { nome, attivo: false, libero: false };
+    if (riga?.stato === "attivo") posto.attivo = true;
+    else if (riga?.stato === "libero") posto.libero = true;
+    if (!posto.nome && nome) posto.nome = nome;
+    posti.set(chiave, posto);
+  }
+  const tutti = [...posti.values()];
+  const attivi = tutti.filter((posto) => posto.attivo);
   return {
     attivi: attivi.length,
-    liberi: righe.filter((riga) => riga.stato === "libero").length,
-    muti: righe.filter((riga) => riga.stato === "").length,
-    totale: righe.length,
-    nomi: attivi.map((riga) => riga.name),
+    liberi: tutti.filter((posto) => !posto.attivo && posto.libero).length,
+    muti: tutti.filter((posto) => !posto.attivo && !posto.libero).length,
+    totale: tutti.length,
+    nomi: attivi.map((posto) => posto.nome),
   };
 }
 

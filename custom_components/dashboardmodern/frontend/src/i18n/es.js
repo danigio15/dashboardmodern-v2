@@ -3595,4 +3595,5 @@ export default Object.freeze({
   "not responding": "no responde",
   "nothing on": "nada encendido",
   "The base map is not answering. The rain is there: you can change map under ⚙️ → Weather and radar.": "El mapa de fondo no responde. La lluvia sí está: puedes cambiar de mapa en ⚙️ → Tiempo y radar.",
+  "ARMED ·": "ARMADO ·",
 });

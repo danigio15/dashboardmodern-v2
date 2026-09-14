@@ -6593,6 +6593,27 @@ function render() {
           color = '#059669'; rgb = '5,150,105';  text = 'DISARMATO';      icon = '🔓'; activeBtn = 'disarm';
         }
         
+        /* v1.4.28 (#547): il cartello lo dice chi sa tutto l'antifurto.
+           «Il widget indica correttamente Inserito ma se si entra dentro la
+           sezione Sicurezza da comunque la dicitura DISARMATO.» Chi inserisce
+           con uno script una centrale non ce l'ha: nessuno dei rami qui sopra
+           dice «armato», e resta quello di partenza. Il TASTO invece si
+           accendeva giusto, perche' quello si chiede gia' al modulo — due
+           letture dello stesso fatto, e una sola sapeva la verita'.
+           Si chiede solo quando la centrale non ha gia' risposto: dove c'e'
+           una centrale vera comanda lei, e qui non cambia niente. */
+        if (!alarmTriggered && !isArmed) {
+          try {
+            const suMisura = (typeof dmAlarmSuMisuraAcceso === 'function') ? dmAlarmSuMisuraAcceso() : null;
+            if (suMisura) {
+              color = '#e11d48'; rgb = '225,29,72';
+              text = 'ARMED \u00B7 ' + String(suMisura.label || '').toUpperCase();
+              icon = suMisura.icon || '\u{1F6E1}\u{FE0F}';
+              activeBtn = suMisura.mode; isArmed = true;
+            }
+          } catch(e) {}
+        }
+
         // Applica colori e classi
         alStage.style.setProperty('--al-col', color);
         alStage.style.setProperty('--al-rgb', rgb);

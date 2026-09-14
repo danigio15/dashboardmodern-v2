@@ -3595,4 +3595,5 @@ export default Object.freeze({
   "not responding": "无响应",
   "nothing on": "没有开启的设备",
   "The base map is not answering. The rain is there: you can change map under ⚙️ → Weather and radar.": "底图没有响应。降雨是正常显示的：可以在 ⚙️ → 天气与雷达 中更换地图。",
+  "ARMED ·": "已布防 ·",
 });

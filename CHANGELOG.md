@@ -9,6 +9,35 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Presenza: due sensori nella stessa stanza non sono due stanze**
+
+  «Ho due sensori sulla stessa stanza e mi dice in due stanze c'è qualcuno.
+  Ovviamente sono assegnati sulla stessa stanza» (#549).
+
+  Il conto guardava un rilevatore alla volta: una stanza grande, o un corridoio
+  con un sensore per capo, diventava due stanze occupate — e la didascalia della
+  tessera ci scriveva anche «Salotto · Salotto». Adesso si contano i posti, e il
+  posto è il nome: due rilevatori che si chiamano uguale sono lo stesso posto.
+  Il verdetto di un posto è il più forte dei suoi rilevatori — basta che uno
+  rilevi perché lì ci sia qualcuno, e per dirlo libero devono dirlo tutti quelli
+  che rispondono. Un sensore giù accanto a uno che risponde non spegne la
+  risposta, ma un posto dove nessuno risponde resta muto, com'era.
+
+- **Sicurezza: la sezione diceva DISARMATO mentre il widget diceva Inserito**
+
+  «Ho configurato l'allarme senza integrazione, attivandolo tramite script, e
+  funziona tutto: il widget indica correttamente "Inserito" ma se si entra nella
+  sezione Sicurezza dà comunque la dicitura DISARMATO» (#547).
+
+  Il cartello grande della sezione lo scrive il guscio, e lo scriveva guardando
+  la sola centrale: chi inserisce con uno script una centrale non ce l'ha,
+  quindi nessuno dei rami diceva «armato» e restava quello di partenza. Il tasto
+  invece si accendeva giusto, perché quello il guscio lo chiede già al modulo —
+  due letture dello stesso fatto, e una sola sapeva la verità. Adesso le
+  chiede tutte e due allo stesso posto, e il cartello porta il nome che
+  all'inserimento ha dato chi ha la casa. Dove una centrale c'è comanda lei, e
+  lì non cambia niente.
+
 - **Radar: la mappa di fondo non arriva più dal server sbagliato**
 
   «Quando uso l'app companion su cellulare vedo la mappa, se apro HA su PC mi dà

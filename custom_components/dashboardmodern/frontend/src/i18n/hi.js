@@ -3595,4 +3595,5 @@ export default Object.freeze({
   "not responding": "प्रतिक्रिया नहीं दे रहा",
   "nothing on": "कुछ भी चालू नहीं",
   "The base map is not answering. The rain is there: you can change map under ⚙️ → Weather and radar.": "आधार मानचित्र उत्तर नहीं दे रहा। वर्षा दिख रही है: आप ⚙️ → मौसम और रडार में मानचित्र बदल सकते हैं।",
+  "ARMED ·": "सक्रिय ·",
 });

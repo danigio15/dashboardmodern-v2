@@ -675,6 +675,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Arieggia sopra il (%)": "Air out above (%)",
   "Armamento Notturno": "Arm Night",
   "Armamento Totale": "Arm Away",
+  "ARMATO ·": "ARMED ·",
   "Arriva: il quadratino c'è.": "It arrives: the tile is there.",
   "Arrivata": "Arrived",
   "Arrivata da una dashboard: la risposta le torna dentro": "Came from a dashboard: the reply goes back into it",

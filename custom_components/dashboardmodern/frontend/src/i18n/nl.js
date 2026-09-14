@@ -3595,4 +3595,5 @@ export default Object.freeze({
   "not responding": "reageert niet",
   "nothing on": "niets aan",
   "The base map is not answering. The rain is there: you can change map under ⚙️ → Weather and radar.": "De achtergrondkaart antwoordt niet. De regen is er wel: je kunt de kaart wijzigen bij ⚙️ → Weer en radar.",
+  "ARMED ·": "INGESCHAKELD ·",
 });
