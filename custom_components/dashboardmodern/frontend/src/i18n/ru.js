@@ -3594,4 +3594,5 @@ export default Object.freeze({
   "empty": "пустая",
   "not responding": "не отвечает",
   "nothing on": "ничего не включено",
+  "The base map is not answering. The rain is there: you can change map under ⚙️ → Weather and radar.": "Подложка карты не отвечает. Дождь виден: карту можно сменить в ⚙️ → Погода и радар.",
 });

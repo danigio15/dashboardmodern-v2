@@ -3000,6 +3000,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "The appliance detail shows every entity of the device; below, the ones that draw the card.",
   "The appliances of that room join the circle on their own, future ones included; anything already inside another circle is not counted twice.",
   "The backup gathers the whole dashboard configuration into one file: sections, rooms, entities, people, cars, everything. Restore puts it back and reloads.",
+  "The base map is not answering. The rain is there: you can change map under ⚙️ → Weather and radar.",
   "The batteries at home",
   "The big card at the top of the Server page is the computer Home Assistant runs on. These are the other nodes: one per row, with the name you give it and the entities you want to see. Every field is optional — Proxmox VE publishes the status and the three percentages, Glances adds the degrees, a ping gives only up and down — and an empty field is a bar that does not show up.",
   "The binary_sensor that says whether the waste bin has a problem: on means it needs checking — usually time to change the bag.",

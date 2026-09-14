@@ -3594,4 +3594,5 @@ export default Object.freeze({
   "empty": "空",
   "not responding": "応答なし",
   "nothing on": "オンのものはありません",
+  "The base map is not answering. The rain is there: you can change map under ⚙️ → Weather and radar.": "ベースマップが応答していません。雨は表示されています。⚙️ → 天気とレーダー で地図を変更できます。",
 });

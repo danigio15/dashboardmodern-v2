@@ -3594,4 +3594,5 @@ export default Object.freeze({
   "empty": "vazia",
   "not responding": "não responde",
   "nothing on": "nada ligado",
+  "The base map is not answering. The rain is there: you can change map under ⚙️ → Weather and radar.": "O mapa de fundo não responde. A chuva está lá: podes mudar de mapa em ⚙️ → Meteorologia e radar.",
 });

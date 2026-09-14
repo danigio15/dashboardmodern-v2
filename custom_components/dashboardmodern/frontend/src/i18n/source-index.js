@@ -1833,6 +1833,7 @@ export const SOURCE_INDEX = Object.freeze({
   "la foto supera i 10 MB": "the photo exceeds 10 MB",
   "La lettiera": "The litter box",
   "La mappa arriva da una telecamera o da un'immagine: camera.* o image.*. Un robot che gira su due piani ne pubblica una per piano: aggiungile tutte e sulla scheda compaiono le linguette per passare dall'una all'altra.": "The map comes from a camera or an image: camera.* or image.*. A robot working on two floors publishes one map per floor: add them all and the card shows tabs to switch between them.",
+  "La mappa di fondo non risponde. La pioggia c'è: puoi cambiare mappa in ⚙️ → Meteo e radar.": "The base map is not answering. The rain is there: you can change map under ⚙️ → Weather and radar.",
   "La maschera qui sopra configura la prima vasca. Se ne hai piu' di una, aggiungi qui le altre: ognuna ha i suoi sensori, i suoi comandi e la sua filtrazione.": "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.",
   "La mia": "Mine",
   "La mia auto": "My car",

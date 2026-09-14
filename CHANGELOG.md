@@ -9,6 +9,41 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Radar: la mappa di fondo non arriva più dal server sbagliato**
+
+  «Quando uso l'app companion su cellulare vedo la mappa, se apro HA su PC mi dà
+  un messaggio di errore 403» (#529), confermata da un secondo utente: «oggi da
+  me pioveva e vedevo la perturbazione ma non la mappa».
+
+  La pioggia arrivava e il fondo no. Il fondo era `tile.openstreetmap.org`, che
+  è il server della fondazione OpenStreetMap: è fatto per il loro sito, lo
+  pagano i volontari, e le loro regole d'uso chiedono a chi ne fa un uso pesante
+  di servirsi altrove. Chi non si adegua viene bloccato, e il blocco guarda
+  `Referer` e `User-Agent` — ed è per questo che dal telefono si vedeva e dal
+  computer no: basta che il browser, o una difesa anti-tracciamento, non mandi
+  il `Referer`. Il 403 non era un guasto da aggirare, era la risposta prevista.
+
+  - La mappa di serie adesso è quella di Esri, che pubblica i suoi quadratini
+    senza chiedere una chiave. Chi aveva scelto OpenStreetMap a mano se lo
+    tiene: cambia solo la risposta a «non ho scelto niente».
+  - In tendina non c'è più una voce sola. Questa è la seconda volta che un
+    servizio gratuito chiude la porta — CARTO era la prima, e oggi vuole una
+    chiave anche alla mappa di Home Assistant — e con una voce sola ogni
+    chiusura diventa un rilascio. Cambiarla è due tocchi.
+  - Sotto la mappa c'è il nome di chi la disegna. Esri lo chiede, OpenStreetMap
+    pure, e prima non lo scriveva nessuno.
+
+- **Il radar dice quando è la mappa di fondo a mancare**
+
+  Il fondo che non arrivava era silenzioso per scelta: contava solo la pioggia,
+  perché una mappa senza pioggia non è un radar vivo. Giusto, ma «fuori dal
+  verdetto» era diventato «muto»: la pioggia restava sospesa sul nulla e chi
+  guardava non aveva modo di sapere perché — ed è il motivo per cui questa cosa
+  è arrivata come segnalazione invece che come due tocchi nella scheda. Adesso
+  il fondo ha un conto suo e una frase sua, che si vede solo nel caso della
+  segnalazione: radar vivo, fondo muto. Se a mancare è la pioggia, parla la
+  frase di prima, che è la più grave delle due.
+
 - **Il verso della batteria adesso conta davvero, e si dice in un posto solo**
 
   «Adesso ho il flusso, ma è sempre da batteria verso casa, ho provato anche a

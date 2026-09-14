@@ -41,7 +41,22 @@ test("una vettura dichiarata a benzina mostra il serbatoio anche se ha ancora un
 
 test("il radar e' vivo solo se arriva la pioggia: il fondo della mappa non conta", () => {
   const radar = leggi("sections/radar-meteo-section.js");
-  assert.match(radar, /const segnala = \(immagine, riuscito, dellaPioggia\) => \{\s*if \(!riuscito\) immagine\.remove\(\);\s*if \(!dellaPioggia\) return;/);
+  /* Il fondo ha un conto suo e non entra in quello della pioggia: il verdetto
+     «vivo» resta della pioggia sola. Dalla #529 pero' «fuori dal verdetto» non
+     vuol piu' dire muto — il fondo che sparisce ha una frase sua, o la pioggia
+     resta sospesa sul nulla e chi guarda non sa perche'. */
+  assert.match(radar, /if \(!dellaPioggia\) \{\s*if \(riuscito\) arrivatiFondo \+= 1;/);
+  assert.match(radar, /if \(arrivatiFondo\) nodo\.dataset\.dmFondo = "vivo";/);
+  assert.match(radar, /else if \(persiFondo >= attesiFondo\) nodo\.dataset\.dmFondo = "muto";/);
+  /* E i due conti restano due: dentro il ramo del fondo non si tocca ne'
+     `arrivati` ne' `persi`, che sono i contatori da cui esce «vivo». */
+  const ramoDelFondo = radar.slice(
+    radar.indexOf("if (!dellaPioggia) {"),
+    radar.indexOf("      return;", radar.indexOf("if (!dellaPioggia) {")),
+  );
+  assert.ok(ramoDelFondo.includes("arrivatiFondo"), "il ramo del fondo si trova");
+  assert.doesNotMatch(ramoDelFondo, /(^|[^a-zA-Z])arrivati \+=/);
+  assert.doesNotMatch(ramoDelFondo, /(^|[^a-zA-Z])persi \+=/);
   /* Quale strato sia la pioggia lo dice una bandiera passata a mano, non un
      confronto fra stringhe: i due strati hanno finestre diverse — la pioggia
      puo' essere chiesta piu' larga (#323) — e sapere chi e' chi serve anche a
@@ -51,10 +66,10 @@ test("il radar e' vivo solo se arriva la pioggia: il fondo della mappa non conta
      si stende una volta sola, la pioggia una volta per fotogramma, e la
      bandiera resta l'argomento che li distingue. */
   assert.match(radar, /const stendi = \(strato, dentro, dellaPioggia\) => \{/);
-  assert.match(radar, /if \(scelto\.fondo\) stendi\(scelto\.fondo, pezzi, false\);/);
+  assert.match(radar, /if \(scelto\.fondo\) \{\s*nodo\.dataset\.dmFondo = "attesa";\s*stendi\(scelto\.fondo, pezzi, false\);/);
   assert.match(radar, /stendi\(voce\.modello, dentro, true\);/);
   assert.match(radar, /const suo = dellaPioggia \? finestraPioggia : finestraTessere;/);
-  assert.match(radar, /if \(dellaPioggia\) attesiPioggia \+= 1;/);
+  assert.match(radar, /if \(dellaPioggia\) attesiPioggia \+= 1;\s*else attesiFondo \+= 1;/);
   assert.match(radar, /attesi = attesiPioggia;/);
   assert.doesNotMatch(radar, /attesi = pezzi\.length;/);
 });

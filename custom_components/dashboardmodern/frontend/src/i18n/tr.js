@@ -3594,4 +3594,5 @@ export default Object.freeze({
   "empty": "boş",
   "not responding": "yanıt vermiyor",
   "nothing on": "hiçbir şey açık değil",
+  "The base map is not answering. The rain is there: you can change map under ⚙️ → Weather and radar.": "Altlık harita yanıt vermiyor. Yağmur görünüyor: haritayı ⚙️ → Hava durumu ve radar altından değiştirebilirsin.",
 });
