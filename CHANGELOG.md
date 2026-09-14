@@ -5,9 +5,51 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## Non ancora rilasciato
+## 1.4.28 — 2026-09-14
 
 ### Corretto
+
+- **Le azioni rapide portano il disegno di casa, non l'emoji del telefono**
+
+  «Ancora roba che non è del nostro catalogo, e comunque non si vede nella
+  configurazione.»
+
+  Scegliendo «Cancello» dal catalogo si salvava il **segno** ⛩️ — un torii
+  giapponese — invece del nome della voce. Ma dal segno il disegno non si
+  ritrova: la stessa 💡 sta sulla lampada e sul gruppo. Così ogni azione rapida
+  ripiegava sull'emoji di sistema, che cambia faccia da un telefono all'altro e
+  su Android esce pallida al punto da sembrare una casella vuota.
+
+  Adesso si salva il nome della voce, e il catalogo risponde **anche al segno**:
+  le configurazioni già fatte guariscono da sole, senza riscegliere niente.
+
+  Con lo stesso giro se ne va la doppia icona sulla riga di un'azione — la
+  passata delle icone degli Avvisi dipingeva anche sulle altre schede — e la
+  tabella «che icona spetta a che tipo», che stava scritta in tre punti e nei
+  tre non diceva la stessa cosa.
+
+- **La stanza scelta per un'unità clima o una tapparella non torna indietro**
+
+  «Scambio la stanza, premo salva, sembra che ha salvato, ma se esco e rientro
+  mi ritrovo quella di prima.»
+
+  Il salvataggio era giusto. La stanza però sta in due campi — l'identificativo
+  e il nome leggibile — e l'editor ne scriveva uno solo: l'altro restava quello
+  vecchio, e alla prima passata riportava indietro la scelta appena fatta.
+  Adesso si scrivono tutti e due, e dicono la stessa stanza.
+
+- **Nascondere una tessera non toglie più la sua pastiglia dalla fascia**
+
+  «Non esce più il tipo di rifiuto nella barra. Non ho cambiato niente, dopo
+  l'ultimo aggiornamento non mi appare più.»
+
+  Nella 1.4.27 la fascia sotto il meteo aveva cominciato a vedere solo le
+  tessere accese nella scheda Widget. Ma chi tiene la fascia lo fa proprio
+  perché ha nascosto la tessera grossa: ha perso la pastiglia senza toccare
+  niente. La fascia ha i suoi interruttori — una spunta per voce, in ⚙️ Plancia
+  → **Barra sotto il meteo** — e sono quelli a decidere le pastiglie; la scheda
+  Widget decide le tessere. Chi vuole togliere una voce dalla fascia la spegne
+  lì.
 
 - **Le Azioni rapide si configurano dove si cerca: accanto ai Widget**
 
@@ -48,7 +90,15 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   Il conto guardava un rilevatore alla volta: una stanza grande, o un corridoio
   con un sensore per capo, diventava due stanze occupate — e la didascalia della
   tessera ci scriveva anche «Salotto · Salotto». Adesso si contano i posti, e il
-  posto è il nome: due rilevatori che si chiamano uguale sono lo stesso posto.
+  posto è la **stanza**: due rilevatori nella stessa stanza di Home Assistant
+  sono lo stesso posto anche se si chiamano in due modi diversi.
+
+  La stanza, e non il nome, perché il nome serve a chi abita la casa: «non posso
+  dare lo stesso nome se i sensori sono diversi, uno prossimità è l'altro
+  presenza, è utile sapere quale dei due». Contare per nome avrebbe chiesto di
+  rinunciare proprio a quella distinzione. Per chi la stanza non l'ha assegnata
+  vale ancora il nome, e due rilevatori chiamati uguale fanno un posto solo.
+
   Il verdetto di un posto è il più forte dei suoi rilevatori — basta che uno
   rilevi perché lì ci sia qualcuno, e per dirlo libero devono dirlo tutti quelli
   che rispondono. Un sensore giù accanto a uno che risponde non spegne la
