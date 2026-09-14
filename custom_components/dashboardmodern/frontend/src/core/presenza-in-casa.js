@@ -144,7 +144,12 @@ export function istanteDelCambio(stato) {
  * risposta alla domanda — poi i muti, che sono una sorveglianza che manca, e in
  * fondo le stanze libere, che sono la quiete. Dentro ogni gruppo, per nome.
  */
-export function presenzaDiCasa(states = {}, config, nomeDi = (entity) => entity) {
+export function presenzaDiCasa(
+  states = {},
+  config,
+  nomeDi = (entity) => entity,
+  stanzaDi = () => "",
+) {
   const scelte = normalizzaPresenza(config);
   const righe = [];
   for (const [entity, stato] of Object.entries(states || {})) {
@@ -153,6 +158,9 @@ export function presenzaDiCasa(states = {}, config, nomeDi = (entity) => entity)
     righe.push({
       entity,
       name: scelte.nomi[entity] || pulito(nomeDi(entity)) || entity,
+      /* La stanza di Home Assistant, quando la sa: e' l'identita' del posto,
+       * e serve al conto qui sotto. */
+      stanza: pulito(stanzaDi(entity)),
       classe,
       glifo: disegnoDelRilevatore(classe),
       stabile: eUnaPresenzaStabile(classe),
@@ -175,9 +183,18 @@ export function presenzaDiCasa(states = {}, config, nomeDi = (entity) => entity)
  * didascalia scriveva «Salotto · Salotto». Una stanza grande, o un corridoio
  * con due sensori ai due capi, è il caso normale — non l'eccezione.
  *
- * Il posto è il nome: due rilevatori che si chiamano uguale sono lo stesso
- * posto, sia che il nome arrivi da Home Assistant sia che l'abbia scritto chi
- * abita la casa nella scheda. E il verdetto del posto è il più forte dei suoi
+ * Il posto è la STANZA, e solo in mancanza di quella il nome.
+ *
+ * Contarlo per nome non bastava: «non posso dare lo stesso nome se i sensori
+ * sono diversi, uno prossimità è l'altro presenza, è utile sapere quale dei
+ * due». Ha ragione — chiedere di chiamarli uguale vuol dire buttare via
+ * proprio l'informazione che distingue i due rilevatori. Ma la stanza lo dice
+ * senza toccare i nomi: due rilevatori nella stessa stanza di Home Assistant
+ * sono lo stesso posto anche se si chiamano in due modi diversi.
+ *
+ * Il nome resta il ripiego per chi la stanza non ce l'ha — Home Assistant non
+ * obbliga ad assegnarla — e li' vale la regola di prima: chiamarli uguale
+ * basta a farne un posto solo. E il verdetto del posto è il più forte dei suoi
  * rilevatori: basta che uno rilevi perché lì ci sia qualcuno, e perché sia
  * libero devono dirlo tutti quelli che rispondono.
  *
@@ -190,10 +207,15 @@ export function contoDellaPresenza(righe = []) {
   const posti = new Map();
   for (const riga of Array.isArray(righe) ? righe : []) {
     const nome = pulito(riga?.name);
-    /* Senza un nome non si può dire che due righe siano lo stesso posto:
-     * l'entità le tiene distinte, che è la risposta prudente. */
-    const chiave = nome ? `nome:${nome.toLocaleLowerCase()}` : `entita:${pulito(riga?.entity)}`;
-    const posto = posti.get(chiave) || { nome, attivo: false, libero: false };
+    const stanza = pulito(riga?.stanza);
+    /* Senza stanza e senza nome non si può dire che due righe siano lo stesso
+     * posto: l'entità le tiene distinte, che è la risposta prudente. */
+    const chiave = stanza
+      ? `stanza:${stanza.toLocaleLowerCase()}`
+      : nome
+        ? `nome:${nome.toLocaleLowerCase()}`
+        : `entita:${pulito(riga?.entity)}`;
+    const posto = posti.get(chiave) || { nome: stanza || nome, attivo: false, libero: false };
     if (riga?.stato === "attivo") posto.attivo = true;
     else if (riga?.stato === "libero") posto.libero = true;
     if (!posto.nome && nome) posto.nome = nome;

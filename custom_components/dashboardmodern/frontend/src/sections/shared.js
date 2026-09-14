@@ -431,6 +431,29 @@ export function lexicalGlobal(name) {
   return root[name] ?? null;
 }
 
+/* In che stanza di Home Assistant sta un'entita'.
+ *
+ * Home Assistant la stanza la sa gia': un'entita' porta la sua area, o la
+ * eredita dal dispositivo su cui sta. Il guscio quei tre registri li ha gia'
+ * chiesti e messi da parte per la procedura iniziale — le aree, le stanze dei
+ * dispositivi, le aree delle entita' — e qui ci si appoggia a quelli invece di
+ * richiederli: sono gli stessi dati, e chiederli due volte vorrebbe dire due
+ * risposte che col tempo discordano.
+ *
+ * Torna il NOME della stanza, non il suo codice: e' quello che si legge, ed e'
+ * quello con cui la plancia chiama le sue stanze. Vuoto quando non si sa, e
+ * «non si so» deve restare vuoto: chi legge deve poter ripiegare su altro
+ * invece di ricevere un nome inventato. */
+export function stanzaDiHomeAssistant(entity) {
+  const id = clean(entity);
+  if (!id) return "";
+  const wiz = lexicalGlobal("WIZ");
+  const riga = wiz?.entReg?.[id];
+  if (!riga) return "";
+  const area = riga.a || (riga.d ? wiz?.devArea?.[riga.d] : "");
+  return area ? clean(wiz?.areaNames?.[area]) : "";
+}
+
 /* Una variabile del runtime vendorizzato, riscritta.
  *
  * Il documento storico dichiara le sue variabili con `let` in cima allo

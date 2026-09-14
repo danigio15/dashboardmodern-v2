@@ -338,3 +338,53 @@ test("senza un nome i rilevatori restano distinti: è la risposta prudente", () 
   ]);
   assert.equal(conto.attivi, 2);
 });
+
+test("due rilevatori diversi nella stessa stanza fanno un posto solo, e tengono i loro nomi", () => {
+  /* «Non posso dare lo stesso nome se i sensori sono diversi, uno prossimità è
+   * l'altro presenza. È utile sapere quale dei due.» (#549)
+   *
+   * Contare i posti PER NOME non bastava: chiedeva di rinunciare proprio
+   * all'informazione che distingue i due rilevatori. La stanza lo dice senza
+   * toccare i nomi. */
+  const conto = contoDellaPresenza([
+    {
+      name: "Prossimità salotto",
+      stanza: "Salotto",
+      stato: "attivo",
+      entity: "binary_sensor.prox",
+    },
+    {
+      name: "Presenza salotto",
+      stanza: "Salotto",
+      stato: "attivo",
+      entity: "binary_sensor.pres",
+    },
+  ]);
+  assert.equal(conto.attivi, 1, "una stanza, non due");
+  assert.equal(conto.totale, 1);
+  /* E il posto si chiama con la stanza: la didascalia diceva «Salotto ·
+   * Salotto», adesso dice «Salotto». */
+  assert.deepEqual(conto.nomi, ["Salotto"]);
+});
+
+test("stanze diverse restano posti diversi, anche col nome uguale", () => {
+  /* Il contrario dello stesso errore: due rilevatori chiamati uguale — è
+   * normale, «Movimento» dappertutto — ma in due stanze, sono due posti. Col
+   * conto per nome facevano una stanza sola e se ne perdeva una. */
+  const conto = contoDellaPresenza([
+    { name: "Movimento", stanza: "Salotto", stato: "attivo", entity: "binary_sensor.a" },
+    { name: "Movimento", stanza: "Cucina", stato: "attivo", entity: "binary_sensor.b" },
+  ]);
+  assert.equal(conto.attivi, 2);
+  assert.deepEqual(conto.nomi.slice().sort(), ["Cucina", "Salotto"]);
+});
+
+test("senza stanza vale ancora il nome: Home Assistant non obbliga ad assegnarla", () => {
+  /* Il ripiego resta quello di prima, per chi le stanze non le usa. */
+  const conto = contoDellaPresenza([
+    { name: "Salotto", stato: "attivo", entity: "binary_sensor.a" },
+    { name: "Salotto", stato: "libero", entity: "binary_sensor.b" },
+  ]);
+  assert.equal(conto.attivi, 1);
+  assert.equal(conto.totale, 1);
+});

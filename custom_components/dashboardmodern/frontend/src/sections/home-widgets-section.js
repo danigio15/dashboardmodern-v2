@@ -264,22 +264,23 @@ import { hasConfiguredData } from "../core/dashboard-store.js";
 import {
   activeLocale,
   allStates,
+  chiediAHomeAssistant,
   clean,
   doc,
   esc,
   formatNumber,
-  installStyle,
-  nomeDellEntita,
-  chiediAHomeAssistant,
   gettoneDiAccesso,
+  installStyle,
   lexicalGlobal,
   locale,
+  nomeDellEntita,
   planciaVisibile,
   readClimateUnits,
   readJson,
   root,
   section,
   siComanda,
+  stanzaDiHomeAssistant,
   t,
 } from "./shared.js";
 import { disegnaComeStaLaCasa } from "./come-sta-la-casa-section.js";
@@ -3885,8 +3886,11 @@ function varchiModel(states) {
  */
 function presenzaModel(states) {
   const fuori = widgetExcludedEntities("presenza");
-  const righe = presenzaDiCasa(states, readJson(CHIAVE_PRESENZA, {}), (entity) =>
-    friendlyName(states, entity),
+  const righe = presenzaDiCasa(
+    states,
+    readJson(CHIAVE_PRESENZA, {}),
+    (entity) => friendlyName(states, entity),
+    stanzaDiHomeAssistant,
   ).filter((riga) => widgetIncludes(riga.entity, fuori));
   if (!righe.length) return null;
   const conto = contoDellaPresenza(righe);

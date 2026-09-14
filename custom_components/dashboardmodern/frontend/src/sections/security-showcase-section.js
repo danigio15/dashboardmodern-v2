@@ -72,6 +72,7 @@ import {
   restyleOnLocaleChange,
   root,
   section,
+  stanzaDiHomeAssistant,
   t,
   writeJsonIfChanged,
 } from "./shared.js";
@@ -334,8 +335,11 @@ function syncAree(shell, labels) {
  * che fa funzionare la cosa senza configurare niente: una centrale che non ha
  * dichiarato le sue zone le ha tutte. */
 function righeDellaPresenza() {
-  return presenzaDiCasa(allStates(), readJson(CHIAVE_PRESENZA, {}), (entity) =>
-    clean(allStates()?.[entity]?.attributes?.friendly_name),
+  return presenzaDiCasa(
+    allStates(),
+    readJson(CHIAVE_PRESENZA, {}),
+    (entity) => clean(allStates()?.[entity]?.attributes?.friendly_name),
+    stanzaDiHomeAssistant,
   );
 }
 

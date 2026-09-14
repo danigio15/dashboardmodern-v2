@@ -42,15 +42,16 @@ import {
 import { CHIAVE_PRESENZA, presenzaDiCasa } from "../core/presenza-in-casa.js";
 import { CHIAVE_VARCHI, varchiDiCasa } from "../core/varchi-di-casa.js";
 import {
+  allStates,
   clean,
   doc,
   esc,
-  allStates,
   installStyle,
   onEditorRedraw,
   readJson,
   righeDelDocumento,
   root,
+  stanzaDiHomeAssistant,
   t,
   wrapFunction,
   writeJsonIfChanged,
@@ -138,8 +139,11 @@ function salva(lista, scelta) {
  * ha una non avrebbe mai zone, e il riquadro in pagina non lo vedrebbe mai. */
 function nomiDellaPresenza() {
   const states = allStates();
-  return presenzaDiCasa(states, readJson(CHIAVE_PRESENZA, {}), (entity) =>
-    clean(states?.[entity]?.attributes?.friendly_name),
+  return presenzaDiCasa(
+    states,
+    readJson(CHIAVE_PRESENZA, {}),
+    (entity) => clean(states?.[entity]?.attributes?.friendly_name),
+    stanzaDiHomeAssistant,
   );
 }
 

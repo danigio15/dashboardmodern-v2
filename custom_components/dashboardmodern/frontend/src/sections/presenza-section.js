@@ -33,6 +33,7 @@ import {
   quandoSiCambiaPagina,
   readJson,
   root,
+  stanzaDiHomeAssistant,
   t,
 } from "./shared.js";
 import { nomeDaHomeAssistant } from "./editor-slots-section.js";
@@ -52,7 +53,12 @@ function configurazione() {
 /** I rilevatori di casa, letti adesso. */
 export function presenzaInPlancia() {
   const states = allStates();
-  return presenzaDiCasa(states, configurazione(), (entity) => nomeDaHomeAssistant(entity, states));
+  return presenzaDiCasa(
+    states,
+    configurazione(),
+    (entity) => nomeDaHomeAssistant(entity, states),
+    stanzaDiHomeAssistant,
+  );
 }
 
 /** Se c'è almeno un rilevatore da mostrare. */
