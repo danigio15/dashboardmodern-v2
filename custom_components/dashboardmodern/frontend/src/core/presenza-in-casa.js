@@ -144,7 +144,12 @@ export function istanteDelCambio(stato) {
  * risposta alla domanda — poi i muti, che sono una sorveglianza che manca, e in
  * fondo le stanze libere, che sono la quiete. Dentro ogni gruppo, per nome.
  */
-export function presenzaDiCasa(states = {}, config, nomeDi = (entity) => entity) {
+export function presenzaDiCasa(
+  states = {},
+  config,
+  nomeDi = (entity) => entity,
+  stanzaDi = () => "",
+) {
   const scelte = normalizzaPresenza(config);
   const righe = [];
   for (const [entity, stato] of Object.entries(states || {})) {
@@ -153,6 +158,9 @@ export function presenzaDiCasa(states = {}, config, nomeDi = (entity) => entity)
     righe.push({
       entity,
       name: scelte.nomi[entity] || pulito(nomeDi(entity)) || entity,
+      /* La stanza di Home Assistant, quando la sa: e' l'identita' del posto,
+       * e serve al conto qui sotto. */
+      stanza: pulito(stanzaDi(entity)),
       classe,
       glifo: disegnoDelRilevatore(classe),
       stabile: eUnaPresenzaStabile(classe),
@@ -167,18 +175,60 @@ export function presenzaDiCasa(states = {}, config, nomeDi = (entity) => entity)
 /**
  * Il conto: quante stanze hanno qualcuno, quante sono libere, quante mute.
  *
+ * Si contano i POSTI, non i rilevatori (#549).
+ *
+ * «Ho due sensori sulla stessa stanza e mi dice in due stanze c'è qualcuno.
+ *  Ovviamente sono assegnati sulla stessa stanza.» Il conto guardava una riga
+ * alla volta: due rilevatori in salotto facevano due stanze occupate, e la
+ * didascalia scriveva «Salotto · Salotto». Una stanza grande, o un corridoio
+ * con due sensori ai due capi, è il caso normale — non l'eccezione.
+ *
+ * Il posto è la STANZA, e solo in mancanza di quella il nome.
+ *
+ * Contarlo per nome non bastava: «non posso dare lo stesso nome se i sensori
+ * sono diversi, uno prossimità è l'altro presenza, è utile sapere quale dei
+ * due». Ha ragione — chiedere di chiamarli uguale vuol dire buttare via
+ * proprio l'informazione che distingue i due rilevatori. Ma la stanza lo dice
+ * senza toccare i nomi: due rilevatori nella stessa stanza di Home Assistant
+ * sono lo stesso posto anche se si chiamano in due modi diversi.
+ *
+ * Il nome resta il ripiego per chi la stanza non ce l'ha — Home Assistant non
+ * obbliga ad assegnarla — e li' vale la regola di prima: chiamarli uguale
+ * basta a farne un posto solo. E il verdetto del posto è il più forte dei suoi
+ * rilevatori: basta che uno rilevi perché lì ci sia qualcuno, e perché sia
+ * libero devono dirlo tutti quelli che rispondono.
+ *
  * Chi non risponde non conta né fra le attive né fra le libere: contarlo libero
  * sarebbe una bugia tranquillizzante, ed è la stessa regola con cui li conta la
- * configurazione dei varchi.
+ * configurazione dei varchi. Un posto è muto solo se non ha nessun'altra
+ * lettura: un sensore giù accanto a uno che risponde non spegne la risposta.
  */
 export function contoDellaPresenza(righe = []) {
-  const attivi = righe.filter((riga) => riga.stato === "attivo");
+  const posti = new Map();
+  for (const riga of Array.isArray(righe) ? righe : []) {
+    const nome = pulito(riga?.name);
+    const stanza = pulito(riga?.stanza);
+    /* Senza stanza e senza nome non si può dire che due righe siano lo stesso
+     * posto: l'entità le tiene distinte, che è la risposta prudente. */
+    const chiave = stanza
+      ? `stanza:${stanza.toLocaleLowerCase()}`
+      : nome
+        ? `nome:${nome.toLocaleLowerCase()}`
+        : `entita:${pulito(riga?.entity)}`;
+    const posto = posti.get(chiave) || { nome: stanza || nome, attivo: false, libero: false };
+    if (riga?.stato === "attivo") posto.attivo = true;
+    else if (riga?.stato === "libero") posto.libero = true;
+    if (!posto.nome && nome) posto.nome = nome;
+    posti.set(chiave, posto);
+  }
+  const tutti = [...posti.values()];
+  const attivi = tutti.filter((posto) => posto.attivo);
   return {
     attivi: attivi.length,
-    liberi: righe.filter((riga) => riga.stato === "libero").length,
-    muti: righe.filter((riga) => riga.stato === "").length,
-    totale: righe.length,
-    nomi: attivi.map((riga) => riga.name),
+    liberi: tutti.filter((posto) => !posto.attivo && posto.libero).length,
+    muti: tutti.filter((posto) => !posto.attivo && !posto.libero).length,
+    totale: tutti.length,
+    nomi: attivi.map((posto) => posto.nome),
   };
 }
 

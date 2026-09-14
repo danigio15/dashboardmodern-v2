@@ -168,43 +168,31 @@ export class DashboardStore {
       subloads: parse("cd_subloads_extra", {}),
       reportDevices: parse("cd_report_devices", []),
       washerImage: parse("cd_lavatrice_visual", ""),
+      batteryDirection: parse("cd_batteria_verso", null),
+      sezioni: this.chiaviLegacySulDisco(),
     });
     this.state = result.state;
-    /* All'avvio le chiavi legacy dettano, la copia canonica segue.
-     *
-     * Il documento canonico e' una fotografia scritta dall'ultimo `persist`, e
-     * puo' restare indietro di un giro: ogni gesto della plancia scrive PRIMA
-     * la sua chiave legacy — `cd_ev_cars`, `cd_energy_model`, le entita' — e
-     * solo un microtask dopo la copia. Chi salva e ricarica subito — il
-     * messaggio in plancia dice proprio "ricarica per applicare", e l'app del
-     * telefono si chiude quando vuole lei — riapre la pagina con la copia
-     * vecchia, e questa riga ricostruiva lo stato DA QUELLA: il `persist` qui
-     * sotto la riscriveva sopra le chiavi legacy, e l'ULTIMA modifica salvata
-     * spariva. «Questo campo proprio non me lo salva»: sempre l'ultimo, mai
-     * gli altri, perche' gli altri la copia li aveva gia' imparati. E' la
-     * stessa riconciliazione che il ripristino della configurazione condivisa
-     * gia' fa; qui vale per ogni avvio, e per ogni sezione. Una lista vuota ma
-     * presente e' una scelta, non un'assenza: le auto cancellate restano
-     * cancellate per la stessa strada.
-     *
-     * Le luci restano fuori: la loro forma legacy — `{entita': nome}` — perde
-     * per costruzione stanza e ordinamento, e ricostruirle da li' a ogni avvio
-     * butterebbe via quello che la copia custodisce apposta. */
+    if (result.changes.length) console.info("[DashboardStore] migration", result.changes);
+    this.persist();
+    return result;
+  }
+  /* Le chiavi legacy come stanno sul disco, per chi migra.
+   *
+   * Solo quelle che ci sono davvero: una chiave assente non e' una sezione
+   * vuota, e chi migra deve poter distinguere le due cose. Una chiave
+   * illeggibile non insegna niente e si salta: resta la copia canonica. */
+  chiaviLegacySulDisco() {
+    const sezioni = {};
     for (const [section, key] of Object.entries(SECTION_KEYS)) {
-      if (section === "lights") continue;
+      const raw = this.storage.getItem(key);
+      if (raw === null || raw === undefined) continue;
       try {
-        const raw = this.storage.getItem(key);
-        if (raw === null || raw === undefined) continue;
-        this.state.sections[section] = normalizeSection(section, JSON.parse(raw), {
-          rooms: this.state.sections.rooms || [],
-        });
+        sezioni[section] = JSON.parse(raw);
       } catch {
         /* Una chiave illeggibile non insegna niente: resta la copia. */
       }
     }
-    if (result.changes.length) console.info("[DashboardStore] migration", result.changes);
-    this.persist();
-    return result;
+    return sezioni;
   }
   getState() {
     return cloneValue(this.state);

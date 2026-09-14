@@ -5,6 +5,208 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.28 — 2026-09-14
+
+### Corretto
+
+- **Le azioni rapide portano il disegno di casa, non l'emoji del telefono**
+
+  «Ancora roba che non è del nostro catalogo, e comunque non si vede nella
+  configurazione.»
+
+  Scegliendo «Cancello» dal catalogo si salvava il **segno** ⛩️ — un torii
+  giapponese — invece del nome della voce. Ma dal segno il disegno non si
+  ritrova: la stessa 💡 sta sulla lampada e sul gruppo. Così ogni azione rapida
+  ripiegava sull'emoji di sistema, che cambia faccia da un telefono all'altro e
+  su Android esce pallida al punto da sembrare una casella vuota.
+
+  Adesso si salva il nome della voce, e il catalogo risponde **anche al segno**:
+  le configurazioni già fatte guariscono da sole, senza riscegliere niente.
+
+  Con lo stesso giro se ne va la doppia icona sulla riga di un'azione — la
+  passata delle icone degli Avvisi dipingeva anche sulle altre schede — e la
+  tabella «che icona spetta a che tipo», che stava scritta in tre punti e nei
+  tre non diceva la stessa cosa.
+
+- **La stanza scelta per un'unità clima o una tapparella non torna indietro**
+
+  «Scambio la stanza, premo salva, sembra che ha salvato, ma se esco e rientro
+  mi ritrovo quella di prima.»
+
+  Il salvataggio era giusto. La stanza però sta in due campi — l'identificativo
+  e il nome leggibile — e l'editor ne scriveva uno solo: l'altro restava quello
+  vecchio, e alla prima passata riportava indietro la scelta appena fatta.
+  Adesso si scrivono tutti e due, e dicono la stessa stanza.
+
+- **Nascondere una tessera non toglie più la sua pastiglia dalla fascia**
+
+  «Non esce più il tipo di rifiuto nella barra. Non ho cambiato niente, dopo
+  l'ultimo aggiornamento non mi appare più.»
+
+  Nella 1.4.27 la fascia sotto il meteo aveva cominciato a vedere solo le
+  tessere accese nella scheda Widget. Ma chi tiene la fascia lo fa proprio
+  perché ha nascosto la tessera grossa: ha perso la pastiglia senza toccare
+  niente. La fascia ha i suoi interruttori — una spunta per voce, in ⚙️ Plancia
+  → **Barra sotto il meteo** — e sono quelli a decidere le pastiglie; la scheda
+  Widget decide le tessere. Chi vuole togliere una voce dalla fascia la spegne
+  lì.
+
+- **Le Azioni rapide si configurano dove si cerca: accanto ai Widget**
+
+  La scheda ⚡ Azioni stava sotto 🛋️ Casa, insieme alle stanze, alle luci e alle
+  tapparelle — che sono le *cose* di casa. Ma le azioni rapide non sono una cosa
+  di casa: sono una fila di tasti sulla Home, come i blocchi e come le tessere.
+
+  Chi va a cercare «cosa compare sulla Home» apre 🧩 Widget, ci trova le tessere
+  e non le azioni, e conclude che le azioni non si possono più configurare. Non
+  era vero — la scheda c'era e funzionava, il tipo «❄️ Popup Clima» pure — ma
+  quando a non trovarla è chi la plancia l'ha scritta, il posto è sbagliato.
+
+  Adesso le tre schede che rispondono alla stessa domanda — cosa c'è sulla Home
+  e in che ordine — stanno vicine sotto ⚙️ Plancia: **Home** (i blocchi),
+  **Widget** (le tessere), **Azioni** (i tasti). Non cambia niente di come
+  funzionano: cambia dove si trovano.
+
+- **Flusso energia: una riga di stile non può più svuotare la mappa da sola**
+
+  «Da iPad non si vedono i flussi» (#548).
+
+  La regola che spegne i collegamenti fermi valeva su ogni linea che il nostro
+  codice non avesse ancora classificato. Finché quella passata parte non c'è
+  problema; se per qualunque motivo non parte, non viene messa nessuna classe su
+  nessuna linea e la regola le spegneva tutte — comprese quelle che il guscio
+  aveva già acceso. Il risultato è esattamente «bolle e numeri sì, linee no».
+
+  Adesso lo spegnimento vale solo dentro una scena che abbiamo davvero dipinto.
+  Non è la certezza di aver preso il caso dell'iPad — WebKit non è disponibile
+  nell'ambiente in cui la plancia si prova — ma una nostra riga di stile non
+  deve poter cancellare il disegno di chi c'era prima.
+
+- **Presenza: due sensori nella stessa stanza non sono due stanze**
+
+  «Ho due sensori sulla stessa stanza e mi dice in due stanze c'è qualcuno.
+  Ovviamente sono assegnati sulla stessa stanza» (#549).
+
+  Il conto guardava un rilevatore alla volta: una stanza grande, o un corridoio
+  con un sensore per capo, diventava due stanze occupate — e la didascalia della
+  tessera ci scriveva anche «Salotto · Salotto». Adesso si contano i posti, e il
+  posto è la **stanza**: due rilevatori nella stessa stanza di Home Assistant
+  sono lo stesso posto anche se si chiamano in due modi diversi.
+
+  La stanza, e non il nome, perché il nome serve a chi abita la casa: «non posso
+  dare lo stesso nome se i sensori sono diversi, uno prossimità è l'altro
+  presenza, è utile sapere quale dei due». Contare per nome avrebbe chiesto di
+  rinunciare proprio a quella distinzione. Per chi la stanza non l'ha assegnata
+  vale ancora il nome, e due rilevatori chiamati uguale fanno un posto solo.
+
+  Il verdetto di un posto è il più forte dei suoi rilevatori — basta che uno
+  rilevi perché lì ci sia qualcuno, e per dirlo libero devono dirlo tutti quelli
+  che rispondono. Un sensore giù accanto a uno che risponde non spegne la
+  risposta, ma un posto dove nessuno risponde resta muto, com'era.
+
+- **Sicurezza: la sezione diceva DISARMATO mentre il widget diceva Inserito**
+
+  «Ho configurato l'allarme senza integrazione, attivandolo tramite script, e
+  funziona tutto: il widget indica correttamente "Inserito" ma se si entra nella
+  sezione Sicurezza dà comunque la dicitura DISARMATO» (#547).
+
+  Il cartello grande della sezione lo scrive il guscio, e lo scriveva guardando
+  la sola centrale: chi inserisce con uno script una centrale non ce l'ha,
+  quindi nessuno dei rami diceva «armato» e restava quello di partenza. Il tasto
+  invece si accendeva giusto, perché quello il guscio lo chiede già al modulo —
+  due letture dello stesso fatto, e una sola sapeva la verità. Adesso le
+  chiede tutte e due allo stesso posto, e il cartello porta il nome che
+  all'inserimento ha dato chi ha la casa. Dove una centrale c'è comanda lei, e
+  lì non cambia niente.
+
+- **Radar: la mappa di fondo non arriva più dal server sbagliato**
+
+  «Quando uso l'app companion su cellulare vedo la mappa, se apro HA su PC mi dà
+  un messaggio di errore 403» (#529), confermata da un secondo utente: «oggi da
+  me pioveva e vedevo la perturbazione ma non la mappa».
+
+  La pioggia arrivava e il fondo no. Il fondo era `tile.openstreetmap.org`, che
+  è il server della fondazione OpenStreetMap: è fatto per il loro sito, lo
+  pagano i volontari, e le loro regole d'uso chiedono a chi ne fa un uso pesante
+  di servirsi altrove. Chi non si adegua viene bloccato, e il blocco guarda
+  `Referer` e `User-Agent` — ed è per questo che dal telefono si vedeva e dal
+  computer no: basta che il browser, o una difesa anti-tracciamento, non mandi
+  il `Referer`. Il 403 non era un guasto da aggirare, era la risposta prevista.
+
+  - La mappa di serie adesso è quella di Esri, che pubblica i suoi quadratini
+    senza chiedere una chiave. Chi aveva scelto OpenStreetMap a mano se lo
+    tiene: cambia solo la risposta a «non ho scelto niente».
+  - In tendina non c'è più una voce sola. Questa è la seconda volta che un
+    servizio gratuito chiude la porta — CARTO era la prima, e oggi vuole una
+    chiave anche alla mappa di Home Assistant — e con una voce sola ogni
+    chiusura diventa un rilascio. Cambiarla è due tocchi.
+  - Sotto la mappa c'è il nome di chi la disegna. Esri lo chiede, OpenStreetMap
+    pure, e prima non lo scriveva nessuno.
+
+- **Il radar dice quando è la mappa di fondo a mancare**
+
+  Il fondo che non arrivava era silenzioso per scelta: contava solo la pioggia,
+  perché una mappa senza pioggia non è un radar vivo. Giusto, ma «fuori dal
+  verdetto» era diventato «muto»: la pioggia restava sospesa sul nulla e chi
+  guardava non aveva modo di sapere perché — ed è il motivo per cui questa cosa
+  è arrivata come segnalazione invece che come due tocchi nella scheda. Adesso
+  il fondo ha un conto suo e una frase sua, che si vede solo nel caso della
+  segnalazione: radar vivo, fondo muto. Se a mancare è la pioggia, parla la
+  frase di prima, che è la più grave delle due.
+
+- **Il verso della batteria adesso conta davvero, e si dice in un posto solo**
+
+  «Adesso ho il flusso, ma è sempre da batteria verso casa, ho provato anche a
+  cambiare il senso ma non cambia» (#435).
+
+  Metà degli inverter scrive positivo quando la batteria si CARICA, l'altra metà
+  quando si scarica: da un numero solo non si indovina, e chi guarda vede le
+  frecce all'incontrario. Il verso lo dice la casa — e finora lo diceva in due
+  posti, nessuno dei quali funzionava nel caso più comune.
+
+  - Il verso era chiuso dentro la scheda «Una sola entità con segno», e valeva
+    soltanto per la casella di quella scheda. Chi il sensore lo aveva scritto
+    nella casella **Potenza** di sempre — che è il posto ovvio, ed è quello che
+    la plancia stessa consiglia — apriva la scheda solo per raggiungere i due
+    pallini, ne cambiava uno, e non cambiava niente. Adesso «I valori positivi
+    sono» è una riga del riquadro, sempre in vista, e governa la potenza del
+    gruppo dovunque sia stata scritta. Vale per la rete come per la batteria.
+
+  - Il secondo interruttore, quello sotto la casella della potenza (#434), è
+    andato in pensione: due interruttori per lo stesso fatto sono un modo sicuro
+    di non farne funzionare nessuno. Chi lo aveva girato se lo ritrova nella
+    riga nuova, una volta sola e senza toccare niente.
+
+  - Il verso si applica adesso dove l'entità si risolve, non in chi disegna.
+    Prima lo giravano la mappa dei flussi e la tessera della Home, ciascuna per
+    conto suo, e il guscio storico — che disegna le stesse linee leggendo lo
+    stesso riferimento — non ne sapeva niente. Adesso il numero arriva già
+    girato a tutti e tre.
+
+- **L'istantanea del flusso decide dagli stati, non dal testo delle bolle**
+
+  La bolla della batteria non dice più il numero col segno: dice grandezza e
+  verso, «▼ 201 W». Chi leggeva quel testo per sapere da che parte andasse la
+  linea ritrovava sempre e solo un numero positivo — cioè sempre e solo
+  «batteria → casa», qualunque cosa stesse facendo la batteria. È l'altra metà
+  della #435, e valeva anche con il verso dichiarato giusto.
+
+- **Le letture ricavate non sparivano più dentro Home Assistant**
+
+  Le letture che nascono da una sola entità con segno sono proprietà non
+  enumerabili, apposta: così non si affacciano nel selettore delle entità e non
+  falsano i conteggi. La fusione degli stati le copiava con `Object.assign`, che
+  le enumerabili le prende e le altre no: il guscio storico le vedeva, i moduli
+  no. Succedeva solo a plancia ospitata dentro Home Assistant, cioè nel modo in
+  cui la plancia gira quasi sempre.
+
+- **Cambiare il verso si vede subito**
+
+  Le letture ricavate nascono quando la dichiarazione cambia, e chi disegnava in
+  quell'istante trovava il vuoto e ci restava fino al prossimo stato. In una casa
+  vera si sanava da sé entro un secondo, ma «cambio il verso e non cambia niente»
+  è la frase della segnalazione e non può dipendere da quando parla il contatore.
+
 ## 1.4.27
 
 ### Aggiunto

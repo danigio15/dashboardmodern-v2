@@ -19,48 +19,26 @@
  * verso la rete. Nessun DOM: solo aritmetica, provabile a tavolino.
  */
 
-/* Da che parte scrive la batteria di casa (#434).
- *
- * «Il flow dovrebbe essere dal FV verso casa ed e' corretto, ma poi dovrebbe
- *  anche caricare la batteria mentre in questo momento sembra scaricarsi
- *  perche' il flow tratteggiato va dalla batteria verso casa.»
+/* Da che parte scrive il sensore (#434, #435).
  *
  * Qui sotto la convenzione e' una sola e non puo' che essere una: positivo =
- * scarica. Quella dei sensori no. Un solo numero col segno lo pubblicano tutti
- * — Huawei, SolarEdge, Victron, Sofar, i template fatti in casa — e meta' lo
- * scrivono positivo quando la batteria si CARICA. Non c'e' modo di indovinarlo
- * da un valore solo: 800 W vuol dire «sta caricando» o «sta scaricando» a
- * seconda di chi l'ha scritto, e chi guarda vede le frecce all'incontrario.
+ * scarica per la batteria, positivo = prelievo per la rete. Quella dei sensori
+ * no. Un solo numero col segno lo pubblicano tutti — Huawei, SolarEdge,
+ * Victron, Sofar, i template fatti in casa — e meta' lo scrivono positivo
+ * quando la batteria si CARICA. Non c'e' modo di indovinarlo da un valore
+ * solo: 800 W vuol dire «sta caricando» o «sta scaricando» a seconda di chi
+ * l'ha scritto, e chi guarda vede le frecce all'incontrario.
  *
- * Quindi lo dice la casa, una volta, come dice il verso di una tapparella
- * montata al contrario. Chi non tocca niente resta com'era: la convenzione di
- * serie e' quella che la plancia ha sempre usato. */
-export const CHIAVE_VERSO_BATTERIA = "cd_batteria_verso";
-
-/** Se la batteria di questa casa scrive positivo quando si carica. */
-export function batteriaGirata(stored) {
-  if (stored === true || stored === "true" || stored === 1) return true;
-  if (stored && typeof stored === "object" && !Array.isArray(stored))
-    return batteriaGirata(stored.girata);
-  return false;
-}
-
-/**
- * La potenza della batteria nella convenzione di qui: positivo = scarica.
+ * Quindi lo dice la casa, una volta sola, nella scheda Energia: «I valori
+ * positivi sono». Il verso si applica dove l'entita' si risolve — in
+ * `core/signed-energy.js` — e da li' in poi TUTTI leggono il numero gia'
+ * girato: questa pagina, la tessera della Home e il guscio storico, che le
+ * stesse linee le disegna leggendo lo stesso alias. Applicarlo qui sarebbe
+ * stata una seconda mano sullo stesso segno, e una che il guscio non ha.
  *
- * Torna `null` quando non c'e' un numero, e `null` non e' zero: «spento» e
- * «non configurato» sono due risposte diverse, e chi legge deve distinguerle.
+ * Chi non tocca niente resta com'era: la convenzione di serie e' quella che la
+ * plancia ha sempre usato.
  */
-export function potenzaDellaBatteria(valore, girata = false) {
-  /* `Number(null)` fa zero, e zero e' una risposta: «la batteria e' ferma».
-   * Qui invece non c'e' nessuna risposta, ed e' un'altra cosa. */
-  if (valore === null || valore === undefined || valore === "") return null;
-  const numero = Number(valore);
-  if (!Number.isFinite(numero)) return null;
-  /* Meno zero non esiste per chi guarda, e `-0` si porta dietro un segno che
-   * a valle diventa una freccia. */
-  return girata && numero !== 0 ? -numero : numero;
-}
 
 const positivo = (value) => (Number.isFinite(value) && value > 0 ? value : 0);
 

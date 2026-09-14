@@ -25,7 +25,12 @@ test("built-in action editor derives a default icon but persists a custom choice
   const source = await read("src/sections/unified-editors-section.js");
 
   assert.match(source, /const ACTION_TYPES = Object\.freeze/);
-  assert.match(source, /\["builtin_luci", "💡"/);
+  /* La tendina dice il tipo e il nome; il segno da metterci accanto lo da' il
+   * catalogo. La colonna con le emoji scritte a mano era la terza copia della
+   * stessa tabella, e diceva una cosa diversa dalle altre due. */
+  assert.match(source, /\["builtin_luci", "Gestione Luci", "Lights control"\]/);
+  assert.match(source, /function actionTypeGlyph/);
+  assert.match(source, /actionTypeIcon\(value\) \{\s*return azioneDiSerie\(value\);/);
   assert.match(source, /icon\.readOnly = false/);
   assert.match(source, /entityField\.hidden = builtin/);
   assert.match(source, /icon: clean\(form\.elements\.icon\.value\) \|\| actionTypeIcon\(type\)/);

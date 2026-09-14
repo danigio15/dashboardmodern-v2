@@ -190,3 +190,74 @@ test("il sovraccarico di rete non si disegna con un router", () => {
   assert.match(sezione, /SORGENTE_RETE \? "potenza" : "casa"/);
   assert.doesNotMatch(sezione, /SORGENTE_RETE \? "rete"/);
 });
+
+test("l'avviso e la fascia stanno sulla stessa riga anche sul telefono", () => {
+  /* Erano su due righe sotto i 560 px, per una regola scritta apposta: «due
+   * cose strette su uno schermo stretto non si leggono». Provata, e sbagliata:
+   * due righe alte 115 px per dire quello che ne vuole 60, e due cose che si
+   * leggono insieme — cosa chiede attenzione adesso, cosa sta facendo la casa —
+   * messe a distanza.
+   *
+   * Adesso restano affiancate: l'avviso si stringe fino al 56% e la fascia
+   * prende quello che resta. Misurato in Chromium col foglio di stile vero a
+   * 360, 390, 414 e 430 px: il numero non si taglia mai e alla fascia resta una
+   * pastiglia intera. */
+  const casa = sorgente("src/sections/come-sta-la-casa-section.js");
+  assert.doesNotMatch(
+    casa,
+    /@media \(max-width:560px\)\{\s*\n?\s*\.dm-casa-fascia\{flex-direction:column/,
+    "la corsia non deve più impilarsi sul telefono",
+  );
+  assert.match(
+    casa,
+    /@media \(max-width:560px\)\{\s*\n\s*\.dm-casa-fascia > #dm-casa-riga\{flex:1 1 0;min-width:0;max-width:none\}\}/,
+  );
+
+  const soglia = sorgente("src/sections/la-soglia-della-potenza-section.js");
+  /* L'avviso si stringe per stare accanto alla fascia. Quanto, lo dice la
+   * prova qui sotto — qui conta solo che POSSA stringersi: senza `flex:0 1`
+   * resterebbe della sua misura e spingerebbe fuori la fascia. Fin dove, lo
+   * dice il pavimento: `min-content`, cioè il numero. */
+  assert.match(soglia, /flex:0 1 auto;min-width:min-content;max-width:\d+%/);
+});
+
+test("la card è più piccola e la sua parolina scorre invece di essere tagliata", () => {
+  const soglia = sorgente("src/sections/la-soglia-della-potenza-section.js");
+  /* Più piccola: il tetto scende dal 56% al 46%, e con lui scendono disegno e
+   * scritte — stringere la scatola lasciando dentro le misure di prima vuol
+   * dire soltanto schiacciare il contenuto. */
+  assert.match(soglia, /max-width:46%/);
+  assert.match(soglia, /\.dm-soglia-allerta \.dm-casa-chip\{width:30px;height:30px/);
+
+  /* La deriva è QUELLA della fascia, non una seconda: stessa animazione,
+   * stesse due funzioni per strada e durata. Due derive scritte due volte
+   * sarebbero due velocità diverse a dieci pixel di distanza. */
+  assert.match(
+    soglia,
+    /import \{ durataDellaDeriva, spazioDaPercorrere \} from "\.\.\/core\/la-fascia-deriva\.js";/,
+  );
+  assert.match(soglia, /animation:dm-casa-deriva var\(--dm-casa-durata,12s\)/);
+
+  /* Si misura la coda, non il nastro: su un elemento ancora `inline`
+   * `scrollWidth` non dice quanto è larga la scritta, e la strada risultava
+   * sempre zero — la parolina non si muoveva mai. */
+  assert.match(soglia, /scrollWidth: coda\.scrollWidth,\s*\n\s*clientWidth: coda\.clientWidth,/);
+  assert.doesNotMatch(soglia, /scrollWidth: nastro\.scrollWidth/);
+
+  /* Il numero non si muove: è il motivo per cui l'avviso esiste, e uno che
+   * scorre non si legge a colpo d'occhio. Non deriva, e nemmeno si tronca: il
+   * tetto del 46% non scende mai sotto di lui. */
+  assert.match(
+    soglia,
+    /\.dm-soglia-allerta \.dm-casa-testa\{\s*\n\s*display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\}/,
+  );
+  /* Il pavimento è la MISURA, non l'intera pastiglia: la parolina si fa
+   * dettare la larghezza dalla colonna invece di dettarla, se no il pavimento
+   * sarebbe «Sovraccarico · Carico di casa» e la pastiglia si prenderebbe
+   * tutta la riga. Le due regole vanno insieme: da sola, nessuna delle due
+   * salva il numero. */
+  assert.match(soglia, /min-width:min-content;max-width:46%/);
+  assert.match(soglia, /\.dm-soglia-allerta \.dm-casa-coda\{width:0;min-width:100%\}/);
+  /* E chi ha chiesto meno animazioni non vede muovere niente. */
+  assert.match(soglia, /@media\(prefers-reduced-motion:reduce\)\{\s*\n\s*\.dm-soglia-allerta \.dm-casa-coda/);
+});

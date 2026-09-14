@@ -311,14 +311,38 @@ for (const variant of PRIMARY) {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
 
+    /* Il flusso si accende dagli STATI, non dal testo delle bolle.
+     *
+     * Qui si scriveva «2.60 kW» dentro `#v-solar` e si chiamava il ridisegno:
+     * la bolla era la sorgente della verita'. Ma il testo di una bolla il segno
+     * non ce l'ha — da «▼ 201 W» non si sa se la batteria si carica o si
+     * scarica — ed e' il motivo per cui il verso dichiarato non contava
+     * (#435). Adesso l'istantanea decide dagli stati, quindi la prova deve
+     * dare alla casa un impianto e delle letture vere: senza impianto non c'e'
+     * nessuna linea da accendere, ed e' giusto cosi'.
+     *
+     * Quello che questa prova guarda resta lo stesso: che l'animazione della
+     * linea vada nel verso giusto. */
     await page.evaluate(() => {
-      const solar = document.getElementById("v-solar");
-      const home = document.getElementById("v-home");
-      if (!solar || !home) throw new Error("missing instant energy values");
-      solar.textContent = "2.60 kW";
-      home.textContent = "0 W";
+      const negozio = window.DashboardModernModules?.store;
+      const energia = { ...(negozio?.getSection?.("energy") || {}) };
+      energia.solar = { ...(energia.solar || {}), power: "sensor.beta12_solare_w" };
+      energia.home = { ...(energia.home || {}), power: "sensor.beta12_casa_w" };
+      energia.metadata = { ...(energia.metadata || {}), semantics_version: 3 };
+      negozio?.replaceSection?.("energy", energia);
+      const scrivi = (id, valore) => {
+        _RAW_STATES[id] = {
+          entity_id: id,
+          state: String(valore),
+          attributes: { unit_of_measurement: "W" },
+        };
+      };
+      scrivi("sensor.beta12_solare_w", 2600);
+      scrivi("sensor.beta12_casa_w", 2600);
+      window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
       dmRefreshEnergyFlows();
     });
+    await page.waitForTimeout(400);
 
     for (const selector of ["#line-solar-home", "#m-line-solar-home"]) {
       const line = page.locator(selector);

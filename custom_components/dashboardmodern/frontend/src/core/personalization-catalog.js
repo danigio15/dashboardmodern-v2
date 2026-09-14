@@ -699,6 +699,28 @@ function leapmotorVisual(size = 48) {
  * confronto era fra trattini e spazi. Il giro largo resta, ma dopo. */
 const nomeVoce = (value) => normalized(value).replace(/^mdi:/, "").replace(/[-_]+/g, " ").trim();
 
+/* Il segno e' l'ultimo nome a cui una voce risponde.
+ *
+ * Il nome identifica la voce, il segno no: lo stesso 🚪 sta sulla porta e
+ * sull'ingresso, la stessa 💡 sulla lampada e sul gruppo. Per questo si cerca
+ * sempre prima per nome, e il segno si prova solo quando non ha risposto
+ * nessun nome — non per scegliere meglio, ma per riconoscere le
+ * configurazioni salvate quando al posto del nome si scriveva il segno:
+ * senza questa riga resterebbero senza disegno per sempre, con l'emoji di
+ * sistema al posto della nostra tavolozza. Fra due voci che portano lo stesso
+ * segno vince la prima del catalogo, che e' la voce vera e propria.
+ *
+ * Si confronta senza il selettore di variante (U+FE0E/U+FE0F): la stessa
+ * emoji arriva col selettore da una tastiera e senza da un'altra, ed e' lo
+ * stesso segno. */
+const soloSegno = (value) => clean(value).replace(/[\uFE0E\uFE0F]/g, "");
+
+function vocePerSegno(catalogo, value, segnoDella = (item) => item.glyph) {
+  const segno = soloSegno(value);
+  if (!segno) return null;
+  return catalogo.find((item) => soloSegno(segnoDella(item)) === segno) || null;
+}
+
 export function roomCatalogMatch(value) {
   const token = nomeVoce(value);
   if (!token) return ROOM_CATALOG[0];
@@ -706,6 +728,8 @@ export function roomCatalogMatch(value) {
     (item) => item.id === token || nomeVoce(item.mdi) === token || nomeVoce(item.id) === token,
   );
   if (esatta) return esatta;
+  const perSegno = vocePerSegno(ROOM_CATALOG, value, (item) => ROOM_GLYPHS[item.id]);
+  if (perSegno) return perSegno;
   return (
     ROOM_CATALOG.find(
       (item) =>
@@ -807,18 +831,54 @@ export function carBrandVisual(value, size = 48) {
 }
 
 export function actionCatalogMatch(value) {
-  const token = normalized(value).replace(/^mdi:/, "").replace(/[-_]+/g, " ");
+  const token = nomeVoce(value);
   if (!token) return ACTION_ICON_CATALOG[0];
   return (
     ACTION_ICON_CATALOG.find(
       (item) =>
-        normalized(item.id) === token ||
-        normalized(item.mdi).replace(/^mdi:/, "").replace(/[-_]+/g, " ") === token ||
-        normalized(item.it) === token ||
-        normalized(item.en) === token,
-    ) || null
+        nomeVoce(item.id) === token ||
+        nomeVoce(item.mdi) === token ||
+        nomeVoce(item.it) === token ||
+        nomeVoce(item.en) === token,
+    ) ||
+    vocePerSegno(ACTION_ICON_CATALOG, value) ||
+    null
   );
 }
+
+/* Che voce del catalogo spetta a un tipo di azione rapida.
+ *
+ * Questa tabella stava scritta tre volte: i nomi per la Home nel motore delle
+ * icone, gli stessi nomi un'altra volta per la scheda della configurazione, e
+ * le emoji per il menu a tendina negli editor. Non dicevano la stessa cosa —
+ * le luci erano una lampadina di la' e un gruppo di qua — e chi ne correggeva
+ * una lasciava indietro le altre due. Adesso il nome della voce si chiede a un
+ * posto solo; il segno da mostrare lo da' il catalogo, che e' l'unico a
+ * saperlo.
+ *
+ * La chiave e' il tipo senza il prefisso `builtin_`: il guscio scrive lo
+ * stesso pulsante ora come `builtin_clima` (nella tendina) e ora come `clima`
+ * (nell'azione salvata). */
+export const AZIONI_DI_SERIE = Object.freeze({
+  luci: "mdi:lightbulb-group",
+  luci_group: "mdi:lightbulb-group",
+  clima: "mdi:snowflake",
+  antifurto: "mdi:shield-home",
+  lavatrice: "mdi:washing-machine",
+  toggle: "mdi:toggle-switch-outline",
+  script: "mdi:script-text-play",
+  scene: "mdi:movie-open",
+  /* Un lettore fra le azioni (#269): senza la sua riga prendeva la stella di
+   * ripiego, cioe' il segno di «non so cos'e' questo». */
+  media: "mdi:speaker",
+});
+
+export const chiaveDellAzione = (value) =>
+  clean(value)
+    .replace(/^builtin_/, "")
+    .toLowerCase();
+
+export const azioneDiSerie = (type) => AZIONI_DI_SERIE[chiaveDellAzione(type)] || "mdi:star";
 
 export function actionVisual(value, size = 48) {
   const item = actionCatalogMatch(value);
@@ -989,16 +1049,18 @@ export const LOAD_ICON_CATALOG = Object.freeze([
 ]);
 
 export function loadCatalogMatch(value) {
-  const token = normalized(value).replace(/^mdi:/, "").replace(/[-_]+/g, " ");
+  const token = nomeVoce(value);
   if (!token) return null;
   return (
     LOAD_ICON_CATALOG.find(
       (item) =>
-        normalized(item.id) === token ||
-        normalized(item.mdi).replace(/^mdi:/, "").replace(/[-_]+/g, " ") === token ||
-        normalized(item.it) === token ||
-        normalized(item.en) === token,
-    ) || null
+        nomeVoce(item.id) === token ||
+        nomeVoce(item.mdi) === token ||
+        nomeVoce(item.it) === token ||
+        nomeVoce(item.en) === token,
+    ) ||
+    vocePerSegno(LOAD_ICON_CATALOG, value) ||
+    null
   );
 }
 

@@ -58,6 +58,7 @@ import {
   modoDalServizio,
   modoSuMisuraAcceso,
   normalizzaModiSuMisura,
+  tastiSuMisura,
 } from "../core/antifurto-su-misura.js";
 import {
   activeLocale,
@@ -71,6 +72,7 @@ import {
   restyleOnLocaleChange,
   root,
   section,
+  stanzaDiHomeAssistant,
   t,
   writeJsonIfChanged,
 } from "./shared.js";
@@ -333,8 +335,11 @@ function syncAree(shell, labels) {
  * che fa funzionare la cosa senza configurare niente: una centrale che non ha
  * dichiarato le sue zone le ha tutte. */
 function righeDellaPresenza() {
-  return presenzaDiCasa(allStates(), readJson(CHIAVE_PRESENZA, {}), (entity) =>
-    clean(allStates()?.[entity]?.attributes?.friendly_name),
+  return presenzaDiCasa(
+    allStates(),
+    readJson(CHIAVE_PRESENZA, {}),
+    (entity) => clean(allStates()?.[entity]?.attributes?.friendly_name),
+    stanzaDiHomeAssistant,
   );
 }
 
@@ -988,6 +993,31 @@ function publishAlarmHelpers() {
    * si spegne tutto se quel tasto non e' fra quelli che si vedono. */
   root.dmAlarmActiveMode = (state) => modoAcceso(state);
   root.dmAlarmModes = () => modiVisibili().map((voce) => voce.mode);
+  /* L'inserimento scritto a mano che e' acceso adesso, per chi disegna il
+   * cartello grande della sezione (#547).
+   *
+   * «Il widget indica correttamente "Inserito" ma se si entra dentro la
+   * sezione Sicurezza da comunque la dicitura DISARMATO.» Il cartello lo
+   * scrive il guscio, e lo scriveva guardando la sola centrale: chi inserisce
+   * con uno script una centrale non ce l'ha, quindi nessuno dei rami diceva
+   * «armato» e restava quello di partenza. Il TASTO invece si accendeva
+   * giusto, perche' quello il guscio lo chiede gia' qui — due letture dello
+   * stesso fatto, e una sola delle due sapeva la verita'.
+   *
+   * Qui si risponde alla domanda che mancava, e si risponde con quello che
+   * serve a scriverlo: come si chiama questo inserimento e che faccia ha. Il
+   * nome e' quello che gli ha dato chi ha la casa, non uno inventato da noi.
+   *
+   * Non si filtra per «tasti che si vedono»: una casa inserita e' inserita
+   * anche se chi guarda ha tolto quel tasto dalla fila, e il cartello dice
+   * come sta la casa, non cosa si puo' premere. */
+  root.dmAlarmSuMisuraAcceso = () => {
+    const modi = modiSuMisura();
+    const acceso = modi.length ? modoSuMisuraAcceso(modi, allStates()) : "";
+    if (!acceso) return null;
+    const voce = tastiSuMisura(modi).find((riga) => riga.mode === acceso);
+    return voce ? { mode: voce.mode, label: voce.label, icon: voce.icon } : null;
+  };
   /* Quelle che la centrale ACCETTA, scelta o non scelta: e' l'elenco che la
    * configurazione deve poter spuntare. */
   root.dmAlarmSupportedModes = () => alarmModes(alarmStateObject()).map((voce) => voce.mode);

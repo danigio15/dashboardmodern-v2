@@ -17,6 +17,7 @@
  */
 
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import {
@@ -247,4 +248,55 @@ test("la tessera in Home nasce e si accende anche con i soli tasti su misura", (
   assert.match(sorgente, /raw\.startsWith\("armed"\) \|\| Boolean\(mioAcceso\)/);
   /* E la fila dei tasti si apre: `alarm` è «c'è un antifurto da comandare». */
   assert.match(sorgente, /alarm: Boolean\(alarm\) \|\| miei\.length > 0/);
+});
+
+test("il cartello della sezione dice inserito anche senza centrale (#547)", async () => {
+  /* «Ho testato la configurazione dell'allarme senza integrazione ma attivandola
+   *  tramite script e funziona tutto, il widget indica correttamente "Inserito"
+   *  ma se si entra dentro la sezione Sicurezza dà comunque la dicitura
+   *  DISARMATO.»
+   *
+   * Il cartello grande lo scrive il guscio, e lo scriveva guardando la sola
+   * centrale: senza centrale nessun ramo diceva «armato» e restava quello di
+   * partenza. Il TASTO invece era giusto, perché quello il guscio lo chiede già
+   * al modulo — due letture dello stesso fatto, e una sola sapeva la verità. */
+  const sezione = await readFile(
+    new URL("../src/sections/security-showcase-section.js", import.meta.url),
+    "utf8",
+  );
+  /* La risposta che mancava, pubblicata accanto a quella del tasto. */
+  assert.match(sezione, /root\.dmAlarmSuMisuraAcceso = \(\) => \{/);
+  assert.match(sezione, /return voce \? \{ mode: voce\.mode, label: voce\.label, icon: voce\.icon \} : null;/);
+  /* Non si filtra per «tasti che si vedono»: una casa inserita è inserita anche
+   * se chi guarda ha tolto quel tasto dalla fila. */
+  const corpo = sezione.slice(
+    sezione.indexOf("root.dmAlarmSuMisuraAcceso"),
+    sezione.indexOf("export function installSecurityShowcaseSection"),
+  );
+  assert.doesNotMatch(corpo, /modiVisibili/);
+
+  for (const guscio of ["../legacy/dashboard-runtime-it.js", "../legacy/dashboard-runtime-en.js"]) {
+    const testo = await readFile(new URL(guscio, import.meta.url), "utf8");
+    /* Il guscio chiede, e chiede SOLO quando la centrale non ha risposto
+     * niente di riconoscibile.
+     *
+     * Qui si pretendeva `if (!alarmTriggered && !isArmed)`, che non bastava:
+     * una centrale vera che dice `disarmed` lascia `isArmed` falso, e il
+     * cartello sarebbe passato ad ARMATO con il tasto Disinserisci acceso
+     * sotto — due letture dello stesso fatto che si contraddicono, che è
+     * esattamente il guasto della #547 rifatto al contrario. Dove una centrale
+     * risponde comanda lei, anche quando la risposta è «disarmato». */
+    assert.match(
+      testo,
+      /const centraleHaRisposto = \['triggered','armed_away','armed_night','armed_home','armed_custom_bypass','armed_vacation','pending','arming','disarmed'\]\.includes\(alarmState\);/,
+      guscio,
+    );
+    assert.match(
+      testo,
+      /if \(!alarmTriggered && !isArmed && !centraleHaRisposto\) \{/,
+      guscio,
+    );
+    assert.match(testo, /dmAlarmSuMisuraAcceso\(\)/, guscio);
+    assert.match(testo, /activeBtn = suMisura\.mode; isArmed = true;/, guscio);
+  }
 });

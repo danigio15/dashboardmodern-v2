@@ -159,6 +159,7 @@
   "Arm Night": "Armamento Notturno",
   "Arm Partial": "Inserimento Parziale",
   "Arm Vacation": "Inserimento Vacanza",
+  "ARMED ·": "ARMATO ·",
   "Auto-hide: appears with a swipe/tap on the handle. Fixed: always in view.": "A scomparsa: appare con swipe/tocco sulla linguetta. Fissa: sempre in vista.",
   "but the cache is not updating. Clear the browser/app cache.": "ma la cache non si aggiorna. Svuota la cache del browser/app.",
   "Cable connected (binary_sensor)": "Cavo collegato (binary_sensor)",

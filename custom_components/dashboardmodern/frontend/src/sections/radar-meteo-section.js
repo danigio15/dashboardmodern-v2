@@ -63,6 +63,7 @@ import {
   fotogrammaRainViewer,
   fotogrammiRainViewer,
   luogoDelRadar,
+  attribuzioneDelFondo,
   modelloDelFondo,
   modelliDelServizio,
   modelloDelServizio,
@@ -81,6 +82,7 @@ import {
   installStyle,
   readJson,
   root,
+  scriviTestoSeCambia,
   t,
 } from "./shared.js";
 
@@ -267,6 +269,9 @@ export function radarScelto(stored = configurazione()) {
     modello,
     servizio,
     fondo: modelloDelFondo(grezzo),
+    /* Chi disegna la mappa di fondo: Esri lo chiede, OpenStreetMap pure, e la
+     * legenda e' il posto dove si dice. */
+    firmaDelFondo: attribuzioneDelFondo(grezzo),
     zona: clean(grezzo.zona),
     /* Il tetto dello zoom della pioggia, com'e' scritto: a interpretarlo ci
        pensa `zoomDellaPioggia`, che sa anche cosa fare quando e' vuoto. */
@@ -451,6 +456,12 @@ function blocco() {
       <span class="dm-radar-muto">${esc(
         t("Il radar non sta rispondendo.", "The radar is not reporting."),
       )}</span>
+      <span class="dm-radar-fondo-muto">${esc(
+        t(
+          "La mappa di fondo non risponde. La pioggia c'è: puoi cambiare mappa in ⚙️ → Meteo e radar.",
+          "The base map is not answering. The rain is there: you can change map under ⚙️ → Weather and radar.",
+        ),
+      )}</span>
     </div>
     <div class="dm-radar-legenda" data-dm-radar-legenda>
       <small>${esc(t("Pioggia", "Rain"))}</small>
@@ -459,6 +470,7 @@ function blocco() {
       <small class="dm-radar-vuoto">${esc(
         t("Dove non c'è colore non piove.", "No colour means no rain."),
       )}</small>
+      <small class="dm-radar-firma" data-dm-radar-firma-fondo></small>
     </div>`;
   /* Sopra le previsioni: il radar dice adesso, le previsioni dicono dopo. */
   elenco.before(nodo);
@@ -470,6 +482,13 @@ function blocco() {
 async function daEntita(scelto, nodo) {
   const immagine = nodo.querySelector(`.${IMMAGINE}`);
   if (!immagine) return;
+  /* Qui la mappa di fondo non esiste: la disegna chi la vuole. Il blocco pero'
+   * e' lo stesso di prima — si riusa, non si rifa' — e se il radar a tessere
+   * aveva gia' detto «il fondo non risponde» quel verdetto resterebbe scritto
+   * addosso al nodo, e la frase gialla comparirebbe sopra l'immagine della
+   * telecamera che invece è arrivata benissimo. Un verdetto su una cosa che
+   * non c'e' e' una bugia: si cancella entrando. */
+  delete nodo.dataset.dmFondo;
   const preso = await loadCameraFrame({ entity: scelto.entity }, immagine);
   nodo.dataset.dmRadar = preso ? "vivo" : "muto";
 }
@@ -608,9 +627,26 @@ function daTessere(scelto, nodo) {
   let attesi = 0;
   let arrivati = 0;
   let persi = 0;
+  /* Il fondo ha un conto suo, e un verdetto suo.
+   *
+   * Tenerlo fuori dal verdetto del radar e' giusto — una mappa senza pioggia
+   * non e' un radar vivo — ma fin qui «fuori dal verdetto» voleva dire muto:
+   * il fondo spariva e nessuno lo diceva, e chi guardava vedeva la pioggia
+   * sospesa sul nulla senza sapere perche'. E' la #529, che e' arrivata come
+   * segnalazione invece che come due tocchi nella scheda proprio per questo.
+   * Due conti separati, due frasi separate. */
+  let attesiFondo = 0;
+  let arrivatiFondo = 0;
+  let persiFondo = 0;
   const segnala = (immagine, riuscito, dellaPioggia) => {
     if (!riuscito) immagine.remove();
-    if (!dellaPioggia) return;
+    if (!dellaPioggia) {
+      if (riuscito) arrivatiFondo += 1;
+      else persiFondo += 1;
+      if (arrivatiFondo) nodo.dataset.dmFondo = "vivo";
+      else if (persiFondo >= attesiFondo) nodo.dataset.dmFondo = "muto";
+      return;
+    }
     if (riuscito) arrivati += 1;
     else persi += 1;
     if (arrivati) {
@@ -653,9 +689,19 @@ function daTessere(scelto, nodo) {
         });
         dentro.push(immagine);
         if (dellaPioggia) attesiPioggia += 1;
+        else attesiFondo += 1;
       }
     };
-    if (scelto.fondo) stendi(scelto.fondo, pezzi, false);
+    /* Il verdetto del fondo riparte da capo a ogni ridisegno, e chi il fondo
+     * non lo vuole («nessuno» nella scheda) non ha niente da lamentare. */
+    if (scelto.fondo) {
+      nodo.dataset.dmFondo = "attesa";
+      stendi(scelto.fondo, pezzi, false);
+    } else delete nodo.dataset.dmFondo;
+    scriviTestoSeCambia(
+      nodo.querySelector("[data-dm-radar-firma-fondo]"),
+      scelto.fondo ? clean(scelto.firmaDelFondo) : "",
+    );
     /* Uno strato per fotogramma (#393). Con l'animazione spenta ce n'e' uno
      * solo, ed e' esattamente il disegno di prima dentro una scatola in piu'. */
     for (const [indice, voce] of modelli.entries()) {
@@ -1368,6 +1414,19 @@ function installStyles() {
       #weather-modal .dm-radar-muto{
         font-size:12px;font-weight:700;color:var(--text-dim,#64748b);position:relative}
       #weather-modal .dm-radar-blocco[data-dm-radar="vivo"] .dm-radar-muto{display:none}
+      /* Il fondo che non risponde si dice, ma senza rubare la scena: quando a
+         mancare e' la pioggia parla l'altra frase, che e' la piu' grave delle
+         due. Si vede solo a radar vivo e fondo muto — cioe' nel caso della
+         segnalazione, «vedevo la perturbazione ma non la mappa». */
+      #weather-modal .dm-radar-fondo-muto{display:none;
+        position:absolute;left:8px;right:8px;bottom:8px;padding:6px 10px;border-radius:10px;
+        font-size:11px;font-weight:700;line-height:1.35;
+        color:#92400e;background:rgba(254,243,199,.94);border:1px solid #fcd34d}
+      #weather-modal .dm-radar-blocco[data-dm-radar="vivo"][data-dm-fondo="muto"] .dm-radar-fondo-muto{
+        display:block}
+      /* Il nome di chi disegna la mappa: Esri lo chiede, OpenStreetMap pure. */
+      #weather-modal .dm-radar-firma{color:var(--text-dim,#64748b);font-size:10px;font-weight:700}
+      #weather-modal .dm-radar-firma:empty{display:none}
       #ed-body .dm-radar-ed small{
         display:block;margin:3px 2px 6px;font-size:11px;line-height:1.45;
         color:var(--text-dim,#64748b)}

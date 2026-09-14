@@ -114,6 +114,18 @@ export const SCHEDE = Object.freeze({
   visib: { famiglia: "plancia", posizione: 10 }, // Impostazioni, lingua, Assist
   sez0: { famiglia: "plancia", posizione: 20 }, // Home: i blocchi e il loro ordine
   todo: { famiglia: "plancia", posizione: 30 }, // 🧩 Widget della Home
+  /* Le Azioni rapide stanno con la Home, non con la casa.
+   *
+   * Stavano sotto 🛋️ Casa, insieme alle stanze, alle luci e alle tapparelle —
+   * che sono le COSE di casa. Ma le azioni rapide non sono una cosa di casa:
+   * sono una fila di tasti sulla Home, come i blocchi di `sez0` e come le
+   * tessere di `todo`. Chi va a cercare «cosa compare sulla Home» apre Widget,
+   * ci trova le tessere e non le azioni, e conclude che le azioni non si
+   * possono piu' configurare — e' successo, e a chi la plancia l'ha scritta.
+   *
+   * Tre schede rispondono alla stessa domanda: cosa c'e' sulla Home e in che
+   * ordine. Adesso stanno nella stessa famiglia, una dopo l'altra. */
+  sez8: { famiglia: "plancia", posizione: 35 }, // ⚡ Azioni rapide della Home
   entita: { famiglia: "plancia", posizione: 40 }, // ⭐ Le tue entità
   mie: { famiglia: "plancia", posizione: 50 }, // ⭐ Le tue sezioni
   backup: { famiglia: "plancia", posizione: 60 }, // 💾 Backup e ripristino
@@ -148,7 +160,6 @@ export const SCHEDE = Object.freeze({
   stampanti: { famiglia: "casa", posizione: 65 },
   animali: { famiglia: "casa", posizione: 70 },
   people: { famiglia: "casa", posizione: 80 }, // Persone
-  sez8: { famiglia: "casa", posizione: 90 }, // Azioni rapide e scene
   /* Le batterie (#398) stanno con la casa e non con gli avvisi: sono la
    * manutenzione delle cose che ci sono dentro — la serratura, il sensore, il
    * telecomando — non una notizia che arriva. */

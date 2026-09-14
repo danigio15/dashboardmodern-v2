@@ -132,7 +132,7 @@ test("modificando l'azione della lavatrice esce la configurazione completa del p
   await expect(carta).toHaveCount(0);
 });
 
-test("i tasti dei programmi portano i disegni di casa, e chi aveva un'emoji la tiene", async ({
+test("i tasti dei programmi portano i disegni di casa, e un segno estraneo resta com'e'", async ({
   page,
 }, testInfo) => {
   test.setTimeout(150_000);
@@ -147,6 +147,7 @@ test("i tasti dei programmi portano i disegni di casa, e chi aveva un'emoji la t
         { name: "Eco", entity: "script.eco", icon: "mdi:leaf" },
         { name: "Centrifuga", entity: "script.centrifuga", icon: "mdi:rotate-3d-variant" },
         { name: "Vecchio", entity: "script.vecchio", icon: "⏱️" },
+        { name: "Estraneo", entity: "script.estraneo", icon: "🦄" },
       ]),
     );
     /* La finestra si apre, che e' l'unico posto da cui quei tasti si vedono.
@@ -165,9 +166,20 @@ test("i tasti dei programmi portano i disegni di casa, e chi aveva un'emoji la t
     }));
   });
 
-  expect(tasti.map((tasto) => tasto.nome)).toEqual(["Eco", "Centrifuga", "Vecchio"]);
+  expect(tasti.map((tasto) => tasto.nome)).toEqual(["Eco", "Centrifuga", "Vecchio", "Estraneo"]);
   expect(tasti[0].disegno).toBe(true);
   expect(tasti[1].disegno).toBe(true);
-  /* Chi si era scritto un'emoji a mano non perde niente. */
-  expect(tasti[2].testo).toBe("⏱️");
+  /* Un segno che e' di una NOSTRA voce diventa il nostro disegno.
+   *
+   * Qui si pretendeva che ⏱️ restasse l'emoji del telefono, «per non far
+   * perdere niente a chi se l'era scritta a mano». Ma ⏱️ e' il segno della
+   * nostra voce «lavaggio rapido»: chi ce l'ha salvato l'ha scelto dal nostro
+   * catalogo, quando il catalogo salvava il segno invece del nome. Tenerlo
+   * com'era voleva dire tenersi l'emoji di sistema — diversa su ogni telefono
+   * — al posto del disegno, che e' proprio quello che non si vuole vedere. */
+  expect(tasti[2].disegno).toBe(true);
+  /* E quello che non e' nostro resta di chi l'ha scritto: un unicorno nel
+   * catalogo non c'e', e nessuno glielo va a cambiare. */
+  expect(tasti[3].disegno).toBe(false);
+  expect(tasti[3].testo).toBe("🦄");
 });

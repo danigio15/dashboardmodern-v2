@@ -158,7 +158,9 @@ const SECTION_TABLES = Object.freeze([
   /* I nomi delle tavolozze (#436): i valori stanno nel nucleo, che non sa che
      lingua si parla, e le parole qui accanto ai tasti. */
   { file: "tavolozze-section.js", name: "NOMI", rows: "values", at: [0, 1] },
-  { file: "unified-editors-section.js", name: "ACTION_TYPES", rows: "items", at: [2, 3] },
+  /* La riga era `["tipo", "emoji", "it", "en"]`: l'emoji se n'e' andata — il
+     segno da mostrare lo da' il catalogo — e le due meta' sono scalate. */
+  { file: "unified-editors-section.js", name: "ACTION_TYPES", rows: "items", at: [1, 2] },
 ]);
 
 /* The literal a `const NAME = …;` is declared with, balanced by brackets so a

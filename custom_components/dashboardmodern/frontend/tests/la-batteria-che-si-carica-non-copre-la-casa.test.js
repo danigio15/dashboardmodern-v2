@@ -18,15 +18,17 @@
  * e ci leggevano sopra tre cose diverse — la frase, il soggetto del racconto,
  * la casella del popup.
  *
- * Adesso si gira dove la riga nasce, e da li' in poi c'e' una convenzione
- * sola. Le prove tengono ferme quattro cose.
+ * Adesso si gira dove l'ENTITA' SI RISOLVE (#435): la tessera chiede le sue
+ * letture al modello gia' risolto, e il numero che le arriva ha gia' il segno
+ * di qui. Non c'e' piu' un posto dove «ricordarsi» di girarlo, e quindi non
+ * c'e' piu' un posto dove dimenticarselo. Le prove tengono ferme quattro cose.
  */
 
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { analisiDellaSezione } from "../src/core/analisi-sezione.js";
-import { potenzaDellaBatteria, batteriaGirata } from "../src/core/energy-flow-truth.js";
+import { applySignedSources, derivedEnergyStates } from "../src/core/signed-energy.js";
 
 const sorgente = readFileSync(
   new URL("../src/sections/home-widgets-section.js", import.meta.url),
@@ -77,36 +79,36 @@ test("la batteria che scarica davvero continua a dirlo", () => {
   assert.doesNotMatch(punti, /si carica/);
 });
 
-test("il verso si gira dove la riga nasce, una volta sola", () => {
+test("il verso si gira dove l'entita' si risolve, e la tessera legge da li'", () => {
   const letture = sorgente.slice(
     sorgente.indexOf("function lettureDellImpianto("),
     sorgente.indexOf('    solare: di("solar")?.watts'),
   );
-  /* Qui si gira... */
-  assert.match(letture, /battuta\.watts = potenzaDellaBatteria\(/);
-  assert.match(letture, /batteriaGirata\(readJson\(CHIAVE_VERSO_BATTERIA, \{\}\)\)/);
-  /* ...e nel modello del flusso NON si rigira: due giri riportano il numero
-   * com'era, che e' il difetto di prima scritto al contrario. */
-  const flusso = sorgente.slice(
-    sorgente.indexOf("    solare: di(\"solar\")?.watts"),
-    sorgente.indexOf("/* Cosa dice la didascalia del giorno"),
-  );
-  assert.match(flusso, /batteria: di\("battery"\)\?\.watts \?\? null,/);
-  assert.doesNotMatch(flusso, /potenzaDellaBatteria/);
-  /* In tutto il file il giro si fa in un posto solo. */
-  assert.equal([...sorgente.matchAll(/potenzaDellaBatteria\(/g)].length, 1);
+  /* Le letture nascono dal modello gia' risolto: `applySignedSources` ha gia'
+   * fatto scendere la casella della potenza sulla lettura ricavata. */
+  assert.match(letture, /const risolto = primo \? applySignedSources\(impianto \|\| \{\}\) : impianto;/);
+  /* E qui dentro non si gira piu' niente a mano: girarlo di nuovo riporterebbe
+   * il numero com'era, che e' il difetto di prima scritto al contrario. */
+  assert.doesNotMatch(sorgente, /potenzaDellaBatteria|batteriaGirata|cd_batteria_verso/);
 });
 
-test("girare due volte riporta il numero com'era: e' la ragione del posto unico", () => {
-  /* Il sensore di chi ha segnalato: positivo quando si carica. */
-  const grezzo = 3212;
-  const girata = batteriaGirata({ girata: true });
-  const unaVolta = potenzaDellaBatteria(grezzo, girata);
-  assert.equal(unaVolta, -3212, "una volta: carica, come dice la mappa");
-  assert.equal(potenzaDellaBatteria(unaVolta, girata), grezzo, "due volte: si torna al difetto");
-  /* Chi non ha girato niente non cambia di una virgola. */
-  assert.equal(potenzaDellaBatteria(grezzo, batteriaGirata({})), grezzo);
-  /* E «non configurata» resta diversa da «ferma»: `null` non e' zero. */
-  assert.equal(potenzaDellaBatteria(null, true), null);
-  assert.equal(potenzaDellaBatteria(0, true), 0);
+test("una mano sola sul segno: il numero girato arriva gia' fatto", () => {
+  /* Il sensore di chi ha segnalato: positivo quando si carica, scritto nella
+   * casella «Potenza» di sempre. */
+  const casa = { battery: { power: "sensor.batteria_potenza", signed: { positive: "charge" } } };
+  const stati = {
+    "sensor.batteria_potenza": {
+      entity_id: "sensor.batteria_potenza",
+      state: "3212",
+      attributes: { unit_of_measurement: "W" },
+    },
+  };
+  /* La casella scende sulla lettura ricavata... */
+  assert.equal(applySignedSources(casa).battery.power, "dm_derived.battery_power");
+  /* ...e la lettura ricavata porta il numero nella convenzione di qui. */
+  assert.equal(derivedEnergyStates(casa, stati)["dm_derived.battery_power"].state, "-3212");
+  /* Chi non ha dichiarato niente non cambia di una virgola. */
+  const fermo = { battery: { power: "sensor.batteria_potenza" } };
+  assert.equal(applySignedSources(fermo).battery.power, "sensor.batteria_potenza");
+  assert.deepEqual(derivedEnergyStates(fermo, stati), {});
 });

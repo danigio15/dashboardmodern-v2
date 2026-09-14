@@ -27,6 +27,7 @@ import {
   onEditorRedraw,
   readJson,
   root,
+  stanzaDiHomeAssistant,
   t,
   writeJsonIfChanged,
 } from "./shared.js";
@@ -91,8 +92,11 @@ function schedaMarkup() {
    * riporta con nome e stato, e qui sotto compaiono nella riga dei tolti con
    * il loro identificativo. Chiedendo l'elenco già filtrato non ci sarebbe
    * modo di rimetterle dentro. */
-  const righe = presenzaDiCasa(states, { ...scelte, escluse: [] }, (entity) =>
-    nomeDaHomeAssistant(entity, states),
+  const righe = presenzaDiCasa(
+    states,
+    { ...scelte, escluse: [] },
+    (entity) => nomeDaHomeAssistant(entity, states),
+    stanzaDiHomeAssistant,
   ).filter((riga) => !scelte.escluse.includes(riga.entity));
   return `<div class="ed-intro">${esc(
     t(

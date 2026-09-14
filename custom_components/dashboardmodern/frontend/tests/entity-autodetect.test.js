@@ -3,6 +3,7 @@
  * early slot stealing the entity a later one matched exactly, and rooms falling
  * back to name guessing while the Home Assistant areas sat unused. */
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { buildEntityIndex } from "../src/core/entity-search-index.js";
 import {
@@ -17,17 +18,38 @@ import {
 const sensor = (id, name, extra = {}) => ({ id, name, state: "1", ...extra });
 
 const HOUSE = [
-  sensor("sensor.solaredge_produzione_oggi", "Produzione solare oggi", { dc: "energy", unit: "kWh", sc: "total_increasing", area: "Tetto" }),
-  sensor("sensor.solaredge_produzione_mese", "Produzione solare mese", { dc: "energy", unit: "kWh", sc: "total_increasing" }),
+  sensor("sensor.solaredge_produzione_oggi", "Produzione solare oggi", {
+    dc: "energy",
+    unit: "kWh",
+    sc: "total_increasing",
+    area: "Tetto",
+  }),
+  sensor("sensor.solaredge_produzione_mese", "Produzione solare mese", {
+    dc: "energy",
+    unit: "kWh",
+    sc: "total_increasing",
+  }),
   sensor("sensor.solaredge_potenza_pv", "Potenza fotovoltaico", { dc: "power", unit: "W" }),
-  sensor("sensor.casa_consumo_oggi", "Consumo casa oggi", { dc: "energy", unit: "kWh", sc: "total_increasing" }),
+  sensor("sensor.casa_consumo_oggi", "Consumo casa oggi", {
+    dc: "energy",
+    unit: "kWh",
+    sc: "total_increasing",
+  }),
   sensor("sensor.casa_potenza", "Potenza consumo casa", { dc: "power", unit: "W" }),
   sensor("sensor.batteria_soc", "Stato carica batteria", { dc: "battery", unit: "%" }),
   sensor("sensor.speedtest_download", "Speedtest download", { unit: "Mbit/s" }),
   sensor("sensor.speedtest_upload", "Speedtest upload", { unit: "Mbit/s" }),
-  sensor("sensor.cucina_temperatura", "Temperatura cucina", { dc: "temperature", unit: "°C", area: "Cucina" }),
+  sensor("sensor.cucina_temperatura", "Temperatura cucina", {
+    dc: "temperature",
+    unit: "°C",
+    area: "Cucina",
+  }),
   sensor("sensor.cucina_umidita", "Umidità cucina", { dc: "humidity", unit: "%", area: "Cucina" }),
-  sensor("sensor.salotto_temperatura", "Temperatura salotto", { dc: "temperature", unit: "°C", area: "Salotto" }),
+  sensor("sensor.salotto_temperatura", "Temperatura salotto", {
+    dc: "temperature",
+    unit: "°C",
+    area: "Salotto",
+  }),
   sensor("sensor.mansarda_temperatura", "Temperatura mansarda", { dc: "temperature", unit: "°C" }),
   sensor("sensor.mansarda_umidita", "Umidità mansarda", { dc: "humidity", unit: "%" }),
   sensor("light.cucina", "Luce cucina", { area: "Cucina", state: "on" }),
@@ -49,7 +71,10 @@ const plan = (ref, lbl, section = "energy") => parseSlotPlan({ ref, lbl }, secti
 
 function assign(slots, options = {}) {
   const built = index();
-  const result = detectSlots(built.records, slots, { postings: buildPostings(built.records), ...options });
+  const result = detectSlots(built.records, slots, {
+    postings: buildPostings(built.records),
+    ...options,
+  });
   return Object.fromEntries(result.assignments.map((item) => [item.ref, item.id]));
 }
 
@@ -66,7 +91,11 @@ test("a slot label states its own constraints", () => {
   assert.deepEqual(script.domains, ["script", "scene", "automation"]);
 
   // Prose after an em dash describes the field to the person, not to the matcher.
-  const washer = plan("dm.lavatrice_potenza", "Potenza presa lavatrice (W) — per lavatrici non smart: >5W = in funzione", "lavatrice");
+  const washer = plan(
+    "dm.lavatrice_potenza",
+    "Potenza presa lavatrice (W) — per lavatrici non smart: >5W = in funzione",
+    "lavatrice",
+  );
   assert.deepEqual(washer.units, ["W", "kW"]);
   assert.ok(!washer.keys.some((keys) => keys.includes("funzione")));
 });
@@ -108,9 +137,12 @@ test("one entity is never proposed for two slots, nor re-proposed when already c
   assert.equal(first["dm.server_speedtest_download"], "sensor.speedtest_download");
   assert.equal(first["dm.server_speedtest_upload"], "sensor.speedtest_upload");
 
-  const taken = assign([plan("dm.server_speedtest_download", "Speedtest Download (Mbit/s)", "server")], {
-    taken: new Set(["sensor.speedtest_download"]),
-  });
+  const taken = assign(
+    [plan("dm.server_speedtest_download", "Speedtest Download (Mbit/s)", "server")],
+    {
+      taken: new Set(["sensor.speedtest_download"]),
+    },
+  );
   assert.equal(taken["dm.server_speedtest_download"], undefined);
 });
 
@@ -133,7 +165,9 @@ test("two equally plausible candidates are reported instead of guessed", () => {
     ],
     { version: "ambiguous" },
   );
-  const result = detectSlots(records.records, [plan("dm.boiler_sonda_temperatura_1", "Sonda temperatura 1 (°C)", "boiler")]);
+  const result = detectSlots(records.records, [
+    plan("dm.boiler_sonda_temperatura_1", "Sonda temperatura 1 (°C)", "boiler"),
+  ]);
   assert.deepEqual(result.assignments, []);
   assert.equal(result.undecided.length, 1);
   assert.equal(result.undecided[0].reason, "ambiguous");
@@ -235,4 +269,74 @@ test("la stanza rinforza ancora un nome che gia' parla", () => {
    * volte, e resta una buona risposta per la temperatura della cucina. */
   const stanza = plan("dm.stanza_cucina_temperatura", "Temperatura cucina (°C)", "cucina");
   assert.ok(scoreSlotCandidate(temperatura, stanza) > 0);
+});
+
+test("l'autorilevamento rifatto a configurazione già fatta non sovrascrive niente", async () => {
+  /* «Verifica se l'autorilevamento funziona anche dopo aver effettuato la
+   *  configurazione.»
+   *
+   * Funziona, e la ragione per cui è sicuro sta in tre punti del modulo. Sono
+   * quelli che, se saltassero, cancellerebbero la configurazione di chi preme
+   * quel tasto una seconda volta — cioè il danno peggiore che questa plancia
+   * possa fare. Qui restano scritti. */
+  const sorgente = await readFile(
+    new URL("../src/sections/entity-autodetect-section.js", import.meta.url),
+    "utf8",
+  );
+
+  /* 1. Le caselle già piene non si toccano: si propongono solo quelle vuote. */
+  assert.match(
+    sorgente,
+    /const plans = slotPlans\(\)\.filter\(\(plan\) => !clean\(overrides\[plan\.ref\]\)\);/,
+    "solo le caselle vuote entrano nella proposta",
+  );
+
+  /* 2. Luci, stanze, unità clima e telecamere: se ce n'è già anche una sola,
+   *    quella categoria non si propone affatto — e la proposta esce vuota. */
+  for (const categoria of ["lights", "rooms", "climate", "cameras"]) {
+    assert.match(
+      sorgente,
+      new RegExp(`skipped\\.${categoria} \\? (\\{\\}|\\[\\]) :`),
+      `${categoria}: già configurata vuol dire proposta vuota`,
+    );
+  }
+
+  /* 3. E si scrive solo quando c'è qualcosa da scrivere: un elenco vuoto non
+   *    deve poter arrivare a `writeJson` e azzerare quello che c'era. */
+  const applica = sorgente.slice(
+    sorgente.indexOf("export async function applyProposal"),
+    sorgente.indexOf("/* ── Entry point"),
+  );
+  for (const [campo, chiave] of [
+    ["Object.keys\\(proposal\\.lights\\)\\.length", "cd_luci"],
+    ["proposal\\.rooms\\.length", "cd_stanze"],
+    ["proposal\\.climate\\.length", "cd_clima_units"],
+    ["proposal\\.cameras\\.length", "cd_cameras"],
+  ]) {
+    assert.match(
+      applica,
+      new RegExp(`if \\(${campo}\\) writeJson\\("${chiave}"`),
+      `${chiave} si scrive solo con qualcosa dentro`,
+    );
+  }
+
+  /* I collegamenti e i gruppi non si riscrivono da capo: si LEGGE quello che
+   * c'è e ci si aggiunge sopra. Un `writeJson` diretto qui vorrebbe dire
+   * buttare via ogni collegamento fatto a mano. */
+  assert.match(
+    applica,
+    /const overrides = readJson\("cd_entity_overrides", \{\}\) \|\| \{\};\s*for \(const item of rest\) overrides\[item\.ref\] = item\.id;/,
+    "i collegamenti si aggiungono, non si sostituiscono",
+  );
+  assert.match(
+    applica,
+    /const groups = readJson\("cd_gruppi_extra", \{\}\) \|\| \{\};\s*for \(const \[name, ids\] of Object\.entries\(proposal\.groups\)\) groups\[name\] = ids;/,
+    "i gruppi si aggiungono, non si sostituiscono",
+  );
+
+  /* E prima di scrivere si mostra cosa si è trovato, dicendo quali categorie
+   * sono state saltate: chi preme il tasto deve sapere che le sue luci non
+   * verranno ripassate, invece di leggere «0» e credere che non le abbia. */
+  assert.match(sorgente, /Niente è stato ancora salvato/);
+  assert.match(sorgente, /const kept = t\("già configurato", "already configured"\)/);
 });

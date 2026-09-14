@@ -87,7 +87,20 @@ test("tolta la spunta le caselle si riaccendono, e il secondo sensore ha la sua"
   );
   expect(grid.power).toBe("sensor.prelievo_w");
   expect(grid.power_export).toBe("sensor.immissione_w");
-  expect(grid.signed).toBeUndefined();
+  /* La sorgente unica se n'e' andata: e' quello che la spunta comanda. */
+  expect(grid.signed?.entity).toBeFalsy();
+
+  /* Il VERSO invece resta scritto, e non e' una dimenticanza.
+   *
+   * Qui si pretendeva che togliendo la spunta sparisse tutto il blocco. Ma
+   * «i valori positivi sono l'importazione» e' una proprieta' del SENSORE, non
+   * della casella in cui lo si scrive: cancellarla insieme alla spunta voleva
+   * dire che chi la riaccendeva si ritrovava il verso azzerato e i pallini da
+   * rimettere — ed e' una delle quattro cose che facevano dire «cambio il
+   * senso e non cambia niente» (#435). Con una coppia di sensori il verso non
+   * lo legge nessuno, perche' i due versi sono due entita' e la sottrazione
+   * ci pensa da se': resta li' per quando serve. */
+  expect(grid.signed?.positive).toBe("import");
 });
 
 test("dalla coppia esce un solo numero, col segno del verso", async ({ page }, testInfo) => {

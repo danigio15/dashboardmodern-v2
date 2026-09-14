@@ -386,19 +386,68 @@ export const SERVIZI_RADAR = Object.freeze({
 });
 
 /* Le mappe di fondo fra cui scegliere. Un radar senza una mappa sotto e' una
- * macchia colorata: si vede che piove, non si vede dove. */
+ * macchia colorata: si vede che piove, non si vede dove.
+ *
+ * Perche' ce n'e' piu' d'una, e perche' quella di serie e' cambiata (#529).
+ *
+ * «Quando uso l'app companion su cellulare vedo la mappa, se apro HA su PC mi
+ * da' un messaggio di errore 403» — e dal secondo che l'ha confermato: «oggi da
+ * me pioveva e vedevo la perturbazione ma non la mappa». Cioe' la pioggia
+ * arriva e il fondo no.
+ *
+ * Il fondo era `tile.openstreetmap.org`, che e' il server della fondazione
+ * OpenStreetMap: e' fatto per il loro sito, lo pagano i volontari, e le loro
+ * regole d'uso chiedono che chi ne fa un uso pesante si serva altrove. Chi non
+ * si adegua lo bloccano, e bloccano guardando `User-Agent` e `Referer` — che
+ * e' anche il motivo per cui dal telefono si vedeva e dal computer no: basta
+ * che il browser, o una difesa anti-tracciamento, non mandi il `Referer` e la
+ * risposta diventa 403. Una plancia distribuita a centinaia di case e'
+ * esattamente l'uso che quelle regole escludono: il 403 non e' un guasto da
+ * aggirare, e' la risposta prevista. Si sta altrove.
+ *
+ * Non da CARTO, pero': i suoi quadratini gratuiti oggi tornano stampati «API
+ * Key Required» — lo abbiamo gia' pagato una volta, e nel frattempo e' toccato
+ * anche alla mappa di Home Assistant, che usa lo stesso servizio. Una chiave
+ * non possiamo chiederla a chi installa la plancia.
+ *
+ * Restano i fondi di Esri, che pubblica i suoi quadratini raster senza chiave
+ * (la chiave la vogliono le mappe vettoriali) e chiede in cambio che il suo
+ * nome si veda: sta nella legenda, ed e' il motivo per cui da qui in poi ogni
+ * fondo si porta dietro la sua `attribuzione`.
+ *
+ * E siccome questa e' la seconda volta che un servizio gratuito chiude la
+ * porta, la tendina non ne ha piu' uno solo: cambiarlo e' due tocchi, e quando
+ * il fondo non risponde la plancia adesso lo dice invece di lasciare la
+ * pioggia sospesa sul nulla. */
 export const FONDI_MAPPA = Object.freeze({
+  esri: Object.freeze({
+    nome: "Esri · Strade",
+    modello:
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    attribuzione: "Esri",
+  }),
+  /* Grigio chiaro: sotto i colori della pioggia si legge meglio di una mappa
+   * a colori pieni, che con il rosso del temporale sopra diventa una zuppa. */
+  esriChiaro: Object.freeze({
+    nome: "Esri · Grigio chiaro",
+    modello:
+      "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    attribuzione: "Esri",
+  }),
+  /* Resta in elenco: a chi funziona non si toglie niente, e chi l'aveva
+   * scelto a mano se lo tiene. Semplicemente non e' piu' quello di serie. */
   osm: Object.freeze({
     nome: "OpenStreetMap",
     modello: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribuzione: "© OpenStreetMap",
   }),
 });
 
 /* CARTO non c'e' piu': i suoi quadratini gratuiti oggi tornano stampati «API
  * Key Required» e «Zoom Level Not Supported» — una mappa piena di scritte al
- * posto delle strade (visto sul campo). Chi l'aveva scelto passa a
- * OpenStreetMap senza dover toccare niente. */
-export const FONDI_RITIRATI = Object.freeze({ carto: "osm" });
+ * posto delle strade (visto sul campo). Chi l'aveva scelto passa alla mappa di
+ * serie senza dover toccare niente. */
+export const FONDI_RITIRATI = Object.freeze({ carto: "esri" });
 
 /* Ma «carto» non e' solo una parola nella tendina.
  *
@@ -520,25 +569,50 @@ export function modelliDelServizio(servizio, fotogrammi = []) {
  * servizio era scelto; adesso il radar parte con questi, e chi non vuole che
  * la plancia bussi a nessuno sceglie «Nessuno» apposta. */
 export const SERVIZIO_DI_SERIE = "rainviewer";
-export const FONDO_DI_SERIE = "osm";
+/* Quella di serie e' Esri, non piu' OpenStreetMap (#529): le ragioni stanno
+ * accanto a `FONDI_MAPPA`. Chi aveva scelto OpenStreetMap a mano se lo tiene —
+ * qui si cambia solo la risposta a «non ho scelto niente». */
+export const FONDO_DI_SERIE = "esri";
 export const NIENTE = Object.freeze(["nessuno", "nessuna", "none"]);
 
-export function modelloDelFondo(config = {}) {
+/**
+ * La mappa di fondo scelta: il suo indirizzo e il nome di chi la disegna.
+ *
+ * Le due domande hanno una risposta sola — quale fondo si sta guardando — e
+ * quindi un posto solo: rispondere due volte vorrebbe dire stampare il nome di
+ * un servizio mentre se ne disegna un altro, che e' peggio di non stamparlo.
+ */
+export function fondoDelRadar(config = {}) {
+  const niente = { modello: "", attribuzione: "" };
+  const voce = (preset) => ({
+    modello: preset.modello,
+    attribuzione: stringa(preset.attribuzione),
+  });
+  const dellaSerie = FONDI_MAPPA[FONDO_DI_SERIE];
   let fondo = stringa(config?.fondo);
-  if (NIENTE.includes(fondo.toLowerCase())) return "";
+  if (NIENTE.includes(fondo.toLowerCase())) return niente;
   if (FONDI_RITIRATI[fondo]) fondo = FONDI_RITIRATI[fondo];
-  const preset = FONDI_MAPPA[fondo];
-  if (preset) return preset.modello;
-  const mio = stringa(config?.fondoModello);
+  if (FONDI_MAPPA[fondo]) return voce(FONDI_MAPPA[fondo]);
   /* Un indirizzo scritto a mano vale finche' il suo servizio risponde: quello
    * di CARTO non risponde piu', e si torna alla mappa di serie invece di
-   * disegnare le sue scritte. */
-  const dellaSerie = FONDI_MAPPA[FONDO_DI_SERIE].modello;
+   * disegnare le sue scritte. Di chi sia una mappa scritta a mano non lo
+   * sappiamo, e non lo si inventa: nessuna firma. */
+  const suo = (indirizzo) =>
+    indirizzoRitirato(indirizzo) ? voce(dellaSerie) : { modello: indirizzo, attribuzione: "" };
   if (fondo === "modello") {
-    if (!/\{[zxy]\}/.test(mio)) return "";
-    return indirizzoRitirato(mio) ? dellaSerie : mio;
+    const mio = stringa(config?.fondoModello);
+    return /\{[zxy]\}/.test(mio) ? suo(mio) : niente;
   }
-  if (/\{[zxy]\}/.test(fondo)) return indirizzoRitirato(fondo) ? dellaSerie : fondo;
-  if (!fondo) return dellaSerie;
-  return "";
+  if (/\{[zxy]\}/.test(fondo)) return suo(fondo);
+  if (!fondo) return voce(dellaSerie);
+  return niente;
+}
+
+export function modelloDelFondo(config = {}) {
+  return fondoDelRadar(config).modello;
+}
+
+/** Il nome da stampare sotto la mappa: Esri lo chiede, OpenStreetMap pure. */
+export function attribuzioneDelFondo(config = {}) {
+  return fondoDelRadar(config).attribuzione;
 }

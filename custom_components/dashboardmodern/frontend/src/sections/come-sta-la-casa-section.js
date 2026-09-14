@@ -1001,16 +1001,23 @@ function stile() {
     /* La corsia: gli avvisi e la fascia, sulla stessa riga. Gli avvisi non si
        stringono, perche' un avviso illeggibile non e' un
        avviso; la fascia prende quello che resta e dentro scorre da se'. Sotto
-       i 560 pixel vanno una sopra l'altra: affiancare due cose strette su uno
-       schermo stretto vuol dire non leggerne nessuna delle due. */
+       i 560 pixel restano sulla stessa riga lo stesso.
+
+       Li' vanno una sopra l'altra: e' stato provato, ed e' sbagliato. Due
+       righe alte 115 pixel per dire quello che ne vuole 60, e soprattutto due
+       cose che si leggono insieme — cosa chiede attenzione adesso, cosa sta
+       facendo la casa — messe a distanza. Sul telefono l'avviso si stringe
+       quel tanto che basta (il suo numero non si tocca, se ne accorcia la
+       parolina sotto) e la fascia accanto prende quello che resta: una
+       pastiglia intera, e le altre le porta la deriva, che e' il suo mestiere.
+       Misurato a 360, 390, 414 e 430 pixel. */
     .dm-casa-fascia{
       display:flex;align-items:stretch;gap:10px;
       margin:0 0 18px;max-width:100%;min-width:0}
     .dm-casa-fascia:empty{display:none}
     .dm-casa-fascia > #dm-casa-riga{flex:0 1 auto;min-width:0;margin:0}
     @media (max-width:560px){
-      .dm-casa-fascia{flex-direction:column;align-items:flex-start}
-      .dm-casa-fascia > #dm-casa-riga{max-width:100%}}
+      .dm-casa-fascia > #dm-casa-riga{flex:1 1 0;min-width:0;max-width:none}}
     #dm-casa-riga{
       display:block;overflow:hidden;
       /* Stretta quanto quello che dice: una casa tranquilla ha due voci, e una

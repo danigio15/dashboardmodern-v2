@@ -226,11 +226,21 @@ test("la mappa di fondo: una voce della tendina, o un indirizzo proprio", async 
     await import("../src/core/radar-mappa.js");
   assert.equal(modelloDelFondo({ fondo: "osm" }), FONDI_MAPPA.osm.modello);
   /* CARTO e' ritirato: i suoi quadratini gratuiti tornano stampati «API Key
-   * Required». Chi l'aveva scelto passa a OpenStreetMap da solo. */
+   * Required». Chi l'aveva scelto passa alla mappa di serie da solo. */
   assert.equal(FONDI_MAPPA.carto, undefined);
-  assert.deepEqual(FONDI_RITIRATI, { carto: "osm" });
-  assert.equal(modelloDelFondo({ fondo: "carto" }), FONDI_MAPPA.osm.modello);
-  assert.equal(FONDO_DI_SERIE, "osm");
+  assert.deepEqual(FONDI_RITIRATI, { carto: "esri" });
+  assert.equal(modelloDelFondo({ fondo: "carto" }), FONDI_MAPPA.esri.modello);
+  /* Quella di serie non e' piu' OpenStreetMap (#529): il loro server e' del
+   * sito di OpenStreetMap, le regole d'uso escludono un uso come il nostro, e
+   * chi non si adegua viene bloccato guardando `Referer` e `User-Agent` — da
+   * cui il 403 dal computer e la mappa che invece si vede dal telefono. */
+  assert.equal(FONDO_DI_SERIE, "esri");
+  /* Ma OpenStreetMap resta in elenco: a chi funziona non si toglie niente. */
+  assert.ok(FONDI_MAPPA.osm);
+  /* E ogni fondo si porta il nome di chi lo disegna: Esri lo chiede, e senza
+   * un posto dove scriverlo non si potrebbe usarlo. */
+  for (const [chiave, voce] of Object.entries(FONDI_MAPPA))
+    assert.ok(voce.attribuzione, `${chiave} senza attribuzione`);
   assert.equal(
     modelloDelFondo({ fondo: "modello", fondoModello: "https://mio/{z}/{x}/{y}.png" }),
     "https://mio/{z}/{x}/{y}.png",
@@ -242,9 +252,9 @@ test("la mappa di fondo: una voce della tendina, o un indirizzo proprio", async 
     "https://mio/{z}/{x}/{y}.png",
   );
   assert.equal(modelloDelFondo({ fondo: "modello", fondoModello: "https://fisso.png" }), "");
-  /* Senza scelta la mappa sotto e' OpenStreetMap; «nessuna» e' una scelta. */
-  assert.equal(modelloDelFondo({ fondo: "" }), FONDI_MAPPA.osm.modello);
-  assert.equal(modelloDelFondo({}), FONDI_MAPPA.osm.modello);
+  /* Senza scelta la mappa sotto e' quella di serie; «nessuna» e' una scelta. */
+  assert.equal(modelloDelFondo({ fondo: "" }), FONDI_MAPPA.esri.modello);
+  assert.equal(modelloDelFondo({}), FONDI_MAPPA.esri.modello);
   assert.equal(modelloDelFondo({ fondo: "nessuna" }), "");
   assert.equal(modelloDelFondo({ fondo: "boh" }), "");
 });
@@ -296,21 +306,22 @@ test("un indirizzo di un servizio ritirato non si usa piu'", () => {
   assert.equal(indirizzoRitirato("https://noncartocdn.com/{z}/{x}/{y}.png"), false);
 });
 
-test("la mappa sotto torna a OpenStreetMap se l'indirizzo era di CARTO", () => {
-  const osm = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+test("la mappa sotto torna a quella di serie se l'indirizzo era di CARTO", () => {
+  const serie =
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}";
   /* La chiave della tendina, che era gia' coperta. */
-  assert.equal(modelloDelFondo({ fondo: "carto" }), osm);
+  assert.equal(modelloDelFondo({ fondo: "carto" }), serie);
   /* E l'indirizzo scritto a mano, che non lo era. */
   assert.equal(
     modelloDelFondo({ fondo: "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png" }),
-    osm,
+    serie,
   );
   assert.equal(
     modelloDelFondo({
       fondo: "modello",
       fondoModello: "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
     }),
-    osm,
+    serie,
   );
   /* Un indirizzo che funziona resta quello scelto: non si tocca la casa di chi
    * non ha nessun problema. */
