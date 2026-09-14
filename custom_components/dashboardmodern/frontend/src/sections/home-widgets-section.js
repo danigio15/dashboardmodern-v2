@@ -7425,13 +7425,20 @@ export function renderHomeWidgets() {
    * stesso. Un secondo giro sugli stati per contare le stesse cose sarebbe il
    * doppio del lavoro per la stessa risposta.
    *
-   * Ma i modelli sono quelli SCELTI, non tutti quelli possibili: prima
-   * arrivavano qui prima di passare dalla scheda Widget, e una tessera spenta
-   * li' continuava a comparire nella riga. «I varchi li ho anche deflaggati
-   * dai widget» e si vedevano lo stesso (#538). Spegnere una tessera vuol
-   * dire non vederla — ne' in griglia ne' nella riga. */
+   * Entrano TUTTI i modelli, non quelli scelti nella scheda Widget.
+   *
+   * Per un giro si era provato il contrario, perche' chi aveva spento i Varchi
+   * fra i widget se li ritrovava nella riga (#538). Ma cosi' chi tiene la riga
+   * PROPRIO PERCHE' ha nascosto la tessera grossa perdeva anche la pastiglia:
+   * «non esce piu' il tipo di rifiuto, non ho cambiato niente, dopo l'ultimo
+   * aggiornamento non mi appare piu'». Sono due persone che fanno lo stesso
+   * gesto e vogliono il contrario, quindi un interruttore solo non puo'
+   * accontentarle: la riga ha i suoi, una spunta per voce, nel pannello
+   * «Barra sotto il meteo». Quelli decidono le pastiglie, la scheda Widget
+   * decide le tessere. Tenendole legate la spunta della riga diceva una
+   * bugia — accesa, e non compariva niente. */
   try {
-    disegnaComeStaLaCasa(models, states);
+    disegnaComeStaLaCasa(tutti, states);
   } catch (error) {
     root.console?.warn?.("[DashboardModern] barra di casa", error);
   }

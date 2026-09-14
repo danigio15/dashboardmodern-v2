@@ -325,16 +325,19 @@ test("le parole delle due voci nuove stanno nella sezione, con la loro coppia", 
   }
 });
 
-test("una tessera spenta nella scheda Widget non compare nemmeno nella riga", () => {
-  /* «I varchi li ho anche deflaggati dai widget» — e si vedevano lo stesso
-   * nella riga sotto il meteo (#538).
+test("la riga vede tutte le tessere: a spegnere una pastiglia e' la spunta della riga", () => {
+  /* Due persone, lo stesso gesto, il contrario.
    *
-   * La riga si disegna prima della griglia, perché deve comparire anche dove
-   * la griglia non c'è: una plancia appena installata, o una spenta tutta. Ma
-   * «prima della griglia» era diventato «prima della scheda Widget», e i
-   * modelli le arrivavano ancora tutti — comprese le tessere che qualcuno
-   * aveva spento apposta. Spegnere una tessera vuol dire non vederla: né in
-   * griglia né nella riga. */
+   * «I varchi li ho anche deflaggati dai widget» e si vedevano lo stesso nella
+   * riga (#538): per un giro si e' legata la riga alla scheda Widget. Ma cosi'
+   * chi tiene la riga PROPRIO PERCHE' ha nascosto la tessera grossa perdeva
+   * anche la pastiglia — «non esce piu' il tipo di rifiuto, non ho cambiato
+   * niente, dopo l'ultimo aggiornamento non mi appare piu'».
+   *
+   * Un interruttore solo non puo' accontentare tutti e due. La riga i suoi ce
+   * li ha gia', una spunta per voce: quelli decidono le pastiglie, la scheda
+   * Widget decide le tessere. Legandole, la spunta della riga diceva una
+   * bugia — accesa, e non compariva niente. */
   const sorgente = readFileSync(
     new URL("../src/sections/home-widgets-section.js", import.meta.url),
     "utf8",
@@ -343,9 +346,33 @@ test("una tessera spenta nella scheda Widget non compare nemmeno nella riga", ()
     sorgente.indexOf("export function renderHomeWidgets("),
     sorgente.indexOf("const host = doc?.getElementById?.(\"dm-widgets\")"),
   );
-  assert.match(giro, /disegnaComeStaLaCasa\(models, states\)/);
-  assert.ok(
-    giro.indexOf("applyWidgetPreferences(tutti)") < giro.indexOf("disegnaComeStaLaCasa("),
-    "la riga riceve i modelli prima che la scheda Widget dica la sua",
+  assert.match(giro, /disegnaComeStaLaCasa\(tutti, states\)/);
+  assert.doesNotMatch(giro, /disegnaComeStaLaCasa\(models/);
+
+  /* E la spunta per voce c'e' per tutte, nel pannello della riga: e' l'unico
+   * posto da cui una pastiglia si spegne. */
+  const pannello = readFileSync(
+    new URL("../src/sections/come-sta-la-casa-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(pannello, /VOCI_DELLA_BARRA\.map\(\(voce\) => \{/);
+  assert.match(pannello, /data-dm-casa-voce="\$\{esc\(voce\.chiave\)\}"/);
+});
+
+test("una tessera nascosta non porta via la sua pastiglia", () => {
+  /* La regola, misurata sul modello e non sul testo del sorgente: le
+   * pastiglie si fanno con quello che la casa ha, e la spunta della riga e'
+   * l'unica cosa che ne toglie una. */
+  const modelli = [rifiuti("oggi"), luci(3)];
+  assert.deepEqual(
+    pastiglieDellaCasa(modelli, {}).map((pastiglia) => pastiglia.chiave),
+    ["rifiuti", "luci"],
+  );
+  /* Spenta dalla riga: quella se ne va, e solo quella. */
+  assert.deepEqual(
+    pastiglieDellaCasa(modelli, { barra: { voci: { rifiuti: false } } }).map(
+      (pastiglia) => pastiglia.chiave,
+    ),
+    ["luci"],
   );
 });
