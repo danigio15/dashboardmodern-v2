@@ -214,8 +214,41 @@ test("l'avviso e la fascia stanno sulla stessa riga anche sul telefono", () => {
   );
 
   const soglia = sorgente("src/sections/la-soglia-della-potenza-section.js");
-  /* L'avviso si stringe, ma il numero è il motivo per cui esiste: si accorcia
-   * la parolina sotto, non lui. */
-  assert.match(soglia, /flex:0 1 auto;min-width:0;max-width:56%/);
-  assert.match(soglia, /text-overflow:ellipsis;white-space:nowrap\}\}/);
+  /* L'avviso si stringe per stare accanto alla fascia. Quanto, lo dice la
+   * prova qui sotto — qui conta solo che POSSA stringersi: senza `flex:0 1`
+   * resterebbe della sua misura e spingerebbe fuori la fascia. */
+  assert.match(soglia, /flex:0 1 auto;min-width:0;max-width:\d+%/);
+});
+
+test("la card è più piccola e la sua parolina scorre invece di essere tagliata", () => {
+  const soglia = sorgente("src/sections/la-soglia-della-potenza-section.js");
+  /* Più piccola: il tetto scende dal 56% al 46%, e con lui scendono disegno e
+   * scritte — stringere la scatola lasciando dentro le misure di prima vuol
+   * dire soltanto schiacciare il contenuto. */
+  assert.match(soglia, /max-width:46%/);
+  assert.match(soglia, /\.dm-soglia-allerta \.dm-casa-chip\{width:30px;height:30px/);
+
+  /* La deriva è QUELLA della fascia, non una seconda: stessa animazione,
+   * stesse due funzioni per strada e durata. Due derive scritte due volte
+   * sarebbero due velocità diverse a dieci pixel di distanza. */
+  assert.match(
+    soglia,
+    /import \{ durataDellaDeriva, spazioDaPercorrere \} from "\.\.\/core\/la-fascia-deriva\.js";/,
+  );
+  assert.match(soglia, /animation:dm-casa-deriva var\(--dm-casa-durata,12s\)/);
+
+  /* Si misura la coda, non il nastro: su un elemento ancora `inline`
+   * `scrollWidth` non dice quanto è larga la scritta, e la strada risultava
+   * sempre zero — la parolina non si muoveva mai. */
+  assert.match(soglia, /scrollWidth: coda\.scrollWidth,\s*\n\s*clientWidth: coda\.clientWidth,/);
+  assert.doesNotMatch(soglia, /scrollWidth: nastro\.scrollWidth/);
+
+  /* Il numero non si muove: è il motivo per cui l'avviso esiste, e uno che
+   * scorre non si legge a colpo d'occhio. Si tronca semmai, non deriva. */
+  assert.match(
+    soglia,
+    /\.dm-soglia-allerta \.dm-casa-testa\{\s*\n\s*display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\}/,
+  );
+  /* E chi ha chiesto meno animazioni non vede muovere niente. */
+  assert.match(soglia, /@media\(prefers-reduced-motion:reduce\)\{\s*\n\s*\.dm-soglia-allerta \.dm-casa-coda/);
 });

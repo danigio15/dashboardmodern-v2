@@ -28,6 +28,7 @@ import {
 import { intlLocale } from "../core/i18n.js";
 import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
 import { corsiaDegliAvvisi } from "./come-sta-la-casa-section.js";
+import { durataDellaDeriva, spazioDaPercorrere } from "../core/la-fascia-deriva.js";
 import { formatWatts as wattScritti } from "../core/subload-popup-model.js";
 import { lettureDiCasa, renderHomeWidgets } from "./home-widgets-section.js";
 import {
@@ -318,15 +319,58 @@ function ensureAllertaInHome() {
     )}</span>
       <span class="dm-casa-testo">
         <b class="dm-casa-testa">${esc(misura)}</b>
-        <small class="dm-casa-coda">${esc(t("Sovraccarico", "Overload"))} · ${esc(dove)}</small>
+        <small class="dm-casa-coda"><span class="dm-soglia-nastro">${esc(
+          t("Sovraccarico", "Overload"),
+        )} · ${esc(dove)}</span></small>
       </span>`;
     allerta.title = t("Tocca per aprire l'Energia", "Tap to open Energy");
   }
+  /* La parolina deriva se non ci sta, con la stessa animazione della fascia
+   * accanto e le stesse due funzioni che ne misurano strada e durata: due
+   * derive scritte due volte sarebbero due velocita' diverse a dieci pixel di
+   * distanza. Quanto e' larga la scritta lo sa solo chi ha il documento in
+   * mano, e lo si chiede a disegno finito — non a ogni fotogramma. */
+  tieniLaParolaInMovimento(allerta.querySelector(".dm-casa-coda"));
   /* Nella corsia, e sempre per prima: quello che chiede attenzione si legge
      prima di quello che descrive come sta la casa. */
   const corsia = corsiaDegliAvvisi() || pagina;
   if (allerta.parentElement !== corsia || corsia.firstElementChild !== allerta)
     corsia.prepend(allerta);
+}
+
+/* La strada della parolina, detta al foglio una volta per disegno.
+ *
+ * Riusa `spazioDaPercorrere` e `durataDellaDeriva` della fascia: la velocita'
+ * di lettura e' una proprieta' di chi legge, non del pezzo che si muove, e
+ * venticinque pixel al secondo qui e trenta di la' si vedrebbero. Senza strada
+ * non si accende niente: una scritta che ci sta tutta e che ballonzolasse
+ * direbbe che c'e' dell'altro quando non c'e'.
+ */
+function tieniLaParolaInMovimento(coda) {
+  const nastro = coda?.querySelector(":scope > .dm-soglia-nastro");
+  if (!coda || !nastro) return false;
+  /* La misura si chiede alla CODA, non al nastro che ci sta dentro.
+   *
+   * Il nastro nasce `inline` e diventa `inline-block` solo quando la deriva e'
+   * gia' accesa: su un elemento inline `scrollWidth` non dice quanto e' larga
+   * la scritta, e misurando li' la strada risultava sempre zero — la parolina
+   * non si muoveva mai, e il difetto non si vedeva perche' «ferma» e' anche
+   * l'aspetto giusto di una scritta che ci sta. La coda invece e' un blocco
+   * che taglia quello che esce: il suo `scrollWidth` E' la scritta intera. */
+  const strada = spazioDaPercorrere({
+    scrollWidth: coda.scrollWidth,
+    clientWidth: coda.clientWidth,
+  });
+  if (!strada) {
+    delete coda.dataset.dmDeriva;
+    coda.style.removeProperty("--dm-casa-strada");
+    coda.style.removeProperty("--dm-casa-durata");
+    return false;
+  }
+  coda.style.setProperty("--dm-casa-strada", `${strada}px`);
+  coda.style.setProperty("--dm-casa-durata", `${durataDellaDeriva(strada)}s`);
+  coda.dataset.dmDeriva = "true";
+  return true;
 }
 
 /* ─────────────────────────────────── giro ───────────────────────────────── */
@@ -462,22 +506,46 @@ function installStyles() {
           0 0 0 6px color-mix(in srgb,#dc2626 12%,transparent)}}
       @media(prefers-reduced-motion:reduce){
         .dm-soglia-allerta{animation:none}}
-      /* Sul telefono l'avviso si stringe, perche' resta accanto alla fascia.
-         Quello che NON si tocca e' il numero: e' il motivo per cui l'avviso
-         esiste, e un «521 W / 300 W» tagliato a meta' non avvisa di niente.
-         Si accorcia la parolina sotto, che a quel punto e' ridondante — quale
-         sovraccarico sia lo dice gia' il disegno, casa o potenza.
-         Il tetto e' il 56%: misurato a 360, 390, 414 e 430 pixel e' il punto
-         in cui il numero non si taglia mai e alla fascia resta una pastiglia
-         intera. Piu' stretto e l'avviso perde il suo peso, piu' largo e la
-         fascia accanto non mostra piu' niente di leggibile. */
+      /* La parolina scorre invece di essere tagliata.
+         La card si e' stretta — sta accanto alla fascia, e piu' prende lei
+         meno ne resta all'altra — quindi «Sovraccarico · Carico di casa» non
+         ci sta piu'. Troncarla con i puntini perde meta' della frase per
+         sempre; farla derivare la fa leggere tutta, un pezzo per volta.
+         L'animazione e le due misure sono quelle della fascia accanto, non una
+         seconda copia: due derive scritte due volte sarebbero due velocita'
+         diverse a dieci pixel di distanza.
+         Il numero invece non si muove e non si taglia MAI: e' il motivo per
+         cui l'avviso esiste, e uno che scorre non si legge a colpo d'occhio. */
+      .dm-soglia-allerta .dm-casa-testo{min-width:0}
+      .dm-soglia-allerta .dm-casa-testa{
+        display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .dm-soglia-allerta .dm-casa-coda{
+        display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+      .dm-soglia-allerta .dm-casa-coda[data-dm-deriva="true"]{text-overflow:clip}
+      .dm-soglia-allerta .dm-casa-coda[data-dm-deriva="true"] > .dm-soglia-nastro{
+        display:inline-block;
+        animation:dm-casa-deriva var(--dm-casa-durata,12s) ease-in-out infinite alternate}
+      /* Chi ci mette il dito sopra comanda lui, come sulla fascia. */
+      .dm-soglia-allerta:hover .dm-soglia-nastro,
+      .dm-soglia-allerta:active .dm-soglia-nastro{animation-play-state:paused}
+      /* Chi ha chiesto meno animazioni non vede muovere niente, e allora la
+         frase torna a essere tagliata dai puntini: meglio mezza scritta ferma
+         che una scritta che si muove contro la sua volonta'. */
+      @media(prefers-reduced-motion:reduce){
+        .dm-soglia-allerta .dm-casa-coda[data-dm-deriva="true"]{text-overflow:ellipsis}
+        .dm-soglia-allerta .dm-casa-coda[data-dm-deriva="true"] > .dm-soglia-nastro{
+          display:inline;animation:none}}
+      /* Sul telefono la card e' piu' piccola: il disegno, le due scritte e i
+         bordi interni scendono tutti insieme, se no si stringe il contenuto
+         dentro una scatola che resta grande. Il tetto passa dal 56% al 46%,
+         cosi' alla fascia accanto resta piu' di una pastiglia. */
       @media(max-width:560px){
         .dm-soglia-allerta{
-          flex:0 1 auto;min-width:0;max-width:56%;padding:5px 10px 5px 5px;gap:7px}
-        .dm-soglia-allerta .dm-casa-testo{min-width:0}
-        .dm-soglia-allerta .dm-casa-testa,
-        .dm-soglia-allerta .dm-casa-coda{
-          display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+          flex:0 1 auto;min-width:0;max-width:46%;padding:4px 9px 4px 4px;gap:6px}
+        .dm-soglia-allerta .dm-casa-chip{width:30px;height:30px;border-radius:10px}
+        .dm-soglia-allerta .dm-casa-chip svg{width:16px;height:16px}
+        .dm-soglia-allerta .dm-casa-testa{font-size:13.5px}
+        .dm-soglia-allerta .dm-casa-coda{font-size:8px;letter-spacing:.8px}}
     `,
   );
 }
