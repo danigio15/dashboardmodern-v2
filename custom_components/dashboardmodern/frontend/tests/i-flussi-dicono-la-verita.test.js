@@ -75,3 +75,26 @@ test("una sorgente configurata ma muta non vale zero, e l'immissione della batte
   assert.match(sezione, /id\.includes\("battery-grid"\)\) return flussi\.batteryToGrid/,
     "l'arco legge il suo flusso, non la somma sul solare");
 });
+
+test("una riga di stile non può svuotare la mappa da sola (#548)", () => {
+  /* «Da iPad non si vedono i flussi.»
+   *
+   * La regola che spegne i collegamenti fermi vale dentro una scena che questa
+   * pagina ha già dipinto: il segno sull'ambito lo scrive la passata, a ogni
+   * giro. Senza quel vincolo la regola era capace di svuotare la mappa da sola
+   * — una passata che non parte non mette nessuna classe su nessuna linea, e
+   * allora si spegnevano TUTTE, comprese quelle accese dal guscio.
+   *
+   * Comunque vada a finire la #548, una nostra riga di stile non deve poter
+   * cancellare il disegno di chi c'era prima: se non stiamo guidando noi, si
+   * vede quello che dice il guscio. */
+  const sezione = readFileSync(join(SRC, "sections/energy-flow-section.js"), "utf8");
+  assert.match(
+    sezione,
+    /\[data-dm-energy-flows\] \.flow-line:not\(\.active\):not\(\.dm-energy-flow-active\)\{opacity:0!important\}/,
+    "lo spegnimento vale solo dentro una scena che abbiamo dipinto",
+  );
+  /* E il segno lo scrive davvero la passata, o il vincolo non si accenderebbe
+   * mai e le linee ferme resterebbero disegnate per sempre. */
+  assert.match(sezione, /scriviDatoSeCambia\(scope, "dmEnergyFlows", "directional-value-bound"\)/);
+});

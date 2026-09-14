@@ -996,8 +996,19 @@ function installStyles() {
      * entrare e uscire senza scatti. */
     .dm-energy-flow-idle{opacity:0!important;filter:none!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
     /* Anche le linee dei carichi disegnate dal guscio, che la scena non
-       colora: la loro accensione e' la classe «active» di sempre. */
-    .flow-line:not(.active):not(.dm-energy-flow-active){opacity:0!important}
+       colora: la loro accensione e' la classe «active» di sempre.
+       
+       Ma solo dentro una scena che questa pagina ha gia' dipinto almeno una
+       volta — da qui il segno sull'ambito, che la passata scrive a ogni giro.
+       Senza quel vincolo questa riga era capace di svuotare la mappa da sola:
+       una passata che non parte — un guscio fatto in un altro modo, un
+       fotogramma che non arriva mai su un browser che non abbiamo qui — non
+       mette nessuna classe su nessuna linea, e allora la regola le spegneva
+       TUTTE, comprese quelle che il guscio aveva acceso. «Da iPad non si
+       vedono i flussi» (#548) ha questa forma, e comunque vada a finire una
+       nostra riga di stile non deve poter cancellare il disegno di chi c'era
+       prima: se non stiamo guidando noi, si vede quello che dice il guscio. */
+    [data-dm-energy-flows] .flow-line:not(.active):not(.dm-energy-flow-active){opacity:0!important}
     .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke:var(--dm-flow-color)!important;stroke-dasharray:12 9!important;stroke-linecap:round!important;animation-name:dmEnergyFlowDash!important;animation-duration:.8s!important;animation-timing-function:linear!important;animation-iteration-count:infinite!important;animation-play-state:running!important;will-change:stroke-dashoffset!important}
     @keyframes dmEnergyFlowDash{from{stroke-dashoffset:0}to{stroke-dashoffset:-42}}
     /* Nessuna eccezione per "riduci movimento": il tratteggio che scorre non e'

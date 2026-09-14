@@ -9,6 +9,21 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Flusso energia: una riga di stile non può più svuotare la mappa da sola**
+
+  «Da iPad non si vedono i flussi» (#548).
+
+  La regola che spegne i collegamenti fermi valeva su ogni linea che il nostro
+  codice non avesse ancora classificato. Finché quella passata parte non c'è
+  problema; se per qualunque motivo non parte, non viene messa nessuna classe su
+  nessuna linea e la regola le spegneva tutte — comprese quelle che il guscio
+  aveva già acceso. Il risultato è esattamente «bolle e numeri sì, linee no».
+
+  Adesso lo spegnimento vale solo dentro una scena che abbiamo davvero dipinto.
+  Non è la certezza di aver preso il caso dell'iPad — WebKit non è disponibile
+  nell'ambiente in cui la plancia si prova — ma una nostra riga di stile non
+  deve poter cancellare il disegno di chi c'era prima.
+
 - **Presenza: due sensori nella stessa stanza non sono due stanze**
 
   «Ho due sensori sulla stessa stanza e mi dice in due stanze c'è qualcuno.
