@@ -9,6 +9,22 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Le Azioni rapide si configurano dove si cerca: accanto ai Widget**
+
+  La scheda ⚡ Azioni stava sotto 🛋️ Casa, insieme alle stanze, alle luci e alle
+  tapparelle — che sono le *cose* di casa. Ma le azioni rapide non sono una cosa
+  di casa: sono una fila di tasti sulla Home, come i blocchi e come le tessere.
+
+  Chi va a cercare «cosa compare sulla Home» apre 🧩 Widget, ci trova le tessere
+  e non le azioni, e conclude che le azioni non si possono più configurare. Non
+  era vero — la scheda c'era e funzionava, il tipo «❄️ Popup Clima» pure — ma
+  quando a non trovarla è chi la plancia l'ha scritta, il posto è sbagliato.
+
+  Adesso le tre schede che rispondono alla stessa domanda — cosa c'è sulla Home
+  e in che ordine — stanno vicine sotto ⚙️ Plancia: **Home** (i blocchi),
+  **Widget** (le tessere), **Azioni** (i tasti). Non cambia niente di come
+  funzionano: cambia dove si trovano.
+
 - **Flusso energia: una riga di stile non può più svuotare la mappa da sola**
 
   «Da iPad non si vedono i flussi» (#548).

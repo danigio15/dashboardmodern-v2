@@ -156,3 +156,32 @@ test("ogni famiglia ha un nome in tutte e due le lingue", () => {
   }
   assert.equal(famiglia("fantasia"), null);
 });
+
+test("le Azioni rapide stanno con la Home, non con le cose di casa", () => {
+  /* «Manca la possibilità di configurarlo e di abilitarlo nelle azioni rapide,
+   *  nel config dentro Widget.»
+   *
+   * Non mancava: la scheda c'era e funzionava, ma stava sotto 🛋️ Casa insieme
+   * alle stanze, alle luci e alle tapparelle — che sono le COSE di casa. Chi
+   * cerca «cosa compare sulla Home» apre Widget, ci trova le tessere e non le
+   * azioni, e conclude che le azioni non si possono più configurare. È successo
+   * a chi la plancia l'ha scritta, il che dice tutto sul posto in cui stava.
+   *
+   * Tre schede rispondono alla stessa domanda — cosa c'è sulla Home e in che
+   * ordine — e adesso stanno vicine: i blocchi, le tessere, i tasti. */
+  assert.equal(SCHEDE.sez8.famiglia, "plancia", "le azioni rapide sono della Home");
+  const plancia = Object.entries(SCHEDE)
+    .filter(([, voce]) => voce.famiglia === "plancia")
+    .sort((a, b) => a[1].posizione - b[1].posizione)
+    .map(([chiave]) => chiave);
+  const home = ["sez0", "todo", "sez8"];
+  const posti = home.map((chiave) => plancia.indexOf(chiave));
+  assert.deepEqual(
+    posti,
+    [...posti].sort((a, b) => a - b),
+    "blocchi, tessere e tasti in quest'ordine",
+  );
+  /* E una dopo l'altra, senza niente in mezzo: sono la stessa domanda. */
+  assert.equal(posti[1] - posti[0], 1);
+  assert.equal(posti[2] - posti[1], 1);
+});
