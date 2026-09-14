@@ -97,6 +97,29 @@ function roomsOptions(selected) {
   ].join("");
 }
 
+/* La stanza scelta e' una coppia, non un campo solo.
+ *
+ * «Scambio la stanza in Climatizzazione, premo salva. Sembra che ha salvato ma
+ * se esco e rientro nella dashboard mi ritrovo Termostati.»
+ *
+ * Il salvataggio era giusto: scriveva `room` con l'id preso dalla tendina. Ma
+ * un dispositivo porta la stanza in due campi — `room_id`, l'id, e `room`, il
+ * riferimento leggibile — e chi normalizza le sezioni da' la precedenza a
+ * `room_id`. Quello l'editor non lo toccava: restava quello di prima, e alla
+ * prima passata il nome accanto tornava quello della stanza vecchia,
+ * riscrivendo sopra la scelta appena fatta. Da fuori si vedeva un salvataggio
+ * che sembra andato e si disfa da solo appena si esce.
+ *
+ * Si scrivono tutti e due, e dicono la stessa stanza. */
+function stanzaScelta(form) {
+  const scelta = clean(form?.elements?.room?.value);
+  const stanze = readJson("cd_stanze", []);
+  const stanza = (Array.isArray(stanze) ? stanze : []).find((riga) =>
+    [riga?.id, riga?.name].map(clean).includes(scelta),
+  );
+  return { room: scelta, room_id: clean(stanza?.id || scelta) };
+}
+
 function actionTypeValue(item) {
   return item.type === "builtin" ? `builtin_${item.builtin || "luci"}` : item.type || "toggle";
 }
@@ -363,7 +386,7 @@ function openClimateEditor(item, index) {
       type: canonicalClimateType(form.elements.type.value),
       name: clean(form.elements.name.value),
       entity: clean(form.elements.entity.value),
-      room: clean(form.elements.room.value),
+      ...stanzaScelta(form),
       valvola: clean(form.elements.valvola?.value),
       /* #362, #364, #365: la modalita', quanto resta accesa e in che mesi si
        * vede. Sono dati di QUESTA unita', e stanno con lei. */
@@ -460,7 +483,7 @@ function openShutterEditor(item, index) {
       ...item,
       name: clean(form.elements.name.value),
       entity: clean(form.elements.entity.value),
-      room: clean(form.elements.room.value),
+      ...stanzaScelta(form),
       // Svuotare il campo toglie il sensore: e' il modo per dire "questa
       // tapparella non ha un infisso da guardare".
       contact: clean(form.elements.contact?.value),
