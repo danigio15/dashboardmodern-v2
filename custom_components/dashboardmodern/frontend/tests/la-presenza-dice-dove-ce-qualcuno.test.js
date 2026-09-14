@@ -388,3 +388,37 @@ test("senza stanza vale ancora il nome: Home Assistant non obbliga ad assegnarla
   assert.equal(conto.attivi, 1);
   assert.equal(conto.totale, 1);
 });
+
+test("le stanze di Home Assistant si chiedono, non si aspetta che le chieda qualcun altro", async () => {
+  /* La correzione per stanza (#549) si appoggiava ai tre registri che il
+   * guscio mette da parte — le aree, le aree dei dispositivi, quelle delle
+   * entità. Ma quei tre il guscio li chiede dentro `wzLoadAllEntities()`, che
+   * gira nella procedura iniziale e nel rilevamento automatico: a un avvio
+   * normale non sono mai stati chiesti. La stanza tornava vuota per tutti, il
+   * conto ripiegava sul nome, e la correzione non si vedeva — cioè il caso
+   * della segnalazione restava rotto.
+   *
+   * Adesso li chiede il modulo stesso, una volta, e li mette nello stesso
+   * posto in cui li mette il guscio. */
+  const sorgente = await readFile(
+    new URL("../src/sections/shared.js", import.meta.url),
+    "utf8",
+  );
+  for (const registro of [
+    "config/area_registry/list",
+    "config/device_registry/list",
+    "config/entity_registry/list",
+  ]) {
+    assert.match(
+      sorgente,
+      new RegExp(`chiediAHomeAssistant\\(\\{ type: "${registro.replace(/\//g, "\\/")}" \\}\\)`),
+      `${registro}: va chiesto, non aspettato`,
+    );
+  }
+  /* Una volta sola, ma non «una volta e pazienza»: se il socket non c'era, il
+   * prossimo che passa deve riprovare. */
+  assert.match(sorgente, /memoria\.chieste = true;/);
+  assert.match(sorgente, /\} catch \(_error\) \{[\s\S]*?memoria\.chieste = false;/);
+  /* E quando arrivano si ridisegna: sono arrivate dopo la casa. */
+  assert.match(sorgente, /dashboardmodern:state-changed/);
+});

@@ -434,24 +434,76 @@ export function lexicalGlobal(name) {
 /* In che stanza di Home Assistant sta un'entita'.
  *
  * Home Assistant la stanza la sa gia': un'entita' porta la sua area, o la
- * eredita dal dispositivo su cui sta. Il guscio quei tre registri li ha gia'
- * chiesti e messi da parte per la procedura iniziale — le aree, le stanze dei
- * dispositivi, le aree delle entita' — e qui ci si appoggia a quelli invece di
- * richiederli: sono gli stessi dati, e chiederli due volte vorrebbe dire due
- * risposte che col tempo discordano.
+ * eredita dal dispositivo su cui sta. Servono tre registri — le aree, le aree
+ * dei dispositivi, le aree delle entita' — e il guscio li chiede gia', ma solo
+ * dentro `wzLoadAllEntities()`, cioe' nella procedura iniziale e nel
+ * rilevamento automatico: a un avvio normale della plancia quei tre non sono
+ * mai stati chiesti. Appoggiarsi a quelli e basta voleva dire rispondere
+ * «non lo so» a ogni entita' per sempre, e chi legge, non sapendo la stanza,
+ * ripiegava sul nome — cioe' la correzione non si vedeva.
+ *
+ * Quindi si chiedono, una volta sola, e la risposta si mette nello STESSO
+ * posto in cui la mette il guscio: chi arriva dopo la trova gia' pronta, e i
+ * due non se la chiedono a vicenda.
  *
  * Torna il NOME della stanza, non il suo codice: e' quello che si legge, ed e'
  * quello con cui la plancia chiama le sue stanze. Vuoto quando non si sa, e
- * «non si so» deve restare vuoto: chi legge deve poter ripiegare su altro
+ * «non lo so» deve restare vuoto: chi legge deve poter ripiegare su altro
  * invece di ricevere un nome inventato. */
+const STANZE_DI_HA = "__DASHBOARDMODERN_STANZE_DI_HA__";
+
+function memoriaDelleStanze() {
+  return (root[STANZE_DI_HA] ||= { chieste: false });
+}
+
+/* La domanda ai tre registri, una volta per apertura della plancia.
+ *
+ * Se il socket non c'e' ancora la domanda non si segna come fatta: cosi' il
+ * prossimo che passa riprova, invece di restare senza stanze perche' ha
+ * guardato un attimo troppo presto. */
+async function imparaLeStanzeDiHomeAssistant() {
+  const memoria = memoriaDelleStanze();
+  if (memoria.chieste) return;
+  memoria.chieste = true;
+  try {
+    const [aree, dispositivi, entita] = await Promise.all([
+      chiediAHomeAssistant({ type: "config/area_registry/list" }),
+      chiediAHomeAssistant({ type: "config/device_registry/list" }),
+      chiediAHomeAssistant({ type: "config/entity_registry/list" }),
+    ]);
+    const wiz = lexicalGlobal("WIZ");
+    if (!wiz) return;
+    wiz.areaNames = {};
+    for (const area of aree || []) wiz.areaNames[area.area_id] = area.name;
+    wiz.devArea = {};
+    for (const dispositivo of dispositivi || [])
+      if (dispositivo.area_id) wiz.devArea[dispositivo.id] = dispositivo.area_id;
+    wiz.entReg = {};
+    for (const riga of entita || [])
+      wiz.entReg[riga.entity_id] = { a: riga.area_id, d: riga.device_id };
+    /* Le stanze sono arrivate dopo che la casa era gia' disegnata: chi conta
+     * i posti deve rifare il conto, o la correzione si vedrebbe solo al
+     * prossimo stato. E' lo stesso annuncio che usa la plancia per «gli stati
+     * sono cambiati». */
+    root.dispatchEvent?.(new root.CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+  } catch (_error) {
+    /* Socket chiuso o comando rifiutato: si riprova al prossimo giro. */
+    memoria.chieste = false;
+  }
+}
+
 export function stanzaDiHomeAssistant(entity) {
   const id = clean(entity);
   if (!id) return "";
   const wiz = lexicalGlobal("WIZ");
-  const riga = wiz?.entReg?.[id];
+  if (!wiz?.entReg) {
+    imparaLeStanzeDiHomeAssistant();
+    return "";
+  }
+  const riga = wiz.entReg[id];
   if (!riga) return "";
-  const area = riga.a || (riga.d ? wiz?.devArea?.[riga.d] : "");
-  return area ? clean(wiz?.areaNames?.[area]) : "";
+  const area = riga.a || (riga.d ? wiz.devArea?.[riga.d] : "");
+  return area ? clean(wiz.areaNames?.[area]) : "";
 }
 
 /* Una variabile del runtime vendorizzato, riscritta.

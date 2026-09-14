@@ -406,6 +406,37 @@ export function migrateLegacyEnergyLoads(energyLoads = [], overrides = {}, energ
   );
 }
 
+/* All'avvio le chiavi legacy dettano, e dettano PRIMA che il modello si migri.
+ *
+ * La copia canonica è una fotografia scritta dall'ultimo `persist`, e può
+ * restare indietro di un giro: ogni gesto della plancia scrive PRIMA la sua
+ * chiave legacy — `cd_ev_cars`, `cd_energy_model`, le entita' — e solo un
+ * microtask dopo la copia. Chi salva e ricarica subito riaprirebbe la pagina
+ * con la copia vecchia, e l'ultima modifica salvata sparirebbe.
+ *
+ * L'ordine conta quanto la riconciliazione. Le migrazioni che seguono non
+ * toccano lo schema ma il MODELLO — il verso della batteria, le entità del
+ * raffreddamento, i carichi del flusso — e ognuna si segna nel `metadata`
+ * per non rifarsi. Se le chiavi legacy parlassero dopo, riscriverebbero il
+ * modello migrato con quello vecchio, segno e lavoro insieme: la migrazione
+ * si rifarebbe a ogni avvio e non si vedrebbe mai. Parlano qui, e le
+ * migrazioni del modello lavorano su quello che l'utente ha davvero.
+ *
+ * Una lista vuota ma presente è una scelta, non un'assenza: le auto
+ * cancellate restano cancellate per la stessa strada. Le luci restano fuori:
+ * la loro forma legacy — `{entita': nome}` — perde per costruzione stanza e
+ * ordinamento, e ricostruirle da lì a ogni avvio butterebbe via quello che la
+ * copia custodisce apposta. */
+function dettanoLeChiaviLegacy(state, sezioni) {
+  if (!sezioni) return;
+  for (const section of Object.keys(SECTION_KEYS)) {
+    if (section === "lights" || !(section in sezioni)) continue;
+    state.sections[section] = normalizeSection(section, sezioni[section], {
+      rooms: state.sections.rooms || [],
+    });
+  }
+}
+
 export function migrateState(input = {}, legacy = {}) {
   let state = cloneValue(input);
   const changes = [];
@@ -420,6 +451,7 @@ export function migrateState(input = {}, legacy = {}) {
     state = migrateV3ToV4(state, legacy);
     changes.push("schema 3 → 4");
   }
+  dettanoLeChiaviLegacy(state, legacy.sezioni);
   if (+state.schema_version >= 4 && preserveEnergySemantics(state.sections?.energy))
     changes.push("energy annual/lifetime semantics migrated");
   if (+state.schema_version >= 4) {

@@ -538,10 +538,26 @@ function installStyles() {
       /* Sul telefono la card e' piu' piccola: il disegno, le due scritte e i
          bordi interni scendono tutti insieme, se no si stringe il contenuto
          dentro una scatola che resta grande. Il tetto passa dal 56% al 46%,
-         cosi' alla fascia accanto resta piu' di una pastiglia. */
+         cosi' alla fascia accanto resta piu' di una pastiglia.
+         Il tetto pero' non arriva a toccare il numero. Su uno schermo da 360
+         pixel il 46% sono 165, e tolti il disegno, lo spazio fra i due e i
+         bordi ne restano 116 per «9,50 kW / 7,00 kW», che ne vuole 135: la
+         misura finiva nei puntini, cioe' spariva proprio la cosa per cui
+         l'avviso esiste. Il pavimento della pastiglia e' la misura — quando
+         il tetto scenderebbe sotto, vince il pavimento, che e' quello che il
+         foglio di stile fa da se' — e a stringersi resta la fascia accanto,
+         che scorre apposta. Perche' il pavimento sia la MISURA e non l'intera
+         pastiglia, la parolina si fa dettare la larghezza dalla colonna
+         invece di dettarla: «width:0» la toglie dal conto della larghezza
+         naturale, «min-width:100%» le ridA' la colonna intera per disegnarsi.
+         Senza, il pavimento verrebbe «Sovraccarico · Carico di casa» e la
+         pastiglia si prenderebbe tutta la riga. Sul telefono la pastiglia e'
+         quindi larga quanto il numero, e la parolina deriva: e' esattamente
+         quello che deve fare quando non ci sta, ed e' scritto qui sopra. */
       @media(max-width:560px){
         .dm-soglia-allerta{
-          flex:0 1 auto;min-width:0;max-width:46%;padding:4px 9px 4px 4px;gap:6px}
+          flex:0 1 auto;min-width:min-content;max-width:46%;padding:4px 9px 4px 4px;gap:6px}
+        .dm-soglia-allerta .dm-casa-coda{width:0;min-width:100%}
         .dm-soglia-allerta .dm-casa-chip{width:30px;height:30px;border-radius:10px}
         .dm-soglia-allerta .dm-casa-chip svg{width:16px;height:16px}
         .dm-soglia-allerta .dm-casa-testa{font-size:13.5px}

@@ -28,6 +28,7 @@ import {
 } from "../src/core/signed-energy.js";
 import { projectEnergySlots } from "../src/core/energy-projection.js";
 import { migrateState } from "../src/core/migrations.js";
+import { DashboardStore } from "../src/core/dashboard-store.js";
 
 const leggi = (rel) => readFile(new URL(rel, import.meta.url), "utf8");
 
@@ -181,4 +182,57 @@ test("chi aveva girato il vecchio interruttore se lo ritrova, una volta sola", (
     {},
   );
   assert.equal(fermo.state.sections.energy.battery.signed, undefined);
+});
+
+/* Una migrazione che nessuno vede è una migrazione che non c'è.
+ *
+ * All'avvio le chiavi legacy dettano — la copia canonica può restare indietro
+ * di un giro — ma dettano PRIMA che il modello si migri, non dopo. Se
+ * parlassero dopo riscriverebbero il modello appena migrato con quello vecchio,
+ * il segno nel `metadata` insieme al lavoro: la migrazione si rifarebbe a ogni
+ * avvio e chi aveva girato il vecchio interruttore non se lo ritroverebbe mai.
+ */
+class DiscoFinto {
+  values = new Map();
+  getItem(key) {
+    return this.values.get(key) ?? null;
+  }
+  setItem(key, value) {
+    this.values.set(key, String(value));
+  }
+  removeItem(key) {
+    this.values.delete(key);
+  }
+}
+
+test("il verso migrato sopravvive alle chiavi legacy dell'avvio", () => {
+  const storage = new DiscoFinto();
+  storage.setItem("cd_batteria_verso", JSON.stringify({ girata: true }));
+  /* La chiave legacy c'è, ed è quella di prima: senza `signed`, senza segni. */
+  storage.setItem("cd_energy_model", JSON.stringify({ battery: { power: BATT } }));
+  storage.setItem(
+    "dm_dashboard_state",
+    JSON.stringify({ schema_version: 4, sections: { energy: { battery: { power: BATT } } } }),
+  );
+
+  const store = new DashboardStore({ storage, sync: async () => {} });
+  store.migrate();
+
+  const energia = store.getState().sections.energy;
+  assert.equal(energia.battery.signed.positive, "charge");
+  assert.equal(energia.metadata.battery_direction_migrated, true);
+
+  /* E il segno arriva sul disco, se no il giro dopo si ricomincia da capo. */
+  const suDisco = JSON.parse(storage.getItem("cd_energy_model"));
+  assert.equal(suDisco.battery.signed.positive, "charge");
+  assert.equal(suDisco.metadata.battery_direction_migrated, true);
+
+  /* Chi dopo la migrazione torna a «scarica» deve restarci, anche con la
+   * vecchia chiave ancora lì sul disco: è il segno che glielo garantisce. */
+  const scelta = JSON.parse(storage.getItem("cd_energy_model"));
+  scelta.battery.signed.positive = "discharge";
+  storage.setItem("cd_energy_model", JSON.stringify(scelta));
+  const secondo = new DashboardStore({ storage, sync: async () => {} });
+  secondo.migrate();
+  assert.equal(secondo.getState().sections.energy.battery.signed.positive, "discharge");
 });

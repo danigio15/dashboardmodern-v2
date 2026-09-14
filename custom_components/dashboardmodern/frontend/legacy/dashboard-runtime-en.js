@@ -6600,9 +6600,14 @@ function render() {
            dice «armato», e resta quello di partenza. Il TASTO invece si
            accendeva giusto, perche' quello si chiede gia' al modulo — due
            letture dello stesso fatto, e una sola sapeva la verita'.
-           Si chiede solo quando la centrale non ha gia' risposto: dove c'e'
-           una centrale vera comanda lei, e qui non cambia niente. */
-        if (!alarmTriggered && !isArmed) {
+           Si chiede solo quando la centrale non ha risposto NIENTE di
+           riconoscibile. Guardare soltanto «non e' armato» non bastava: una
+           centrale vera che dice `disarmed` lascia `isArmed` falso, e il
+           cartello sarebbe passato ad ARMATO mentre il tasto Disinserisci
+           restava acceso sotto. Dove una centrale risponde comanda lei, anche
+           quando la risposta e' «disarmato». */
+        const centraleHaRisposto = ['triggered','armed_away','armed_night','armed_home','armed_custom_bypass','armed_vacation','pending','arming','disarmed'].includes(alarmState);
+        if (!alarmTriggered && !isArmed && !centraleHaRisposto) {
           try {
             const suMisura = (typeof dmAlarmSuMisuraAcceso === 'function') ? dmAlarmSuMisuraAcceso() : null;
             if (suMisura) {

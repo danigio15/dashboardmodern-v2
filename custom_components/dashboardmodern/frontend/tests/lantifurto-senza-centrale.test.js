@@ -277,9 +277,25 @@ test("il cartello della sezione dice inserito anche senza centrale (#547)", asyn
 
   for (const guscio of ["../legacy/dashboard-runtime-it.js", "../legacy/dashboard-runtime-en.js"]) {
     const testo = await readFile(new URL(guscio, import.meta.url), "utf8");
-    /* Il guscio chiede, e chiede SOLO quando la centrale non ha già risposto:
-     * dove una centrale c'è comanda lei, e lì non cambia niente. */
-    assert.match(testo, /if \(!alarmTriggered && !isArmed\) \{/, guscio);
+    /* Il guscio chiede, e chiede SOLO quando la centrale non ha risposto
+     * niente di riconoscibile.
+     *
+     * Qui si pretendeva `if (!alarmTriggered && !isArmed)`, che non bastava:
+     * una centrale vera che dice `disarmed` lascia `isArmed` falso, e il
+     * cartello sarebbe passato ad ARMATO con il tasto Disinserisci acceso
+     * sotto — due letture dello stesso fatto che si contraddicono, che è
+     * esattamente il guasto della #547 rifatto al contrario. Dove una centrale
+     * risponde comanda lei, anche quando la risposta è «disarmato». */
+    assert.match(
+      testo,
+      /const centraleHaRisposto = \['triggered','armed_away','armed_night','armed_home','armed_custom_bypass','armed_vacation','pending','arming','disarmed'\]\.includes\(alarmState\);/,
+      guscio,
+    );
+    assert.match(
+      testo,
+      /if \(!alarmTriggered && !isArmed && !centraleHaRisposto\) \{/,
+      guscio,
+    );
     assert.match(testo, /dmAlarmSuMisuraAcceso\(\)/, guscio);
     assert.match(testo, /activeBtn = suMisura\.mode; isArmed = true;/, guscio);
   }

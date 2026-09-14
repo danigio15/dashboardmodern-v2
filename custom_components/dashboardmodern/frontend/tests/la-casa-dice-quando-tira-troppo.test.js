@@ -216,8 +216,9 @@ test("l'avviso e la fascia stanno sulla stessa riga anche sul telefono", () => {
   const soglia = sorgente("src/sections/la-soglia-della-potenza-section.js");
   /* L'avviso si stringe per stare accanto alla fascia. Quanto, lo dice la
    * prova qui sotto — qui conta solo che POSSA stringersi: senza `flex:0 1`
-   * resterebbe della sua misura e spingerebbe fuori la fascia. */
-  assert.match(soglia, /flex:0 1 auto;min-width:0;max-width:\d+%/);
+   * resterebbe della sua misura e spingerebbe fuori la fascia. Fin dove, lo
+   * dice il pavimento: `min-content`, cioè il numero. */
+  assert.match(soglia, /flex:0 1 auto;min-width:min-content;max-width:\d+%/);
 });
 
 test("la card è più piccola e la sua parolina scorre invece di essere tagliata", () => {
@@ -244,11 +245,19 @@ test("la card è più piccola e la sua parolina scorre invece di essere tagliata
   assert.doesNotMatch(soglia, /scrollWidth: nastro\.scrollWidth/);
 
   /* Il numero non si muove: è il motivo per cui l'avviso esiste, e uno che
-   * scorre non si legge a colpo d'occhio. Si tronca semmai, non deriva. */
+   * scorre non si legge a colpo d'occhio. Non deriva, e nemmeno si tronca: il
+   * tetto del 46% non scende mai sotto di lui. */
   assert.match(
     soglia,
     /\.dm-soglia-allerta \.dm-casa-testa\{\s*\n\s*display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\}/,
   );
+  /* Il pavimento è la MISURA, non l'intera pastiglia: la parolina si fa
+   * dettare la larghezza dalla colonna invece di dettarla, se no il pavimento
+   * sarebbe «Sovraccarico · Carico di casa» e la pastiglia si prenderebbe
+   * tutta la riga. Le due regole vanno insieme: da sola, nessuna delle due
+   * salva il numero. */
+  assert.match(soglia, /min-width:min-content;max-width:46%/);
+  assert.match(soglia, /\.dm-soglia-allerta \.dm-casa-coda\{width:0;min-width:100%\}/);
   /* E chi ha chiesto meno animazioni non vede muovere niente. */
   assert.match(soglia, /@media\(prefers-reduced-motion:reduce\)\{\s*\n\s*\.dm-soglia-allerta \.dm-casa-coda/);
 });

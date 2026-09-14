@@ -482,6 +482,13 @@ function blocco() {
 async function daEntita(scelto, nodo) {
   const immagine = nodo.querySelector(`.${IMMAGINE}`);
   if (!immagine) return;
+  /* Qui la mappa di fondo non esiste: la disegna chi la vuole. Il blocco pero'
+   * e' lo stesso di prima — si riusa, non si rifa' — e se il radar a tessere
+   * aveva gia' detto «il fondo non risponde» quel verdetto resterebbe scritto
+   * addosso al nodo, e la frase gialla comparirebbe sopra l'immagine della
+   * telecamera che invece è arrivata benissimo. Un verdetto su una cosa che
+   * non c'e' e' una bugia: si cancella entrando. */
+  delete nodo.dataset.dmFondo;
   const preso = await loadCameraFrame({ entity: scelto.entity }, immagine);
   nodo.dataset.dmRadar = preso ? "vivo" : "muto";
 }

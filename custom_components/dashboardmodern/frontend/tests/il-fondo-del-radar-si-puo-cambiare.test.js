@@ -102,3 +102,25 @@ test("il fondo che non risponde lo dice, invece di lasciare la pioggia sul nulla
   assert.match(radar, /La mappa di fondo non risponde\./);
   assert.match(radar, /Meteo e radar/);
 });
+
+test("il verdetto del fondo non sopravvive al passaggio al radar a entità", async () => {
+  /* Il blocco del radar si riusa, non si rifa'. Chi aveva il radar a tessere e
+   * si era visto dire «la mappa di fondo non risponde», poi passa a una
+   * `camera.*` in ⚙️ → Meteo e radar: lì la mappa di fondo non esiste
+   * proprio, ma il verdetto di prima resterebbe scritto addosso al nodo e la
+   * frase gialla comparirebbe sopra l'immagine della telecamera — che invece
+   * è arrivata benissimo. Un verdetto su una cosa che non c'è è una bugia. */
+  const radar = await leggi("../src/sections/radar-meteo-section.js");
+  const dentro = radar.slice(
+    radar.indexOf("async function daEntita("),
+    radar.indexOf("/* \u2500\u2500 il radar a tessere"),
+  );
+  assert.ok(dentro, "daEntita deve esistere");
+  assert.match(dentro, /delete nodo\.dataset\.dmFondo;/);
+  /* E la cancellazione viene PRIMA di aspettare il fotogramma: fra la domanda
+   * e la risposta la frase di prima sarebbe ancora lì. */
+  assert.ok(
+    dentro.indexOf("delete nodo.dataset.dmFondo;") < dentro.indexOf("await loadCameraFrame"),
+    "il verdetto vecchio si cancella prima di chiedere il fotogramma",
+  );
+});
