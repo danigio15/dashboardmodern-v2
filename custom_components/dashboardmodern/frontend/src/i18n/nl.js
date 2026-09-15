@@ -51,6 +51,8 @@ export default Object.freeze({
   "Save threshold": "Drempel opslaan",
   "Save zones": "Zones opslaan",
   "Small": "Klein",
+  "Split estimated from the house average": "Verdeling geschat op het huisgemiddelde",
+  "Split measured hour by hour": "Verdeling per uur gemeten",
   "The car service refused the integration's credentials: try again, and if it keeps happening reconnect the integration in Settings → Devices & services.": "De dienst van de auto heeft de inloggegevens van de integratie geweigerd: probeer het opnieuw, en als het blijft gebeuren verbind de integratie opnieuw via Instellingen → Apparaten en diensten.",
   "The door and window contacts this panel watches: switch on the ones you want among the entry points. They show on the Security page under “Entry points”, with the same name and the same state they have under Openings.": "De deur- en raamcontacten die deze centrale in de gaten houdt: zet degene aan die je bij de toegangen wilt. Ze verschijnen op de pagina Beveiliging onder “Toegangen”, met dezelfde naam en dezelfde staat als bij Openingen.",
   "The presence sensors that belong to this panel: switch on the ones that are zones and leave the rest off. The Security page lists only the ones you switch on under “Zones”, and shows nothing at all while none is on.": "De aanwezigheidssensoren die bij deze centrale horen: zet degene aan die zones zijn en laat de rest uit. De pagina Beveiliging toont onder “Zones” alleen de sensoren die je aanzet, en laat helemaal niets zien zolang er geen enkele aan staat.",

@@ -51,6 +51,8 @@ export default Object.freeze({
   "Save threshold": "Eşiği kaydet",
   "Save zones": "Bölgeleri kaydet",
   "Small": "Küçük",
+  "Split estimated from the house average": "Dağılım evin ortalamasından tahmin edildi",
+  "Split measured hour by hour": "Dağılım saat saat ölçüldü",
   "The car service refused the integration's credentials: try again, and if it keeps happening reconnect the integration in Settings → Devices & services.": "Aracın servisi entegrasyonun kimlik bilgilerini reddetti: yeniden dene, sürerse entegrasyonu Ayarlar → Cihazlar ve servisler bölümünden yeniden bağla.",
   "The door and window contacts this panel watches: switch on the ones you want among the entry points. They show on the Security page under “Entry points”, with the same name and the same state they have under Openings.": "Bu panelin izlediği kapı ve pencere kontakları: girişler arasında görmek istediklerini aç. Güvenlik sayfasında “Girişler” altında, Açıklıklar bölümündeki adlarıyla ve durumlarıyla görünürler.",
   "The presence sensors that belong to this panel: switch on the ones that are zones and leave the rest off. The Security page lists only the ones you switch on under “Zones”, and shows nothing at all while none is on.": "Bu panele ait varlık sensörleri: bölge olanları aç, geri kalanları kapalı bırak. Güvenlik sayfası “Bölgeler” altında yalnızca açtıklarını listeler; hiçbiri açık değilken hiçbir şey göstermez.",

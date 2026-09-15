@@ -51,6 +51,8 @@ export default Object.freeze({
   "Save threshold": "Schwelle speichern",
   "Save zones": "Zonen speichern",
   "Small": "Klein",
+  "Split estimated from the house average": "Aufteilung anhand des Hausdurchschnitts geschätzt",
+  "Split measured hour by hour": "Aufteilung stündlich gemessen",
   "The car service refused the integration's credentials: try again, and if it keeps happening reconnect the integration in Settings → Devices & services.": "Der Dienst des Fahrzeugs hat die Anmeldedaten der Integration abgelehnt: Versuche es erneut, und wenn es weiterhin passiert, verbinde die Integration unter Einstellungen → Geräte & Dienste neu.",
   "The door and window contacts this panel watches: switch on the ones you want among the entry points. They show on the Security page under “Entry points”, with the same name and the same state they have under Openings.": "Die Tür- und Fensterkontakte, die diese Zentrale überwacht: Schalte die ein, die du unter den Zugängen haben möchtest. Sie erscheinen auf der Sicherheitsseite unter „Zugänge“, mit demselben Namen und demselben Zustand wie unter Öffnungen.",
   "The presence sensors that belong to this panel: switch on the ones that are zones and leave the rest off. The Security page lists only the ones you switch on under “Zones”, and shows nothing at all while none is on.": "Die Anwesenheitssensoren, die zu dieser Zentrale gehören: Schalte die ein, die Zonen sind, und lasse die übrigen aus. Die Sicherheitsseite listet unter „Zonen“ nur die eingeschalteten auf und zeigt gar nichts, solange keiner an ist.",

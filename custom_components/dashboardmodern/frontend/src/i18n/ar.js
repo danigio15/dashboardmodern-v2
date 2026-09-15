@@ -51,6 +51,8 @@ export default Object.freeze({
   "Save threshold": "حفظ العتبة",
   "Save zones": "حفظ المناطق",
   "Small": "صغيرة",
+  "Split estimated from the house average": "تقسيم مُقدَّر من متوسط المنزل",
+  "Split measured hour by hour": "تقسيم مقاس ساعة بساعة",
   "The car service refused the integration's credentials: try again, and if it keeps happening reconnect the integration in Settings → Devices & services.": "رفضت خدمة السيارة بيانات اعتماد التكامل: أعد المحاولة، وإن تكرّر الأمر فأعد ربط التكامل من الإعدادات → الأجهزة والخدمات.",
   "The door and window contacts this panel watches: switch on the ones you want among the entry points. They show on the Security page under “Entry points”, with the same name and the same state they have under Openings.": "ملامسات الأبواب والنوافذ التي تراقبها هذه اللوحة: شغّل ما تريده منها بين المداخل. تظهر في صفحة الأمان تحت «المداخل»، بالاسم نفسه والحالة نفسها كما في الفتحات.",
   "The presence sensors that belong to this panel: switch on the ones that are zones and leave the rest off. The Security page lists only the ones you switch on under “Zones”, and shows nothing at all while none is on.": "مستشعرات التواجد التابعة لهذه اللوحة: شغّل ما هو منطقة منها واترك الباقي مطفأً. تسرد صفحة الأمان تحت «المناطق» ما شغّلته فقط، ولا تعرض شيئًا ما دام لا شيء مشغّلًا.",

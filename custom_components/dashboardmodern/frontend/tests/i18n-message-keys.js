@@ -2859,6 +2859,8 @@ export const MESSAGE_KEYS = Object.freeze([
   "Spelled the way Home Assistant lists it, letter for letter.",
   "Spin",
   "Spin (select)",
+  "Split estimated from the house average",
+  "Split measured hour by hour",
   "Spot clean",
   "Square",
   "SSW",

@@ -51,6 +51,8 @@ export default Object.freeze({
   "Save threshold": "임계값 저장",
   "Save zones": "구역 저장",
   "Small": "작게",
+  "Split estimated from the house average": "배분을 집 평균으로 추정",
+  "Split measured hour by hour": "배분을 시간 단위로 측정",
   "The car service refused the integration's credentials: try again, and if it keeps happening reconnect the integration in Settings → Devices & services.": "차량 서비스가 통합의 인증 정보를 거부했습니다. 다시 시도하고, 계속 발생하면 설정 → 기기 및 서비스에서 통합을 다시 연결하세요.",
   "The door and window contacts this panel watches: switch on the ones you want among the entry points. They show on the Security page under “Entry points”, with the same name and the same state they have under Openings.": "이 패널이 감시하는 문과 창문 접점입니다. 출입구로 보고 싶은 것을 켜세요. 보안 페이지의 “출입구”에 개구부와 같은 이름, 같은 상태로 표시됩니다.",
   "The presence sensors that belong to this panel: switch on the ones that are zones and leave the rest off. The Security page lists only the ones you switch on under “Zones”, and shows nothing at all while none is on.": "이 패널에 속한 재실 센서입니다. 구역인 것을 켜고 나머지는 꺼 두세요. 보안 페이지는 “구역”에 켜 둔 것만 나열하고, 하나도 켜지지 않은 동안에는 아무것도 보여주지 않습니다.",

@@ -3103,6 +3103,8 @@ export const SOURCE_INDEX = Object.freeze({
   "Sotto protezione": "Protected load",
   "Sotto questa percentuale la batteria conta come da cambiare: si colora nella pagina e finisce nel conto della tessera in Home. Vale per tutta la casa.": "Below this percentage a battery counts as needing replacement: it turns colour on the page and enters the count on the Home tile. It applies to the whole house.",
   "Sovraccarico": "Overload",
+  "Spartizione misurata ora per ora": "Split measured hour by hour",
+  "Spartizione stimata sulla media della casa": "Split estimated from the house average",
   "Specie": "Species",
   "Spegni": "Turn off",
   "Spegni tutte": "Turn all off",

@@ -16,8 +16,10 @@ import { readFileSync } from "node:fs";
 import {
   chiaveDellaQuota,
   entitaDelleFonti,
+  mesiDellArco,
   periodoInCorso,
   quotaDaRifare,
+  quotaSuArchi,
   secchielliNellArco,
 } from "../src/sections/energy-section.js";
 
@@ -118,9 +120,12 @@ test("la scheda del dispositivo non chiama più la stima della casa", () => {
   assert.match(SORGENTE, /scriviLaQuota\(row, quotaDaScrivere\(bundle, entity, "month", value\)\)/);
 });
 
-test("le ore si chiedono per arco e per tutte e tre le entità insieme", () => {
-  assert.match(SORGENTE, /broker\.statistics\(\s*\[dispositivo, casa, rete\],/);
-  assert.match(SORGENTE, /"hour",/);
+test("le ore si chiedono per mese e per tutte e tre le entità insieme", () => {
+  assert.match(SORGENTE, /leggiLeOre\(\[dispositivo, casa, rete\], pezzo, unita\)/);
+  assert.match(
+    SORGENTE,
+    /broker\.statistics\(entita, baseline\.start, pezzo\.end, "hour", unita\)/,
+  );
 });
 
 test("una quota che i secchielli non spiegano non si scrive", () => {
@@ -182,4 +187,162 @@ test("la riga sotto somma sempre al numero grande, anche se la misura è di stam
    * per il numero che si sta scrivendo. */
   assert.match(SORGENTE, /if \(misurata && Number\.isFinite\(misurata\.quotaRete\)\)/);
   assert.match(SORGENTE, /grid: valore \* rete, solar: valore \* \(1 - rete\)/);
+});
+
+/* ── L'anno non è una domanda sola ──────────────────────────────────────────
+ *
+ * Seconda puntata della stessa segnalazione, con la foto della scheda sotto
+ * gli occhi: sulla Wallbox il MESE diceva 54,9 kWh dal sole e 80,5 dalla rete
+ * — il 59,5% dalla rete, che è quello che fa una macchina attaccata la sera —
+ * e l'ANNO, tre centimetri più sotto, 473,4 dal sole e 139,9 dalla rete, cioè
+ * il 22,8% dalla rete. Lo stesso apparecchio, la stessa card, due numeri che
+ * non possono essere veri insieme.
+ *
+ * Il mese era misurato ora per ora. L'anno no: le sue ore si chiedevano in una
+ * domanda sola da gennaio a oggi — seimila righe per entità, diciottomila in
+ * una risposta — e quando quella domanda cadeva cadeva l'anno intero, e la
+ * card tornava a incollarci sopra la media della casa senza dirlo.
+ */
+
+test("l'anno si chiede un mese per volta, non in un colpo solo", () => {
+  const pezzi = mesiDellArco({
+    kind: "year",
+    period: "day",
+    start: new Date(2026, 0, 1),
+    end: new Date(2026, 8, 1),
+  });
+  assert.equal(pezzi.length, 8, "da gennaio ad agosto");
+  assert.deepEqual(
+    pezzi.map((pezzo) => pezzo.start.getMonth()),
+    [0, 1, 2, 3, 4, 5, 6, 7],
+  );
+  /* Ogni pezzo finisce dove comincia il successivo, e l'ultimo sul confine. */
+  pezzi.forEach((pezzo, indice) => {
+    const dopo = pezzi[indice + 1];
+    assert.equal(pezzo.end.getTime(), dopo ? dopo.start.getTime() : new Date(2026, 8, 1).getTime());
+    /* Un mese, non un anno: è quello che decide la linea di base, e quella di
+     * un mese guarda due giorni indietro invece di un mese. */
+    assert.equal(pezzo.kind, "month");
+    assert.equal(pezzo.period, "hour");
+  });
+});
+
+test("un pezzo di mese resta un pezzo, e un arco vuoto non è niente", () => {
+  const aperto = mesiDellArco({
+    kind: "month",
+    start: new Date(2026, 8, 1),
+    end: new Date(2026, 8, 15, 14, 0),
+  });
+  assert.equal(aperto.length, 1);
+  assert.equal(aperto[0].end.getTime(), new Date(2026, 8, 15, 14, 0).getTime());
+
+  /* Un arco che comincia a metà mese: il primo pezzo arriva al primo del mese
+   * dopo, non a trenta giorni da lì. */
+  const storto = mesiDellArco({ start: new Date(2026, 6, 20), end: new Date(2026, 8, 5) });
+  assert.deepEqual(
+    storto.map((pezzo) => [pezzo.start.getTime(), pezzo.end.getTime()]),
+    [
+      [new Date(2026, 6, 20).getTime(), new Date(2026, 7, 1).getTime()],
+      [new Date(2026, 7, 1).getTime(), new Date(2026, 8, 1).getTime()],
+      [new Date(2026, 8, 1).getTime(), new Date(2026, 8, 5).getTime()],
+    ],
+  );
+
+  assert.deepEqual(mesiDellArco({ start: new Date(2026, 8, 1), end: new Date(2026, 8, 1) }), []);
+  assert.deepEqual(mesiDellArco({ start: new Date(2026, 8, 5), end: new Date(2026, 8, 1) }), []);
+  assert.deepEqual(mesiDellArco(), []);
+});
+
+/* Le tre serie di un mese finto: l'apparecchio tira solo di notte, la casa
+ * consuma sempre, e la rete copre tutto di notte e niente di giorno. Le righe
+ * sono cumulate, perché è così che risponde il Recorder. */
+function mesePerLaProva(anno, mese, giorni, kwhDiNotte) {
+  const righe = { disp: [], casa: [], rete: [] };
+  let disp = 100;
+  let casa = 1000;
+  let rete = 500;
+  /* La riga di partenza, un'ora prima del mese: senza, il primo secchiello si
+   * butta (ed è giusto che si butti). */
+  const partenza = new Date(anno, mese, 1, -1);
+  righe.disp.push({ start: partenza.toISOString(), sum: disp });
+  righe.casa.push({ start: partenza.toISOString(), sum: casa });
+  righe.rete.push({ start: partenza.toISOString(), sum: rete });
+  for (let giorno = 1; giorno <= giorni; giorno += 1) {
+    for (let ora = 0; ora < 24; ora += 1) {
+      const notte = ora < 6 || ora >= 22;
+      disp += notte ? kwhDiNotte : 0;
+      casa += 1;
+      rete += notte ? 1 : 0;
+      const quando = new Date(anno, mese, giorno, ora).toISOString();
+      righe.disp.push({ start: quando, sum: disp });
+      righe.casa.push({ start: quando, sum: casa });
+      righe.rete.push({ start: quando, sum: rete });
+    }
+  }
+  return righe;
+}
+
+test("un mese che non arriva costa le sue ore, non l'anno intero", async () => {
+  /* Gennaio e febbraio, a ore. L'apparecchio tira solo di notte, e di notte la
+   * casa prende tutto dalla rete: la spartizione vera è il 100% dalla rete. */
+  const GENNAIO = mesePerLaProva(2026, 0, 31, 2);
+  const FEBBRAIO = mesePerLaProva(2026, 1, 28, 2);
+  const arco = { kind: "year", start: new Date(2026, 0, 1), end: new Date(2026, 2, 1) };
+  const totale = (31 + 28) * 8 * 2;
+
+  const rispostaDi = (pezzo) => {
+    const righe = pezzo.start.getMonth() === 0 ? GENNAIO : FEBBRAIO;
+    return {
+      "sensor.wallbox": righe.disp,
+      "sensor.casa": righe.casa,
+      "sensor.rete": righe.rete,
+    };
+  };
+
+  const tutto = await quotaSuArchi(
+    [arco],
+    "sensor.wallbox",
+    "sensor.casa",
+    "sensor.rete",
+    {},
+    totale,
+    async (_entita, pezzo) => rispostaDi(pezzo),
+  );
+  assert.equal(tutto.fonte, "secchielli", "due mesi su due: si misura");
+  assert.equal(Math.round(tutto.quotaRete * 100), 100, "di notte viene tutto dalla rete");
+  assert.equal(Math.round(tutto.grid), totale);
+
+  /* Ora febbraio non risponde. Prima questa sola caduta portava giù l'anno
+   * intero — l'`await` non era riparato e l'eccezione usciva dalla funzione. */
+  const mezzo = await quotaSuArchi(
+    [arco],
+    "sensor.wallbox",
+    "sensor.casa",
+    "sensor.rete",
+    {},
+    totale,
+    async (_entita, pezzo) => {
+      if (pezzo.start.getMonth() === 1) throw new Error("Recorder lento");
+      return rispostaDi(pezzo);
+    },
+  );
+  /* Gennaio è arrivato, ed è più della metà del periodo ma non i tre quarti:
+   * il guardiano della copertura dice che non basta, e lo dice invece di
+   * spacciare per misurata la metà che c'è. */
+  assert.equal(mezzo.fonte, "", "mezzo anno non è l'anno");
+  assert.ok(mezzo.coperto > 0, "quello che è arrivato si conta lo stesso");
+  assert.ok(mezzo.coperto < totale);
+});
+
+test("una spartizione dice da quale strada è arrivata", () => {
+  /* «Una percentuale inventata scritta come se fosse misurata è il difetto che
+   * questo modulo esiste per non rifare»: sta scritto in testa a
+   * `quota-solare-del-dispositivo.js`, e lascia a chi chiama il compito di
+   * ripiegare sulla stima DICENDO che è una stima. Non lo diceva. */
+  assert.match(SORGENTE, /solar: valore \* \(1 - rete\), misurata: true/);
+  assert.match(SORGENTE, /\.\.\.splitFor\(bundle\?\.\[quale\], valore\), misurata: false/);
+  /* E la riga si scrive sotto TUTTI E DUE i blocchi, non solo sotto quello che
+   * ha sbagliato: due blocchi che dicono la stessa cosa si strutturano uguali. */
+  assert.match(SORGENTE, /scriviLaStrada\("ed-dkpi-risp-eur", monthSplit\.misurata\)/);
+  assert.match(SORGENTE, /scriviLaStrada\("ed-dkpi-anno-risp-eur", yearSplit\.misurata\)/);
 });

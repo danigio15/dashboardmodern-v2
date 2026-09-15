@@ -51,6 +51,8 @@ export default Object.freeze({
   "Save threshold": "सीमा सहेजें",
   "Save zones": "ज़ोन सहेजें",
   "Small": "छोटी",
+  "Split estimated from the house average": "बँटवारा घर के औसत से अनुमानित",
+  "Split measured hour by hour": "बँटवारा घंटे-दर-घंटे मापा गया",
   "The car service refused the integration's credentials: try again, and if it keeps happening reconnect the integration in Settings → Devices & services.": "गाड़ी की सेवा ने इंटीग्रेशन के क्रेडेंशियल अस्वीकार कर दिए: फिर कोशिश करें, और बार-बार हो तो सेटिंग्स → डिवाइस और सेवाएँ में इंटीग्रेशन फिर से जोड़ें।",
   "The door and window contacts this panel watches: switch on the ones you want among the entry points. They show on the Security page under “Entry points”, with the same name and the same state they have under Openings.": "इस पैनल द्वारा देखे जाने वाले दरवाज़े और खिड़की के संपर्क: प्रवेश बिंदुओं में जिन्हें चाहते हैं उन्हें चालू करें। वे सुरक्षा पृष्ठ पर “प्रवेश बिंदु” के नीचे दिखते हैं, उसी नाम और उसी स्थिति के साथ जो उनके पास खुलने वाले हिस्सों में है।",
   "The presence sensors that belong to this panel: switch on the ones that are zones and leave the rest off. The Security page lists only the ones you switch on under “Zones”, and shows nothing at all while none is on.": "इस पैनल से जुड़े उपस्थिति सेंसर: जो ज़ोन हैं उन्हें चालू करें और बाकी बंद रहने दें। सुरक्षा पृष्ठ “ज़ोन” के नीचे केवल उन्हीं को सूचीबद्ध करता है जिन्हें आपने चालू किया है, और जब तक कोई चालू नहीं है तब तक कुछ भी नहीं दिखाता।",

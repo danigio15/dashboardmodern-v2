@@ -51,6 +51,8 @@ export default Object.freeze({
   "Save threshold": "Guardar limite",
   "Save zones": "Guardar zonas",
   "Small": "Pequenas",
+  "Split estimated from the house average": "Divisão estimada pela média da casa",
+  "Split measured hour by hour": "Divisão medida hora a hora",
   "The car service refused the integration's credentials: try again, and if it keeps happening reconnect the integration in Settings → Devices & services.": "O serviço do carro recusou as credenciais da integração: tenta de novo e, se continuar, volta a ligar a integração em Configurações → Dispositivos e serviços.",
   "The door and window contacts this panel watches: switch on the ones you want among the entry points. They show on the Security page under “Entry points”, with the same name and the same state they have under Openings.": "Os contactos de portas e janelas que esta central vigia: liga os que queres entre os acessos. Aparecem na página Segurança em «Acessos», com o mesmo nome e o mesmo estado que têm em Aberturas.",
   "The presence sensors that belong to this panel: switch on the ones that are zones and leave the rest off. The Security page lists only the ones you switch on under “Zones”, and shows nothing at all while none is on.": "Os sensores de presença que pertencem a esta central: liga os que são zonas e deixa os restantes desligados. A página Segurança lista em «Zonas» apenas os que ligares, e não mostra nada enquanto nenhum estiver ligado.",

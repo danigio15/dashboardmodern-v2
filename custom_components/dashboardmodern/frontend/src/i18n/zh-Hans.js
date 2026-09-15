@@ -51,6 +51,8 @@ export default Object.freeze({
   "Save threshold": "保存阈值",
   "Save zones": "保存分区",
   "Small": "小卡片",
+  "Split estimated from the house average": "按家庭平均值估算的分配",
+  "Split measured hour by hour": "按小时实测的分配",
   "The car service refused the integration's credentials: try again, and if it keeps happening reconnect the integration in Settings → Devices & services.": "车辆服务拒绝了集成的凭据：请重试；若一直如此，请在“设置 → 设备与服务”中重新连接该集成。",
   "The door and window contacts this panel watches: switch on the ones you want among the entry points. They show on the Security page under “Entry points”, with the same name and the same state they have under Openings.": "这台主机看守的门窗触点：把你想放进出入口的打开即可。它们会出现在安防页面的“出入口”下，名称和状态与“开口”中的相同。",
   "The presence sensors that belong to this panel: switch on the ones that are zones and leave the rest off. The Security page lists only the ones you switch on under “Zones”, and shows nothing at all while none is on.": "属于这台主机的存在传感器：把属于分区的打开，其余保持关闭。安防页面的“分区”下只会列出你打开的那些；一个都没打开时，什么也不显示。",

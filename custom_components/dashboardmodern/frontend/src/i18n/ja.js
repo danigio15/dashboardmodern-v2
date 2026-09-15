@@ -51,6 +51,8 @@ export default Object.freeze({
   "Save threshold": "しきい値を保存",
   "Save zones": "ゾーンを保存",
   "Small": "小さく",
+  "Split estimated from the house average": "配分は家全体の平均からの推定",
+  "Split measured hour by hour": "配分は1時間ごとに実測",
   "The car service refused the integration's credentials: try again, and if it keeps happening reconnect the integration in Settings → Devices & services.": "クルマのサービスが連携の認証情報を拒否しました。もう一度お試しください。繰り返す場合は「設定 → デバイスとサービス」で連携を再接続してください。",
   "The door and window contacts this panel watches: switch on the ones you want among the entry points. They show on the Security page under “Entry points”, with the same name and the same state they have under Openings.": "このパネルが見張っているドアと窓のコンタクトです。出入口として見たいものをオンにしてください。セキュリティのページの「出入口」に、開口部と同じ名前・同じ状態で並びます。",
   "The presence sensors that belong to this panel: switch on the ones that are zones and leave the rest off. The Security page lists only the ones you switch on under “Zones”, and shows nothing at all while none is on.": "このパネルに属する人感センサーです。ゾーンであるものをオンにし、ほかはオフのままにしてください。セキュリティのページの「ゾーン」にはオンにしたものだけが並び、ひとつもオンでない間は何も表示しません。",

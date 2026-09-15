@@ -1103,26 +1103,94 @@ export function secchielliNellArco(righe = [], range) {
   return dentro.length < 2 ? [] : recorderBucketConsumptions(dentro.slice(1), dentro[0]);
 }
 
+/* Un arco lungo, spezzato nei suoi mesi di calendario.
+ *
+ * L'anno si chiedeva in un colpo solo: da gennaio a oggi, a ORE, per tre
+ * entita' insieme. Sono seimila righe per entita', diciottomila in una
+ * risposta, e il Recorder che ci arranca sopra e' lo stesso della 333. Ma il
+ * guaio non era la lentezza: era che se quella domanda cadeva, cadeva l'anno
+ * intero, e la card tornava alla media della casa senza dirlo. Dal campo,
+ * sulla stessa scheda della Wallbox: il mese misurato dava il 59% dalla rete
+ * — una macchina si attacca la sera — e l'anno, ripiegato sulla casa, il 23%.
+ * Due numeri dello stesso apparecchio che si contraddicono.
+ *
+ * A mesi sono nove domande da settecento righe. Ognuna cade per conto suo e si
+ * porta via solo le proprie ore; quel che manca lo vede il guardiano della
+ * copertura, che sul totale del periodo sa dire se quel che resta basta
+ * ancora. E ognuna si porta la propria partenza — la linea di base di un mese
+ * guarda due giorni indietro — quindi il primo secchiello di ogni mese si
+ * misura invece di essere buttato.
+ *
+ * I mesi chiusi non cambiano piu': ognuno si tiene da parte per conto suo, e
+ * il mese dopo se ne rilegge uno invece di rileggere l'anno. */
+export function mesiDellArco(range) {
+  if (!range?.start || !range?.end || range.end <= range.start) return [];
+  const pezzi = [];
+  let inizio = new Date(range.start);
+  while (inizio < range.end) {
+    const dopo = new Date(inizio.getFullYear(), inizio.getMonth() + 1, 1);
+    const fine = dopo < range.end ? dopo : new Date(range.end);
+    pezzi.push({ ...range, kind: "month", period: "hour", start: inizio, end: fine, next: fine });
+    inizio = fine;
+  }
+  return pezzi;
+}
+
 /* La spartizione misurata di un apparecchio su uno o piu' archi.
  *
- * Le ore si chiedono una volta per arco e per tutte e tre le entita' insieme:
+ * Le ore si chiedono una volta per mese e per tutte e tre le entita' insieme:
  * e' la stessa fetta di database, e chiederla tre volte sarebbe tre giri
- * regalati al Recorder. */
-async function quotaSuArchi(archi, dispositivo, casa, rete, unita, totale) {
+ * regalati al Recorder.
+ *
+ * Un mese caduto costa le sue ore, non l'anno. Le ore che mancano non entrano
+ * nel conto — ne' fra quelle spiegate ne' fra quelle scoperte — ma il totale
+ * del periodo, che arriva da un'altra strada, le contiene lo stesso: e' su
+ * quello che `quotaSolareDelDispositivo` misura la copertura, e quindi un anno
+ * mezzo caduto si dichiara non misurato da solo, invece di spacciare per
+ * misurata la meta' che e' arrivata.
+ *
+ * Chi va a leggerle si puo' sostituire: e' l'unico pezzo di questa funzione
+ * che tocca la rete, e senza poterlo sostituire la regola del mese caduto —
+ * che e' il motivo per cui questa funzione e' stata riscritta — si potrebbe
+ * soltanto affermare, non provare. */
+async function leOreDalRecorder(entita, pezzo, unita) {
+  const baseline = baselineRange(pezzo.kind, pezzo.start);
+  return broker.statistics(entita, baseline.start, pezzo.end, "hour", unita);
+}
+
+export async function quotaSuArchi(
+  archi,
+  dispositivo,
+  casa,
+  rete,
+  unita,
+  totale,
+  leggiLeOre = leOreDalRecorder,
+) {
   const serie = { dispositivo: [], casa: [], rete: [] };
+  const caduti = [];
   for (const range of archi) {
-    if (!range?.start || !range?.end || range.end <= range.start) continue;
-    const baseline = baselineRange(range.kind, range.start);
-    const righe = await broker.statistics(
-      [dispositivo, casa, rete],
-      baseline.start,
-      range.end,
-      "hour",
-      unita,
-    );
-    serie.dispositivo.push(...secchielliNellArco(righe[dispositivo], range));
-    serie.casa.push(...secchielliNellArco(righe[casa], range));
-    serie.rete.push(...secchielliNellArco(righe[rete], range));
+    for (const pezzo of mesiDellArco(range)) {
+      let righe;
+      try {
+        righe = await leggiLeOre([dispositivo, casa, rete], pezzo, unita);
+      } catch (_errore) {
+        caduti.push(`${pezzo.start.getFullYear()}-${pezzo.start.getMonth() + 1}`);
+        continue;
+      }
+      serie.dispositivo.push(...secchielliNellArco(righe[dispositivo], pezzo));
+      serie.casa.push(...secchielliNellArco(righe[casa], pezzo));
+      serie.rete.push(...secchielliNellArco(righe[rete], pezzo));
+    }
+  }
+  /* I mesi che non sono arrivati si dicono una volta sola, con i loro nomi:
+   * nove righe di registro uguali non sono una diagnosi. */
+  if (caduti.length) {
+    try {
+      root.console?.warn?.(
+        `[dashboardmodern] ore non lette per la quota di sole: ${caduti.join(", ")}`,
+      );
+    } catch (_errore) {}
   }
   return quotaSolareDelDispositivo({ ...serie, totale });
 }
@@ -1261,9 +1329,45 @@ function quotaDaScrivere(bundle, dispositivo, quale, valore) {
   const misurata = state.quote.get(chiaveDellaQuota(dispositivo, bundle?.period))?.[quale];
   if (misurata && Number.isFinite(misurata.quotaRete)) {
     const rete = Math.max(0, Math.min(1, misurata.quotaRete));
-    return { grid: valore * rete, solar: valore * (1 - rete) };
+    return { grid: valore * rete, solar: valore * (1 - rete), misurata: true };
   }
-  return splitFor(bundle?.[quale], valore);
+  return { ...splitFor(bundle?.[quale], valore), misurata: false };
+}
+
+/* Da dove viene la spartizione che si sta leggendo.
+ *
+ * `quota-solare-del-dispositivo.js` lo scrive in testa a se stesso: «una
+ * percentuale inventata scritta come se fosse misurata e' il difetto che
+ * questo modulo esiste per non rifare», e a chi chiama lascia il compito di
+ * ripiegare sulla vecchia stima DICENDO che e' una stima. Chi chiama non lo
+ * diceva.
+ *
+ * Cosi' sulla stessa scheda della Wallbox il mese usciva misurato ora per ora
+ * — il 59% dalla rete, che e' quello che fa una macchina attaccata la sera — e
+ * l'anno usciva copiato dalla media della casa — il 23% — scritti uguali, con
+ * lo stesso carattere, senza un segno che li distinguesse. Chi guarda vede due
+ * numeri dello stesso apparecchio che non possono essere veri insieme, e ha
+ * ragione: uno dei due non e' una misura.
+ *
+ * La riga sta sotto le due tessere di cui parla, ed e' la stessa per il mese e
+ * per l'anno: due blocchi che dicono la stessa cosa si strutturano uguali. */
+function scriviLaStrada(ancora, misurata) {
+  const tessere = doc?.getElementById(ancora)?.closest?.(".ed-dev-cost-row");
+  if (!tessere) return false;
+  let riga = tessere.nextElementSibling;
+  if (!riga?.classList?.contains("dm-ed-strada")) {
+    riga = doc.createElement("div");
+    riga.className = "dm-ed-strada";
+    tessere.after(riga);
+  }
+  riga.classList.toggle("dm-ed-strada-stimata", !misurata);
+  scriviTestoSeCambia(
+    riga,
+    misurata
+      ? t("Spartizione misurata ora per ora", "Split measured hour by hour")
+      : t("Spartizione stimata sulla media della casa", "Split estimated from the house average"),
+  );
+  return true;
 }
 
 /* Il pezzo di storia che al totale manca per forza, scritto sulla card.
@@ -1406,6 +1510,8 @@ function applyDeviceDetail(bundle) {
     `${formatNumber(yearSplit.grid, 1)} kWh ${t("dalla rete", "from grid")}`,
   );
 
+  scriviLaStrada("ed-dkpi-risp-eur", monthSplit.misurata);
+  scriviLaStrada("ed-dkpi-anno-risp-eur", yearSplit.misurata);
   scriviLAmmanco(bundle, source);
 
   const panel = doc?.querySelector(".ed-device-detail,#ed-device-detail");
@@ -2085,6 +2191,15 @@ function installStyles() {
       /* Il pezzo di storia che al totale manca per forza: si dice, invece di
          lasciare un numero corto senza una parola. */
       .dm-ed-ammanco{margin:10px 0 0;padding:9px 13px;border-radius:12px;font-size:12px;font-weight:600;line-height:1.45;color:#92400e;background:#fef3c7;border:1px solid #fcd34d}
+      /* La riga che dice da dove viene la spartizione: piccola e spenta
+       * quando e' una misura, perche' misurato e' il caso normale e non
+       * deve gridare; un filo piu' marcata quando e' una stima, che e'
+       * l'informazione che manca a chi confronta due numeri diversi. */
+      .dm-ed-strada{margin:6px 0 0;padding:0 4px;font-size:11px;font-weight:700;letter-spacing:.2px;line-height:1.4;color:var(--text-dim,#94a3b8)}
+      .dm-ed-strada-stimata{color:#b45309}
+      /* Sul fondo scuro l'ambra di giorno diventa illeggibile: la stessa
+       * tinta schiarita, che e' la convenzione del guscio. */
+      html[data-theme="dark"] .dm-ed-strada-stimata{color:#fbbf24}
       .dm-energy-signed{margin:0 0 14px;padding:12px 14px;border:1px solid var(--divider-color,rgba(15,23,42,.14));border-radius:14px;background:color-mix(in srgb,var(--secondary-background-color,#f1f5f9) 70%,transparent)}
       .dm-energy-signed-head{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
       .dm-energy-signed-head input{margin-top:3px;flex:0 0 auto;width:17px;height:17px}

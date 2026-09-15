@@ -51,6 +51,8 @@ export default Object.freeze({
   "Save threshold": "Сохранить порог",
   "Save zones": "Сохранить зоны",
   "Small": "Мелкие",
+  "Split estimated from the house average": "Разделение оценено по среднему по дому",
+  "Split measured hour by hour": "Разделение измерено по часам",
   "The car service refused the integration's credentials: try again, and if it keeps happening reconnect the integration in Settings → Devices & services.": "Сервис автомобиля отклонил учётные данные интеграции: попробуйте снова, а если это повторяется — переподключите интеграцию в «Настройки → Устройства и службы».",
   "The door and window contacts this panel watches: switch on the ones you want among the entry points. They show on the Security page under “Entry points”, with the same name and the same state they have under Openings.": "Датчики дверей и окон, за которыми следит эта централь: включите те, что нужны среди входов. Они появятся на странице «Безопасность» в разделе «Входы» — с тем же именем и тем же состоянием, что и в «Проёмах».",
   "The presence sensors that belong to this panel: switch on the ones that are zones and leave the rest off. The Security page lists only the ones you switch on under “Zones”, and shows nothing at all while none is on.": "Датчики присутствия, относящиеся к этой централи: включите те, что являются зонами, остальные оставьте выключенными. Страница «Безопасность» перечисляет в разделе «Зоны» только включённые, а пока не включён ни один — не показывает ничего.",
