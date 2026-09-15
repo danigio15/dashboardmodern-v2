@@ -77,7 +77,7 @@ const ETICHETTE = () => ({
   campanello: [t("Campanello", "Doorbell"), "binary_sensor.citofono_ding"],
   telecamera: [t("Telecamera", "Camera"), "camera.citofono"],
   posta: [t("È arrivato qualcosa", "Something arrived"), "binary_sensor.vallhorn_motion"],
-  ritiro: [t("Sportello aperto", "Flap opened"), "sensor.vallhorn_illuminance"],
+  ritiro: [t("Sportello aperto", "Flap opened"), "binary_sensor.sportello_cassetta"],
   contatore: [t("Contatore lettere", "Letter counter"), "counter.lettere"],
 });
 
@@ -162,8 +162,8 @@ function invitoMarkup(lista) {
           "Ring, Doorbird, 2N, a relay on a gate… pick the intercom's device and the fields fill themselves in: the button that opens, the doorbell and the camera — whichever that integration publishes.",
         )
       : t(
-          "Il Vallhorn di IKEA, un contatto Zigbee, un sensore di luce… scegli il dispositivo dentro la cassetta e le due caselle si compilano da sole.",
-          "IKEA's Vallhorn, a Zigbee contact, a light sensor… pick the device inside the mailbox and the two fields fill themselves in.",
+          "Il Vallhorn di IKEA, un contatto Zigbee sullo sportello, un sensore di luce… scegli il dispositivo della cassetta e le caselle che quell'integrazione pubblica si compilano da sole. Anche un sensore solo basta.",
+          "IKEA's Vallhorn, a Zigbee contact on the flap, a light sensor… pick the mailbox device and whichever fields that integration publishes fill themselves in. One sensor alone is enough too.",
         );
   return `<div class="dm-cit-ed-invito">
     <button type="button" class="ed-btn-add dm-cit-ed-integ" data-dm-cit-integ="${esc(lista)}">🔗 ${esc(
@@ -191,8 +191,8 @@ function elencoMarkup(lista) {
 function schedaMarkup() {
   return `<div class="ed-intro">${esc(
     t(
-      "Chi suona alla porta e cosa c'è in cassetta. Del citofono servono il tasto che apre — un button, uno script, una serratura, un cancello motorizzato — e, se c'è, il campanello. Della cassetta servono il sensore che dice che è arrivato qualcosa e quello che dice che lo sportello è stato aperto: dal confronto fra i due momenti la plancia sa se la posta è ancora dentro.",
-      "Who is at the door and what is in the mailbox. The intercom needs the button that opens — a button, a script, a lock, a motorised gate — and the doorbell if there is one. The mailbox needs the sensor that says something arrived and the one that says the flap was opened: from the two moments the dashboard knows whether the mail is still inside.",
+      "Chi suona alla porta e cosa c'è in cassetta. Del citofono servono il tasto che apre — un button, uno script, una serratura, un cancello motorizzato — e, se c'è, il campanello. Della cassetta basta un sensore: con tutti e due — quello che dice che è arrivato qualcosa e quello dello sportello — la plancia confronta i due momenti e sa da sola se la posta è ancora dentro; con uno solo l'apertura vale come arrivo, e a dire che l'hai presa sei tu, col tasto sulla card.",
+      "Who is at the door and what is in the mailbox. The intercom needs the button that opens — a button, a script, a lock, a motorised gate — and the doorbell if there is one. One sensor is enough for the mailbox: with both — the one that says something arrived and the flap one — the dashboard compares the two moments and works out on its own whether the mail is still inside; with only one, an opening counts as an arrival, and you are the one who says you took it, with the button on the card.",
     ),
   )}</div>
   ${elencoMarkup("citofoni")}

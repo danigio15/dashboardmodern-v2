@@ -230,7 +230,14 @@ function cassettaMarkup(voce) {
           : "ignota";
   const righe = [
     voce.arrivata
-      ? `${t("Ultimo movimento", "Last movement")} · ${daQuandoTesto(voce.arrivata)}`
+      ? `${
+          /* Chi ha il rilevatore vede un movimento; chi ha il solo contatto
+           * vede un'apertura, e chiamarla movimento sarebbe il nome di un
+           * sensore che non ha (#564). */
+          voce.daSportello
+            ? t("Ultima apertura", "Last opening")
+            : t("Ultimo movimento", "Last movement")
+        } · ${daQuandoTesto(voce.arrivata)}`
       : "",
     voce.ritirata
       ? `${

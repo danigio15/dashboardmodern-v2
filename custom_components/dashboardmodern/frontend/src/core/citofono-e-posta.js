@@ -277,36 +277,71 @@ export function letturaDellaCassetta(
   const conf = normalizzaCassetta(voce);
   const posta = conf.posta ? states?.[conf.posta] : null;
   const ritiro = conf.ritiro ? states?.[conf.ritiro] : null;
+  /* Chi ha solo lo sportello (#564).
+   *
+   * «Non serve il sensore che si mette per l'apertura della cassetta della
+   * posta»: chi aveva messo il solo contatto sullo sportello vedeva la parola
+   * «Aperta» mentre lo sportello era aperto e «Non si sa» per tutto il resto
+   * del tempo, senza nemmeno il tasto per dire «l'ho presa». Il sensore c'era
+   * e non serviva a niente, ed era vero.
+   *
+   * La sezione e' nata intorno al Vallhorn — un rilevatore dentro che dice
+   * «e' arrivato qualcosa» e un luxmetro che dice «lo sportello e' stato
+   * aperto» — e il verdetto e' il confronto fra i due momenti. Con un
+   * contatto solo quei due momenti sono lo stesso momento, e il confronto
+   * dava sempre «pari», cioe' niente.
+   *
+   * Con un sensore solo l'unica cosa che si sa e' che qualcuno ha aperto lo
+   * sportello: il postino che infila o chi ritira, e da fuori non si
+   * distinguono. Allora quell'apertura vale come arrivo — «e' successo
+   * qualcosa, guarda» — e a dire che e' finita e' la persona, col tasto che
+   * c'e' gia'. E' come funziona una cassetta vera: la posta non se ne va da
+   * sola, e chi l'ha presa lo sa. */
+  const soloSportello = !conf.posta && Boolean(conf.ritiro);
   /* Acceso: il cambio che si vede E' l'arrivo, ed e' il piu' fresco che ci
    * sia. Spento: vale quello che ci si era segnati, perche' `last_changed`
    * adesso dice quando il rilevatore ha smesso — che non e' un arrivo. Chi
    * non ha ancora visto niente si tiene il cambio buono in mancanza d'altro:
    * e' quello che faceva prima, e senza ritiri dichiarati non sbaglia. */
   const visto = numero(arriviVisti?.[conf.id]);
-  const arrivata = !conf.posta ? null : acceso(posta) ? quando(posta) : (visto ?? quando(posta));
+  const arrivata = soloSportello
+    ? quando(ritiro)
+    : !conf.posta
+      ? null
+      : acceso(posta)
+        ? quando(posta)
+        : (visto ?? quando(posta));
   /* Il ritiro puo' dirlo lo sportello o puo' dirlo una persona: e' lo stesso
    * fatto, e conta il piu' recente dei due. Chi ha tutti e due i sensori non
-   * si accorge di niente — il momento dichiarato, se non c'e', non esiste. */
-  const daSensore = conf.ritiro ? quando(ritiro) : null;
+   * si accorge di niente — il momento dichiarato, se non c'e', non esiste.
+   *
+   * Con il solo sportello lo dice la persona e basta: quel sensore adesso e'
+   * l'arrivo, e non puo' essere anche il suo contrario. */
+  const daSensore = soloSportello || !conf.ritiro ? null : quando(ritiro);
   const aMano = numero(ritiriAMano?.[conf.id]);
   const ritirata =
     daSensore === null ? aMano : aMano === null ? daSensore : Math.max(daSensore, aMano);
   const aperta = conf.ritiro ? apertaAdesso(ritiro, conf.soglia) : null;
+  /* Chi porta la notizia: il rilevatore se c'e', altrimenti lo sportello. */
+  const sorgente = conf.posta ? posta : soloSportello ? ritiro : null;
   const contatore = conf.contatore ? numero(states?.[conf.contatore]?.state) : null;
   return {
     id: conf.id,
-    nome: conf.nome || clean(posta?.attributes?.friendly_name) || conf.posta || conf.ritiro,
+    nome: conf.nome || clean(sorgente?.attributes?.friendly_name) || conf.posta || conf.ritiro,
     posta: conf.posta,
     ritiro: conf.ritiro,
     contatore,
     aperta,
     arrivata,
     ritirata,
-    muta: Boolean(conf.posta) && muto(posta),
+    muta: Boolean(sorgente) && muto(sorgente),
     /* Se il ritiro l'ha detto una persona e non lo sportello: la pagina lo
      * scrive con parole sue, perche' «ultima apertura» sarebbe una bugia. */
     ritiroAMano: daSensore === null && aMano !== null,
-    ce: cePosta({ posta: conf.posta ? posta : null, arrivata, ritirata, aperta }),
+    /* Con il solo sportello l'arrivo E' un'apertura, e la pagina lo scrive
+     * cosi': «ultimo movimento» sarebbe il nome di un rilevatore che non c'e'. */
+    daSportello: soloSportello,
+    ce: cePosta({ sorgente, arrivata, ritirata, aperta }),
   };
 }
 
@@ -323,15 +358,18 @@ export function letturaDellaCassetta(
  * finche' qualcuno non dice di averla presa — che e' come funziona una
  * cassetta vera: la posta non se ne va da sola.
  *
- * Quello che non si fa, e non si e' mai fatto, e' inventare un «no»: senza il
- * rilevatore, o con il rilevatore muto, la risposta resta «non si sa». */
-function cePosta({ posta, arrivata, ritirata, aperta }) {
-  if (!posta) return null;
-  if (muto(posta)) return null;
+ * Quello che non si fa, e non si e' mai fatto, e' inventare un «no»: senza un
+ * sensore che porti la notizia, o con quel sensore muto, la risposta resta
+ * «non si sa». Chi porta la notizia e' il rilevatore quando c'e'; chi ha solo
+ * il contatto sullo sportello ha quello, e con un sensore solo un'apertura e'
+ * l'unica notizia che esista (#564). */
+function cePosta({ sorgente, arrivata, ritirata, aperta }) {
+  if (!sorgente) return null;
+  if (muto(sorgente)) return null;
   if (aperta === true) return false;
-  /* Senza un arrivo da confrontare resta solo il presente: il rilevatore
-   * acceso adesso dice «c'e'», spento non dice niente. */
-  if (arrivata === null) return acceso(posta) ? true : null;
+  /* Senza un arrivo da confrontare resta solo il presente: il sensore acceso
+   * adesso dice «c'e'», spento non dice niente. */
+  if (arrivata === null) return acceso(sorgente) ? true : null;
   /* Mai ritirata e mai svuotata: qualcosa si e' mosso e nessuno l'ha tolto. */
   if (ritirata === null) return true;
   /* Il confronto vale anche col rilevatore ancora acceso: chi dice «l'ho

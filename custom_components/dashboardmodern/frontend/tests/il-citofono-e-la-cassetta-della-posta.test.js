@@ -166,10 +166,7 @@ test("un contatto al posto del luxmetro dice la stessa cosa senza soglia da tara
     "binary_sensor.vallhorn_motion": stato("off", 600),
     "binary_sensor.sportello": stato("on", 0),
   };
-  const lettura = letturaDellaCassetta(
-    { ...CASSETTA, ritiro: "binary_sensor.sportello" },
-    states,
-  );
+  const lettura = letturaDellaCassetta({ ...CASSETTA, ritiro: "binary_sensor.sportello" }, states);
   assert.equal(lettura.aperta, true);
 });
 
@@ -271,7 +268,6 @@ test("il riassunto è quello che la tessera racconta in tre parole", () => {
   assert.equal(riassunto.arrivata, ORA - 30 * 60000);
 });
 
-
 /* Il ritiro dichiarato a mano vale, e vale anche dopo che il PIR si spegne.
  *
  * Il rilevatore dice `last_changed`, cioe' l'ULTIMO cambio. Finche' e' acceso
@@ -330,9 +326,14 @@ test("ma un movimento nuovo dopo il ritiro riempie di nuovo la cassetta", () => 
   const conf = { id: "c1", posta: "binary_sensor.pir" };
   const states = { "binary_sensor.pir": stato("off", 0) };
   /* Ritirata un'ora fa, e mezz'ora fa e' passato di nuovo il postino. */
-  const letta = letturaDellaCassetta(conf, states, { c1: ORA - 60 * 60000 }, {
-    c1: ORA - 30 * 60000,
-  });
+  const letta = letturaDellaCassetta(
+    conf,
+    states,
+    { c1: ORA - 60 * 60000 },
+    {
+      c1: ORA - 30 * 60000,
+    },
+  );
   assert.equal(letta.ce, true, "la posta non se ne va da sola");
 });
 
@@ -349,4 +350,98 @@ test("senza registro si legge quello che c'e', come prima del ricordo", () => {
   );
   assert.equal(letta.arrivata, ORA - 30 * 60000);
   assert.equal(letta.ce, true);
+});
+
+/* ── chi ha SOLO il contatto sullo sportello (#564) ────────────────────────
+ *
+ * «Non serve il sensore che si mette per l'apertura della cassetta della
+ * posta.» Ed era vero: la sezione è nata intorno al Vallhorn — un rilevatore
+ * dentro che dice «è arrivato qualcosa» e un luxmetro che dice «lo sportello è
+ * stato aperto» — e il verdetto è il confronto fra i due momenti. Con un
+ * contatto solo quei due momenti sono lo stesso momento, e il confronto dava
+ * sempre «pari»: la card diceva «Aperta» per i pochi secondi dell'apertura e
+ * «Non si sa» per tutto il resto del tempo, senza nemmeno il tasto «L'ho
+ * presa». Il sensore c'era e non serviva a niente.
+ *
+ * Con un sensore solo l'unica cosa che si sa è che qualcuno ha aperto lo
+ * sportello — il postino che infila o chi ritira, e da fuori non si
+ * distinguono. Quell'apertura vale come arrivo, e a dire che è finita è la
+ * persona: è come funziona una cassetta vera.
+ */
+
+const SOLO_SPORTELLO = { id: "cassetta-1", nome: "Cassetta", ritiro: "binary_sensor.sportello" };
+
+test("col solo sportello, un'apertura è una notizia: c'è posta", () => {
+  const letta = letturaDellaCassetta(SOLO_SPORTELLO, {
+    "binary_sensor.sportello": stato("off", 20),
+  });
+  assert.equal(letta.ce, true, "lo sportello si è mosso e nessuno ha detto di aver preso niente");
+  assert.equal(letta.aperta, false);
+  assert.equal(letta.arrivata, Date.parse(quandoFa(20)));
+  assert.equal(letta.daSportello, true, "la pagina deve scrivere «apertura», non «movimento»");
+  assert.equal(letta.muta, false);
+});
+
+test("e «l'ho presa» la svuota, finché lo sportello non si muove di nuovo", () => {
+  const states = { "binary_sensor.sportello": stato("off", 20) };
+  const presa = { "cassetta-1": Date.parse(quandoFa(5)) };
+  assert.equal(letturaDellaCassetta(SOLO_SPORTELLO, states, presa).ce, false);
+  /* Lo sportello si riapre dopo il ritiro: è posta nuova. */
+  const dopo = { "binary_sensor.sportello": stato("off", 2) };
+  assert.equal(letturaDellaCassetta(SOLO_SPORTELLO, dopo, presa).ce, true);
+});
+
+test("mentre lo sportello è aperto la parola è «Aperta», non un verdetto", () => {
+  const letta = letturaDellaCassetta(SOLO_SPORTELLO, {
+    "binary_sensor.sportello": stato("on", 0),
+  });
+  assert.equal(letta.aperta, true);
+  assert.equal(letta.ce, false, "qualcuno ci ha le mani dentro adesso");
+});
+
+test("un contatto muto resta muto: non si inventa un arrivo", () => {
+  for (const grezzo of ["unavailable", "unknown"]) {
+    const letta = letturaDellaCassetta(SOLO_SPORTELLO, {
+      "binary_sensor.sportello": stato(grezzo, 20),
+    });
+    assert.equal(letta.muta, true, grezzo);
+    assert.equal(letta.ce, null, grezzo);
+  }
+});
+
+test("chi ha tutti e due i sensori non si accorge di niente", () => {
+  /* La regola nuova vale solo per chi ha un sensore solo: col Vallhorn il
+   * rilevatore resta l'arrivo e lo sportello resta il ritiro, come sempre. */
+  const vallhorn = {
+    id: "cassetta-1",
+    posta: "binary_sensor.vallhorn_motion",
+    ritiro: "sensor.vallhorn_illuminance",
+  };
+  const letta = letturaDellaCassetta(vallhorn, {
+    "binary_sensor.vallhorn_motion": stato("off", 30),
+    "sensor.vallhorn_illuminance": stato("0", 120),
+  });
+  assert.equal(letta.daSportello, false);
+  assert.equal(letta.ce, true, "movimento più recente dell'ultima apertura: la posta è dentro");
+  /* E lo sportello aperto dopo il movimento la svuota, come prima. */
+  const svuotata = letturaDellaCassetta(vallhorn, {
+    "binary_sensor.vallhorn_motion": stato("off", 30),
+    "sensor.vallhorn_illuminance": stato("0", 10),
+  });
+  assert.equal(svuotata.ce, false);
+});
+
+test("col solo rilevatore dentro non cambia niente nemmeno lì", () => {
+  const soloPir = { id: "cassetta-1", posta: "binary_sensor.pir" };
+  const letta = letturaDellaCassetta(soloPir, { "binary_sensor.pir": stato("on", 0) });
+  assert.equal(letta.daSportello, false);
+  assert.equal(letta.ce, true);
+  assert.equal(letta.aperta, null, "senza sportello non si sa se è aperta");
+});
+
+test("una cassetta senza sensori non dice niente, come prima", () => {
+  const vuota = letturaDellaCassetta({ id: "cassetta-1", nome: "Cassetta" }, {});
+  assert.equal(vuota.ce, null);
+  assert.equal(vuota.muta, false, "non è muta: non le è stato chiesto niente");
+  assert.equal(vuota.daSportello, false);
 });
