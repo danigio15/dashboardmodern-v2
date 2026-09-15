@@ -622,7 +622,6 @@ export const SOURCE_INDEX = Object.freeze({
   "APERTA": "OPEN",
   "Aperta direttamente su GitHub: la risposta resta li'": "Opened directly on GitHub: the reply stays there",
   "aperte": "open",
-  "Aperto": "Unlocked",
   "Aperto da": "Open for",
   "apertura media": "average",
   "aperture": "openings",

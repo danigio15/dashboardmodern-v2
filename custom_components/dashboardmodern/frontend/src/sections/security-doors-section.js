@@ -15,6 +15,7 @@ import {
   doorPinMatches,
   normalizeSecurityDoors,
 } from "../core/security-door-model.js";
+import { parolaDellaPorta } from "./le-parole-di-home-assistant.js";
 import { registraPaginaARuntime, renderPageMastheads } from "./page-masthead-section.js";
 import {
   activeLocale,
@@ -76,13 +77,7 @@ function doorById(id) {
 function doorStateLabel(door, states) {
   const current = states[door.entity];
   const raw = clean(current?.state).toLowerCase();
-  if (raw === "locked") return t("Chiusa a chiave", "Locked");
-  if (raw === "unlocked") return t("Sbloccata", "Unlocked");
-  if (raw === "open") return t("Aperta", "Open");
-  if (raw === "opening") return t("In apertura", "Opening");
-  if (raw === "closing") return t("In chiusura", "Closing");
-  if (raw === "closed") return t("Chiusa", "Closed");
-  return t("Tocca per aprire", "Tap to open");
+  return parolaDellaPorta(raw) || t("Tocca per aprire", "Tap to open");
 }
 
 /* ── markup ───────────────────────────────────────────────────────────── */

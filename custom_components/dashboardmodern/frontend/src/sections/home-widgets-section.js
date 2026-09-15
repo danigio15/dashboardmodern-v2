@@ -40,6 +40,7 @@ import {
   alarmModeButtons,
   disegnoDelTastoAntifurto,
 } from "./security-showcase-section.js";
+import { parolaDellaPorta, parolaDiStato } from "./le-parole-di-home-assistant.js";
 import { haOggettoWidget, oggettoWidget } from "../core/oggetti-widget.js";
 import { iconGlyphMarkup } from "./icon-engine-section.js";
 import {
@@ -2217,7 +2218,13 @@ function rigaDaEntita(states, entity, glifo = "•") {
       daQuando: quando,
       value: t("Spento", "Off"),
     };
-  return { glyph: glifo, name: nome, value: grezzo };
+  /* Quello che non e' un numero ne' un acceso/spento si scrive com'e' — ma
+   * «com'e'» vuol dire nella lingua della plancia, non nel gergo di Home
+   * Assistant: sotto «RAV4 luogo di parcheggio» compariva `not_home`, che non
+   * e' una parola ne' in italiano ne' in inglese. Il nome di una zona —
+   * «Lavoro», «Palestra» — non sta in tabella e passa intatto, che e'
+   * esattamente quello che deve succedere: quella parola l'ha scritta qualcuno. */
+  return { glyph: glifo, name: nome, value: parolaDiStato(grezzo) };
 }
 
 /* Il disegno di una casella dell'auto, indovinato dal nome del riferimento:
@@ -6124,14 +6131,7 @@ function porteDetail(widget, states) {
   const parts = [];
   for (const door of widget.doors) {
     const raw = clean(stateOf(states, door.entity)?.state).toLowerCase();
-    const label =
-      raw === "locked"
-        ? t("Chiusa a chiave", "Locked")
-        : raw === "unlocked"
-          ? t("Sbloccata", "Unlocked")
-          : raw === "open"
-            ? t("Aperta", "Open")
-            : "";
+    const label = parolaDellaPorta(raw);
     /* La porta si apre anche da qui.
      *
      * La riga la disegnava e basta: nome, stato, e un lucchetto che diceva
