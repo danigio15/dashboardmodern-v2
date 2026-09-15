@@ -434,29 +434,36 @@ export function lexicalGlobal(name) {
 /* In che stanza di Home Assistant sta un'entita'.
  *
  * Home Assistant la stanza la sa gia': un'entita' porta la sua area, o la
- * eredita dal dispositivo su cui sta. Servono tre registri \u2014 le aree, le aree
- * dei dispositivi, le aree delle entita' \u2014 e il guscio li chiede dentro
+ * eredita dal dispositivo su cui sta. Servono tre registri — le aree, le aree
+ * dei dispositivi, le aree delle entita' — e il guscio li chiede dentro
  * `wzLoadAllEntities()`: la procedura iniziale e il rilevamento automatico.
  * Qui ci si appoggia a quelli e basta.
  *
  * Chiederli da soli si e' provato, ed e' costata la #553. La domanda partiva da
  * dentro il disegno, una volta per entita', e `config/entity_registry/list` e'
- * la risposta piu' pesante che Home Assistant sappia dare; quando falliva \u2014 e
+ * la risposta piu' pesante che Home Assistant sappia dare; quando falliva — e
  * dentro il pannello fallisce, perche' li' la presa e' il ponte e non quella
- * del guscio \u2014 la domanda si rifaceva al giro dopo, e il giro dopo e' ogni
+ * del guscio — la domanda si rifaceva al giro dopo, e il giro dopo e' ogni
  * cambio di stato della casa. La linea cadeva, con lei le sottoscrizioni, e i
  * dati sparivano dopo essere comparsi. Da un disegno non si chiede niente a
  * nessuno: si legge quello che c'e'.
  *
- * Quindi: chi non e' passato dalla procedura iniziale o dal rilevamento
- * automatico non ha i registri, e qui si risponde vuoto. E' una risposta
- * onesta, e chi legge ripiega sul nome \u2014 che e' quello che la plancia faceva
- * prima della #549. Il conto per stanza si riaccende da se' appena i registri
- * ci sono.
+ * E va detto fino in fondo dove siamo. Dentro il pannello questi registri oggi
+ * non ci sono MAI: `WIZ` nasce nuovo a ogni caricamento della pagina, e il
+ * rilevamento automatico ospitato esce subito da `loadEntities()` perche' gli
+ * stati vivi gli bastano, senza passare da `wzLoadAllEntities()`. Quindi li'
+ * qui si risponde sempre vuoto e il conto della presenza ripiega sul nome: il
+ * conto per stanza della #549, in pannello, non e' in funzione. Fuori dal
+ * pannello, dopo la procedura iniziale, i registri ci sono e funziona.
+ *
+ * E' una rinuncia, non una svista, e sta scritta qui perche' non sembri una
+ * svista. Rimetterla in piedi vuol dire tenere i registri in un posto che
+ * sopravvive al caricamento, riempito da chi gia' li carica per conto suo —
+ * non chiederli da qui.
  *
  * Torna il NOME della stanza, non il suo codice: e' quello che si legge, ed e'
  * quello con cui la plancia chiama le sue stanze. Vuoto quando non si sa, e
- * \u00abnon lo so\u00bb deve restare vuoto: chi legge deve poter ripiegare su altro
+ * «non lo so» deve restare vuoto: chi legge deve poter ripiegare su altro
  * invece di ricevere un nome inventato. */
 export function stanzaDiHomeAssistant(entity) {
   const id = clean(entity);
