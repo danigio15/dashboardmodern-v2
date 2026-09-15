@@ -5,6 +5,37 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.29 — 2026-09-15
+
+### Corretto
+
+- **Quello che ti eri tolto non torna da solo dopo l'aggiornamento**
+
+  «Dopo l'ultimo aggiornamento non funziona più il meteo o le entità person e
+  le icone in basso» (#553).
+
+  Colpa di una correzione della 1.4.28, e la spiegazione è questa. All'avvio la
+  plancia ricostruisce la configurazione da due posti: le chiavi di sempre, che
+  ogni gesto scrive subito, e una copia canonica, che può restare indietro di un
+  giro. Le chiavi devono avere l'ultima parola — ed è così che è sempre stato.
+
+  Nella 1.4.28 le ho fatte parlare per prime. Sembrava più pulito: così le
+  migrazioni del modello avrebbero lavorato su quello che uno ha davvero,
+  invece che su una fotografia vecchia. Ma le migrazioni si risvegliano quando
+  non trovano il loro segno, e davanti a una lista **vuota** riseminano: chi si
+  era tolto i carichi dal flusso se li ritrovava tutti, le entità del
+  raffreddamento tornavano da sole, e i campi annuali svuotati apposta si
+  riempivano di nuovo. E il risultato finiva sul disco.
+
+  Una lista vuota è una scelta, non un'assenza — c'era scritto, e la riga che
+  ho spostato è proprio quella che lo diceva. Adesso le chiavi tornano a essere
+  l'ultima parola, e la regola ha una prova che la tiene ferma.
+
+  Il travaso del vecchio interruttore del verso batteria, che era il motivo per
+  cui avevo toccato quell'ordine, adesso si posa sul modello ricostruito — che
+  è quello che va sul disco — invece che sulla copia che un attimo dopo viene
+  riscritta.
+
 ## 1.4.28 — 2026-09-14
 
 ### Corretto

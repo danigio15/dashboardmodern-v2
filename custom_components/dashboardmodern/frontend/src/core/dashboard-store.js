@@ -10,7 +10,13 @@ function deepFreeze(value) {
   for (const entry of Object.values(value)) deepFreeze(entry);
   return value;
 }
-import { migrateState, normalizeSection, readLegacyState, SECTION_KEYS } from "./migrations.js";
+import {
+  applicaIlVersoDellaBatteria,
+  migrateState,
+  normalizeSection,
+  readLegacyState,
+  SECTION_KEYS,
+} from "./migrations.js";
 import { sectionForEditorSlot } from "./editor-slots.js";
 import { projectEnergySlots } from "./energy-projection.js";
 import { IMPIANTO_SCELTO_KEY, plantModel } from "./energy-plants.js";
@@ -169,30 +175,57 @@ export class DashboardStore {
       reportDevices: parse("cd_report_devices", []),
       washerImage: parse("cd_lavatrice_visual", ""),
       batteryDirection: parse("cd_batteria_verso", null),
-      sezioni: this.chiaviLegacySulDisco(),
     });
     this.state = result.state;
-    if (result.changes.length) console.info("[DashboardStore] migration", result.changes);
-    this.persist();
-    return result;
-  }
-  /* Le chiavi legacy come stanno sul disco, per chi migra.
-   *
-   * Solo quelle che ci sono davvero: una chiave assente non e' una sezione
-   * vuota, e chi migra deve poter distinguere le due cose. Una chiave
-   * illeggibile non insegna niente e si salta: resta la copia canonica. */
-  chiaviLegacySulDisco() {
-    const sezioni = {};
+    /* All'avvio le chiavi legacy dettano, la copia canonica segue.
+     *
+     * Il documento canonico e' una fotografia scritta dall'ultimo `persist`, e
+     * puo' restare indietro di un giro: ogni gesto della plancia scrive PRIMA
+     * la sua chiave legacy — `cd_ev_cars`, `cd_energy_model`, le entita' — e
+     * solo un microtask dopo la copia. Chi salva e ricarica subito — il
+     * messaggio in plancia dice proprio "ricarica per applicare", e l'app del
+     * telefono si chiude quando vuole lei — riapre la pagina con la copia
+     * vecchia, e questa riga ricostruiva lo stato DA QUELLA: il `persist` qui
+     * sotto la riscriveva sopra le chiavi legacy, e l'ULTIMA modifica salvata
+     * spariva. «Questo campo proprio non me lo salva»: sempre l'ultimo, mai
+     * gli altri, perche' gli altri la copia li aveva gia' imparati. E' la
+     * stessa riconciliazione che il ripristino della configurazione condivisa
+     * gia' fa; qui vale per ogni avvio, e per ogni sezione. Una lista vuota ma
+     * presente e' una scelta, non un'assenza: le auto cancellate restano
+     * cancellate per la stessa strada.
+     *
+     * E dev'essere l'ULTIMA parola, dopo le migrazioni del modello e non
+     * prima. Farla parlare prima sembrava piu' pulito — cosi' le migrazioni
+     * avrebbero lavorato su quello che l'utente ha davvero — ma le migrazioni
+     * del modello si risvegliano quando non trovano il loro segno, e su una
+     * lista vuota RISEMINANO: chi si era tolto i carichi dal flusso se li
+     * ritrovava tutti al primo avvio dopo l'aggiornamento, e uguale per le
+     * entita' del raffreddamento e per gli alias annuali svuotati apposta.
+     * Una lista vuota e' una scelta anche nei confronti delle migrazioni.
+     *
+     * Le luci restano fuori: la loro forma legacy — `{entita': nome}` — perde
+     * per costruzione stanza e ordinamento, e ricostruirle da li' a ogni avvio
+     * butterebbe via quello che la copia custodisce apposta. */
     for (const [section, key] of Object.entries(SECTION_KEYS)) {
-      const raw = this.storage.getItem(key);
-      if (raw === null || raw === undefined) continue;
+      if (section === "lights") continue;
       try {
-        sezioni[section] = JSON.parse(raw);
+        const raw = this.storage.getItem(key);
+        if (raw === null || raw === undefined) continue;
+        this.state.sections[section] = normalizeSection(section, JSON.parse(raw), {
+          rooms: this.state.sections.rooms || [],
+        });
       } catch {
         /* Una chiave illeggibile non insegna niente: resta la copia. */
       }
     }
-    return sezioni;
+    /* Il verso del vecchio interruttore si posa QUI, sul modello riconciliato:
+     * e' questo che va sul disco un attimo dopo. Scritto prima, la riga qui
+     * sopra se lo portava via — segno compreso — e il travaso si rifaceva a
+     * ogni avvio senza mai arrivare a chi lo aspettava. */
+    applicaIlVersoDellaBatteria(this.state.sections.energy, parse("cd_batteria_verso", null));
+    if (result.changes.length) console.info("[DashboardStore] migration", result.changes);
+    this.persist();
+    return result;
   }
   getState() {
     return cloneValue(this.state);

@@ -406,35 +406,32 @@ export function migrateLegacyEnergyLoads(energyLoads = [], overrides = {}, energ
   );
 }
 
-/* All'avvio le chiavi legacy dettano, e dettano PRIMA che il modello si migri.
+/* Il verso del vecchio interruttore, travasato una volta sola.
  *
- * La copia canonica è una fotografia scritta dall'ultimo `persist`, e può
- * restare indietro di un giro: ogni gesto della plancia scrive PRIMA la sua
- * chiave legacy — `cd_ev_cars`, `cd_energy_model`, le entita' — e solo un
- * microtask dopo la copia. Chi salva e ricarica subito riaprirebbe la pagina
- * con la copia vecchia, e l'ultima modifica salvata sparirebbe.
+ * Sta fuori da `migrateState` perche' deve poter atterrare sul modello che
+ * l'utente ha DAVVERO — quello che il deposito ricostruisce dalle chiavi
+ * legacy all'avvio — e non sulla copia canonica, che un attimo dopo viene
+ * riscritta da quelle stesse chiavi. Scritto sulla copia, il travaso spariva
+ * prima di arrivare al disco e si rifaceva a ogni avvio senza mai vedersi.
  *
- * L'ordine conta quanto la riconciliazione. Le migrazioni che seguono non
- * toccano lo schema ma il MODELLO — il verso della batteria, le entità del
- * raffreddamento, i carichi del flusso — e ognuna si segna nel `metadata`
- * per non rifarsi. Se le chiavi legacy parlassero dopo, riscriverebbero il
- * modello migrato con quello vecchio, segno e lavoro insieme: la migrazione
- * si rifarebbe a ogni avvio e non si vedrebbe mai. Parlano qui, e le
- * migrazioni del modello lavorano su quello che l'utente ha davvero.
- *
- * Una lista vuota ma presente è una scelta, non un'assenza: le auto
- * cancellate restano cancellate per la stessa strada. Le luci restano fuori:
- * la loro forma legacy — `{entita': nome}` — perde per costruzione stanza e
- * ordinamento, e ricostruirle da lì a ogni avvio butterebbe via quello che la
- * copia custodisce apposta. */
-function dettanoLeChiaviLegacy(state, sezioni) {
-  if (!sezioni) return;
-  for (const section of Object.keys(SECTION_KEYS)) {
-    if (section === "lights" || !(section in sezioni)) continue;
-    state.sections[section] = normalizeSection(section, sezioni[section], {
-      rooms: state.sections.rooms || [],
-    });
+ * Il segno nel `metadata` viaggia col modello: da quando e' scritto li', chi
+ * dopo la migrazione torna a \u00abscarica\u00bb ci resta. Torna `true` solo quando
+ * ha cambiato qualcosa, cosi' chi chiama sa se ha una notizia da dare. */
+export function applicaIlVersoDellaBatteria(energy, stored) {
+  if (!energy || energy.metadata?.battery_direction_migrated) return false;
+  let cambiato = false;
+  if (versoGirato(stored)) {
+    const battery = { ...(energy.battery || {}) };
+    const signed = { ...(battery.signed || {}) };
+    if (!SIGNED_GROUPS.battery.directions.includes(String(signed.positive || "").trim())) {
+      signed.positive = "charge";
+      battery.signed = signed;
+      energy.battery = battery;
+      cambiato = true;
+    }
   }
+  energy.metadata = { ...(energy.metadata || {}), battery_direction_migrated: true };
+  return cambiato;
 }
 
 export function migrateState(input = {}, legacy = {}) {
@@ -451,7 +448,6 @@ export function migrateState(input = {}, legacy = {}) {
     state = migrateV3ToV4(state, legacy);
     changes.push("schema 3 → 4");
   }
-  dettanoLeChiaviLegacy(state, legacy.sezioni);
   if (+state.schema_version >= 4 && preserveEnergySemantics(state.sections?.energy))
     changes.push("energy annual/lifetime semantics migrated");
   if (+state.schema_version >= 4) {
@@ -497,19 +493,8 @@ export function migrateState(input = {}, legacy = {}) {
      * Adesso la risposta e' una: sta nel modello Energia, accanto al sensore
      * che descrive. Chi aveva girato il vecchio interruttore se lo ritrova
      * qui, una volta sola. */
-    if (!energy.metadata?.battery_direction_migrated) {
-      if (versoGirato(legacy.batteryDirection)) {
-        const battery = { ...(energy.battery || {}) };
-        const signed = { ...(battery.signed || {}) };
-        if (!SIGNED_GROUPS.battery.directions.includes(String(signed.positive || "").trim())) {
-          signed.positive = "charge";
-          battery.signed = signed;
-          energy.battery = battery;
-          changes.push("battery direction migrated from cd_batteria_verso");
-        }
-      }
-      energy.metadata = { ...(energy.metadata || {}), battery_direction_migrated: true };
-    }
+    if (applicaIlVersoDellaBatteria(energy, legacy.batteryDirection))
+      changes.push("battery direction migrated from cd_batteria_verso");
   }
   return { state, changes };
 }
