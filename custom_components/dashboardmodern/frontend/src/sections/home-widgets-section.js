@@ -1711,6 +1711,32 @@ function didascaliaDiOggi(oggi) {
   return altre.length ? `${testa} · ${altre.join(" · ")}` : testa;
 }
 
+/* Quanto e' piena la batteria di casa, sulla tessera chiusa (#544).
+ *
+ * «Vorrei che fosse piu' facile vedere la % della batteria del fotovoltaico
+ * senza dover cliccare sulla card energia.» Il numero c'era gia', ma solo
+ * dentro: la finestra del dettaglio lo scrive accanto ai watt della batteria,
+ * e per leggerlo bisognava aprire — che e' esattamente quello che la
+ * segnalazione chiede di non dover fare.
+ *
+ * Va in testa alla didascalia, subito dopo l'avviso del sovraccarico, e per la
+ * stessa ragione per cui l'avviso sta li': la didascalia scorre, e cio' che si
+ * legge senza aspettare e' l'inizio. Sta prima dei numeri del giorno perche'
+ * non e' un numero del giorno — e' come sta la casa adesso, come i watt scritti
+ * in grande.
+ *
+ * Con la parola e non col disegno, per la ragione gia' scritta in
+ * `didascaliaDiOggi`: un simbolo a undici pixel e' una macchia scura.
+ *
+ * Chi la batteria non ce l'ha non se ne accorge: senza la sua riga, o senza il
+ * suo stato di carica, non c'e' niente da scrivere e la didascalia resta quella
+ * di sempre. */
+export function paroleDellaBatteria(rows) {
+  const soc = (Array.isArray(rows) ? rows : []).find((riga) => riga?.group === "battery")?.soc;
+  if (!Number.isFinite(soc)) return "";
+  return `${t("Batteria", "Battery")} ${Math.max(0, Math.min(100, Math.round(soc)))}%`;
+}
+
 /* Il verdetto della soglia su queste letture (#508).
  *
  * La regola sta in `core/la-soglia-della-potenza.js` e i numeri sono quelli
@@ -1765,7 +1791,11 @@ function tesseraEnergia(
     value: formatWatts(house),
     /* Il sovraccarico va in testa, prima dei numeri del giorno: la didascalia
      * scorre, e cio' che si legge senza aspettare e' l'inizio. */
-    caption: [avviso, didascaliaDiOggi(oggi || (today == null ? {} : { house: today }))]
+    caption: [
+      avviso,
+      paroleDellaBatteria(rows),
+      didascaliaDiOggi(oggi || (today == null ? {} : { house: today })),
+    ]
       .filter(Boolean)
       .join(" · "),
     ring: null,
