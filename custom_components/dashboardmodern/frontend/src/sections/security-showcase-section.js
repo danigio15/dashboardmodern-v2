@@ -419,6 +419,24 @@ function syncZone(shell, labels) {
 }
 
 /* Lo stato della centrale, con l'entita' risolta come la risolve il runtime. */
+/* La centrale, se c'e' davvero.
+ *
+ * Il guscio non risponde mai «non lo so»: per uno slot che nessuno ha mappato
+ * restituisce un fantasma — `{ entity_id: 'dm.unmapped', state: 'unavailable' }`
+ * — che serve a chi disegna per non inciampare su un `undefined`. Ma un
+ * fantasma e' un oggetto, e un oggetto e' vero: chi chiedeva «c'e' una
+ * centrale?» si sentiva rispondere di si'.
+ *
+ * Da li' veniva la #547: chi l'antifurto se l'e' fatto con degli script non ha
+ * nessuna centrale, e si ritrovava lo stesso la fila di serie — Totale, Notte,
+ * Casa, Sblocca — accanto ai tasti suoi. Tasti che chiamano i servizi di
+ * `alarm_control_panel`, cioe' che non fanno niente, e che non si potevano
+ * nemmeno togliere: le caselle per nasconderli mostrano solo i modi che una
+ * centrale dichiara, e una centrale non c'era.
+ *
+ * Un'entita' non mappata non e' una centrale che non risponde: e' una centrale
+ * che non c'e'. Un `unavailable` vero invece resta una centrale — sta solo
+ * dormendo, e chi l'ha configurata vuole ritrovare i suoi tasti al risveglio. */
 function alarmStateObject() {
   const riferimento = RIF_CENTRALE;
   let risolto = riferimento;
@@ -426,7 +444,8 @@ function alarmStateObject() {
     risolto = clean(root.resolveEntity?.(riferimento)) || riferimento;
   } catch (_error) {}
   const states = allStates();
-  return states[risolto] || states[riferimento] || null;
+  const stato = states[risolto] || states[riferimento] || null;
+  return clean(stato?.entity_id) === "dm.unmapped" ? null : stato;
 }
 
 /* La fila dei tasti: uno per ogni inserimento che la centrale accetta davvero,
