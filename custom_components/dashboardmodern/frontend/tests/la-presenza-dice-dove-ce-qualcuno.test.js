@@ -389,36 +389,44 @@ test("senza stanza vale ancora il nome: Home Assistant non obbliga ad assegnarla
   assert.equal(conto.totale, 1);
 });
 
-test("le stanze di Home Assistant si chiedono, non si aspetta che le chieda qualcun altro", async () => {
-  /* La correzione per stanza (#549) si appoggiava ai tre registri che il
-   * guscio mette da parte — le aree, le aree dei dispositivi, quelle delle
-   * entità. Ma quei tre il guscio li chiede dentro `wzLoadAllEntities()`, che
-   * gira nella procedura iniziale e nel rilevamento automatico: a un avvio
-   * normale non sono mai stati chiesti. La stanza tornava vuota per tutti, il
-   * conto ripiegava sul nome, e la correzione non si vedeva — cioè il caso
-   * della segnalazione restava rotto.
+test("da un disegno non si chiede niente al socket: i registri si leggono, non si chiedono", async () => {
+  /* La correzione per stanza (#549) si appoggia ai tre registri che il guscio
+   * mette da parte — le aree, le aree dei dispositivi, quelle delle entità.
+   * Quei tre il guscio li chiede dentro `wzLoadAllEntities()`, cioè nella
+   * procedura iniziale e nel rilevamento automatico.
    *
-   * Adesso li chiede il modulo stesso, una volta, e li mette nello stesso
-   * posto in cui li mette il guscio. */
-  const sorgente = await readFile(
-    new URL("../src/sections/shared.js", import.meta.url),
-    "utf8",
-  );
+   * Chiederli da qui si è provato, nella 1.4.28, ed è costata la #553: «carica
+   * correttamente i dati poi all'improvviso scompaiono». La domanda partiva da
+   * dentro il disegno, una volta per entità; `config/entity_registry/list` è la
+   * risposta più pesante che Home Assistant sappia dare; e dentro il pannello
+   * la presa è il ponte, non quella del guscio, quindi falliva sempre — e
+   * fallendo si ri-segnava da rifare, cioè si rifaceva a ogni cambio di stato
+   * della casa. La linea cadeva, con lei le sottoscrizioni, e i dati sparivano
+   * dopo essere comparsi.
+   *
+   * Questa prova tiene chiusa quella porta: dal modulo che disegna non parte
+   * nessuna domanda ai registri. Chi non ha i registri riceve stanza vuota e
+   * ripiega sul nome, che è quello che la plancia faceva prima della #549. */
+  const sorgente = await readFile(new URL("../src/sections/shared.js", import.meta.url), "utf8");
+  /* L'asserzione vale su TUTTO il codice, non sul solo corpo della lettura: la
+   * prima versione di questa prova ritagliava a partire da
+   * `stanzaDiHomeAssistant`, e la funzione che chiedeva stava sopra — quindi
+   * passava anche col difetto dentro. Una prova che non vede quello che deve
+   * impedire non serve a niente.
+   *
+   * I commenti si tolgono prima di guardare: qui sopra, e nel modulo, i tre
+   * comandi si NOMINANO apposta per spiegare perché non si chiedono. */
+  const codice = sorgente.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
   for (const registro of [
     "config/area_registry/list",
     "config/device_registry/list",
     "config/entity_registry/list",
-  ]) {
-    assert.match(
-      sorgente,
-      new RegExp(`chiediAHomeAssistant\\(\\{ type: "${registro.replace(/\//g, "\\/")}" \\}\\)`),
-      `${registro}: va chiesto, non aspettato`,
-    );
-  }
-  /* Una volta sola, ma non «una volta e pazienza»: se il socket non c'era, il
-   * prossimo che passa deve riprovare. */
-  assert.match(sorgente, /memoria\.chieste = true;/);
-  assert.match(sorgente, /\} catch \(_error\) \{[\s\S]*?memoria\.chieste = false;/);
-  /* E quando arrivano si ridisegna: sono arrivate dopo la casa. */
-  assert.match(sorgente, /dashboardmodern:state-changed/);
+  ])
+    assert.doesNotMatch(codice, new RegExp(registro), `${registro}: non si chiede da qui`);
+  const lettura = sorgente.slice(
+    sorgente.indexOf("export function stanzaDiHomeAssistant("),
+    sorgente.indexOf("/* Una variabile del runtime vendorizzato"),
+  );
+  assert.ok(lettura, "la lettura della stanza deve esistere");
+  assert.doesNotMatch(lettura, /await/, "si legge e si risponde, senza aspettare nessuno");
 });
