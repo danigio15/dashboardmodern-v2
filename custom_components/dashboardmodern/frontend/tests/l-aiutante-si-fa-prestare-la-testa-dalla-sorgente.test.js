@@ -139,8 +139,14 @@ test("e si passa alla sorgente solo se arriva davvero più indietro", () => {
   assert.match(SORGENTE, /if \(!della\.length \|\| primaDella >= primaSua\) return \[\];/);
 });
 
-test("l'ammanco che resta è quello della serie che si è usata davvero", () => {
+test("la testa che resta è quella della serie che si è usata davvero", () => {
   /* Se la sorgente copre tutto, non c'è più niente da dire; se anche lei è
-   * corta, si dice quanto manca a LEI, non all'aiutante. */
-  assert.match(SORGENTE, /const mancante = prestata\s*\?\s*prestata\.mancante/);
+   * corta, si dice quanto manca a LEI, non all'aiutante. Una volta la testa
+   * della sorgente si calcolava a parte e si portava dietro nel prestito: due
+   * conti della stessa cosa, e chi li faceva erano due. Adesso la serie
+   * prestata prende il posto della propria — `mie` — e la testa la chiede chi
+   * la chiede sempre, a quella. */
+  assert.match(SORGENTE, /const mie = prestate \|\| righe\[plan\.entity\];/);
+  assert.match(SORGENTE, /testaDellArco\(mie, range, crescita\)/);
+  assert.doesNotMatch(SORGENTE, /prestata\.mancante/);
 });

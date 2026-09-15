@@ -499,15 +499,18 @@ function giorniPerEntita(plans, giorni, prefisso) {
   return perEntita;
 }
 
-/* Gli ammanchi per entita', come `giorniPerEntita` fa con le serie. */
+/* Le teste dei contatori per entita', come `giorniPerEntita` fa con le serie.
+ *
+ * Ogni voce e' quella che torna da `testaDellArco`: quanta ne ha e se e' stata
+ * contata nel totale. */
 function ammanchiPerEntita(plans, ammanchi, prefisso) {
   const perEntita = new Map();
   if (!(ammanchi instanceof Map) || ammanchi.size === 0) return perEntita;
   plans.forEach((plan) => {
-    const quanto = ammanchi.get(`${prefisso}${plan.key}`);
-    if (!Number.isFinite(quanto) || quanto <= 0) return;
-    perEntita.set(plan.entity, quanto);
-    perEntita.set(plan.source, quanto);
+    const testa = ammanchi.get(`${prefisso}${plan.key}`);
+    if (!Number.isFinite(testa?.quanta) || testa.quanta <= 0) return;
+    perEntita.set(plan.entity, testa);
+    perEntita.set(plan.source, testa);
   });
   return perEntita;
 }
@@ -1370,24 +1373,18 @@ function scriviLaStrada(ancora, misurata) {
   return true;
 }
 
-/* Il pezzo di storia che al totale manca per forza, scritto sulla card.
+/* La testa del contatore, detta sulla card.
  *
  * «Il sensore restituisce 1440,76 kWh per 2026» e la plancia ne diceva 546. La
  * differenza non e' un errore di somma: e' energia che il contatore aveva gia'
- * fatto prima che Home Assistant cominciasse a tenerne le statistiche — una
- * entita' rifatta, un aiutante creato mesi dopo l'apparecchio, un database
- * ripulito. Nessuna somma di secchielli puo' ritrovarla, perche' i secchielli
- * non ci sono.
+ * fatto prima che Home Assistant cominciasse a tenerne le statistiche.
  *
- * E nemmeno si puo' aggiungerla al totale: non si sa QUANDO e' stata
- * consumata. Su una colonnina installata quest'anno e' tutta di quest'anno; su
- * un contatore vecchio a cui hanno rifatto l'entita' e' di anni fa, e scriverla
- * nell'anno vorrebbe dire gonfiarlo di tutta la sua vita. Fra le due la plancia
- * non puo' scegliere da sola, e indovinare in quel verso e' molto peggio che
- * restare corti.
- *
- * Quello che si puo' fare e' dirlo: cosi' un numero corto smette di essere un
- * numero sbagliato e diventa un numero di cui si sa il perche'. */
+ * Adesso, quando quell'energia sta nel passo dell'apparecchio — il conto lo fa
+ * `testaDellArco` — e' DENTRO il totale, e questa riga dice da dove viene: un
+ * numero che non torna con nessun secchiello merita la sua spiegazione tanto
+ * quanto un numero corto. Quando invece non ci sta — un contatore con anni di
+ * vita dietro a cui hanno ripulito il database — il totale resta corto, e
+ * questa riga dice quanto e perche'. */
 function scriviLAmmanco(bundle, source) {
   /* Sotto il titolo dell'anno, non in fondo al pannello.
    *
@@ -1401,8 +1398,8 @@ function scriviLAmmanco(bundle, source) {
   const panel = blocco || doc?.querySelector(".ed-device-detail,#ed-device-detail");
   if (!panel) return false;
   let riga = (blocco ? panel.parentElement : panel)?.querySelector?.(".dm-ed-ammanco");
-  const quanto = bundle?.deviceYearAmmanco?.get(source);
-  if (!Number.isFinite(quanto) || quanto <= 0) {
+  const testa = bundle?.deviceYearAmmanco?.get(source);
+  if (!Number.isFinite(testa?.quanta) || testa.quanta <= 0) {
     riga?.remove?.();
     return false;
   }
@@ -1412,15 +1409,21 @@ function scriviLAmmanco(bundle, source) {
     if (blocco) blocco.after(riga);
     else panel.append(riga);
   }
+  riga.classList.toggle("dm-ed-ammanco-contato", Boolean(testa.contata));
   /* Il numero sta FUORI dalla frase tradotta: una chiave con dentro un valore
    * non e' una chiave, e in tredici lingue diventa tredici chiavi che non si
    * ritrovano piu'. */
   scriviTestoSeCambia(
     riga,
-    `⚠️ ${formatNumber(quanto, 1)} kWh ${t(
-      "non contati: il contatore li aveva già fatti prima che ne cominciassero le statistiche",
-      "not counted: the counter had already made them before its statistics began",
-    )}`,
+    testa.contata
+      ? `✅ ${formatNumber(testa.quanta, 1)} kWh ${t(
+          "compresi qui: il contatore li aveva già fatti prima che ne cominciassero le statistiche",
+          "included here: the counter had already made them before its statistics began",
+        )}`
+      : `⚠️ ${formatNumber(testa.quanta, 1)} kWh ${t(
+          "non contati: il contatore li aveva già fatti prima che ne cominciassero le statistiche, e sono troppi per essere di questo periodo",
+          "not counted: the counter had already made them before its statistics began, and they are too many to belong to this period",
+        )}`,
   );
   return true;
 }
@@ -2191,6 +2194,9 @@ function installStyles() {
       /* Il pezzo di storia che al totale manca per forza: si dice, invece di
          lasciare un numero corto senza una parola. */
       .dm-ed-ammanco{margin:10px 0 0;padding:9px 13px;border-radius:12px;font-size:12px;font-weight:600;line-height:1.45;color:#92400e;background:#fef3c7;border:1px solid #fcd34d}
+      /* Contata vuol dire che il totale sopra e' giusto: e' una spiegazione,
+       * non un allarme, e il giallo di un avviso direbbe il contrario. */
+      .dm-ed-ammanco-contato{color:#065f46;background:#d1fae5;border-color:#6ee7b7}
       /* La riga che dice da dove viene la spartizione: piccola e spenta
        * quando e' una misura, perche' misurato e' il caso normale e non
        * deve gridare; un filo piu' marcata quando e' una stima, che e'
