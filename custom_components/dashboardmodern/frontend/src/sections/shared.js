@@ -434,76 +434,38 @@ export function lexicalGlobal(name) {
 /* In che stanza di Home Assistant sta un'entita'.
  *
  * Home Assistant la stanza la sa gia': un'entita' porta la sua area, o la
- * eredita dal dispositivo su cui sta. Servono tre registri — le aree, le aree
- * dei dispositivi, le aree delle entita' — e il guscio li chiede gia', ma solo
- * dentro `wzLoadAllEntities()`, cioe' nella procedura iniziale e nel
- * rilevamento automatico: a un avvio normale della plancia quei tre non sono
- * mai stati chiesti. Appoggiarsi a quelli e basta voleva dire rispondere
- * «non lo so» a ogni entita' per sempre, e chi legge, non sapendo la stanza,
- * ripiegava sul nome — cioe' la correzione non si vedeva.
+ * eredita dal dispositivo su cui sta. Servono tre registri \u2014 le aree, le aree
+ * dei dispositivi, le aree delle entita' \u2014 e il guscio li chiede dentro
+ * `wzLoadAllEntities()`: la procedura iniziale e il rilevamento automatico.
+ * Qui ci si appoggia a quelli e basta.
  *
- * Quindi si chiedono, una volta sola, e la risposta si mette nello STESSO
- * posto in cui la mette il guscio: chi arriva dopo la trova gia' pronta, e i
- * due non se la chiedono a vicenda.
+ * Chiederli da soli si e' provato, ed e' costata la #553. La domanda partiva da
+ * dentro il disegno, una volta per entita', e `config/entity_registry/list` e'
+ * la risposta piu' pesante che Home Assistant sappia dare; quando falliva \u2014 e
+ * dentro il pannello fallisce, perche' li' la presa e' il ponte e non quella
+ * del guscio \u2014 la domanda si rifaceva al giro dopo, e il giro dopo e' ogni
+ * cambio di stato della casa. La linea cadeva, con lei le sottoscrizioni, e i
+ * dati sparivano dopo essere comparsi. Da un disegno non si chiede niente a
+ * nessuno: si legge quello che c'e'.
+ *
+ * Quindi: chi non e' passato dalla procedura iniziale o dal rilevamento
+ * automatico non ha i registri, e qui si risponde vuoto. E' una risposta
+ * onesta, e chi legge ripiega sul nome \u2014 che e' quello che la plancia faceva
+ * prima della #549. Il conto per stanza si riaccende da se' appena i registri
+ * ci sono.
  *
  * Torna il NOME della stanza, non il suo codice: e' quello che si legge, ed e'
  * quello con cui la plancia chiama le sue stanze. Vuoto quando non si sa, e
- * «non lo so» deve restare vuoto: chi legge deve poter ripiegare su altro
+ * \u00abnon lo so\u00bb deve restare vuoto: chi legge deve poter ripiegare su altro
  * invece di ricevere un nome inventato. */
-const STANZE_DI_HA = "__DASHBOARDMODERN_STANZE_DI_HA__";
-
-function memoriaDelleStanze() {
-  return (root[STANZE_DI_HA] ||= { chieste: false });
-}
-
-/* La domanda ai tre registri, una volta per apertura della plancia.
- *
- * Se il socket non c'e' ancora la domanda non si segna come fatta: cosi' il
- * prossimo che passa riprova, invece di restare senza stanze perche' ha
- * guardato un attimo troppo presto. */
-async function imparaLeStanzeDiHomeAssistant() {
-  const memoria = memoriaDelleStanze();
-  if (memoria.chieste) return;
-  memoria.chieste = true;
-  try {
-    const [aree, dispositivi, entita] = await Promise.all([
-      chiediAHomeAssistant({ type: "config/area_registry/list" }),
-      chiediAHomeAssistant({ type: "config/device_registry/list" }),
-      chiediAHomeAssistant({ type: "config/entity_registry/list" }),
-    ]);
-    const wiz = lexicalGlobal("WIZ");
-    if (!wiz) return;
-    wiz.areaNames = {};
-    for (const area of aree || []) wiz.areaNames[area.area_id] = area.name;
-    wiz.devArea = {};
-    for (const dispositivo of dispositivi || [])
-      if (dispositivo.area_id) wiz.devArea[dispositivo.id] = dispositivo.area_id;
-    wiz.entReg = {};
-    for (const riga of entita || [])
-      wiz.entReg[riga.entity_id] = { a: riga.area_id, d: riga.device_id };
-    /* Le stanze sono arrivate dopo che la casa era gia' disegnata: chi conta
-     * i posti deve rifare il conto, o la correzione si vedrebbe solo al
-     * prossimo stato. E' lo stesso annuncio che usa la plancia per «gli stati
-     * sono cambiati». */
-    root.dispatchEvent?.(new root.CustomEvent("dashboardmodern:state-changed", { detail: {} }));
-  } catch (_error) {
-    /* Socket chiuso o comando rifiutato: si riprova al prossimo giro. */
-    memoria.chieste = false;
-  }
-}
-
 export function stanzaDiHomeAssistant(entity) {
   const id = clean(entity);
   if (!id) return "";
   const wiz = lexicalGlobal("WIZ");
-  if (!wiz?.entReg) {
-    imparaLeStanzeDiHomeAssistant();
-    return "";
-  }
-  const riga = wiz.entReg[id];
+  const riga = wiz?.entReg?.[id];
   if (!riga) return "";
-  const area = riga.a || (riga.d ? wiz.devArea?.[riga.d] : "");
-  return area ? clean(wiz.areaNames?.[area]) : "";
+  const area = riga.a || (riga.d ? wiz?.devArea?.[riga.d] : "");
+  return area ? clean(wiz?.areaNames?.[area]) : "";
 }
 
 /* Una variabile del runtime vendorizzato, riscritta.

@@ -5,6 +5,40 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.30 — 2026-09-15
+
+### Corretto
+
+- **I dati comparivano e poi sparivano**
+
+  «Carica correttamente i dati, poi all'improvviso scompaiono» (#553).
+
+  È la seconda metà della stessa segnalazione, e anche questa era colpa di una
+  correzione della 1.4.28. Per contare la presenza per stanza invece che per
+  nome, la plancia si era messa a **chiedere a Home Assistant i tre registri**
+  — le aree, le aree dei dispositivi, quelle delle entità — e lo faceva da
+  dentro il disegno, una volta per ogni rilevatore.
+
+  Tre cose sbagliate insieme:
+
+  - `config/entity_registry/list` è la risposta più pesante che Home Assistant
+    sappia dare, e partiva dal giro di disegno;
+  - dentro il pannello la presa è il ponte, non quella del guscio, quindi la
+    domanda lì **falliva sempre**;
+  - e fallendo si ri-segnava da rifare, cioè si rifaceva a **ogni cambio di
+    stato della casa**.
+
+  La linea cadeva sotto quel peso, e con la linea cadevano le sottoscrizioni:
+  la casa si disegnava giusta, e un momento dopo il meteo tornava a `--`, le
+  persone a «Sconosciuto» e i contatori a zero.
+
+  Adesso da un disegno non si chiede niente a nessuno: si legge quello che c'è.
+  I tre registri restano quelli che il guscio mette da parte nella procedura
+  iniziale e nel rilevamento automatico. Chi non ci è passato ha la stanza
+  vuota, e il conto della presenza **ripiega sul nome** — cioè quello che la
+  plancia faceva prima della #549. Il conto per stanza si riaccende da sé
+  appena i registri ci sono.
+
 ## 1.4.29 — 2026-09-15
 
 ### Corretto
