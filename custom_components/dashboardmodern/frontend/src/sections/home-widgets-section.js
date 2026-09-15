@@ -35,7 +35,11 @@ import { applianceVisualKey, canonicalClimateType } from "../core/device-model.j
 import { applianceArtwork } from "../core/appliance-artwork.js";
 import { applianceModelById, buildCardMarkup, cardLabels } from "./appliance-showcase-section.js";
 import { RIF_CENTRALE } from "../core/alarm-panel.js";
-import { alarmActiveButton, alarmModeButtons } from "./security-showcase-section.js";
+import {
+  alarmActiveButton,
+  alarmModeButtons,
+  disegnoDelTastoAntifurto,
+} from "./security-showcase-section.js";
 import { haOggettoWidget, oggettoWidget } from "../core/oggetti-widget.js";
 import { iconGlyphMarkup } from "./icon-engine-section.js";
 import {
@@ -6061,8 +6065,13 @@ function securityDetail(widget, states) {
      * La fila la disegna adesso chi la disegna anche li'. */
     const centrale = stateOf(states, RIF_CENTRALE);
     const acceso = alarmActiveButton(centrale);
+    /* Il disegno lo fa chi lo fa sulla pagina, e alla misura di questa
+     * casella: scrivere `voce.icon` voleva dire l'emoji di ripiego del
+     * catalogo al posto dell'icona scelta in configurazione (#547). */
     const tasti = alarmModeButtons(centrale)
-      .map((voce) => comando(voce.service, voce.mode === acceso, voce.icon, voce.label))
+      .map((voce) =>
+        comando(voce.service, voce.mode === acceso, disegnoDelTastoAntifurto(voce, 16), voce.label),
+      )
       .join("");
     parts.push(
       rowShell(

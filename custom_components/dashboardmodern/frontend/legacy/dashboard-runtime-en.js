@@ -6607,6 +6607,7 @@ function render() {
            restava acceso sotto. Dove una centrale risponde comanda lei, anche
            quando la risposta e' «disarmato». */
         const centraleHaRisposto = ['triggered','armed_away','armed_night','armed_home','armed_custom_bypass','armed_vacation','pending','arming','disarmed'].includes(alarmState);
+        let chiaveDelTondo = alarmTriggered ? 'triggered' : alarmState;
         if (!alarmTriggered && !isArmed && !centraleHaRisposto) {
           try {
             const suMisura = (typeof dmAlarmSuMisuraAcceso === 'function') ? dmAlarmSuMisuraAcceso() : null;
@@ -6615,16 +6616,33 @@ function render() {
               text = 'ARMED \u00B7 ' + String(suMisura.label || '').toUpperCase();
               icon = suMisura.icon || '\u{1F6E1}\u{FE0F}';
               activeBtn = suMisura.mode; isArmed = true;
+              chiaveDelTondo = suMisura.mode;
             }
           } catch(e) {}
         }
+
+        /* v1.4.31 (#547): nel tondo il disegno del catalogo, non l'emoji.
+           «Le icone selezionate in configurazione sono diverse da quelle
+           visualizzate nella sezione Sicurezza.» I tasti sotto disegnano;
+           qui si scriveva un'emoji, e con un tasto scritto a mano era la
+           stessa icona scelta in configurazione resa in due modi diversi a
+           tre centimetri di distanza. Il disegno lo dà il modulo, che sa
+           anche quale icona ha scelto chi ha la casa. Quando non sa cosa
+           disegnare torna vuoto, e qui si scrive l'emoji come sempre. */
+        let disegnoDelTondo = '';
+        try {
+          if (typeof dmAlarmOrbMarkup === 'function') disegnoDelTondo = dmAlarmOrbMarkup(chiaveDelTondo) || '';
+        } catch(e) {}
 
         // Applica colori e classi
         alStage.style.setProperty('--al-col', color);
         alStage.style.setProperty('--al-rgb', rgb);
         alStage.style.setProperty('--al-soft', `rgba(${rgb}, 0.10)`);
         alTextEl.textContent = text;
-        if (alIconEl) alIconEl.textContent = icon;
+        if (alIconEl) {
+          if (disegnoDelTondo) alIconEl.innerHTML = disegnoDelTondo;
+          else alIconEl.textContent = icon;
+        }
         if (isArmed) alStage.classList.add('armed');
         
         // Marca pulsante modalità attivo

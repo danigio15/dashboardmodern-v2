@@ -30,6 +30,7 @@
  */
 import {
   ALARM_DISARM,
+  ALARM_MODES,
   ALARM_MODE_CHOICE_KEY,
   CHIAVE_CENTRALE_SCELTA,
   CHIAVE_CENTRALI,
@@ -84,6 +85,42 @@ const STYLE_ID = "dm-security-showcase-style";
 const state = (root[KEY] ||= { installed: false, listeners: false, requestingFrames: false });
 
 const OFFLINE_STATES = new Set(["", "unavailable", "unknown", "none", "null"]);
+
+/* Il disegno del cartellone tondo per ogni stato che il guscio sa raccontare.
+ *
+ * Gli inserimenti lo portano già scritto — è lo stesso `disegno` che veste il
+ * loro tasto, così il tondo e il tasto acceso sotto dicono la stessa cosa con
+ * lo stesso segno. Gli altri tre stati un tasto non ce l'hanno, e il loro
+ * disegno sta scritto qui. */
+export const DISEGNI_DEL_CARTELLONE = Object.freeze({
+  ...Object.fromEntries(ALARM_MODES.map((voce) => [voce.state, voce.disegno])),
+  [ALARM_DISARM.state]: ALARM_DISARM.disegno,
+  triggered: "warning",
+  pending: "timer",
+  arming: "timer",
+});
+
+/**
+ * Il disegno del cartellone tondo della pagina Sicurezza.
+ *
+ * Il guscio ci scriveva un'emoji — 🛡️ 🌙 🏡 ✈️ 🎚️ 🔓 🚨 ⏳ — mentre il tasto
+ * sotto porta il disegno del catalogo. Con un tasto scritto a mano diventava la
+ * stessa icona scelta in configurazione resa in due modi diversi a tre
+ * centimetri di distanza, che è la #547 spostata invece che chiusa.
+ *
+ * `chiave` è quello che il guscio ha in mano: lo stato della centrale, o
+ * l'identificativo del tasto su misura acceso. Torna "" per quello che non si
+ * sa disegnare, e allora il guscio scrive l'emoji come ha sempre fatto: un
+ * cartellone vuoto sarebbe peggio di un'emoji.
+ */
+export function disegnoDelCartellone(chiave, miei = []) {
+  const nome = clean(chiave);
+  if (!nome) return "";
+  const mio = (Array.isArray(miei) ? miei : []).find((modo) => modo?.id === nome);
+  if (mio) return iconGlyphMarkup("action", mio.icona, { size: 34 });
+  const disegno = DISEGNI_DEL_CARTELLONE[nome];
+  return disegno ? disegnoDelCatalogo(disegno, 34) : "";
+}
 
 const ICONS = Object.freeze({
   shield:
@@ -541,7 +578,7 @@ function vesteLaFinestraRapida() {
     .map(
       (voce) => `<button class="qa-alarm-btn${voce.mode === acceso ? " active" : ""}"
         data-mode="${voce.mode}" onclick="promptPinAndSet('${voce.service}')">
-        <span class="qa-alarm-btn-icon">${disegnoDelTasto(voce)}</span>
+        <span class="qa-alarm-btn-icon">${disegnoDelTastoAntifurto(voce, 26)}</span>
         <span class="qa-alarm-btn-name">${esc(voce.label)}</span>
         <span class="qa-alarm-btn-sub">${esc(voce.hint)}</span>
       </button>`,
@@ -569,15 +606,28 @@ function agganciaLaFinestraRapida() {
   return true;
 }
 
-/* Il disegno di un tasto della centrale.
+/**
+ * Il disegno di un tasto della centrale.
  *
  * I modi di serie ce l'hanno scritto in `disegno`; quelli su misura hanno il
  * nome dell'icona che ha scelto chi ha la casa, e quello lo sa risolvere il
  * motore delle icone — lo stesso che veste le azioni rapide, cosi' il tasto
- * «Notte» e l'azione «Notte» non escono con due disegni diversi. */
-function disegnoDelTasto(voce) {
-  if (voce?.suMisura) return iconGlyphMarkup("action", voce.icona, { size: 26 });
-  return disegnoDelCatalogo(voce?.disegno || "security", 26);
+ * «Notte» e l'azione «Notte» non escono con due disegni diversi.
+ *
+ * Lo chiamano tutte e tre le file — la pagina, la tessera della Home, la
+ * finestra rapida del banner — ed e' il motivo per cui e' uscito di qui.
+ * «Le icone selezionate in configurazione sono diverse da quelle visualizzate
+ * nella sezione Sicurezza» (#547): la finestra rapida passava di qua e
+ * disegnava, le altre due scrivevano `voce.icon`, che e' l'emoji di ripiego
+ * del catalogo. Chi sceglie un'icona la sceglie da un catalogo di disegni, e
+ * un'emoji al suo posto non e' la stessa icona in piccolo: e' un'altra icona.
+ *
+ * La misura la passa chi disegna, perche' le tre caselle sono diverse: 40px
+ * sulla pagina, 26 nella finestra rapida, 28 nella tessera.
+ */
+export function disegnoDelTastoAntifurto(voce, misura = 26) {
+  if (voce?.suMisura) return iconGlyphMarkup("action", voce.icona, { size: misura });
+  return disegnoDelCatalogo(voce?.disegno || "security", misura);
 }
 
 function modeRow(labels, stateObj = alarmStateObject()) {
@@ -619,9 +669,10 @@ function syncModes(shell, labels) {
   return true;
 }
 
-function modeButton({ mode, service, icon, label, hint }) {
+function modeButton(voce) {
+  const { mode, service, label, hint } = voce;
   return `<button type="button" class="alarm-mode-btn dm-sec-mode" data-mode="${mode}" onclick="promptPinAndSet('${service}')">
-      <span class="dm-sec-mode-ic" aria-hidden="true">${icon}</span>
+      <span class="dm-sec-mode-ic" aria-hidden="true">${disegnoDelTastoAntifurto(voce, 22)}</span>
       <span class="dm-sec-mode-tx">${esc(label)}</span>
       <span class="dm-sec-mode-hint">${esc(hint)}</span>
     </button>`;
@@ -1030,6 +1081,7 @@ function publishAlarmHelpers() {
    * Non si filtra per «tasti che si vedono»: una casa inserita e' inserita
    * anche se chi guarda ha tolto quel tasto dalla fila, e il cartello dice
    * come sta la casa, non cosa si puo' premere. */
+  root.dmAlarmOrbMarkup = (chiave) => disegnoDelCartellone(chiave, modiSuMisura());
   root.dmAlarmSuMisuraAcceso = () => {
     const modi = modiSuMisura();
     const acceso = modi.length ? modoSuMisuraAcceso(modi, allStates()) : "";
