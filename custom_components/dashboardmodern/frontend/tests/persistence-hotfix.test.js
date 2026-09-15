@@ -366,3 +366,48 @@ test("chi non sa di essere secondaria lo chiede al profilo, non all'istanza", ()
     else globalThis.__DASHBOARDMODERN_PROFILE__ = profiloPrima;
   }
 });
+
+/* Una lista vuota e' una scelta, anche nei confronti delle migrazioni.
+ *
+ * Le migrazioni del modello si risvegliano quando non trovano il loro segno, e
+ * su una lista vuota RISEMINANO da quello che trovano nelle sostituzioni. Fin
+ * qui non si vedeva, perche' le chiavi legacy parlavano dopo e rimettevano la
+ * lista vuota al suo posto. Spostandole PRIMA \u2014 sembrava piu' pulito, cosi' le
+ * migrazioni lavoravano su quello che l'utente ha davvero \u2014 chi si era tolto i
+ * carichi dal flusso se li ritrovava tutti al primo avvio dopo
+ * l'aggiornamento, e la lista riseminata finiva pure sul disco. Uguale per le
+ * entita' del raffreddamento e per gli alias annuali svuotati apposta.
+ *
+ * Qui si tiene ferma la regola: se la chiave legacy c'e' ed e' vuota, resta
+ * vuota. La riconciliazione e' l'ultima parola. */
+test("i carichi tolti dal flusso non tornano per una migrazione", () => {
+  const { store, storage } = setup({
+    /* Le vecchie sostituzioni da cui la migrazione sa ricavare un carico. */
+    cd_entity_overrides: {
+      "dm.boiler_potenza_resistenza_boiler": "sensor.boiler_w",
+      "dm.energy_boiler_oggi": "sensor.boiler_kwh",
+    },
+    /* E la scelta di chi quel carico dal flusso se l'e' tolto. */
+    cd_energy_loads: [],
+    cd_energy_model: { house: { power: "sensor.casa_w" } },
+  });
+
+  assert.deepEqual(store.getState().sections.energyLoads, []);
+  assert.deepEqual(JSON.parse(storage.getItem("cd_energy_loads")), []);
+});
+
+test("una chiave legacy assente invece lascia lavorare la migrazione", () => {
+  /* Il rovescio della regola: senza la chiave non c'e' nessuna scelta da
+   * rispettare, e il travaso dei carichi storici deve ancora funzionare. */
+  const { store } = setup({
+    cd_entity_overrides: {
+      "dm.boiler_potenza_resistenza_boiler": "sensor.boiler_w",
+      "dm.energy_boiler_oggi": "sensor.boiler_kwh",
+    },
+    cd_energy_model: { house: { power: "sensor.casa_w" } },
+  });
+
+  const carichi = store.getState().sections.energyLoads;
+  assert.equal(carichi.length, 1);
+  assert.equal(carichi[0].power_entity, "sensor.boiler_w");
+});
