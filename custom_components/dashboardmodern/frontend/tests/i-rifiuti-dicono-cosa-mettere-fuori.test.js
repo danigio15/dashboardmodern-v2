@@ -162,7 +162,11 @@ test("la lettura: chi viene prima sta prima, e chi esce insieme esce insieme", (
     ["plastica", "carta"],
   );
   assert.deepEqual(lettura.oggi, []);
-  assert.equal(lettura.calendario.nome, "Raccolta metalli");
+  /* «Raccolta metalli» non sopravvive, e non e' una perdita: il materiale si
+   * riconosce, e la parola la dice la plancia — «Metalli e lattine», nella
+   * lingua di chi guarda. Il nome dell'integrazione resta solo dove la plancia
+   * non capisce niente, che e' l'unico caso in cui dice qualcosa. */
+  assert.equal(lettura.calendario.nome, "");
   assert.equal(lettura.calendario.materiale, "metalli");
   assert.equal(lettura.calendario.giorni, 2);
   /* Un'entita' che non c'e' e' muta, non una data mancante. */

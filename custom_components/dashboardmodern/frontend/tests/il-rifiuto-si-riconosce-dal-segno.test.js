@@ -107,6 +107,34 @@ test("il calendario porta il bidone del materiale quando il messaggio lo dice", 
   assert.match(rifiuti.faccia, /data-dm-art="bidone-vetro"/);
 });
 
+/* ── e la parola la dice la plancia, non l'integrazione ────────────────────
+ *
+ * «sembra che il tipo di rifiuto del giorno non sia tradotto»: sotto il bidone
+ * c'era scritto «Paper». Il materiale la plancia lo riconosceva — il bidone
+ * disegnato era quello della carta — e la parola ce l'aveva, tradotta in
+ * tredici lingue: scriveva quella dell'integrazione perche' c'era.
+ *
+ * La regola esisteva gia' nella lettura degli elenchi. Il ramo del calendario
+ * non ce l'aveva, e lo stesso ritiro diceva due parole diverse a seconda di
+ * dove passava.
+ */
+test("il nome inglese dell'integrazione non arriva in plancia", () => {
+  const rifiuti = tessera(...calendario("Paper", 0));
+  assert.equal(rifiuti.caption, "Carta e cartone");
+  assert.match(rifiuti.faccia, /data-dm-art="bidone-carta"/);
+  assert.equal(rifiuti.rows[0].name, "Carta e cartone");
+});
+
+test("vale per ogni lingua in cui un'integrazione possa parlare", () => {
+  for (const [scritto, atteso] of [
+    ["Paper", "Carta e cartone"],
+    ["Restmüll", "Indifferenziato"],
+    ["Glass", "Vetro"],
+    ["Raccolta metalli", "Metalli e lattine"],
+  ])
+    assert.equal(tessera(...calendario(scritto, 0)).caption, atteso, scritto);
+});
+
 test("e quando non lo dice non si disegna un bidone a caso", () => {
   /* Un bidone qualunque direbbe una frazione che nessuno ha letto: meglio il
    * simbolo di sempre, che dice «rifiuti» e non mente. */

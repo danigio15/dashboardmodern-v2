@@ -92,6 +92,33 @@ export function materialeDalNome(testo) {
   return "altro";
 }
 
+/**
+ * Il nome scritto dall'integrazione, quando serve ancora.
+ *
+ * La regola e' secca: se dal testo il materiale si riconosce, il nome non
+ * serve piu' — la parola la dice la plancia, nella lingua di chi guarda.
+ * «Paper», «Raccolta metalli», «Restmüll» diventano «Carta e cartone»,
+ * «Metalli e lattine», «Indifferenziato». Dal campo: «sembra che il tipo di
+ * rifiuto del giorno non sia tradotto».
+ *
+ * Si tiene solo quello che la plancia non sa leggere — «Ritiro porta a porta»,
+ * «Isola ecologica chiusa» — perche' li' quel testo e' l'unica informazione
+ * che c'e', e un «Altro» al suo posto sarebbe meno di niente.
+ *
+ * Il prezzo e' che una precisazione attaccata al materiale se ne va con lui.
+ * E' il prezzo giusto: una parola in piu' vale meno di una parola nella lingua
+ * sbagliata, che e' il caso di tutti quelli che non hanno l'integrazione in
+ * italiano.
+ *
+ * La regola era scritta una volta sola — nella lettura degli elenchi — e il
+ * ramo del calendario non ce l'aveva: lo stesso ritiro diceva «Carta e
+ * cartone» se arrivava da un elenco e «Paper» se arrivava da un evento.
+ */
+export function nomeCheAggiungeQualcosa(testo) {
+  const voce = pulito(testo);
+  return materialeDalNome(voce) === "altro" ? voce : "";
+}
+
 function normalizzaRiga(riga, indice) {
   if (!riga || typeof riga !== "object") return null;
   const materiale = materialeDiSerie(
@@ -417,9 +444,7 @@ export function ritiriDaUnElenco(stato, adesso = Date.now()) {
     .map((voce) => ({
       id: `elenco-${voce.materiale.chiave}`,
       materiale: voce.materiale.chiave,
-      /* Il nome scritto dall'integrazione resta solo quando dice qualcosa in
-       * piu' del materiale: «Plastica e lattine» si', «plastica» no. */
-      nome: materialeDalNome(voce.testo) === "altro" ? pulito(voce.testo) : "",
+      nome: nomeCheAggiungeQualcosa(voce.testo),
       icona: voce.materiale.icona,
       colore: voce.materiale.colore,
       entity: "",
@@ -899,8 +924,9 @@ export function letturaRifiuti(
     const stato = leggi(dato.calendario);
     const data = dataDelRitiro(stato, adesso);
     const giorni = data ? giorniFra(adesso, data) : null;
-    const nome = pulito(stato?.attributes?.message);
-    const materiale = materialeDiSerie(materialeDalNome(nome));
+    const scritto = pulito(stato?.attributes?.message);
+    const materiale = materialeDiSerie(materialeDalNome(scritto));
+    const nome = nomeCheAggiungeQualcosa(scritto);
     calendario = {
       entity: dato.calendario,
       muto: !risponde(stato),
