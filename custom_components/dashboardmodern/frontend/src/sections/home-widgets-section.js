@@ -9827,14 +9827,27 @@ ${regoleCompatte()}
   );
 }
 
-/* La modalita' compatta «C4» (#224): il design approvato, riprodotto pari.
+/* La modalita' compatta «C4» (#224).
  *
- * La tessera diventa una pillola coricata: due colonne, quarantotto pixel
- * d'altezza, raggio quattordici. Dentro, tre cose sole — il chip neutro con
- * l'oggetto, il nome in maiuscoletto pieno, il valore ancorato a destra — e
- * sul fianco sinistro la tacca a semipillola col colore della sezione, fusa
- * nel bordo. Le didascalie e le misure spariscono: la pillola e' il colpo
+ * La tessera diventa una pillola coricata: due colonne nella griglia,
+ * cinquantadue pixel d'altezza, raggio quattordici. Dentro, tre cose sole — il
+ * chip neutro con l'oggetto, il nome in maiuscoletto pieno, il valore — e sul
+ * fianco sinistro la tacca a semipillola col colore della sezione, fusa nel
+ * bordo. Le didascalie e le misure spariscono: la pillola e' il colpo
  * d'occhio, il resto vive nel popup, che non cambia.
+ *
+ * Il nome e il valore stanno in colonna, non in fila.
+ *
+ * In fila ci stavano, e si contendevano la stessa riga: il valore si prendeva
+ * quello che gli serviva e al nome restava il resto, cosi' «AGENDA» accanto a
+ * «8 in arrivo» diventava «AGEI» e «SICUREZZA» accanto a «Disinserito»
+ * diventava «SICU». Non erano puntini — era il taglio secco, a meta' parola,
+ * dentro una pillola dove la seconda riga non ci sta.
+ *
+ * In colonna il nome ha sempre la stessa larghezza — quella che resta dopo il
+ * chip — qualunque cosa dica il valore, e il valore non ne toglie piu' a
+ * nessuno. Costa quattro pixel d'altezza, che e' il prezzo di leggere due
+ * parole intere invece di due mozzate.
  *
  * Le stesse regole valgono due volte — sempre, e in «auto» solo sotto i 520
  * pixel — quindi si scrivono una volta sola qui e si stampano con la radice
@@ -9851,8 +9864,9 @@ ${radice} .dm-widgets-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px
 ${radice} .dm-tile,
 ${radice} .dm-tile[data-acceso],
 ${radice} .dm-tile[data-open]{
-  flex-direction:row;align-items:center;gap:9px;
-  min-height:48px;padding:0 12px 0 13px;border-radius:14px;
+  display:grid;grid-template-columns:30px minmax(0,1fr);grid-template-rows:auto auto;
+  align-items:center;column-gap:9px;row-gap:1px;
+  min-height:52px;padding:7px 12px 7px 13px;border-radius:14px;
   background:var(--card-bg,#fff);
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb,var(--text,#0f172a) 8%,transparent),
@@ -9881,6 +9895,7 @@ ${radice} .dm-tile-cima{display:contents}
    nella pillola ce lo mette la tacca, non il chip. */
 ${radice} .dm-tile[data-acceso] .dm-tile-chip,
 ${radice} .dm-tile[data-open] .dm-tile-chip{
+  grid-column:1;grid-row:1 / span 2;align-self:center;
   flex:0 0 30px;width:30px;height:30px;border-radius:10px;font-size:15px;
   background:var(--surface-2,#f8fafc);
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text,#0f172a) 9%,transparent)}
@@ -9888,14 +9903,19 @@ ${radice} .dm-tile-chip .dm-oggetto{width:19px;height:19px;filter:none}
 /* Il nome: maiuscoletto minuto in inchiostro pieno, non smorzato — a questa
    misura il grigio non si leggerebbe. */
 ${radice} .dm-tile-label{
+  grid-column:2;grid-row:1;
+  /* Una riga sola: la seconda e' del valore, e un nome che ci scendesse dentro
+     lo coprirebbe. Chi non ci entra lo stringe il rimpicciolitore del nome,
+     che e' anche l'unica ragione per cui qui non servono i puntini. */
+  -webkit-line-clamp:1;white-space:nowrap;
   font-size:8.8px;line-height:1.2;letter-spacing:.09em;
   color:var(--text,#0f172a)}
-/* Il valore, ancorato a destra col suo margine ottico di 12px (il cuscino
-   destro della pillola). Il margine a zero annulla il -13.6px pensato per
-   Oswald a corpo 40: qui il valore e' Inter, e quel margine lo decapitava. */
+/* Il valore, sotto il nome e nella stessa colonna. Il margine a zero annulla
+   il -13.6px pensato per Oswald a corpo 40: qui il valore e' Inter, e quel
+   margine lo decapitava. */
 ${radice} .dm-tile-val{
-  display:flex;align-items:baseline;flex:0 0 auto;min-width:0;max-width:55%;
-  margin-left:auto}
+  grid-column:2;grid-row:2;
+  display:flex;align-items:baseline;min-width:0;max-width:100%;margin-left:0}
 ${radice} .dm-tile-value,
 ${radice} .dm-tile-value[data-dm-len="medio"],
 ${radice} .dm-tile-value[data-dm-len="lungo"]{
@@ -9915,7 +9935,7 @@ ${radice} .dm-tile-unit[data-simbolo="true"]{
 ${radice} .dm-tile-fondo{display:none}
 /* I tre puntini seguono la didascalia: nella pillola non c'e' il posto dove
    stavano — qui la riga di cima e' display:contents, quindi non fa piu' da
-   riferimento a niente — e una pillola alta quarantotto pixel e' gia' piena. */
+   riferimento a niente — e una pillola alta cinquantadue pixel e' gia' piena. */
 ${radice} .dm-tile-menu{display:none}
 /* La pillola d'avviso: il velo piatto del colore d'avviso al 10%, l'hairline
    in tinta, la tacca piu' spessa e il valore in tinta scura. Niente gradienti
