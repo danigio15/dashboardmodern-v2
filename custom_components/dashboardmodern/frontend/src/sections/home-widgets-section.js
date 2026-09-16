@@ -35,7 +35,12 @@ import { applianceVisualKey, canonicalClimateType } from "../core/device-model.j
 import { applianceArtwork } from "../core/appliance-artwork.js";
 import { applianceModelById, buildCardMarkup, cardLabels } from "./appliance-showcase-section.js";
 import { RIF_CENTRALE } from "../core/alarm-panel.js";
-import { alarmActiveButton, alarmModeButtons } from "./security-showcase-section.js";
+import {
+  alarmActiveButton,
+  alarmModeButtons,
+  disegnoDelTastoAntifurto,
+} from "./security-showcase-section.js";
+import { parolaDellaPorta, parolaDiStato } from "./le-parole-di-home-assistant.js";
 import { haOggettoWidget, oggettoWidget } from "../core/oggetti-widget.js";
 import { iconGlyphMarkup } from "./icon-engine-section.js";
 import {
@@ -1707,6 +1712,32 @@ function didascaliaDiOggi(oggi) {
   return altre.length ? `${testa} · ${altre.join(" · ")}` : testa;
 }
 
+/* Quanto e' piena la batteria di casa, sulla tessera chiusa (#544).
+ *
+ * «Vorrei che fosse piu' facile vedere la % della batteria del fotovoltaico
+ * senza dover cliccare sulla card energia.» Il numero c'era gia', ma solo
+ * dentro: la finestra del dettaglio lo scrive accanto ai watt della batteria,
+ * e per leggerlo bisognava aprire — che e' esattamente quello che la
+ * segnalazione chiede di non dover fare.
+ *
+ * Va in testa alla didascalia, subito dopo l'avviso del sovraccarico, e per la
+ * stessa ragione per cui l'avviso sta li': la didascalia scorre, e cio' che si
+ * legge senza aspettare e' l'inizio. Sta prima dei numeri del giorno perche'
+ * non e' un numero del giorno — e' come sta la casa adesso, come i watt scritti
+ * in grande.
+ *
+ * Con la parola e non col disegno, per la ragione gia' scritta in
+ * `didascaliaDiOggi`: un simbolo a undici pixel e' una macchia scura.
+ *
+ * Chi la batteria non ce l'ha non se ne accorge: senza la sua riga, o senza il
+ * suo stato di carica, non c'e' niente da scrivere e la didascalia resta quella
+ * di sempre. */
+export function paroleDellaBatteria(rows) {
+  const soc = (Array.isArray(rows) ? rows : []).find((riga) => riga?.group === "battery")?.soc;
+  if (!Number.isFinite(soc)) return "";
+  return `${t("Batteria", "Battery")} ${Math.max(0, Math.min(100, Math.round(soc)))}%`;
+}
+
 /* Il verdetto della soglia su queste letture (#508).
  *
  * La regola sta in `core/la-soglia-della-potenza.js` e i numeri sono quelli
@@ -1761,7 +1792,11 @@ function tesseraEnergia(
     value: formatWatts(house),
     /* Il sovraccarico va in testa, prima dei numeri del giorno: la didascalia
      * scorre, e cio' che si legge senza aspettare e' l'inizio. */
-    caption: [avviso, didascaliaDiOggi(oggi || (today == null ? {} : { house: today }))]
+    caption: [
+      avviso,
+      paroleDellaBatteria(rows),
+      didascaliaDiOggi(oggi || (today == null ? {} : { house: today })),
+    ]
       .filter(Boolean)
       .join(" · "),
     ring: null,
@@ -2183,7 +2218,13 @@ function rigaDaEntita(states, entity, glifo = "•") {
       daQuando: quando,
       value: t("Spento", "Off"),
     };
-  return { glyph: glifo, name: nome, value: grezzo };
+  /* Quello che non e' un numero ne' un acceso/spento si scrive com'e' — ma
+   * «com'e'» vuol dire nella lingua della plancia, non nel gergo di Home
+   * Assistant: sotto «RAV4 luogo di parcheggio» compariva `not_home`, che non
+   * e' una parola ne' in italiano ne' in inglese. Il nome di una zona —
+   * «Lavoro», «Palestra» — non sta in tabella e passa intatto, che e'
+   * esattamente quello che deve succedere: quella parola l'ha scritta qualcuno. */
+  return { glyph: glifo, name: nome, value: parolaDiStato(grezzo) };
 }
 
 /* Il disegno di una casella dell'auto, indovinato dal nome del riferimento:
@@ -4652,9 +4693,7 @@ export function applyWidgetPreferences(models, preferences = widgetPreferences()
            * cambiano da una casa all'altra. */
           eUnaSezioneMia(widget.key)
           ? "mie"
-          : eUnaTesseraEnergia(widget.key)
-            ? "energia"
-            : widget.key;
+          : famigliaDellaTessera(widget.key);
   const rank = (widget) => {
     const nome = chiave(widget);
     const index = preferences.order.indexOf(nome);
@@ -5365,7 +5404,7 @@ function unitaSimbolo(unita) {
  *
  * Chi sa disegnare un nome mdi e' il motore delle icone, che e' anche quello
  * che ha riempito il catalogo da cui la scelta viene. */
-function facciaDellaTessera(widget) {
+export function facciaDellaTessera(widget) {
   /* Una tessera puo' portarsi la faccia da sola (#460).
    *
    * «Remove the speaker icon and its name from the media player»: sulla musica
@@ -5375,7 +5414,8 @@ function facciaDellaTessera(widget) {
    * risposta invece dell'etichetta. La pastiglia resta dov'e' e com'e': cambia
    * cosa ci sta sopra, non la forma della tessera. */
   if (widget?.faccia) return widget.faccia;
-  if (haOggettoWidget(widget?.key)) return oggettoWidget(widget.key);
+  const famiglia = famigliaDellaTessera(widget?.key);
+  if (haOggettoWidget(famiglia)) return oggettoWidget(famiglia);
   return iconGlyphMarkup("action", widget?.icon, { size: 22 });
 }
 
@@ -6061,8 +6101,13 @@ function securityDetail(widget, states) {
      * La fila la disegna adesso chi la disegna anche li'. */
     const centrale = stateOf(states, RIF_CENTRALE);
     const acceso = alarmActiveButton(centrale);
+    /* Il disegno lo fa chi lo fa sulla pagina, e alla misura di questa
+     * casella: scrivere `voce.icon` voleva dire l'emoji di ripiego del
+     * catalogo al posto dell'icona scelta in configurazione (#547). */
     const tasti = alarmModeButtons(centrale)
-      .map((voce) => comando(voce.service, voce.mode === acceso, voce.icon, voce.label))
+      .map((voce) =>
+        comando(voce.service, voce.mode === acceso, disegnoDelTastoAntifurto(voce, 16), voce.label),
+      )
       .join("");
     parts.push(
       rowShell(
@@ -6085,14 +6130,7 @@ function porteDetail(widget, states) {
   const parts = [];
   for (const door of widget.doors) {
     const raw = clean(stateOf(states, door.entity)?.state).toLowerCase();
-    const label =
-      raw === "locked"
-        ? t("Chiusa a chiave", "Locked")
-        : raw === "unlocked"
-          ? t("Sbloccata", "Unlocked")
-          : raw === "open"
-            ? t("Aperta", "Open")
-            : "";
+    const label = parolaDellaPorta(raw);
     /* La porta si apre anche da qui.
      *
      * La riga la disegnava e basta: nome, stato, e un lucchetto che diceva
@@ -6452,13 +6490,29 @@ const CHIAVI_A_CARTE = new Set([
 const eUnaTesseraEnergia = (chiave) =>
   clean(chiave) === "energia" || clean(chiave).startsWith("energia_");
 
+/**
+ * La famiglia di una tessera: la chiave sotto cui vive la sua sezione.
+ *
+ * Per quasi tutte e' la chiave stessa. Per gli impianti oltre il primo no —
+ * `energia_zona_notte` e' pur sempre l'Energia — e quella riduzione era scritta
+ * in tre posti: chi ordina le tessere, chi ne disegna le caselle, chi apre la
+ * pagina. Un quarto le serviva — chi sceglie il disegno della pastiglia — e
+ * non ce l'aveva: la seconda zona chiedeva il disegno di «energia_zona_notte»,
+ * che non esiste, e si ritrovava il ripiego del motore delle icone. Dal campo:
+ * «la seconda zona di energia ha perso l'icona».
+ */
+const famigliaDellaTessera = (chiave) =>
+  eUnaTesseraEnergia(chiave) ? "energia" : clean(chiave);
+
 function carteDalleRighe(widget) {
   /* Una tessera «a se'» delle evidenze si disegna come la tessera madre, e
    * cosi' anche quella di una sezione propria: sono entrambe un pugno di
    * entita' scelte a mano, col loro nome e il loro valore. */
   const grezza = clean(widget.key);
   const chiave =
-    grezza.startsWith("evidenza-") || eUnaSezioneMia(grezza) ? "evidenza" : grezza;
+    grezza.startsWith("evidenza-") || eUnaSezioneMia(grezza)
+      ? "evidenza"
+      : famigliaDellaTessera(grezza);
   if (!(CHIAVI_A_CARTE.has(chiave) || eUnaTesseraEnergia(chiave) || chiave.startsWith("custom-")))
     return [];
   const righe = Array.isArray(widget.rows) ? widget.rows : [];
@@ -7187,7 +7241,7 @@ function voceDellaSezione(chiave) {
   const tab = eUnaSezioneMia(grezza)
     ? grezza
     : /* Ogni tessera energia porta alla sezione, non solo la prima (#286). */
-      SEZIONE_DEL_WIDGET[eUnaTesseraEnergia(grezza) ? "energia" : grezza];
+      SEZIONE_DEL_WIDGET[famigliaDellaTessera(grezza)];
   if (!tab) return null;
   const voce = doc?.querySelector?.(`.tab[data-tab="${tab}"]`);
   if (!voce || voce.style?.display === "none") return null;
@@ -9788,14 +9842,27 @@ ${regoleCompatte()}
   );
 }
 
-/* La modalita' compatta «C4» (#224): il design approvato, riprodotto pari.
+/* La modalita' compatta «C4» (#224).
  *
- * La tessera diventa una pillola coricata: due colonne, quarantotto pixel
- * d'altezza, raggio quattordici. Dentro, tre cose sole — il chip neutro con
- * l'oggetto, il nome in maiuscoletto pieno, il valore ancorato a destra — e
- * sul fianco sinistro la tacca a semipillola col colore della sezione, fusa
- * nel bordo. Le didascalie e le misure spariscono: la pillola e' il colpo
+ * La tessera diventa una pillola coricata: due colonne nella griglia,
+ * cinquantadue pixel d'altezza, raggio quattordici. Dentro, tre cose sole — il
+ * chip neutro con l'oggetto, il nome in maiuscoletto pieno, il valore — e sul
+ * fianco sinistro la tacca a semipillola col colore della sezione, fusa nel
+ * bordo. Le didascalie e le misure spariscono: la pillola e' il colpo
  * d'occhio, il resto vive nel popup, che non cambia.
+ *
+ * Il nome e il valore stanno in colonna, non in fila.
+ *
+ * In fila ci stavano, e si contendevano la stessa riga: il valore si prendeva
+ * quello che gli serviva e al nome restava il resto, cosi' «AGENDA» accanto a
+ * «8 in arrivo» diventava «AGEI» e «SICUREZZA» accanto a «Disinserito»
+ * diventava «SICU». Non erano puntini — era il taglio secco, a meta' parola,
+ * dentro una pillola dove la seconda riga non ci sta.
+ *
+ * In colonna il nome ha sempre la stessa larghezza — quella che resta dopo il
+ * chip — qualunque cosa dica il valore, e il valore non ne toglie piu' a
+ * nessuno. Costa quattro pixel d'altezza, che e' il prezzo di leggere due
+ * parole intere invece di due mozzate.
  *
  * Le stesse regole valgono due volte — sempre, e in «auto» solo sotto i 520
  * pixel — quindi si scrivono una volta sola qui e si stampano con la radice
@@ -9812,8 +9879,9 @@ ${radice} .dm-widgets-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px
 ${radice} .dm-tile,
 ${radice} .dm-tile[data-acceso],
 ${radice} .dm-tile[data-open]{
-  flex-direction:row;align-items:center;gap:9px;
-  min-height:48px;padding:0 12px 0 13px;border-radius:14px;
+  display:grid;grid-template-columns:30px minmax(0,1fr);grid-template-rows:auto auto;
+  align-items:center;column-gap:9px;row-gap:1px;
+  min-height:52px;padding:7px 12px 7px 13px;border-radius:14px;
   background:var(--card-bg,#fff);
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb,var(--text,#0f172a) 8%,transparent),
@@ -9842,6 +9910,7 @@ ${radice} .dm-tile-cima{display:contents}
    nella pillola ce lo mette la tacca, non il chip. */
 ${radice} .dm-tile[data-acceso] .dm-tile-chip,
 ${radice} .dm-tile[data-open] .dm-tile-chip{
+  grid-column:1;grid-row:1 / span 2;align-self:center;
   flex:0 0 30px;width:30px;height:30px;border-radius:10px;font-size:15px;
   background:var(--surface-2,#f8fafc);
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text,#0f172a) 9%,transparent)}
@@ -9849,14 +9918,19 @@ ${radice} .dm-tile-chip .dm-oggetto{width:19px;height:19px;filter:none}
 /* Il nome: maiuscoletto minuto in inchiostro pieno, non smorzato — a questa
    misura il grigio non si leggerebbe. */
 ${radice} .dm-tile-label{
+  grid-column:2;grid-row:1;
+  /* Una riga sola: la seconda e' del valore, e un nome che ci scendesse dentro
+     lo coprirebbe. Chi non ci entra lo stringe il rimpicciolitore del nome,
+     che e' anche l'unica ragione per cui qui non servono i puntini. */
+  -webkit-line-clamp:1;white-space:nowrap;
   font-size:8.8px;line-height:1.2;letter-spacing:.09em;
   color:var(--text,#0f172a)}
-/* Il valore, ancorato a destra col suo margine ottico di 12px (il cuscino
-   destro della pillola). Il margine a zero annulla il -13.6px pensato per
-   Oswald a corpo 40: qui il valore e' Inter, e quel margine lo decapitava. */
+/* Il valore, sotto il nome e nella stessa colonna. Il margine a zero annulla
+   il -13.6px pensato per Oswald a corpo 40: qui il valore e' Inter, e quel
+   margine lo decapitava. */
 ${radice} .dm-tile-val{
-  display:flex;align-items:baseline;flex:0 0 auto;min-width:0;max-width:55%;
-  margin-left:auto}
+  grid-column:2;grid-row:2;
+  display:flex;align-items:baseline;min-width:0;max-width:100%;margin-left:0}
 ${radice} .dm-tile-value,
 ${radice} .dm-tile-value[data-dm-len="medio"],
 ${radice} .dm-tile-value[data-dm-len="lungo"]{
@@ -9876,7 +9950,7 @@ ${radice} .dm-tile-unit[data-simbolo="true"]{
 ${radice} .dm-tile-fondo{display:none}
 /* I tre puntini seguono la didascalia: nella pillola non c'e' il posto dove
    stavano — qui la riga di cima e' display:contents, quindi non fa piu' da
-   riferimento a niente — e una pillola alta quarantotto pixel e' gia' piena. */
+   riferimento a niente — e una pillola alta cinquantadue pixel e' gia' piena. */
 ${radice} .dm-tile-menu{display:none}
 /* La pillola d'avviso: il velo piatto del colore d'avviso al 10%, l'hairline
    in tinta, la tacca piu' spessa e il valore in tinta scura. Niente gradienti

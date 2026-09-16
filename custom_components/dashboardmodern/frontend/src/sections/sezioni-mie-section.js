@@ -28,6 +28,7 @@ import {
   lettureDellaSezione,
   sezioniDaMostrare,
 } from "../core/sezioni-mie.js";
+import { parolaDiStato } from "./le-parole-di-home-assistant.js";
 import { registraPaginaARuntime } from "./page-masthead-section.js";
 import {
   allStates,
@@ -168,33 +169,6 @@ function toglieteLeVecchie(vive) {
 }
 
 /* ── il disegno ───────────────────────────────────────────────────────── */
-
-/* Le parole di stato piu' comuni, dette qui e non nel nucleo: il raccoglitore
- * delle traduzioni guarda le sezioni, e una `t()` scritta dentro `src/core`
- * non finirebbe nei cataloghi. Quelle che non stanno in questa tabella si
- * mostrano come Home Assistant le manda — meglio una parola inglese vera che
- * un trattino al posto di un'informazione che c'e'. */
-function parolaDiStato(grezzo) {
-  const tabella = {
-    on: t("Acceso", "On"),
-    off: t("Spento", "Off"),
-    open: t("Aperto", "Open"),
-    closed: t("Chiuso", "Closed"),
-    home: t("In casa", "Home"),
-    not_home: t("Fuori", "Away"),
-    idle: t("Fermo", "Idle"),
-    playing: t("In riproduzione", "Playing"),
-    paused: t("In pausa", "Paused"),
-    docked: t("Alla base", "Docked"),
-    cleaning: t("Al lavoro", "Cleaning"),
-    charging: t("In carica", "Charging"),
-    heat: t("Riscalda", "Heating"),
-    cool: t("Raffresca", "Cooling"),
-    locked: t("Chiuso a chiave", "Locked"),
-    unlocked: t("Aperto", "Unlocked"),
-  };
-  return tabella[clean(grezzo).toLowerCase()] || clean(grezzo);
-}
 
 function valoreMarkup(riga) {
   if (riga.muto) return `<b class="dm-mia-muta">${esc(t("Non risponde", "Not reporting"))}</b>`;

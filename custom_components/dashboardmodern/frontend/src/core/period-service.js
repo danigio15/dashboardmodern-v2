@@ -817,12 +817,9 @@ export function crescitaNellArco(righe = [], range, { continuazione = false } = 
  * gia' accumulato prima che qualcuno la registrasse: un'entita' rifatta, un
  * aiutante creato mesi dopo, un database ripulito.
  *
- * Quell'energia e' vera, ed e' irrecuperabile: nessuna somma di secchielli puo'
- * ritrovarla, perche' i secchielli non ci sono. E soprattutto non si sa QUANDO
- * e' stata consumata — prima o dentro il periodo che si sta guardando — quindi
- * non si puo' scriverla in nessun totale senza inventare. Si puo' pero' dirlo a
- * chi guarda, che e' la differenza fra un numero sbagliato e un numero corto di
- * cui si sa il perche'.
+ * Quell'energia e' vera, e i secchielli non ce l'hanno. Quanta sia lo dice
+ * questa; SE sia stata consumata dentro il periodo lo dice `testaDellArco`, che
+ * e' l'altra meta' della domanda e per anni e' rimasta senza risposta.
  *
  * Torna zero quando non c'e' niente da dire: nessuna riga, nessuno `state`, o
  * un contatore le cui statistiche sono nate con lui.
@@ -844,6 +841,78 @@ export function energiaPrimaDelleStatistiche(righe = [], range) {
   const somma = cumulativeValue(prima);
   if (lettura == null || somma == null) return 0;
   return Math.max(0, lettura - somma);
+}
+
+const GIORNO_MS = 86400000;
+
+/* Quanto ci si spinge oltre quello che si e' visto davvero.
+ *
+ * La testa si giudica col passo dell'apparecchio: quello che ha consumato nel
+ * tempo misurato, riportato sul tempo scoperto. Con una misura di tre giorni e
+ * un vuoto di otto mesi quel passo non vuol dire niente, e moltiplicarlo per
+ * ottanta darebbe un lasciapassare a qualunque testa. Oltre questo rapporto non
+ * si giudica: si resta corti e lo si dice. */
+export const QUANTO_SI_ALLUNGA = 4;
+
+/* Di quanto la testa puo' sforare il passo e restare credibile.
+ *
+ * Un apparecchio non consuma sempre uguale — una colonnina d'inverno lavora
+ * piu' che d'agosto — quindi un margine ci vuole. Ma il caso da cui guardarsi
+ * non sfora di poco: un contatore di casa con cinque anni di vita dietro, a cui
+ * hanno ripulito il database a giugno, sfora di venti o trenta volte. Fra le
+ * due c'e' moltissimo spazio, e tre e' comodo per la prima e stretto per il
+ * secondo. */
+export const QUANTO_PUO_SFORARE = 3;
+
+/**
+ * La testa di un contatore: quanta ne ha, e se e' stata fatta dentro l'arco.
+ *
+ * «Il sensore restituisce 1440,76 kWh per 2026» e la plancia ne diceva 546,
+ * poi 613 — la stessa segnalazione, aperta e riaperta dalla 1.4.4. Gli 894 che
+ * mancano sono la testa: l'energia che il contatore aveva gia' fatto quando
+ * sono cominciate le sue statistiche. Per tre versioni la plancia l'ha scritta
+ * in un avviso invece di contarla, perche' «non si sa QUANDO e' stata
+ * consumata». Ma chi ha la casa lo sa, e il numero sotto gli occhi resta
+ * sbagliato: la colonnina e' stata installata quest'anno, quindi tutto quello
+ * che ha sul contatore e' di quest'anno.
+ *
+ * Si sa anche da qui, e senza chiedere niente a nessuno: col PASSO
+ * dell'apparecchio. Nel tempo misurato ha consumato tanto al giorno; davanti
+ * alle statistiche c'e' un vuoto lungo cosi'; se la testa sta in quel vuoto a
+ * quel passo, e' roba di questo periodo. Sui numeri di quella segnalazione:
+ * 546 kWh in novantadue giorni sono 5,93 al giorno, il vuoto e' 151 giorni,
+ * quindi ci stanno 896 kWh — e la testa ne misura 894,9. Combacia.
+ *
+ * E il caso da cui il vecchio commento si guardava — un contatore vecchio a cui
+ * hanno rifatto l'entita', un database ripulito — non combacia per niente: la
+ * stessa misura gli concede 896 kWh e lui ne porta venticinquemila. Non e' una
+ * distinzione sottile, ed e' per questo che si puo' fare.
+ *
+ * @returns {{quanta:number, contata:boolean}}
+ */
+export function testaDellArco(righe = [], range, cresciuta = null) {
+  const quanta = energiaPrimaDelleStatistiche(righe, range);
+  if (!(quanta > 0)) return { quanta: 0, contata: false };
+  const corta = { quanta, contata: false };
+  const inizio = range.start.getTime();
+  const fine = range.end.getTime();
+  const dentro = (Array.isArray(righe) ? righe : [])
+    .map(rowTimestamp)
+    .filter((quando) => Number.isFinite(quando) && quando >= inizio && quando < fine)
+    .sort((sinistra, destra) => sinistra - destra);
+  if (!dentro.length) return corta;
+  /* La stessa cautela di `contatoreNatoDentro`: se la prima riga sta proprio
+   * sul confine non si sa se il contatore e' nato li' o se le righe di prima
+   * non sono state chieste, e li' non si tocca niente. */
+  if (dentro[0] <= inizio) return corta;
+  const misurato = Number(cresciuta);
+  if (!Number.isFinite(misurato) || misurato <= 0) return corta;
+  const giorniMisurati = (fine - dentro[0]) / GIORNO_MS;
+  const giorniDiVuoto = (dentro[0] - inizio) / GIORNO_MS;
+  if (giorniMisurati <= 0 || giorniDiVuoto <= 0) return corta;
+  if (giorniDiVuoto > giorniMisurati * QUANTO_SI_ALLUNGA) return corta;
+  const passo = misurato / giorniMisurati;
+  return { quanta, contata: quanta <= passo * giorniDiVuoto * QUANTO_PUO_SFORARE };
 }
 
 /* Un contatore che a inizio periodo non c'era ancora parte da zero.
@@ -1571,32 +1640,32 @@ export class HomeAssistantBroker {
                * un'entita' che non ha quelle righe non e' un rimedio, e
                * scambiarla per tale vorrebbe dire leggere un altro apparecchio
                * per niente. */
-              const mancaAncora = energiaPrimaDelleStatistiche(della, range);
               const primaSua = sue.map(rowTimestamp).filter(Boolean).sort()[0] ?? Infinity;
               const primaDella = della.map(rowTimestamp).filter(Boolean).sort()[0] ?? Infinity;
               if (!della.length || primaDella >= primaSua) return [];
-              return [[plan.key, { righe: della, mancante: mancaAncora }]];
+              return [[plan.key, della]];
             }),
           );
           for (const plan of plans) {
             const continuazione =
               (primoArco.get(plan.key) ?? range.start.getTime()) < range.start.getTime();
-            const prestata = piuLunga.get(plan.key);
-            const mie = prestata ? prestata.righe : righe[plan.entity];
+            const prestate = piuLunga.get(plan.key);
+            const mie = prestate || righe[plan.entity];
             const crescita = crescitaNellArco(mie, range, { continuazione });
-            /* Quanto il contatore aveva gia' fatto prima delle sue statistiche:
-             * e' il pezzo che al totale manca per forza, e si dice invece di
-             * lasciare un numero corto senza spiegazione. Solo sul primo arco:
-             * su quello che continua, il pezzo davanti se l'e' gia' guardato
-             * l'arco precedente. */
-            if (!continuazione) {
-              const mancante = prestata
-                ? prestata.mancante
-                : energiaPrimaDelleStatistiche(righe[plan.entity], range);
-              if (mancante > 0) ammanchi.set(plan.key, mancante);
-            }
+            /* La testa del contatore — quello che aveva gia' fatto prima delle
+             * sue statistiche — si conta se l'ha fatto qui dentro.
+             *
+             * Chi decide e' `testaDellArco`, e la stessa risposta serve due
+             * volte: al totale, che se la prende, e alla card, che la scrive.
+             * Solo sul primo arco: su quello che continua, il pezzo davanti se
+             * l'e' gia' guardato l'arco precedente. */
+            const testa = continuazione
+              ? { quanta: 0, contata: false }
+              : testaDellArco(mie, range, crescita);
+            if (testa.quanta > 0) ammanchi.set(plan.key, testa);
             if (crescita == null) continue;
-            const arrotondata = Math.round(crescita * 1000) / 1000;
+            const totale = crescita + (testa.contata ? testa.quanta : 0);
+            const arrotondata = Math.round(totale * 1000) / 1000;
             valori.set(plan.key, (valori.get(plan.key) ?? 0) + arrotondata);
             if (conIGiorni) {
               const dentro = (mie || []).filter((riga) => {

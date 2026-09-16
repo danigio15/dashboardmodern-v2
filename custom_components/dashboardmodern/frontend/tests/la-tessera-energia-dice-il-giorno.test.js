@@ -27,7 +27,8 @@ globalThis.document = undefined;
 const sezioni = { rooms: [{ id: "r1", name: "Salone" }], energy: {} };
 globalThis.DashboardModernModules = { store: { getSection: (nome) => sezioni[nome] } };
 
-const { modelliDelleTessere } = await import("../src/sections/home-widgets-section.js");
+const { modelliDelleTessere, paroleDellaBatteria } =
+  await import("../src/sections/home-widgets-section.js");
 const { sommaOggi } = await import("../src/core/energy-plants.js");
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
@@ -60,10 +61,7 @@ test("sotto la potenza ci sono i numeri del giorno, tutti quelli mappati", () =>
     },
   });
   assert.ok(energia, "la tessera dell'energia non c'è");
-  assert.equal(
-    energia.caption,
-    "Oggi 12,3 kWh · Produzione 8,1 · Prelievo 5,2 · Immissione 2,4",
-  );
+  assert.equal(energia.caption, "Oggi 12,3 kWh · Produzione 8,1 · Prelievo 5,2 · Immissione 2,4");
   // L'unità si scrive una volta: gli altri numeri sono gli stessi kilowattora.
   assert.equal((energia.caption.match(/kWh/g) || []).length, 1);
   assert.deepEqual(energia.oggi, {
@@ -110,7 +108,10 @@ test("quale entità dice il giorno lo decide la tabella dei piani, non la tesser
   /* Nessun nome di entità del giorno riscritto a mano qui: erano due elenchi
    * per la stessa cosa, e prima o poi la sezione e la tessera avrebbero letto
    * due entità diverse per lo stesso numero. */
-  assert.doesNotMatch(ponte, /daily_import_energy|daily_export_energy|dm\.energy_consumo_casa_oggi/);
+  assert.doesNotMatch(
+    ponte,
+    /daily_import_energy|daily_export_energy|dm\.energy_consumo_casa_oggi/,
+  );
   // E la finestra del dettaglio scrive il giorno sotto la potenza di ciascuna,
   // li' con le parole intere, che nella finestra ci stanno.
   assert.match(ponte, /sotto: delGiorno\[riga\.group\]/);
@@ -118,4 +119,64 @@ test("quale entità dice il giorno lo decide la tabella dei piani, non la tesser
   // Un disegno per sorgente, in un posto solo: due mappe uguali sono il modo
   // di far comparire un sole di qua e una spina di la' per la stessa corrente.
   assert.equal((ponte.match(/house: "🏠", solar: "☀️"/g) || []).length, 0);
+});
+
+/* ── la batteria si legge senza aprire (#544) ───────────────────────────────
+ *
+ * «Vorrei che fosse più facile vedere la % della batteria del fotovoltaico
+ * senza dover cliccare sulla card energia.»
+ *
+ * Il numero c'era già, ma solo dentro: la finestra del dettaglio lo scrive
+ * accanto ai watt della batteria, e per leggerlo bisognava aprire. Adesso sta
+ * in testa alla didascalia — che è sulla tessera chiusa — subito dopo l'avviso
+ * del sovraccarico e prima dei numeri del giorno, perché non è un numero del
+ * giorno: è come sta la casa adesso, come i watt scritti in grande.
+ */
+
+STATI["sensor.batteria_soc"] = { state: "62", attributes: { unit_of_measurement: "%" } };
+STATI["sensor.batteria_soc"].entity_id = "sensor.batteria_soc";
+STATI["sensor.batteria_w"] = { state: "-1400", attributes: { unit_of_measurement: "W" } };
+STATI["sensor.batteria_w"].entity_id = "sensor.batteria_w";
+
+test("la percentuale della batteria è in testa alla didascalia", () => {
+  const energia = tessera({
+    house: { power: "sensor.casa_w", daily_energy: "sensor.casa_oggi" },
+    solar: { daily_energy: "sensor.pv_oggi" },
+    battery: { soc: "sensor.batteria_soc" },
+  });
+  assert.equal(energia.caption, "Batteria 62% · Oggi 12,3 kWh · Produzione 8,1");
+});
+
+test("vale anche quando la batteria ha pure i suoi watt", () => {
+  /* Con la potenza mappata la riga della batteria esiste già e la percentuale
+   * ci si attacca: la didascalia deve trovarla lo stesso. */
+  const energia = tessera({
+    house: { power: "sensor.casa_w", daily_energy: "sensor.casa_oggi" },
+    battery: { power: "sensor.batteria_w", soc: "sensor.batteria_soc" },
+  });
+  assert.match(energia.caption, /^Batteria 62% · Oggi 12,3 kWh$/);
+});
+
+test("chi la batteria non ce l'ha legge la didascalia di prima", () => {
+  /* La proprietà che tiene, di nuovo: chi non ha chiesto niente non si accorge
+   * che questa parte è cambiata. */
+  const energia = tessera({
+    house: { power: "sensor.casa_w", daily_energy: "sensor.casa_oggi" },
+    solar: { daily_energy: "sensor.pv_oggi" },
+  });
+  assert.equal(energia.caption, "Oggi 12,3 kWh · Produzione 8,1");
+});
+
+test("un sensore che sfora il cento non scrive il centouno per cento", () => {
+  assert.equal(
+    paroleDellaBatteria([{ group: "battery", watts: null, soc: 100.4 }]),
+    "Batteria 100%",
+  );
+  assert.equal(paroleDellaBatteria([{ group: "battery", watts: null, soc: -3 }]), "Batteria 0%");
+  assert.equal(paroleDellaBatteria([{ group: "battery", watts: null, soc: 61.6 }]), "Batteria 62%");
+  /* Niente riga, niente stato di carica, niente da scrivere. */
+  assert.equal(paroleDellaBatteria([{ group: "solar", watts: 1200 }]), "");
+  assert.equal(paroleDellaBatteria([{ group: "battery", watts: -800 }]), "");
+  assert.equal(paroleDellaBatteria([]), "");
+  assert.equal(paroleDellaBatteria(), "");
 });

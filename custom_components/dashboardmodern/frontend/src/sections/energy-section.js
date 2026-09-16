@@ -499,15 +499,18 @@ function giorniPerEntita(plans, giorni, prefisso) {
   return perEntita;
 }
 
-/* Gli ammanchi per entita', come `giorniPerEntita` fa con le serie. */
+/* Le teste dei contatori per entita', come `giorniPerEntita` fa con le serie.
+ *
+ * Ogni voce e' quella che torna da `testaDellArco`: quanta ne ha e se e' stata
+ * contata nel totale. */
 function ammanchiPerEntita(plans, ammanchi, prefisso) {
   const perEntita = new Map();
   if (!(ammanchi instanceof Map) || ammanchi.size === 0) return perEntita;
   plans.forEach((plan) => {
-    const quanto = ammanchi.get(`${prefisso}${plan.key}`);
-    if (!Number.isFinite(quanto) || quanto <= 0) return;
-    perEntita.set(plan.entity, quanto);
-    perEntita.set(plan.source, quanto);
+    const testa = ammanchi.get(`${prefisso}${plan.key}`);
+    if (!Number.isFinite(testa?.quanta) || testa.quanta <= 0) return;
+    perEntita.set(plan.entity, testa);
+    perEntita.set(plan.source, testa);
   });
   return perEntita;
 }
@@ -1103,26 +1106,137 @@ export function secchielliNellArco(righe = [], range) {
   return dentro.length < 2 ? [] : recorderBucketConsumptions(dentro.slice(1), dentro[0]);
 }
 
+/* Un arco lungo, spezzato nei suoi mesi di calendario.
+ *
+ * L'anno si chiedeva in un colpo solo: da gennaio a oggi, a ORE, per tre
+ * entita' insieme. Sono seimila righe per entita', diciottomila in una
+ * risposta, e il Recorder che ci arranca sopra e' lo stesso della 333. Ma il
+ * guaio non era la lentezza: era che se quella domanda cadeva, cadeva l'anno
+ * intero, e la card tornava alla media della casa senza dirlo. Dal campo,
+ * sulla stessa scheda della Wallbox: il mese misurato dava il 59% dalla rete
+ * — una macchina si attacca la sera — e l'anno, ripiegato sulla casa, il 23%.
+ * Due numeri dello stesso apparecchio che si contraddicono.
+ *
+ * A mesi sono nove domande da settecento righe. Ognuna cade per conto suo e si
+ * porta via solo le proprie ore; quel che manca lo vede il guardiano della
+ * copertura, che sul totale del periodo sa dire se quel che resta basta
+ * ancora. E ognuna si porta la propria partenza — la linea di base di un mese
+ * guarda due giorni indietro — quindi il primo secchiello di ogni mese si
+ * misura invece di essere buttato.
+ *
+ * I mesi chiusi non cambiano piu', e infatti si tengono da parte: il giro del
+ * quarto d'ora rilegge il mese aperto e basta (vedi `oreDeiMesiChiusi`). */
+export function mesiDellArco(range) {
+  if (!range?.start || !range?.end || range.end <= range.start) return [];
+  const pezzi = [];
+  let inizio = new Date(range.start);
+  while (inizio < range.end) {
+    const dopo = new Date(inizio.getFullYear(), inizio.getMonth() + 1, 1);
+    const fine = dopo < range.end ? dopo : new Date(range.end);
+    pezzi.push({ ...range, kind: "month", period: "hour", start: inizio, end: fine, next: fine });
+    inizio = fine;
+  }
+  return pezzi;
+}
+
 /* La spartizione misurata di un apparecchio su uno o piu' archi.
  *
- * Le ore si chiedono una volta per arco e per tutte e tre le entita' insieme:
+ * Le ore si chiedono una volta per mese e per tutte e tre le entita' insieme:
  * e' la stessa fetta di database, e chiederla tre volte sarebbe tre giri
- * regalati al Recorder. */
-async function quotaSuArchi(archi, dispositivo, casa, rete, unita, totale) {
+ * regalati al Recorder.
+ *
+ * Un mese caduto costa le sue ore, non l'anno. Le ore che mancano non entrano
+ * nel conto — ne' fra quelle spiegate ne' fra quelle scoperte — ma il totale
+ * del periodo, che arriva da un'altra strada, le contiene lo stesso: e' su
+ * quello che `quotaSolareDelDispositivo` misura la copertura, e quindi un anno
+ * mezzo caduto si dichiara non misurato da solo, invece di spacciare per
+ * misurata la meta' che e' arrivata.
+ *
+ * Chi va a leggerle si puo' sostituire: e' l'unico pezzo di questa funzione
+ * che tocca la rete, e senza poterlo sostituire la regola del mese caduto —
+ * che e' il motivo per cui questa funzione e' stata riscritta — si potrebbe
+ * soltanto affermare, non provare. */
+
+/* Le ore dei mesi CHIUSI, tenute da parte.
+ *
+ * L'anno in corso si rimisura ogni quarto d'ora finche' la scheda resta
+ * aperta, e a mesi quel giro erano dodici domande al Recorder invece di una.
+ * Un mese chiuso pero' non cambia piu': rileggerlo e' lavoro per riavere lo
+ * stesso numero. La memoria del broker non basta — tiene le statistiche
+ * storiche dieci minuti, e il giro torna dopo quindici, cioe' sempre a
+ * vuoto — quindi la tiene questa mappa, che di scadenza non ne ha bisogno: un
+ * dicembre finito e' finito.
+ *
+ * Il tetto e' a due anni di mesi. Chi apre venti schede di seguito non si
+ * porta dietro venti anni di secchielli orari: le piu' vecchie se ne vanno,
+ * e al massimo si ripaga una domanda. Quando la configurazione cambia — quale
+ * entita' sia la casa, quale la rete — si butta tutto insieme alle quote, che
+ * e' lo stesso momento e la stessa ragione.
+ *
+ * Il mese e' chiuso quando finisce entro il primo del mese in corso: e' la
+ * domanda che si sta facendo davvero, e non dipende da dove l'arco taglia. */
+const TETTO_DEI_MESI_TENUTI = 24;
+const oreDeiMesiChiusi = new Map();
+
+export function dimenticaLeOreTenute() {
+  oreDeiMesiChiusi.clear();
+}
+
+function meseGiaChiuso(pezzo, adesso) {
+  const primoDelMese = new Date(adesso.getFullYear(), adesso.getMonth(), 1);
+  return pezzo?.end instanceof Date && pezzo.end <= primoDelMese;
+}
+
+export async function leOreDalRecorder(entita, pezzo, unita, adesso = new Date()) {
+  const baseline = baselineRange(pezzo.kind, pezzo.start);
+  const chiave = meseGiaChiuso(pezzo, adesso)
+    ? `${entita.join("|")}~${baseline.start.getTime()}~${pezzo.end.getTime()}`
+    : "";
+  if (chiave && oreDeiMesiChiusi.has(chiave)) return oreDeiMesiChiusi.get(chiave);
+  const righe = await broker.statistics(entita, baseline.start, pezzo.end, "hour", unita);
+  if (chiave) {
+    /* La piu' vecchia esce per prima: una Map ricorda l'ordine in cui le
+     * chiavi ci sono entrate, e non serve altro per farne una coda. */
+    if (oreDeiMesiChiusi.size >= TETTO_DEI_MESI_TENUTI)
+      oreDeiMesiChiusi.delete(oreDeiMesiChiusi.keys().next().value);
+    oreDeiMesiChiusi.set(chiave, righe);
+  }
+  return righe;
+}
+
+export async function quotaSuArchi(
+  archi,
+  dispositivo,
+  casa,
+  rete,
+  unita,
+  totale,
+  leggiLeOre = leOreDalRecorder,
+) {
   const serie = { dispositivo: [], casa: [], rete: [] };
+  const caduti = [];
   for (const range of archi) {
-    if (!range?.start || !range?.end || range.end <= range.start) continue;
-    const baseline = baselineRange(range.kind, range.start);
-    const righe = await broker.statistics(
-      [dispositivo, casa, rete],
-      baseline.start,
-      range.end,
-      "hour",
-      unita,
-    );
-    serie.dispositivo.push(...secchielliNellArco(righe[dispositivo], range));
-    serie.casa.push(...secchielliNellArco(righe[casa], range));
-    serie.rete.push(...secchielliNellArco(righe[rete], range));
+    for (const pezzo of mesiDellArco(range)) {
+      let righe;
+      try {
+        righe = await leggiLeOre([dispositivo, casa, rete], pezzo, unita);
+      } catch (_errore) {
+        caduti.push(`${pezzo.start.getFullYear()}-${pezzo.start.getMonth() + 1}`);
+        continue;
+      }
+      serie.dispositivo.push(...secchielliNellArco(righe[dispositivo], pezzo));
+      serie.casa.push(...secchielliNellArco(righe[casa], pezzo));
+      serie.rete.push(...secchielliNellArco(righe[rete], pezzo));
+    }
+  }
+  /* I mesi che non sono arrivati si dicono una volta sola, con i loro nomi:
+   * nove righe di registro uguali non sono una diagnosi. */
+  if (caduti.length) {
+    try {
+      root.console?.warn?.(
+        `[dashboardmodern] ore non lette per la quota di sole: ${caduti.join(", ")}`,
+      );
+    } catch (_errore) {}
   }
   return quotaSolareDelDispositivo({ ...serie, totale });
 }
@@ -1218,7 +1332,7 @@ export async function misuraLaQuotaDelDispositivo(bundle = state.bundle, adesso 
     );
     if (mese?.fonte === "secchielli") {
       misurate.month = mese;
-      state.quote.set(chiave, { ...misurate, quando: adesso.getTime() });
+      state.quote.set(chiave, { ...gia, ...misurate, quando: adesso.getTime() });
       applyAtomicEnergyBundle(state.bundle);
     }
     const anno = await quotaSuArchi(
@@ -1243,10 +1357,20 @@ export async function misuraLaQuotaDelDispositivo(bundle = state.bundle, adesso 
     state.quoteInCorso.delete(chiave);
   }
   if (!misurate.month && !misurate.year) return null;
-  misurate.quando = adesso.getTime();
-  state.quote.set(chiave, misurate);
+  /* Quello che si e' misurato adesso si scrive SOPRA quello di prima, non al
+   * suo posto.
+   *
+   * Da quando un mese caduto non fa piu' cadere tutto — che e' il punto della
+   * riscrittura — un giro puo' tornare con l'anno e senza il mese. Scritto al
+   * posto del vecchio, quel giro buttava via la misura del mese che c'era gia'
+   * e la card tornava a dire «stimata sulla media della casa» per un numero
+   * che era stato misurato dieci minuti prima. Della misura si tiene la
+   * frazione, non i kWh: quella di prima resta buona finche' non se ne ha una
+   * nuova. */
+  const unite = { ...gia, ...misurate, quando: adesso.getTime() };
+  state.quote.set(chiave, unite);
   applyAtomicEnergyBundle(state.bundle);
-  return misurate;
+  return unite;
 }
 
 /* La spartizione da scrivere: misurata se c'e', stimata sulla casa altrimenti.
@@ -1261,29 +1385,68 @@ function quotaDaScrivere(bundle, dispositivo, quale, valore) {
   const misurata = state.quote.get(chiaveDellaQuota(dispositivo, bundle?.period))?.[quale];
   if (misurata && Number.isFinite(misurata.quotaRete)) {
     const rete = Math.max(0, Math.min(1, misurata.quotaRete));
-    return { grid: valore * rete, solar: valore * (1 - rete) };
+    return { grid: valore * rete, solar: valore * (1 - rete), misurata: true };
   }
-  return splitFor(bundle?.[quale], valore);
+  return { ...splitFor(bundle?.[quale], valore), misurata: false };
 }
 
-/* Il pezzo di storia che al totale manca per forza, scritto sulla card.
+/* Da dove viene la spartizione che si sta leggendo.
+ *
+ * `quota-solare-del-dispositivo.js` lo scrive in testa a se stesso: «una
+ * percentuale inventata scritta come se fosse misurata e' il difetto che
+ * questo modulo esiste per non rifare», e a chi chiama lascia il compito di
+ * ripiegare sulla vecchia stima DICENDO che e' una stima. Chi chiama non lo
+ * diceva.
+ *
+ * Cosi' sulla stessa scheda della Wallbox il mese usciva misurato ora per ora
+ * — il 59% dalla rete, che e' quello che fa una macchina attaccata la sera — e
+ * l'anno usciva copiato dalla media della casa — il 23% — scritti uguali, con
+ * lo stesso carattere, senza un segno che li distinguesse. Chi guarda vede due
+ * numeri dello stesso apparecchio che non possono essere veri insieme, e ha
+ * ragione: uno dei due non e' una misura.
+ *
+ * La riga sta sotto le due tessere di cui parla, ed e' la stessa per il mese e
+ * per l'anno: due blocchi che dicono la stessa cosa si strutturano uguali. */
+function scriviLaStrada(ancora, misurata) {
+  const tessere = doc?.getElementById(ancora)?.closest?.(".ed-dev-cost-row");
+  if (!tessere) return false;
+  let riga = tessere.nextElementSibling;
+  if (!riga?.classList?.contains("dm-ed-strada")) {
+    riga = doc.createElement("div");
+    riga.className = "dm-ed-strada";
+    tessere.after(riga);
+  }
+  riga.classList.toggle("dm-ed-strada-stimata", !misurata);
+  scriviTestoSeCambia(
+    riga,
+    misurata
+      ? t("Spartizione misurata ora per ora", "Split measured hour by hour")
+      : t("Spartizione stimata sulla media della casa", "Split estimated from the house average"),
+  );
+  return true;
+}
+
+/* Via le righe della provenienza: non c'e' piu' un numero di cui parlino.
+ *
+ * Toglierle e non svuotarle: una riga vuota lascerebbe il suo spazio sotto le
+ * tessere, e uno spazio che compare e sparisce fa ballare la card. */
+function dimenticaLaStrada() {
+  for (const riga of doc?.querySelectorAll?.(".dm-ed-strada,.dm-ed-ammanco") || [])
+    riga.remove();
+}
+
+/* La testa del contatore, detta sulla card.
  *
  * «Il sensore restituisce 1440,76 kWh per 2026» e la plancia ne diceva 546. La
  * differenza non e' un errore di somma: e' energia che il contatore aveva gia'
- * fatto prima che Home Assistant cominciasse a tenerne le statistiche — una
- * entita' rifatta, un aiutante creato mesi dopo l'apparecchio, un database
- * ripulito. Nessuna somma di secchielli puo' ritrovarla, perche' i secchielli
- * non ci sono.
+ * fatto prima che Home Assistant cominciasse a tenerne le statistiche.
  *
- * E nemmeno si puo' aggiungerla al totale: non si sa QUANDO e' stata
- * consumata. Su una colonnina installata quest'anno e' tutta di quest'anno; su
- * un contatore vecchio a cui hanno rifatto l'entita' e' di anni fa, e scriverla
- * nell'anno vorrebbe dire gonfiarlo di tutta la sua vita. Fra le due la plancia
- * non puo' scegliere da sola, e indovinare in quel verso e' molto peggio che
- * restare corti.
- *
- * Quello che si puo' fare e' dirlo: cosi' un numero corto smette di essere un
- * numero sbagliato e diventa un numero di cui si sa il perche'. */
+ * Adesso, quando quell'energia sta nel passo dell'apparecchio — il conto lo fa
+ * `testaDellArco` — e' DENTRO il totale, e questa riga dice da dove viene: un
+ * numero che non torna con nessun secchiello merita la sua spiegazione tanto
+ * quanto un numero corto. Quando invece non ci sta — un contatore con anni di
+ * vita dietro a cui hanno ripulito il database — il totale resta corto, e
+ * questa riga dice quanto e perche'. */
 function scriviLAmmanco(bundle, source) {
   /* Sotto il titolo dell'anno, non in fondo al pannello.
    *
@@ -1297,8 +1460,8 @@ function scriviLAmmanco(bundle, source) {
   const panel = blocco || doc?.querySelector(".ed-device-detail,#ed-device-detail");
   if (!panel) return false;
   let riga = (blocco ? panel.parentElement : panel)?.querySelector?.(".dm-ed-ammanco");
-  const quanto = bundle?.deviceYearAmmanco?.get(source);
-  if (!Number.isFinite(quanto) || quanto <= 0) {
+  const testa = bundle?.deviceYearAmmanco?.get(source);
+  if (!Number.isFinite(testa?.quanta) || testa.quanta <= 0) {
     riga?.remove?.();
     return false;
   }
@@ -1308,15 +1471,21 @@ function scriviLAmmanco(bundle, source) {
     if (blocco) blocco.after(riga);
     else panel.append(riga);
   }
+  riga.classList.toggle("dm-ed-ammanco-contato", Boolean(testa.contata));
   /* Il numero sta FUORI dalla frase tradotta: una chiave con dentro un valore
    * non e' una chiave, e in tredici lingue diventa tredici chiavi che non si
    * ritrovano piu'. */
   scriviTestoSeCambia(
     riga,
-    `⚠️ ${formatNumber(quanto, 1)} kWh ${t(
-      "non contati: il contatore li aveva già fatti prima che ne cominciassero le statistiche",
-      "not counted: the counter had already made them before its statistics began",
-    )}`,
+    testa.contata
+      ? `✅ ${formatNumber(testa.quanta, 1)} kWh ${t(
+          "compresi qui: il contatore li aveva già fatti prima che ne cominciassero le statistiche",
+          "included here: the counter had already made them before its statistics began",
+        )}`
+      : `⚠️ ${formatNumber(testa.quanta, 1)} kWh ${t(
+          "non contati: il contatore li aveva già fatti prima che ne cominciassero le statistiche, e sono troppi per essere di questo periodo",
+          "not counted: the counter had already made them before its statistics began, and they are too many to belong to this period",
+        )}`,
   );
   return true;
 }
@@ -1356,6 +1525,15 @@ function applyDeviceDetail(bundle) {
       setText(id, "—");
     setText("ed-dkpi-picco-sub", t("Nessun dato per questo periodo", "No data for this period"));
     setText("ed-dkpi-year-lbl", String(Number(bundle.period?.year) || new Date().getFullYear()));
+    /* E con i numeri se ne va anche da dove venivano.
+     *
+     * Le due righe della provenienza — «misurata ora per ora» / «stimata» — e
+     * quella della testa del contatore restavano appese dove le aveva messe
+     * l'apparecchio di prima: sotto i trattini si leggeva ancora com'era stato
+     * misurato QUELL'altro. E' esattamente il difetto per cui quelle righe
+     * esistono, rifatto un passo piu' in la': una provenienza scritta sotto un
+     * numero che non le appartiene. */
+    dimenticaLaStrada();
     return false;
   }
   const selectedMonth = Number(bundle.period?.month) || new Date().getMonth() + 1;
@@ -1406,6 +1584,8 @@ function applyDeviceDetail(bundle) {
     `${formatNumber(yearSplit.grid, 1)} kWh ${t("dalla rete", "from grid")}`,
   );
 
+  scriviLaStrada("ed-dkpi-risp-eur", monthSplit.misurata);
+  scriviLaStrada("ed-dkpi-anno-risp-eur", yearSplit.misurata);
   scriviLAmmanco(bundle, source);
 
   const panel = doc?.querySelector(".ed-device-detail,#ed-device-detail");
@@ -2085,6 +2265,18 @@ function installStyles() {
       /* Il pezzo di storia che al totale manca per forza: si dice, invece di
          lasciare un numero corto senza una parola. */
       .dm-ed-ammanco{margin:10px 0 0;padding:9px 13px;border-radius:12px;font-size:12px;font-weight:600;line-height:1.45;color:#92400e;background:#fef3c7;border:1px solid #fcd34d}
+      /* Contata vuol dire che il totale sopra e' giusto: e' una spiegazione,
+       * non un allarme, e il giallo di un avviso direbbe il contrario. */
+      .dm-ed-ammanco-contato{color:#065f46;background:#d1fae5;border-color:#6ee7b7}
+      /* La riga che dice da dove viene la spartizione: piccola e spenta
+       * quando e' una misura, perche' misurato e' il caso normale e non
+       * deve gridare; un filo piu' marcata quando e' una stima, che e'
+       * l'informazione che manca a chi confronta due numeri diversi. */
+      .dm-ed-strada{margin:6px 0 0;padding:0 4px;font-size:11px;font-weight:700;letter-spacing:.2px;line-height:1.4;color:var(--text-dim,#94a3b8)}
+      .dm-ed-strada-stimata{color:#b45309}
+      /* Sul fondo scuro l'ambra di giorno diventa illeggibile: la stessa
+       * tinta schiarita, che e' la convenzione del guscio. */
+      html[data-theme="dark"] .dm-ed-strada-stimata{color:#fbbf24}
       .dm-energy-signed{margin:0 0 14px;padding:12px 14px;border:1px solid var(--divider-color,rgba(15,23,42,.14));border-radius:14px;background:color-mix(in srgb,var(--secondary-background-color,#f1f5f9) 70%,transparent)}
       .dm-energy-signed-head{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
       .dm-energy-signed-head input{margin-top:3px;flex:0 0 auto;width:17px;height:17px}
@@ -2269,6 +2461,7 @@ function subscribeStore() {
     /* E le quote misurate riguardavano le entita' di prima: quale sia la casa
      * e quale la rete e' appena cambiato, quindi si rimisurano. */
     state.quote.clear();
+    dimenticaLeOreTenute();
     scheduleEnergyRefresh(true);
   });
 }

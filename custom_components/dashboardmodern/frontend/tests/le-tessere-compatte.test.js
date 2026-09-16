@@ -4,9 +4,9 @@
  * come difetto — e si applica come attributo `data-dm-compatto` sull'ospite
  * `#dm-widgets`: «sempre» stringe ovunque, «auto» solo sotto i 520 pixel via
  * media query del foglio, «mai» non lascia traccia. Il foglio fa il resto:
- * pillole a due colonne, chip neutro, nome in inchiostro pieno, valore Inter
- * ancorato a destra, tacca d'accento a semipillola, didascalie e misure
- * nascoste — e chi le nasconde non le misura piu'.
+ * pillole a due colonne, chip neutro, nome in inchiostro pieno e valore Inter
+ * SOTTO il nome, tacca d'accento a semipillola, didascalie e misure nascoste —
+ * e chi le nasconde non le misura piu'.
  */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -65,9 +65,9 @@ test("il foglio ha la C4 due volte: «sempre» ovunque, «auto» sotto i 520px",
     /@media \(max-width:520px\)\{\$\{regoleCompatteCon\('#dm-widgets\[data-dm-compatto="auto"\]'\)\}/,
   );
   const compatta = PONTE.slice(PONTE.indexOf("function regoleCompatteCon"));
-  // La pillola: due colonne, ~48px, raggio 14, e la prima riga sciolta.
+  // La pillola: due colonne, ~52px, raggio 14, e la prima riga sciolta.
   assert.match(compatta, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
-  assert.match(compatta, /min-height:48px/);
+  assert.match(compatta, /min-height:52px/);
   assert.match(compatta, /border-radius:14px/);
   assert.match(compatta, /\.dm-tile-cima\{display:contents\}/);
   // La tacca a semipillola, fusa nel bordo, senza la lama: animation none.
@@ -90,6 +90,32 @@ test("il foglio ha la C4 due volte: «sempre» ovunque, «auto» sotto i 520px",
   assert.match(compatta, /\.dm-tile-alone\{\n\s*inset:0;height:auto;border-radius:inherit/);
   assert.doesNotMatch(compatta, /\.dm-tile-alone\{display:none\}/);
   assert.match(compatta, /\.dm-tile::before\{display:none\}/);
+});
+
+/* ── il nome e il valore non si contendono piu' la riga ────────────────────
+ *
+ * «ELETTRODOMESTIC 2», «TEMPERATU 24,2°», «AGEN 8 in arrivo»: il valore si
+ * prendeva quello che gli serviva e al nome restava il resto, tagliato secco a
+ * meta' parola dentro una pillola dove la seconda riga non ci sta. In colonna
+ * il nome ha sempre la stessa larghezza, qualunque cosa dica il valore.
+ */
+test("nella pillola il nome sta sopra e il valore sotto, in colonna", () => {
+  const compatta = PONTE.slice(PONTE.indexOf("function regoleCompatteCon"));
+  // Due colonne dentro la pillola: il disegno, e la colonna del testo.
+  assert.match(compatta, /grid-template-columns:30px minmax\(0,1fr\);grid-template-rows:auto auto/);
+  // Il disegno tiene tutte e due le righe, in mezzo.
+  assert.match(compatta, /grid-column:1;grid-row:1 \/ span 2;align-self:center/);
+  // Il nome sulla prima riga, il valore sulla seconda, nella stessa colonna.
+  assert.match(compatta, /\.dm-tile-label\{\n\s*grid-column:2;grid-row:1;/);
+  assert.match(compatta, /\.dm-tile-val\{\n\s*grid-column:2;grid-row:2;/);
+  /* Il valore non e' piu' ancorato a destra e non ha piu' un tetto: erano le
+   * due cose che gli facevano togliere spazio al nome. */
+  assert.doesNotMatch(compatta, /max-width:55%/);
+  assert.doesNotMatch(compatta, /margin-left:auto/);
+  assert.match(compatta, /max-width:100%;margin-left:0/);
+  /* E il nome sta su una riga sola: la seconda e' del valore, e un nome che ci
+   * scendesse dentro lo coprirebbe. */
+  assert.match(compatta, /-webkit-line-clamp:1;white-space:nowrap/);
 });
 
 test("il fitter non lascia ellissi spurie e le didascalie nascoste non si misurano", () => {

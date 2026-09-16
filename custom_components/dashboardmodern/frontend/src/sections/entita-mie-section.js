@@ -13,6 +13,7 @@
  * non ne ha non guadagna un titolo vuoto.
  */
 import { CHIAVE_ENTITA_MIE, lettureDellaSezione, sezioniConEntita } from "../core/entita-mie.js";
+import { parolaDiStato } from "./le-parole-di-home-assistant.js";
 import { oggettoWidget } from "../core/oggetti-widget.js";
 import {
   allStates,
@@ -37,28 +38,6 @@ const state = (root[KEY] ||= { installed: false, frame: 0, firme: new Map() });
 export { CHIAVE_ENTITA_MIE };
 
 const voci = () => readJson(CHIAVE_ENTITA_MIE, []);
-
-/* Le parole di stato più comuni, dette qui e non nel nucleo: il raccoglitore
- * delle traduzioni guarda le sezioni, e una `t()` scritta dentro `src/core` non
- * finirebbe nei cataloghi. Quelle che non stanno in tabella si mostrano come
- * Home Assistant le manda — meglio una parola inglese vera che un trattino al
- * posto di un'informazione che c'è. */
-function parolaDiStato(grezzo) {
-  const tabella = {
-    on: t("Acceso", "On"),
-    off: t("Spento", "Off"),
-    open: t("Aperto", "Open"),
-    closed: t("Chiuso", "Closed"),
-    home: t("In casa", "Home"),
-    not_home: t("Fuori", "Away"),
-    idle: t("Fermo", "Idle"),
-    playing: t("In riproduzione", "Playing"),
-    paused: t("In pausa", "Paused"),
-    locked: t("Chiuso a chiave", "Locked"),
-    unlocked: t("Aperto", "Unlocked"),
-  };
-  return tabella[clean(grezzo).toLowerCase()] || clean(grezzo);
-}
 
 function valoreMarkup(riga) {
   if (riga.muto) return `<b class="dm-mie-muta">${esc(t("Non risponde", "Not reporting"))}</b>`;

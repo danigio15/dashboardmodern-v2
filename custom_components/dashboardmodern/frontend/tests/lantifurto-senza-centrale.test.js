@@ -300,3 +300,32 @@ test("il cartello della sezione dice inserito anche senza centrale (#547)", asyn
     assert.match(testo, /activeBtn = suMisura\.mode; isArmed = true;/, guscio);
   }
 });
+
+test("un'entità non mappata non è una centrale che tace: è una centrale che non c'è", async () => {
+  /* «Non c'è modo di togliere le voci tasto Notte e Sblocca, che nel caso di
+   * configurazione con script non hanno modo di esistere» (#547).
+   *
+   * Il guscio non risponde mai «non lo so»: per uno slot che nessuno ha mappato
+   * restituisce un fantasma — `{ entity_id: "dm.unmapped", state: "unavailable" }`
+   * — perché chi disegna non inciampi su un `undefined`. Ma un fantasma è un
+   * oggetto, e un oggetto è vero: chi chiedeva «c'è una centrale?» si sentiva
+   * rispondere di sì, e la fila di serie compariva accanto ai tasti scritti a
+   * mano. Tasti che chiamano i servizi di `alarm_control_panel`, cioè che non
+   * fanno niente — e che non si potevano nemmeno nascondere, perché le caselle
+   * per toglierli elencano solo i modi che una centrale dichiara.
+   *
+   * Un `unavailable` VERO invece resta una centrale: sta solo dormendo, e chi
+   * l'ha configurata vuole ritrovare i suoi tasti al risveglio. */
+  const sorgente = await readFile(
+    new URL("../src/sections/security-showcase-section.js", import.meta.url),
+    "utf8",
+  );
+  const dentro = sorgente.slice(
+    sorgente.indexOf("function alarmStateObject("),
+    sorgente.indexOf("function", sorgente.indexOf("function alarmStateObject(") + 40),
+  );
+  assert.match(dentro, /dm\.unmapped/, "il fantasma va riconosciuto qui");
+  assert.match(dentro, /\?\s*null\s*:/, "e va tradotto in «nessuna centrale»");
+  /* E NON si butta via ogni entità che dice «non disponibile». */
+  assert.doesNotMatch(dentro, /"unavailable"/, "un unavailable vero resta una centrale");
+});

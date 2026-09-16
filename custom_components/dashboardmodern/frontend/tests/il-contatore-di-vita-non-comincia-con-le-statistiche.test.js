@@ -16,6 +16,10 @@
  * Quando però l'arco contiene tutta la vita REGISTRATA del contatore, anche il
  * suo ultimo azzeramento è caduto lì dentro: quello che segna adesso l'ha
  * consumato dentro l'arco, ed è un pavimento.
+ *
+ * Quanta sia quella testa lo dice `energiaPrimaDelleStatistiche`, ed è quello
+ * che si prova qui. SE appartenga al periodo è un'altra domanda, e la risposta
+ * sta in `la-testa-del-contatore-e-dellanno-se-ci-sta`.
  */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -52,14 +56,12 @@ test("il pezzo che manca si sa quanto vale, e si sa che manca", () => {
   assert.equal(Math.round(energiaPrimaDelleStatistiche(WALLBOX, ANNO) * 10) / 10, 894.9);
 });
 
-test("quel pezzo NON si aggiunge al totale, perché non si sa quando è stato fatto", () => {
-  /* È la tentazione da cui guardarsi. Su una colonnina installata quest'anno
-   * quegli 894 kWh sono tutti di quest'anno; su un contatore vecchio a cui
-   * hanno rifatto l'entità — un'entità rinominata, un aiutante creato mesi
-   * dopo, un database ripulito — sono di anni fa, e scriverli nell'anno lo
-   * gonfierebbe di tutta la vita dell'apparecchio. Fra le due il Recorder non
-   * dà modo di scegliere, e sbagliare in quel verso è molto peggio che restare
-   * corti: il totale resta quello dei secchielli, e l'ammanco si dice. */
+test("`crescitaNellArco` risponde per i secchielli, e solo per quelli", () => {
+  /* Questa funzione ha una domanda sola: quanto dicono i secchielli del
+   * Recorder. La testa non la riguarda — 546 è la risposta giusta a quella
+   * domanda — e se la testa appartenga al periodo lo decide `testaDellArco`,
+   * che è l'altra metà e ha la sua prova
+   * (`la-testa-del-contatore-e-dellanno-se-ci-sta`). */
   assert.equal(crescitaNellArco(WALLBOX, ANNO), 546);
 });
 
