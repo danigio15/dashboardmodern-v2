@@ -371,24 +371,80 @@ test("senza registro si legge quello che c'e', come prima del ricordo", () => {
 
 const SOLO_SPORTELLO = { id: "cassetta-1", nome: "Cassetta", ritiro: "binary_sensor.sportello" };
 
+/* L'arrivo è l'APERTURA, e la si vede solo mentre è aperto: un attimo dopo
+ * `last_changed` dice quando si è RICHIUSO. Quindi la prova passa dalla stessa
+ * porta della plancia — si segna l'apertura mentre si vede, e poi si legge. */
+const CON_SPORTELLO = { cassette: [SOLO_SPORTELLO] };
+const segnata = (minuti) =>
+  arriviDaRicordare(CON_SPORTELLO, { "binary_sensor.sportello": stato("on", minuti) }, null);
+
 test("col solo sportello, un'apertura è una notizia: c'è posta", () => {
-  const letta = letturaDellaCassetta(SOLO_SPORTELLO, {
-    "binary_sensor.sportello": stato("off", 20),
-  });
-  assert.equal(letta.ce, true, "lo sportello si è mosso e nessuno ha detto di aver preso niente");
+  const visti = segnata(20);
+  assert.deepEqual(visti, { "cassetta-1": Date.parse(quandoFa(20)) }, "l'apertura va segnata");
+  /* Lo sportello si è richiuso: `last_changed` adesso dice quando si è chiuso,
+   * e vale quello che ci si era segnati. */
+  const letta = letturaDellaCassetta(
+    SOLO_SPORTELLO,
+    { "binary_sensor.sportello": stato("off", 19) },
+    null,
+    visti,
+  );
+  assert.equal(letta.ce, true, "lo sportello si è aperto e nessuno ha detto di aver preso niente");
   assert.equal(letta.aperta, false);
   assert.equal(letta.arrivata, Date.parse(quandoFa(20)));
   assert.equal(letta.daSportello, true, "la pagina deve scrivere «apertura», non «movimento»");
   assert.equal(letta.muta, false);
 });
 
-test("e «l'ho presa» la svuota, finché lo sportello non si muove di nuovo", () => {
-  const states = { "binary_sensor.sportello": stato("off", 20) };
+test("e «l'ho presa» la svuota, finché lo sportello non si riapre", () => {
+  const chiuso = { "binary_sensor.sportello": stato("off", 19) };
   const presa = { "cassetta-1": Date.parse(quandoFa(5)) };
-  assert.equal(letturaDellaCassetta(SOLO_SPORTELLO, states, presa).ce, false);
+  assert.equal(letturaDellaCassetta(SOLO_SPORTELLO, chiuso, presa, segnata(20)).ce, false);
   /* Lo sportello si riapre dopo il ritiro: è posta nuova. */
-  const dopo = { "binary_sensor.sportello": stato("off", 2) };
-  assert.equal(letturaDellaCassetta(SOLO_SPORTELLO, dopo, presa).ce, true);
+  assert.equal(letturaDellaCassetta(SOLO_SPORTELLO, chiuso, presa, segnata(2)).ce, true);
+});
+
+/* ── e non si inventa un'apertura che nessuno ha visto ─────────────────────
+ *
+ * `last_changed` di un contatto CHIUSO dice quando si è chiuso — o, dopo un
+ * riavvio di Home Assistant, semplicemente quando l'entità è rinata. Preso
+ * com'è, diceva «c'è posta» a ogni riavvio.
+ *
+ * Col luxmetro — che è una configurazione prevista, visto che c'è la soglia —
+ * era peggio: il suo stato è un numero, quindi `last_changed` si muove a OGNI
+ * oscillazione della luce, e l'arrivo scavalcava il ritiro a ogni lettura. La
+ * cassetta diceva «c'è posta» per sempre e il tasto «l'ho presa» non teneva.
+ */
+test("un riavvio non è un'apertura: senza averla vista non si sa", () => {
+  const letta = letturaDellaCassetta(SOLO_SPORTELLO, {
+    "binary_sensor.sportello": stato("off", 0),
+  });
+  assert.equal(letta.arrivata, null);
+  assert.equal(letta.ce, null, "non si sa: nessuno ha visto aprire");
+});
+
+test("il luxmetro che oscilla sotto la soglia non riapre la cassetta", () => {
+  const luce = { id: "cassetta-1", ritiro: "sensor.lux", soglia: 40 };
+  const presa = { "cassetta-1": Date.parse(quandoFa(10)) };
+  const visti = arriviDaRicordare(
+    { cassette: [luce] },
+    { "sensor.lux": stato("120", 30) },
+    null,
+  );
+  assert.deepEqual(visti, { "cassetta-1": Date.parse(quandoFa(30)) }, "l'apertura vera si segna");
+  /* Adesso la luce ondeggia al buio: ogni lettura muove `last_changed`, e
+   * nessuna di quelle è un'apertura. */
+  for (const [valore, minuti] of [["3", 4], ["5", 2], ["2", 0]]) {
+    const states = { "sensor.lux": stato(valore, minuti) };
+    assert.deepEqual(
+      arriviDaRicordare({ cassette: [luce] }, states, visti),
+      visti,
+      `${valore} lux non è un'apertura`,
+    );
+    const letta = letturaDellaCassetta(luce, states, presa, visti);
+    assert.equal(letta.arrivata, Date.parse(quandoFa(30)), `${valore} lux`);
+    assert.equal(letta.ce, false, `${valore} lux: l'ho presa dieci minuti fa`);
+  }
 });
 
 test("mentre lo sportello è aperto la parola è «Aperta», non un verdetto", () => {

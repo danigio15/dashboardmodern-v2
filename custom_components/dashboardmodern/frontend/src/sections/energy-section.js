@@ -1124,8 +1124,8 @@ export function secchielliNellArco(righe = [], range) {
  * guarda due giorni indietro — quindi il primo secchiello di ogni mese si
  * misura invece di essere buttato.
  *
- * I mesi chiusi non cambiano piu': ognuno si tiene da parte per conto suo, e
- * il mese dopo se ne rilegge uno invece di rileggere l'anno. */
+ * I mesi chiusi non cambiano piu', e infatti si tengono da parte: il giro del
+ * quarto d'ora rilegge il mese aperto e basta (vedi `oreDeiMesiChiusi`). */
 export function mesiDellArco(range) {
   if (!range?.start || !range?.end || range.end <= range.start) return [];
   const pezzi = [];
@@ -1156,9 +1156,52 @@ export function mesiDellArco(range) {
  * che tocca la rete, e senza poterlo sostituire la regola del mese caduto —
  * che e' il motivo per cui questa funzione e' stata riscritta — si potrebbe
  * soltanto affermare, non provare. */
-async function leOreDalRecorder(entita, pezzo, unita) {
+
+/* Le ore dei mesi CHIUSI, tenute da parte.
+ *
+ * L'anno in corso si rimisura ogni quarto d'ora finche' la scheda resta
+ * aperta, e a mesi quel giro erano dodici domande al Recorder invece di una.
+ * Un mese chiuso pero' non cambia piu': rileggerlo e' lavoro per riavere lo
+ * stesso numero. La memoria del broker non basta — tiene le statistiche
+ * storiche dieci minuti, e il giro torna dopo quindici, cioe' sempre a
+ * vuoto — quindi la tiene questa mappa, che di scadenza non ne ha bisogno: un
+ * dicembre finito e' finito.
+ *
+ * Il tetto e' a due anni di mesi. Chi apre venti schede di seguito non si
+ * porta dietro venti anni di secchielli orari: le piu' vecchie se ne vanno,
+ * e al massimo si ripaga una domanda. Quando la configurazione cambia — quale
+ * entita' sia la casa, quale la rete — si butta tutto insieme alle quote, che
+ * e' lo stesso momento e la stessa ragione.
+ *
+ * Il mese e' chiuso quando finisce entro il primo del mese in corso: e' la
+ * domanda che si sta facendo davvero, e non dipende da dove l'arco taglia. */
+const TETTO_DEI_MESI_TENUTI = 24;
+const oreDeiMesiChiusi = new Map();
+
+export function dimenticaLeOreTenute() {
+  oreDeiMesiChiusi.clear();
+}
+
+function meseGiaChiuso(pezzo, adesso) {
+  const primoDelMese = new Date(adesso.getFullYear(), adesso.getMonth(), 1);
+  return pezzo?.end instanceof Date && pezzo.end <= primoDelMese;
+}
+
+export async function leOreDalRecorder(entita, pezzo, unita, adesso = new Date()) {
   const baseline = baselineRange(pezzo.kind, pezzo.start);
-  return broker.statistics(entita, baseline.start, pezzo.end, "hour", unita);
+  const chiave = meseGiaChiuso(pezzo, adesso)
+    ? `${entita.join("|")}~${baseline.start.getTime()}~${pezzo.end.getTime()}`
+    : "";
+  if (chiave && oreDeiMesiChiusi.has(chiave)) return oreDeiMesiChiusi.get(chiave);
+  const righe = await broker.statistics(entita, baseline.start, pezzo.end, "hour", unita);
+  if (chiave) {
+    /* La piu' vecchia esce per prima: una Map ricorda l'ordine in cui le
+     * chiavi ci sono entrate, e non serve altro per farne una coda. */
+    if (oreDeiMesiChiusi.size >= TETTO_DEI_MESI_TENUTI)
+      oreDeiMesiChiusi.delete(oreDeiMesiChiusi.keys().next().value);
+    oreDeiMesiChiusi.set(chiave, righe);
+  }
+  return righe;
 }
 
 export async function quotaSuArchi(
@@ -1289,7 +1332,7 @@ export async function misuraLaQuotaDelDispositivo(bundle = state.bundle, adesso 
     );
     if (mese?.fonte === "secchielli") {
       misurate.month = mese;
-      state.quote.set(chiave, { ...misurate, quando: adesso.getTime() });
+      state.quote.set(chiave, { ...gia, ...misurate, quando: adesso.getTime() });
       applyAtomicEnergyBundle(state.bundle);
     }
     const anno = await quotaSuArchi(
@@ -1314,10 +1357,20 @@ export async function misuraLaQuotaDelDispositivo(bundle = state.bundle, adesso 
     state.quoteInCorso.delete(chiave);
   }
   if (!misurate.month && !misurate.year) return null;
-  misurate.quando = adesso.getTime();
-  state.quote.set(chiave, misurate);
+  /* Quello che si e' misurato adesso si scrive SOPRA quello di prima, non al
+   * suo posto.
+   *
+   * Da quando un mese caduto non fa piu' cadere tutto — che e' il punto della
+   * riscrittura — un giro puo' tornare con l'anno e senza il mese. Scritto al
+   * posto del vecchio, quel giro buttava via la misura del mese che c'era gia'
+   * e la card tornava a dire «stimata sulla media della casa» per un numero
+   * che era stato misurato dieci minuti prima. Della misura si tiene la
+   * frazione, non i kWh: quella di prima resta buona finche' non se ne ha una
+   * nuova. */
+  const unite = { ...gia, ...misurate, quando: adesso.getTime() };
+  state.quote.set(chiave, unite);
   applyAtomicEnergyBundle(state.bundle);
-  return misurate;
+  return unite;
 }
 
 /* La spartizione da scrivere: misurata se c'e', stimata sulla casa altrimenti.
@@ -1371,6 +1424,15 @@ function scriviLaStrada(ancora, misurata) {
       : t("Spartizione stimata sulla media della casa", "Split estimated from the house average"),
   );
   return true;
+}
+
+/* Via le righe della provenienza: non c'e' piu' un numero di cui parlino.
+ *
+ * Toglierle e non svuotarle: una riga vuota lascerebbe il suo spazio sotto le
+ * tessere, e uno spazio che compare e sparisce fa ballare la card. */
+function dimenticaLaStrada() {
+  for (const riga of doc?.querySelectorAll?.(".dm-ed-strada,.dm-ed-ammanco") || [])
+    riga.remove();
 }
 
 /* La testa del contatore, detta sulla card.
@@ -1463,6 +1525,15 @@ function applyDeviceDetail(bundle) {
       setText(id, "—");
     setText("ed-dkpi-picco-sub", t("Nessun dato per questo periodo", "No data for this period"));
     setText("ed-dkpi-year-lbl", String(Number(bundle.period?.year) || new Date().getFullYear()));
+    /* E con i numeri se ne va anche da dove venivano.
+     *
+     * Le due righe della provenienza — «misurata ora per ora» / «stimata» — e
+     * quella della testa del contatore restavano appese dove le aveva messe
+     * l'apparecchio di prima: sotto i trattini si leggeva ancora com'era stato
+     * misurato QUELL'altro. E' esattamente il difetto per cui quelle righe
+     * esistono, rifatto un passo piu' in la': una provenienza scritta sotto un
+     * numero che non le appartiene. */
+    dimenticaLaStrada();
     return false;
   }
   const selectedMonth = Number(bundle.period?.month) || new Date().getMonth() + 1;
@@ -2390,6 +2461,7 @@ function subscribeStore() {
     /* E le quote misurate riguardavano le entita' di prima: quale sia la casa
      * e quale la rete e' appena cambiato, quindi si rimisurano. */
     state.quote.clear();
+    dimenticaLeOreTenute();
     scheduleEnergyRefresh(true);
   });
 }

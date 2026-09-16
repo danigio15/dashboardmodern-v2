@@ -298,14 +298,30 @@ export function letturaDellaCassetta(
    * c'e' gia'. E' come funziona una cassetta vera: la posta non se ne va da
    * sola, e chi l'ha presa lo sa. */
   const soloSportello = !conf.posta && Boolean(conf.ritiro);
+  const aperta = conf.ritiro ? apertaAdesso(ritiro, conf.soglia) : null;
   /* Acceso: il cambio che si vede E' l'arrivo, ed e' il piu' fresco che ci
    * sia. Spento: vale quello che ci si era segnati, perche' `last_changed`
    * adesso dice quando il rilevatore ha smesso — che non e' un arrivo. Chi
    * non ha ancora visto niente si tiene il cambio buono in mancanza d'altro:
    * e' quello che faceva prima, e senza ritiri dichiarati non sbaglia. */
   const visto = numero(arriviVisti?.[conf.id]);
+  /* Lo sportello segue la stessa regola del rilevatore, e deve.
+   *
+   * Qui prima si prendeva `last_changed` com'era, aperto o chiuso: e con un
+   * contatto chiuso quel momento e' quando si e' CHIUSO — o, dopo un riavvio
+   * di Home Assistant, semplicemente quando l'entita' e' rinata. Peggio ancora
+   * con un luxmetro, che e' una configurazione prevista (c'e' la soglia): il
+   * suo stato e' un numero, quindi `last_changed` si muove a ogni oscillazione
+   * della luce, e l'arrivo scavalcava il ritiro a ogni lettura — «c'e' posta»
+   * per sempre, e il tasto «l'ho presa» che non teneva.
+   *
+   * L'arrivo e' l'APERTURA, e la si vede solo mentre e' aperto. Chiuso, vale
+   * quello che ci si era segnati; e se non si e' mai visto aprire non si
+   * inventa niente — «non si sa» e' la verita' prima della prima apertura. */
   const arrivata = soloSportello
-    ? quando(ritiro)
+    ? aperta === true
+      ? quando(ritiro)
+      : visto
     : !conf.posta
       ? null
       : acceso(posta)
@@ -321,7 +337,6 @@ export function letturaDellaCassetta(
   const aMano = numero(ritiriAMano?.[conf.id]);
   const ritirata =
     daSensore === null ? aMano : aMano === null ? daSensore : Math.max(daSensore, aMano);
-  const aperta = conf.ritiro ? apertaAdesso(ritiro, conf.soglia) : null;
   /* Chi porta la notizia: il rilevatore se c'e', altrimenti lo sportello. */
   const sorgente = conf.posta ? posta : soloSportello ? ritiro : null;
   const contatore = conf.contatore ? numero(states?.[conf.contatore]?.state) : null;
@@ -380,18 +395,31 @@ function cePosta({ sorgente, arrivata, ritirata, aperta }) {
 
 /* Il registro degli arrivi aggiornato con quello che si vede adesso.
  *
- * Si scrive solo sul fronte di SALITA — rilevatore acceso — perche' e' l'unico
- * momento in cui `last_changed` significa «e' arrivato qualcosa». Torna la
- * stessa mappa quando non c'e' niente da aggiungere, cosi' chi la salva non
- * riscrive per niente. */
+ * Si scrive solo sul fronte di SALITA — il rilevatore acceso, o lo sportello
+ * aperto per chi ha solo quello — perche' e' l'unico momento in cui
+ * `last_changed` significa «e' arrivato qualcosa». Un attimo dopo quel numero
+ * dice tutt'altro: quando il rilevatore ha smesso, quando lo sportello si e'
+ * richiuso, o — dopo un riavvio — quando l'entita' e' rinata.
+ *
+ * Torna la stessa mappa quando non c'e' niente da aggiungere, cosi' chi la
+ * salva non riscrive per niente. */
 export function arriviDaRicordare(input = {}, states = {}, visti = null) {
   const conf = normalizzaIngresso(input);
   const prima = visti && typeof visti === "object" && !Array.isArray(visti) ? visti : {};
   let dopo = prima;
   for (const voce of conf.cassette) {
-    const posta = voce.posta ? states?.[voce.posta] : null;
-    if (!posta || !acceso(posta)) continue;
-    const salita = quando(posta);
+    /* Chi porta la notizia: il rilevatore se c'e', altrimenti lo sportello.
+     * La stessa scelta che fa la lettura, con la stessa ragione. */
+    const soloSportello = !voce.posta && Boolean(voce.ritiro);
+    const sorgente = voce.posta
+      ? states?.[voce.posta]
+      : soloSportello
+        ? states?.[voce.ritiro]
+        : null;
+    if (!sorgente) continue;
+    const aperto = soloSportello ? apertaAdesso(sorgente, voce.soglia) === true : acceso(sorgente);
+    if (!aperto) continue;
+    const salita = quando(sorgente);
     if (salita === null || numero(prima[voce.id]) === salita) continue;
     if (dopo === prima) dopo = { ...prima };
     dopo[voce.id] = salita;

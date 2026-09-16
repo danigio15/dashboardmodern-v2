@@ -15,6 +15,8 @@ import { readFileSync } from "node:fs";
 
 import {
   chiaveDellaQuota,
+  dimenticaLeOreTenute,
+  leOreDalRecorder,
   entitaDelleFonti,
   mesiDellArco,
   periodoInCorso,
@@ -345,4 +347,98 @@ test("una spartizione dice da quale strada è arrivata", () => {
    * ha sbagliato: due blocchi che dicono la stessa cosa si strutturano uguali. */
   assert.match(SORGENTE, /scriviLaStrada\("ed-dkpi-risp-eur", monthSplit\.misurata\)/);
   assert.match(SORGENTE, /scriviLaStrada\("ed-dkpi-anno-risp-eur", yearSplit\.misurata\)/);
+});
+
+/* ── un mese chiuso si legge una volta ──────────────────────────────────────
+ *
+ * L'anno in corso si rimisura ogni quarto d'ora finché la scheda resta aperta.
+ * A mesi quel giro erano dodici domande al Recorder invece di una, e undici
+ * riguardavano mesi finiti, che non cambiano più. La memoria del broker non
+ * bastava: tiene le statistiche storiche dieci minuti, e il giro torna dopo
+ * quindici — cioè sempre a vuoto.
+ */
+test("il mese chiuso si chiede una volta, quello aperto tutte", async () => {
+  const broker = globalThis.DashboardModernEnergyService.broker;
+  const vero = broker.statistics;
+  const chieste = [];
+  broker.statistics = async (_ids, _inizio, fine) => {
+    chieste.push(new Date(fine).getTime());
+    return {};
+  };
+  try {
+    dimenticaLeOreTenute();
+    /* Due mesi chiusi e il mese in corso, con «adesso» a metà settembre: il
+     * taglio è il primo del mese corrente, quindi luglio e agosto sono finiti
+     * e settembre no. L'orologio si passa, che senza non si può provare. */
+    const adesso = new Date(2026, 8, 16, 12);
+    const arco = { kind: "year", start: new Date(2026, 6, 1), end: adesso };
+    const misura = () =>
+      quotaSuArchi(
+        [arco],
+        "sensor.wallbox",
+        "sensor.casa",
+        "sensor.rete",
+        {},
+        0,
+        (entita, pezzo, unita) => leOreDalRecorder(entita, pezzo, unita, adesso),
+      );
+
+    await misura();
+    assert.equal(chieste.length, 3, "il primo giro chiede tutti e tre i mesi");
+
+    chieste.length = 0;
+    await misura();
+    assert.equal(chieste.length, 1, "il secondo giro chiede solo il mese aperto");
+    assert.equal(chieste[0], adesso.getTime(), "ed è proprio quello che finisce adesso");
+
+    /* Cambiata la configurazione — quale entità sia la casa, quale la rete —
+     * si butta tutto: quei secchielli riguardavano altre entità. */
+    dimenticaLeOreTenute();
+    chieste.length = 0;
+    await misura();
+    assert.equal(chieste.length, 3, "dopo il cambio di configurazione si rilegge tutto");
+  } finally {
+    broker.statistics = vero;
+  }
+});
+
+/* ── una misura che non si è potuta rifare non si butta ─────────────────────
+ *
+ * Da quando un mese caduto non fa più cadere tutto, un giro può tornare con
+ * l'anno e senza il mese: il mese in corso è UNA domanda, e se cade quella la
+ * copertura del mese va a zero mentre l'anno, che ha otto mesi chiusi, sta
+ * ancora in piedi. Scritto al posto del vecchio, quel giro buttava via la
+ * misura del mese che c'era già, e la card tornava a dire «stimata sulla media
+ * della casa» per un numero misurato dieci minuti prima.
+ */
+test("un giro che porta solo l'anno non cancella il mese già misurato", () => {
+  assert.match(
+    SORGENTE,
+    /const unite = \{ \.\.\.gia, \.\.\.misurate, quando: adesso\.getTime\(\) \};/,
+    "la misura nuova si scrive SOPRA quella di prima, non al suo posto",
+  );
+  assert.match(
+    SORGENTE,
+    /state\.quote\.set\(chiave, \{ \.\.\.gia, \.\.\.misurate, quando: adesso\.getTime\(\) \}\);/,
+    "vale anche per la scrittura di mezzo, quando l'anno è ancora in volo",
+  );
+  assert.doesNotMatch(SORGENTE, /state\.quote\.set\(chiave, misurate\);/);
+});
+
+/* ── e con i numeri se ne va anche da dove venivano ─────────────────────────
+ *
+ * Le due righe della provenienza e quella della testa del contatore restavano
+ * appese dove le aveva messe l'apparecchio di prima: sotto i trattini di un
+ * periodo senza dati si leggeva ancora com'era stato misurato QUELL'altro. È
+ * il difetto per cui quelle righe esistono, rifatto un passo più in là.
+ */
+test("un periodo senza numeri non tiene la provenienza di quello di prima", () => {
+  assert.match(SORGENTE, /function dimenticaLaStrada\(\) \{/);
+  assert.match(SORGENTE, /querySelectorAll\?\.\("\.dm-ed-strada,\.dm-ed-ammanco"\)/);
+  /* Chiamata sulla strada che scrive i trattini, prima di uscire. */
+  const senzaNumeri = SORGENTE.slice(
+    SORGENTE.indexOf("if (monthValue == null || yearValue == null) {"),
+    SORGENTE.indexOf("const selectedMonth = Number(bundle.period?.month)"),
+  );
+  assert.match(senzaNumeri, /dimenticaLaStrada\(\);\n\s*return false;/);
 });
