@@ -5,6 +5,196 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.4.31 — 2026-09-16
+
+### Aggiunto
+
+- **La tessera Energia dice quanto è piena la batteria**
+
+  «Vorrei che fosse più facile vedere la % della batteria del fotovoltaico
+  senza dover cliccare sulla card energia» (#544).
+
+  Il numero c'era già, ma solo dentro: la finestra del dettaglio lo scrive
+  accanto ai watt della batteria, e per leggerlo bisognava aprire — che è
+  esattamente quello che la segnalazione chiede di non dover fare.
+
+  Adesso sta in testa alla didascalia, subito dopo l'avviso del sovraccarico,
+  e per la stessa ragione per cui l'avviso sta lì: la didascalia scorre, e ciò
+  che si legge senza aspettare è l'inizio. Prima dei numeri del giorno perché
+  non è un numero del giorno — è come sta la casa adesso, come i watt scritti
+  in grande.
+
+  Chi la batteria non ce l'ha non se ne accorge: senza la sua riga, o senza il
+  suo stato di carica, non c'è niente da scrivere e la didascalia resta quella
+  di sempre.
+
+### Corretto
+
+- **Energia: i kWh prima delle statistiche tornano nel totale dell'anno**
+
+  «Gli 894 sono di quest'anno, per questo non riesci a vederle. Le devi
+  conteggiare. Su sta cosa stiamo dalla 1.4.4.»
+
+  La colonnina è stata installata a marzo e le sue statistiche cominciano a
+  giugno. Il contatore di vita dice 1440,76 kWh e — siccome è nata quest'anno
+  — quel numero **è** il consumo del 2026. La plancia ne diceva 546.
+
+  La `sum` del Recorder non è la lettura del contatore: è un totale suo, che
+  parte da zero quando cominciano le **statistiche** di quell'entità. Fra marzo
+  e giugno la colonnina ha caricato e nessuno l'ha registrato: sono gli 894 kWh
+  che mancano — la testa del contatore — e nessuna somma di secchielli può
+  ritrovarla, perché i secchielli non ci sono.
+
+  Dalla 1.4.19 la plancia la scriveva in un avviso invece di contarla, perché
+  «non si sa quando è stata consumata»: su una colonnina installata quest'anno
+  è tutta di quest'anno, su un contatore vecchio a cui hanno ripulito il
+  database è di anni fa. Era vero che le due cose si somigliano. Non era vero
+  che non si distinguono.
+
+  Si distinguono col **passo** dell'apparecchio. Nel tempo misurato ha
+  consumato tanto al giorno; davanti alle statistiche c'è un vuoto lungo così;
+  se la testa ci sta, a quel passo, è roba di questo periodo. Sui numeri della
+  segnalazione: 546 kWh in 92 giorni sono 5,93 al giorno, il vuoto è 151
+  giorni, quindi ci stanno 896 kWh — e la testa ne misura 894,9. Un contatore
+  di casa con cinque anni di vita dietro, con la stessa misura, avrebbe diritto
+  a 896 kWh e ne porta venticinquemila: non è una distinzione sottile.
+
+  Due limiti, scritti e non indovinati: oltre quattro volte il tempo misurato
+  non si giudica, e la testa può sforare il passo fino a tre volte, perché una
+  colonnina d'inverno lavora più che d'agosto. Fuori da lì il totale resta
+  corto, e la riga sulla card dice quanto e perché — come faceva prima. Quando
+  invece la testa è dentro, quella riga lo dice.
+
+- **Energia: la quota di sole dell'anno si misura, e dice quando è una stima**
+
+  Sulla scheda del dispositivo la Wallbox diceva due cose che non possono
+  essere vere insieme: nel mese il 59,5% dalla rete, e nell'anno — tre
+  centimetri più sotto — il 22,8%. Stesso apparecchio, stessa card.
+
+  Il mese era misurato ora per ora. L'anno no: le ore si chiedevano in **una**
+  domanda, da gennaio a oggi, per tre entità insieme — diciottomila righe in
+  una risposta. Se quella domanda cadeva, cadeva l'anno intero, e la card
+  tornava a incollare sui kWh dell'apparecchio la quota di rete della **casa**.
+
+  Ora l'anno si chiede un mese di calendario per volta: nove domande da
+  settecento righe invece di una da diciottomila, e un mese che cade si porta
+  via solo le proprie ore. E sotto ciascuno dei due blocchi c'è una riga che
+  dice da quale strada è arrivato il suo numero — misurato o stimato — perché
+  una percentuale inventata scritta come se fosse misurata è peggio di nessuna
+  percentuale.
+
+- **Energia: la seconda zona si riprende la sua icona**
+
+  «La seconda zona di energia ha perso l'icona»: sotto «Zona notte» c'era il
+  tasto d'accensione di ripiego al posto del fulmine, mentre «Zona giorno»
+  accanto ce l'aveva.
+
+  Con più impianti la prima tessera tiene la chiave «energia» e le altre
+  portano il loro id (#286). I disegni della plancia però stanno per
+  **sezione**, non per impianto: la pastiglia chiedeva un disegno che non
+  esiste e si prendeva il ripiego. La riduzione «una tessera energia è pur
+  sempre l'Energia» era già scritta in tre posti, e il quarto che ne aveva
+  bisogno non ce l'aveva.
+
+- **Sicurezza: i tasti dell'antifurto portano l'icona scelta, non un'emoji**
+
+  «Le icone selezionate in configurazione sono diverse da quelle visualizzate
+  nella sezione Sicurezza» (#547).
+
+  Le tre file di tasti dell'antifurto disegnavano in due modi diversi: la
+  finestra rapida passava dal motore delle icone e disegnava; la pagina e la
+  tessera della Home scrivevano l'emoji di ripiego che il catalogo tiene
+  accanto a ogni voce. Un'emoji al posto di un disegno non è la stessa icona in
+  piccolo: è un'altra icona. E valeva anche per i modi di serie, che un disegno
+  nel catalogo ce l'hanno da sempre.
+
+  Adesso a disegnare un tasto è una funzione sola, che le tre file chiamano
+  tutte con la misura della propria casella. Lo stesso vale per il cartellone
+  tondo in cima alla pagina, che il guscio riempiva d'emoji anche quando
+  l'inserimento acceso era un tasto scritto a mano.
+
+- **Sicurezza: senza centrale restano solo i tasti scritti a mano**
+
+  «Non c'è modo di togliere le voci tasto Notte e Sblocca, che nel caso di
+  configurazione con script non hanno modo di esistere» (#547).
+
+  Per uno slot che nessuno ha mappato il guscio non risponde mai «non lo so»:
+  restituisce un segnaposto, perché chi disegna non inciampi. Ma un segnaposto
+  è un oggetto, e un oggetto è vero: la plancia rispondeva «sì, la centrale
+  c'è» a chi la centrale non ce l'ha, e la fila di serie compariva accanto ai
+  tasti scritti a mano — tasti che chiamano servizi che non esistono, e che non
+  si potevano nemmeno nascondere.
+
+  Adesso il segnaposto vale come assenza. Un `unavailable` **vero** invece
+  resta una centrale: sta solo dormendo, e chi l'ha configurata vuole
+  ritrovare i suoi tasti al risveglio.
+
+- **Posta: col solo sensore dello sportello, un'apertura è una notizia**
+
+  «Non serve il sensore che si mette per l'apertura della cassetta della
+  posta» (#564). Chi aveva messo il solo contatto sullo sportello leggeva
+  «Aperta» per i pochi secondi dell'apertura e «Non si sa» per tutto il resto
+  del tempo, senza nemmeno il tasto «L'ho presa».
+
+  La sezione è nata intorno a due sensori — uno dentro che dice «è arrivato
+  qualcosa» e uno che dice «lo sportello è stato aperto» — e il verdetto è il
+  confronto fra i due momenti. Con un sensore solo quei due momenti sono lo
+  stesso momento, e il confronto dava sempre niente.
+
+  Adesso quell'apertura vale come arrivo, e a dire che è finita è la persona
+  col tasto che c'è già. È come funziona una cassetta vera: la posta non se ne
+  va da sola. Chi ha tutti e due i sensori non si accorge di niente.
+
+- **Gli stati di Home Assistant si dicono a parole, non col loro nome tecnico**
+
+  «Posizione auto da nome non tradotto not_home»: nella finestra della tessera
+  Auto, sotto «RAV4 luogo di parcheggio», c'era scritto `not_home`. Non è una
+  parola — è il nome che Home Assistant dà a uno stato, con l'underscore in
+  mezzo — e in una plancia non ci va mai.
+
+  La tabella che traduce quei nomi esisteva già. Cinque volte, e nessuna sapeva
+  delle altre: due nelle sezioni che uno si fa (una conosceva quattro parole
+  che l'altra non aveva), due per le porte (la tessera si fermava a tre dove la
+  sezione ne diceva sei), e nessuna dove è saltata fuori la segnalazione — la
+  riga costruita da un'entità qualunque scriveva lo stato così come arrivava.
+
+  Adesso sono una sola. Nello stesso giro se n'è andata un'ambiguità che era
+  dentro le copie: `unlocked` diceva «Aperto», la stessa parola di `open`. Due
+  stati con lo stesso nome, e nelle altre lingue quell'italiano non sapeva più
+  quale delle due parole inglesi fosse la sua. Adesso è «Sbloccato».
+
+  Il nome di una zona — «Lavoro», «Palestra» — passa intatto: è già una parola
+  scritta da qualcuno.
+
+- **Rifiuti: il tipo del ritiro si dice nella lingua della plancia**
+
+  «Sembra che il tipo di rifiuto del giorno non sia tradotto»: sotto il bidone
+  c'era scritto «Paper». Il materiale la plancia lo riconosceva — il bidone
+  disegnato era proprio quello della carta — e la parola ce l'aveva, tradotta
+  in tredici lingue. Scriveva quella dell'integrazione solo perché c'era.
+
+  La regola giusta esisteva già nella lettura degli elenchi; il ramo del
+  calendario non ce l'aveva, e lo stesso ritiro diceva «Carta e cartone» se
+  arrivava da un elenco e «Paper» se arrivava da un evento. Adesso la regola è
+  una sola.
+
+  Quello che la plancia non sa leggere resta com'è — «Ritiro porta a porta»,
+  «Isola ecologica chiusa» — perché lì quel testo è l'unica informazione che
+  c'è.
+
+- **Tessere compatte: il nome non si mangia più a metà**
+
+  «ELETTRODOMESTIC 2», «TEMPERATU 24,2°», «AGEN 8 in arrivo», «SICU
+  Disinserito»: nella modalità compatta il nome e il valore si dividevano la
+  stessa riga, e il valore vinceva sempre — si prendeva quello che gli serviva
+  e al nome restava il resto, tagliato secco a metà parola.
+
+  Adesso la pillola è una griglia di due colonne: il disegno a sinistra, e a
+  destra il nome sopra e il valore sotto. Il nome ha sempre la stessa
+  larghezza, qualunque cosa dica il valore. Costa quattro pixel d'altezza, da
+  48 a 52; restano due colonne, e tutto il resto della compatta è quello di
+  prima.
+
 ## 1.4.30 — 2026-09-15
 
 ### Corretto
