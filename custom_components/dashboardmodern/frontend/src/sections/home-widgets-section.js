@@ -4693,9 +4693,7 @@ export function applyWidgetPreferences(models, preferences = widgetPreferences()
            * cambiano da una casa all'altra. */
           eUnaSezioneMia(widget.key)
           ? "mie"
-          : eUnaTesseraEnergia(widget.key)
-            ? "energia"
-            : widget.key;
+          : famigliaDellaTessera(widget.key);
   const rank = (widget) => {
     const nome = chiave(widget);
     const index = preferences.order.indexOf(nome);
@@ -5406,7 +5404,7 @@ function unitaSimbolo(unita) {
  *
  * Chi sa disegnare un nome mdi e' il motore delle icone, che e' anche quello
  * che ha riempito il catalogo da cui la scelta viene. */
-function facciaDellaTessera(widget) {
+export function facciaDellaTessera(widget) {
   /* Una tessera puo' portarsi la faccia da sola (#460).
    *
    * «Remove the speaker icon and its name from the media player»: sulla musica
@@ -5416,7 +5414,8 @@ function facciaDellaTessera(widget) {
    * risposta invece dell'etichetta. La pastiglia resta dov'e' e com'e': cambia
    * cosa ci sta sopra, non la forma della tessera. */
   if (widget?.faccia) return widget.faccia;
-  if (haOggettoWidget(widget?.key)) return oggettoWidget(widget.key);
+  const famiglia = famigliaDellaTessera(widget?.key);
+  if (haOggettoWidget(famiglia)) return oggettoWidget(famiglia);
   return iconGlyphMarkup("action", widget?.icon, { size: 22 });
 }
 
@@ -6491,13 +6490,29 @@ const CHIAVI_A_CARTE = new Set([
 const eUnaTesseraEnergia = (chiave) =>
   clean(chiave) === "energia" || clean(chiave).startsWith("energia_");
 
+/**
+ * La famiglia di una tessera: la chiave sotto cui vive la sua sezione.
+ *
+ * Per quasi tutte e' la chiave stessa. Per gli impianti oltre il primo no —
+ * `energia_zona_notte` e' pur sempre l'Energia — e quella riduzione era scritta
+ * in tre posti: chi ordina le tessere, chi ne disegna le caselle, chi apre la
+ * pagina. Un quarto le serviva — chi sceglie il disegno della pastiglia — e
+ * non ce l'aveva: la seconda zona chiedeva il disegno di «energia_zona_notte»,
+ * che non esiste, e si ritrovava il ripiego del motore delle icone. Dal campo:
+ * «la seconda zona di energia ha perso l'icona».
+ */
+const famigliaDellaTessera = (chiave) =>
+  eUnaTesseraEnergia(chiave) ? "energia" : clean(chiave);
+
 function carteDalleRighe(widget) {
   /* Una tessera «a se'» delle evidenze si disegna come la tessera madre, e
    * cosi' anche quella di una sezione propria: sono entrambe un pugno di
    * entita' scelte a mano, col loro nome e il loro valore. */
   const grezza = clean(widget.key);
   const chiave =
-    grezza.startsWith("evidenza-") || eUnaSezioneMia(grezza) ? "evidenza" : grezza;
+    grezza.startsWith("evidenza-") || eUnaSezioneMia(grezza)
+      ? "evidenza"
+      : famigliaDellaTessera(grezza);
   if (!(CHIAVI_A_CARTE.has(chiave) || eUnaTesseraEnergia(chiave) || chiave.startsWith("custom-")))
     return [];
   const righe = Array.isArray(widget.rows) ? widget.rows : [];
@@ -7226,7 +7241,7 @@ function voceDellaSezione(chiave) {
   const tab = eUnaSezioneMia(grezza)
     ? grezza
     : /* Ogni tessera energia porta alla sezione, non solo la prima (#286). */
-      SEZIONE_DEL_WIDGET[eUnaTesseraEnergia(grezza) ? "energia" : grezza];
+      SEZIONE_DEL_WIDGET[famigliaDellaTessera(grezza)];
   if (!tab) return null;
   const voce = doc?.querySelector?.(`.tab[data-tab="${tab}"]`);
   if (!voce || voce.style?.display === "none") return null;

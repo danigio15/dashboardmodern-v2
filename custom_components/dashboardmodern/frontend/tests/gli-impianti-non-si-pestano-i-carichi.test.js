@@ -98,7 +98,14 @@ test("tutte le tessere energia seguono l'ordine di «Energia», e ognuna porta a
   );
   magazzino.delete("cd_widgets");
   const home = leggi("sections/home-widgets-section.js");
-  assert.match(home, /SEZIONE_DEL_WIDGET\[eUnaTesseraEnergia\(grezza\) \? "energia" : grezza\]/);
+  /* La riduzione «una tessera energia e' pur sempre l'Energia» si fa in un
+   * posto solo: ordinare, disegnare le caselle, aprire la pagina e scegliere
+   * il disegno della pastiglia sono quattro domande diverse con la stessa
+   * risposta, e quando erano scritte a parte la quarta se l'e' persa — la
+   * seconda zona restava senza icona. */
+  assert.match(home, /const famigliaDellaTessera = \(chiave\) =>\n\s*eUnaTesseraEnergia\(chiave\) \? "energia" : clean\(chiave\);/);
+  assert.match(home, /SEZIONE_DEL_WIDGET\[famigliaDellaTessera\(grezza\)\]/);
+  assert.equal((home.match(/\? "energia"/g) || []).length, 1, "la riduzione e' scritta due volte");
   assert.match(home, /impianto: clean\(impianto\?\.id\) \|\| PRIMO_IMPIANTO,/);
   assert.match(home, /data-dm-w-impianto="\$\{esc\(widget\.impianto\)\}"/);
   assert.match(home, /new CustomEvent\("dashboardmodern:energy-plant-requested", \{ detail: \{ plant: impianto \} \}\)/);

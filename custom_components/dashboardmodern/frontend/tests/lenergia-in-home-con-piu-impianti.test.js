@@ -29,6 +29,17 @@ import {
   sommaNumeri,
 } from "../src/core/energy-plants.js";
 
+const magazzino = new Map();
+globalThis.localStorage = {
+  getItem: (k) => (magazzino.has(k) ? magazzino.get(k) : null),
+  setItem: (k, v) => magazzino.set(k, String(v)),
+  removeItem: (k) => magazzino.delete(k),
+};
+globalThis.document = undefined;
+globalThis.DashboardModernModules = { store: { getSection: () => null } };
+
+const { facciaDellaTessera } = await import("../src/sections/home-widgets-section.js");
+
 test("di serie si somma, e la scelta è una parola sola", () => {
   assert.equal(comeSiVedeLEnergia(""), TESSERA_SOMMA);
   assert.equal(comeSiVedeLEnergia(null), TESSERA_SOMMA);
@@ -100,6 +111,33 @@ test("la tessera legge l'impianto, e le sue sorelle sono riconosciute", () => {
    * dopo e non ne hanno, quindi coi campi vuoti avrebbero letto le entità del
    * primo e detto gli stessi numeri. */
   assert.match(ponte, /\(primo \? slot : ""\)/);
+});
+
+/* ── e anche il disegno e' quello dell'Energia ──────────────────────────────
+ *
+ * «la seconda zona di energia ha perso l'icona»: sotto «ZONA NOTTE» c'era il
+ * tasto d'accensione del motore delle icone al posto del fulmine. La pastiglia
+ * chiedeva il disegno di «energia_zona_notte», che non esiste — i disegni
+ * stanno per sezione, non per impianto — e si prendeva il ripiego.
+ */
+test("la seconda zona porta il disegno dell'Energia, come la prima", () => {
+  const prima = facciaDellaTessera({ key: "energia", icon: "⚡" });
+  const seconda = facciaDellaTessera({ key: "energia_zona_notte", icon: "⚡" });
+  assert.match(prima, /<svg class="dm-oggetto"/, "la prima non ha il disegno di casa");
+  assert.equal(seconda, prima, "la seconda zona non disegna come la prima");
+});
+
+test("una tessera che si porta la faccia da sola tiene la sua", () => {
+  /* La musica mette la copertina del disco al posto dell'altoparlante: quella
+   * vince su tutto, anche sul disegno della sezione. */
+  assert.equal(facciaDellaTessera({ key: "energia", faccia: "<img>" }), "<img>");
+});
+
+test("chi non e' una sezione disegnata resta col suo disegno scelto", () => {
+  /* Un avviso che uno si e' scritto, o una sezione sua: il catalogo non ha un
+   * disegno per «evidenza-3», e l'icona scelta e' l'unica cosa che c'e'. */
+  const evidenza = facciaDellaTessera({ key: "evidenza-3", icon: "mdi:water-alert" });
+  assert.doesNotMatch(evidenza, /<svg class="dm-oggetto"/);
 });
 
 test("la scelta viaggia, perché è come si vuole vedere la plancia", () => {
